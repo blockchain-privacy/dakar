@@ -6,6 +6,7 @@ import (
 	"backend/analytics/heuristics"
 	"backend/analytics/workspace"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
@@ -17,7 +18,6 @@ import (
 	dbwork "backend/db/workspace"
 	"backend/external"
 	"io"
-	"slices"
 	"strings"
 	"time"
 
@@ -599,19 +599,20 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 		}
 	}
 
-	if len(req.UIDs) > 0 {
-		if err := dbHeuristic.DeleteUserHeuristics(dgraph, req.UIDs, tUser.ID); err != nil {
-			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
-				reply.Msg = "No data was deleted. The uids might be invalid."
-				status = http.StatusNotFound
-			} else {
-				reply.Msg = "could not delete data"
-				status = http.StatusInternalServerError
-				warn(err)
-			}
-			return
-		}
-	}
+	// todo delete
+	//if len(req.UIDs) > 0 {
+	//	if err := dbHeuristic.DeleteUserHeuristics(dgraph, req.UIDs, tUser.ID); err != nil {
+	//		if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+	//			reply.Msg = "No data was deleted. The uids might be invalid."
+	//			status = http.StatusNotFound
+	//		} else {
+	//			reply.Msg = "could not delete data"
+	//			status = http.StatusInternalServerError
+	//			warn(err)
+	//		}
+	//		return
+	//	}
+	//}
 
 	return
 }
@@ -2196,19 +2197,74 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		return
 	}
 
-	foundNode := false
-	for i, n := range w.Nodes {
+	var deletedNode *dbwork.FrontendGraphNode
+	for _, n := range w.Nodes {
 		if n.UID == searchRequest.NodeUID {
-			w.Nodes = slices.Delete(w.Nodes, i, i+1)
-			foundNode = true
+			deletedNode = &n
 			break
 		}
 	}
 
-	if !foundNode {
+	if deletedNode == nil {
 		status = http.StatusBadRequest
 		warn(cliutil.NewStackErrorf("node does not exist in workspace. request: %v", searchRequest))
 		return
+	}
+
+	var deletedNodes []string
+
+	if deletedNode.Type == "heuristic" {
+		nodeMap := make(map[string]dbwork.FrontendGraphNode, len(w.Nodes))
+		for _, n := range w.Nodes {
+			nodeMap[n.UID] = n
+		}
+
+		uids := dbwork.FindDescandantHeuristicUIDs(nodeMap, deletedNode.UID)
+
+		// delete the actual heuristics
+		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, tUser.ID, searchRequest.WorkspaceUID); err != nil {
+			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+				status = http.StatusNotFound
+			} else {
+				status = http.StatusInternalServerError
+				warn(err)
+			}
+			return
+		}
+
+		// remove heuristics from nodes
+		w.Nodes = dbwork.DeleteNodes(w.Nodes, uids)
+		deletedNodes = uids
+	} else if deletedNode.Type == "transaction" && deletedNode.PrivacyType != nil && constants.PrivacyType(*deletedNode.PrivacyType).IsDestination() {
+		nodeMap := make(map[string]dbwork.FrontendGraphNode, len(w.Nodes))
+		for _, n := range w.Nodes {
+			nodeMap[n.UID] = n
+		}
+
+		// collect all heuristic UIDs
+		var children []string
+		for _, child := range deletedNode.Children {
+			children = append(children, dbwork.FindDescandantHeuristicUIDs(nodeMap, child)...)
+		}
+
+		if len(children) > 0 {
+			// delete the actual heuristics
+			if err := dbHeuristic.DeleteUserHeuristics(dgraph, children, tUser.ID, searchRequest.WorkspaceUID); err != nil {
+				if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+					status = http.StatusNotFound
+				} else {
+					status = http.StatusInternalServerError
+					warn(err)
+				}
+				return
+			}
+		}
+
+		deletedNodes = append(children, deletedNode.UID)
+		w.Nodes = dbwork.DeleteNodes(w.Nodes, deletedNodes)
+	} else {
+		dbwork.DeleteNodes(w.Nodes, []string{deletedNode.UID})
+		deletedNodes = []string{deletedNode.UID}
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
@@ -2218,7 +2274,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		return
 	}
 
-	reply.DeletedNodeUIDs = []string{searchRequest.NodeUID}
+	reply.DeletedNodeUIDs = deletedNodes
 
 	return
 }

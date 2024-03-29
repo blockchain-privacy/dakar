@@ -86,23 +86,29 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string, workspace
 }
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c external.Database, uids []string, userUID string) error {
-	const query = `query Q($user:string, $uids:string){
-				h as var(func: uid($uids))@filter(uid_in(~User.heuristics,$user) AND eq(dgraph.type,` + DType + `)){
-					hc as Heuristic.clusters{
+func DeleteUserHeuristics(c external.Database, uids []string, userUID string, workspaceUID string) error {
+	const query = `
+		query Q($userUID:string,$heuristicUIDs:string,$workspaceUID:string){
+			var(func: uid($userUID)){
+				User.workspaces@filter(uid($workspaceUID)){
+					h as Workspace.heuristics@filter(uid($heuristicUIDs)){
+						hc as Heuristic.clusters{
 							hr as HeuristicCluster.results
+						}
 					}
 				}
-			  }`
+			}
+		}`
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$user": userUID, "$uids": db.CreateCommaArray(uids)},
+		Vars: map[string]string{"$userUID": userUID,
+			"$heuristicUIDs": db.CreateCommaArray(uids), "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte(` uid(hr) * * .
 								uid(hc) * * .
 								uid(h) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ."),
+								<` + workspaceUID + "> <Workspace.heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}

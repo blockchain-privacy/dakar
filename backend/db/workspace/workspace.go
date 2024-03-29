@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/dgraph-io/dgo/v230/protos/api"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -286,4 +287,34 @@ func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []stri
 	isOutdated = height < *r.Height[0].MaxHeight
 
 	return
+}
+
+// FindDescandantHeuristicUIDs returns the given node uid and all node uids which can
+// be found by recursively traversing their children. Only heuristics are considered.
+func FindDescandantHeuristicUIDs(nodes map[string]FrontendGraphNode, nodeUID string) []string {
+	var descendants []string
+
+	n, ok := nodes[nodeUID]
+	if !ok || n.Type != "heuristic" {
+		return descendants
+	}
+
+	descendants = append(descendants, n.UID)
+
+	for _, childNode := range n.Children {
+		descendants = append(descendants, FindDescandantHeuristicUIDs(nodes, childNode)...)
+	}
+	return descendants
+}
+
+// DeleteNodes returns a new slice which contains nodes which do not have an UID contained in uids
+func DeleteNodes(nodes []FrontendGraphNode, uids []string) []FrontendGraphNode {
+	var newNodes []FrontendGraphNode
+
+	for _, n := range nodes {
+		if !slices.Contains(uids, n.UID) {
+			newNodes = append(newNodes, n)
+		}
+	}
+	return newNodes
 }

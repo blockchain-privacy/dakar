@@ -298,57 +298,9 @@ onUnmounted(() => {
 });
 
 // Functions
-function getDecendants(uid) {
-	const descendants = [];
-	const node = nodeGraph.getNode(uid);
-	if (!node || node.type !== 'heuristic') {
-		return descendants;
-	}
-
-	descendants.push(node.uid);
-
-	if (!node.children) {
-		return descendants;
-	}
-
-	node.children.forEach(child => {
-		descendants.push(...getDecendants(child));
-	});
-
-	return descendants;
-}
-
-// Deletes the given heuristic and all its connected children. The uids of all delete nodes are returned.
-async function deleteHeuristicSubGraph(uid) {
-	const uids = getDecendants(uid);
-	if (!uids) {
-		// Something went wrong, not deleting anything
-		return [];
-	}
-
-	try {
-		await dakar.heuristic.deleteHeuristicPost({heuristic: {uids}});
-	} catch (e) {
-		setErrorMessage(e);
-		return [];
-	}
-
-	return uids;
-}
-
-// Functions
 async function removeGraphNode() {
 	const node = nodeGraph.getContextNode();
 	if (!node || node.loading) {
-		return;
-	}
-
-	if (node.type === 'heuristic') {
-		const deletedUIDs = await deleteHeuristicSubGraph(node.uid);
-		if (deletedUIDs) {
-			nodeGraph.removeNodes(deletedUIDs);
-		}
-
 		return;
 	}
 
@@ -360,19 +312,8 @@ async function removeGraphNode() {
 			},
 		});
 
-		console.log('delete this uids:', response.deletedNodeUIDs);
-		if (isDestination(node.privacyType)) {
-			// Remove destination node and all connected heuristics from graph
-			const uids = [node.uid];
-
-			if (node.children) {
-				node.children.forEach(child => uids.push(...getDecendants(child)));
-			}
-
-			nodeGraph.removeNodes(uids);
-		} else {
-			nodeGraph.removeNodes(response.deletedNodeUIDs);
-		}
+		console.log('delete these uids:', response.deletedNodeUIDs);
+		nodeGraph.removeNodes(response.deletedNodeUIDs);
 	} catch (e) {
 		setErrorMessage(e);
 	}

@@ -218,10 +218,9 @@ export default class NodeGraph {
 		return links;
 	}
 
+	// CheckNode returns tur if both the UID and type of the node is set
 	checkNode(node) {
-		if (!node.uid || !node.type) {
-			throw new Error('node does not have required attributes: uid, type');
-		}
+		return Boolean(node.uid) && Boolean(node.type);
 	}
 
 	removeContextMenuNode() {
@@ -269,7 +268,10 @@ export default class NodeGraph {
 	// provided node.uid already exist the existing node is instead updated.
 	// Set draw to false, if the graph should not be redrawn.
 	addNode(node, draw) {
-		this.checkNode(node);
+		if (!this.checkNode(node)) {
+			// Skip node if it has errors
+			return;
+		}
 
 		// Check if properties have to be copied
 		const mapNode = this.nodeMap.get(node.uid);
