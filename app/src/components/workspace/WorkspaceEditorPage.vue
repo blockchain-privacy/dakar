@@ -146,6 +146,9 @@ import {
 	CLUSTER_TYPE_CUSTOM,
 	ROUTE_NAME_WORKSPACE_PAGE,
 	ROUTE_NAME_WORKSPACES_PAGE,
+	WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants';
 import {getColorMap, handleError, isDestination} from '@/utilities';
 import {
@@ -166,10 +169,10 @@ const context = {addMessage: msgStore.addMessage, $route: route};
 const newUidPrefix = 'newUid_';
 
 const colorMap = getColorMap();
-colorMap.set('heuristic', '#4CAF50');
-colorMap.set('cluster', '#CDDC39');
+colorMap.set(WORKSPACE_NODE_TYPE_HEURISTIC, '#4CAF50');
+colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
 // Non-privacy transaction
-colorMap.set('transaction', '#607D8B');
+colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
 
 const nodeGraph = new NodeGraph(colorMap);
 
@@ -415,7 +418,7 @@ async function addNewHeuristic(heuristic) {
 		return;
 	}
 
-	if (nodeGraph.getNode(newHeuristicParentNodeUID).type === 'heuristic') {
+	if (nodeGraph.getNode(newHeuristicParentNodeUID).type === WORKSPACE_NODE_TYPE_HEURISTIC) {
 		// Only set parent if the direct parent is a heuristic
 		newHeuristic.parentUID = newHeuristicParentNodeUID;
 	}
@@ -432,7 +435,7 @@ async function addNewHeuristic(heuristic) {
 
 		nodeGraph.addNodes([parentNode, {
 			uid: response.workID,
-			type: 'heuristic',
+			type: WORKSPACE_NODE_TYPE_HEURISTIC,
 			loading: true,
 			heuristicType: newHeuristic.type,
 			heuristicExcludeAddresses: newHeuristic.excludeAddresses,
@@ -490,7 +493,7 @@ function replaceTemporaryHeuristic(workID, parentUID, heuristic) {
 	nodeGraph.removeNode(workID, false);
 	nodeGraph.addNodes([parent, {
 		uid: heuristic.uid,
-		type: 'heuristic',
+		type: WORKSPACE_NODE_TYPE_HEURISTIC,
 		heuristicType: heuristic.type,
 		heuristicExcludeAddresses: heuristic.excludeAddresses,
 		heuristicExcludeSpendingGaps: heuristic.excludeSpendingGaps,
@@ -509,12 +512,12 @@ function getHeuristicTransaction(nodes, uid) {
 		return '';
 	}
 
-	if (node.type === 'transaction') {
+	if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 		// Found it
 		return node.transactionHash;
 	}
 
-	if (node.type === 'heuristic') {
+	if (node.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
 		// Find parent and do recursive call
 		const parent = nodes.find(v => v.children?.includes(uid));
 
@@ -557,13 +560,13 @@ function openEntitySideBar(nodeData) {
 	entityType.value = nodeData.type;
 
 	switch (entityType.value) {
-		case 'cluster':
+		case WORKSPACE_NODE_TYPE_CLUSTER:
 			entityIdentifier.value = nodeData.addressHash;
 			break;
-		case 'transaction':
+		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
-		case 'heuristic':
+		case WORKSPACE_NODE_TYPE_HEURISTIC:
 			// Brackets so local variables stay local (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
 				let displayType = '';
@@ -599,7 +602,7 @@ function showContextMenu(e, nodeData) {
 
 	e.preventDefault();
 
-	if (nodeData?.type === 'heuristic' || isDestination(nodeData.privacyType)) {
+	if (nodeData?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeData.privacyType)) {
 		showContextMenuAddHeuristic.value = true;
 	} else {
 		showContextMenuAddHeuristic.value = false;

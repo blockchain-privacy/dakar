@@ -18,9 +18,12 @@
           Delete
         </v-chip>
         <template v-if="!isLoading && entityData">
-          <template v-if="type === 'heuristic' || (type === 'transaction' && entityData[0]?.privacytype >= 0)">
+          <template
+            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
+              (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
+          >
             <v-chip
-              v-if="type === 'heuristic' || isDestination(entityData[0].privacytype)"
+              v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
               :rounded="true"
               color="primary"
               variant="tonal"
@@ -32,20 +35,20 @@
             </v-chip>
           </template>
           <fingerprint-chip
-            v-if="type === 'transaction' && entityData[0] && isDestination(entityData[0].privacytype)"
+            v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
             :transaction-hash="identifier"
             class="me-2"
           />
           <privacy-chip
-            v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
+            v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION&& entityData[0]?.privacytype >= 0"
             :privacy-type="entityData[0].privacytype"
           />
           <exclusion-chip
-            v-else-if="type === 'cluster' && entityData?.addresshash"
+            v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
             :address-hash="entityData.addresshash"
           />
           <v-chip
-            v-else-if="type === 'heuristic' && entityData?.clusterCount > 0"
+            v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
             :rounded="true"
             color="primary"
             variant="tonal"
@@ -65,7 +68,7 @@
           type="list-item-three-line, list-item-three-line, list-item-three-line"
         />
         <template v-else>
-          <template v-if="type === 'transaction' && entityData?.length">
+          <template v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length">
             <!-- duplicate transaction hashes can exist -> loop through all results
             (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
             <template
@@ -83,12 +86,12 @@
             </template>
           </template>
           <address-view
-            v-else-if="entityData && type === 'cluster'"
+            v-else-if="entityData && type === WORKSPACE_NODE_TYPE_CLUSTER"
             :address-data="entityData"
             :show-title-bar="false"
           />
           <heuristic-details
-            v-else-if="entityData.heuristicUid && type === 'heuristic'"
+            v-else-if="entityData.heuristicUid && type === WORKSPACE_NODE_TYPE_HEURISTIC"
             :heuristic-data="entityData"
           />
           <div v-else>
@@ -174,7 +177,12 @@ import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities';
-import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {
+	ROUTE_NAME_ADDRESS_PAGE,
+	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+} from '@/constants';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 
@@ -204,11 +212,11 @@ const routeGuardDialogModel = ref(false);
 // Computed
 const title = computed(() => {
 	switch (props.type) {
-		case 'transaction':
+		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			return `Transaction ${props.identifier}`;
-		case 'cluster':
+		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
-		case 'heuristic':
+		case WORKSPACE_NODE_TYPE_HEURISTIC:
 			return 'Heuristic Properties';
 		default:
 			return 'unknown entity type';
@@ -224,11 +232,11 @@ onUpdated(async () => {
 		const cacheValue = cacheStore.getValue(props.identifier);
 		if (cacheValue !== undefined) {
 			entityData.value = cacheValue;
-		} else if (props.type === 'transaction') {
+		} else if (props.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 			await getTransactionData();
-		} else if (props.type === 'cluster') {
+		} else if (props.type === WORKSPACE_NODE_TYPE_CLUSTER) {
 			await getAddressData();
-		} else if (props.type === 'heuristic') {
+		} else if (props.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
 			await getHeuristicData();
 		}
 
@@ -255,11 +263,11 @@ onBeforeRouteLeave(to => {
 // Computed
 const sideBarIcon = computed(() => {
 	switch (props.type) {
-		case 'transaction':
+		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			return mdiTransfer;
-		case 'cluster':
+		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
-		case 'heuristic':
+		case WORKSPACE_NODE_TYPE_HEURISTIC:
 			return mdiChartBar;
 		default:
 			return mdiShapeCirclePlus;

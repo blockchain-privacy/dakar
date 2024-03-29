@@ -10,6 +10,11 @@ import {
 	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
+import {
+	WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+} from '@/constants/index.js';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -545,15 +550,15 @@ export default class NodeGraph {
 			.attr('fill', 'currentColor')
 			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
 			.text(d => {
-				if (d.type === 'cluster') {
+				if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
 					return d.addressHash;
 				}
 
-				if (d.type === 'transaction') {
+				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 					return d.transactionHash;
 				}
 
-				if (d.type === 'heuristic') {
+				if (d.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
 					const title = this.heuristicTypeMap.get(d.heuristicType);
 					if (title !== undefined) {
 						return title;
@@ -576,11 +581,11 @@ export default class NodeGraph {
 			.attr('fill', 'currentColor')
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
-				if (d.type === 'cluster') {
+				if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
 					return d.clusterType;
 				}
 
-				if (d.type === 'transaction' && d.privacyType) {
+				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyType) {
 					return getPrivacyTypeLabel(d.privacyType);
 				}
 
@@ -606,7 +611,7 @@ export default class NodeGraph {
 			.attr('font-size', 12)
 			.attr('y', 1)
 			.text(d => {
-				if (d.type !== 'heuristic') {
+				if (d.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
 					return '';
 				}
 
@@ -615,7 +620,7 @@ export default class NodeGraph {
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== 'heuristic') {
+				if (d.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
 					return;
 				}
 

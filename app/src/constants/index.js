@@ -46,3 +46,8 @@ export const COIN_UNIT = COIN_UNIT_DASH;
 // Cluster
 export const CLUSTER_TYPE_FMI = 'fmi';
 export const CLUSTER_TYPE_CUSTOM = 'custom';
+
+// Workspace node type
+export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
+export const WORKSPACE_NODE_TYPE_CLUSTER = 'cluster';
+export const WORKSPACE_NODE_TYPE_HEURISTIC = 'heuristic';
