@@ -47,7 +47,6 @@ var (
 		getRouteHeuristics():           true,
 		getRouteHeuristicReport():      true,
 		getRouteHeuristicList():        true,
-		getRouteDeleteHeuristic():      true,
 		getRouteHeuristicDescriptors(): true,
 		// analytics
 		getRouteShortestTransactionPath(): true,
@@ -82,6 +81,7 @@ var (
 		getRouteUpdateWorkspace():     true,
 		getRouteDeleteWorkspace():     true,
 		getRouteDeleteAllWorkspaces(): true,
+		getRouteWorkspaceDeleteNode(): true,
 	}
 )
 

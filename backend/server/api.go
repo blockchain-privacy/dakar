@@ -562,28 +562,6 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	})
 }
 
-// Delete Heuristic godoc
-//
-//	@Summary		Delete heuristics either by transaction, uid or user
-//	@Description	Deletes either all heuristics of the current user, all heuristics of a transaction of the current user, or heuristics specified by uid
-//	@Tags			heuristic
-//	@Produce		json
-//	@Accept			json
-//	@Param			heuristic	body		server.getDeleteHeuristicReply.request	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristics should be deleted."
-//	@Success		200			{object}	server.msgReply
-//	@Failure		400			{object}	server.msgReply
-//	@Failure		401			{object}	server.msgReply
-//	@Failure		404			{object}	server.msgReply
-//	@Failure		500			{object}	server.msgReply
-//	@Router			/deleteHeuristic/ [post]
-func (s *Server) handlerDeleteHeuristic() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteHeuristicReply(r, s.db)
-
-		sendReply(w, reply, status)
-	})
-}
-
 // Create Identity godoc
 //
 //	@Summary	Create a new identity. This is an admin endpoint.
@@ -975,8 +953,6 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerHeuristicList(), getRouteHeuristicList(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDescriptors(),
 		adapt(s.handlerHeuristicDescriptors(), getRouteHeuristicDescriptors(), s.authorization(), s.useCache(0), maxBody()))
-	s.handler.Handle(getRouteDeleteHeuristic(),
-		adapt(s.handlerDeleteHeuristic(), getRouteDeleteHeuristic(), s.authorization(), maxBody()))
 
 	// Analytics
 	s.handler.Handle(getRouteShortestTransactionPath(),

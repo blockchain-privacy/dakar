@@ -127,12 +127,15 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 
 // DeleteAllUserHeuristics deletes all heuristics of a user
 func DeleteAllUserHeuristics(c external.Database, userUID string) error {
+	// todo delete workspace here too
 	req := &api.Request{
 		Query: `query Q($user:string){
 				var(func: uid($user)){
-					h as User.heuristics{
-						hc as Heuristic.clusters{
-							hr as HeuristicCluster.results
+					User.workspaces{
+						h as Workspace.heuristics{
+							hc as Heuristic.clusters{
+								hr as HeuristicCluster.results
+							}
 						}
 					}
 				}
@@ -149,45 +152,6 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) error {
 
 	_, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	return err
-}
-
-// DeleteAllUserTxHeuristics deletes all heuristics of a user of a particular transaction
-func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) error {
-	query := `query Q($user:string, $hash:string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				# get all heuristic of that user and transaction
-				var(func: uid($user)){
-					h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(tx))){
-						hc as Heuristic.clusters{
-							hr as HeuristicCluster.results
-						}
-					}
-				}
-			  }`
-
-	req := &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$user": userUID, "$hash": txhash},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ."),
-		}},
-		CommitNow: true,
-	}
-
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if err != nil {
-		return err
-	}
-
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return cliutil.NewStackError(ErrNoMutationHappened)
-	}
-
-	return nil
 }
 
 // GetHeuristicResults returns the connected transactions of heuristic
