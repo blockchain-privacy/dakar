@@ -125,13 +125,13 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 	return nil
 }
 
-// DeleteAllUserHeuristics deletes all heuristics of a user
-func DeleteAllUserHeuristics(c external.Database, userUID string) error {
-	// todo delete workspace here too
+// DeleteAllWorkspacesAndUserHeuristics deletes a user's workspaces and their heuristics
+func DeleteAllWorkspacesAndUserHeuristics(c external.Database, userUID string) error {
+	// todo test if this works (workspaces)
 	req := &api.Request{
 		Query: `query Q($user:string){
 				var(func: uid($user)){
-					User.workspaces{
+					w as User.workspaces{
 						h as Workspace.heuristics{
 							hc as Heuristic.clusters{
 								hr as HeuristicCluster.results
@@ -145,7 +145,9 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) error {
 			DelNquads: []byte(` uid(hr) * * .
 								uid(hc) * * .
 								uid(h) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ."),
+								uid(w) * * .
+								<` + userUID + "> <User.heuristics> uid(h) ." +
+				"<" + userUID + "> <User.workspaces> uid(w)"),
 		}},
 		CommitNow: true,
 	}

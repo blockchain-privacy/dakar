@@ -1557,7 +1557,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, uid); err != nil {
+	if err := dbHeuristic.DeleteAllWorkspacesAndUserHeuristics(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " heuristics"
 		status = http.StatusInternalServerError
 		warn(err)
