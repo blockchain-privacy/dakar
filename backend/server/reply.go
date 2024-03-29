@@ -173,16 +173,11 @@ func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addre
 		return reply, http.StatusBadRequest
 	}
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return reply, http.StatusBadRequest
-	}
-
 	var addressRequest request
 	addressRequest.Offset = -1
 	addressRequest.Order = -1
 
-	if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&addressRequest); decodeErr != nil {
 		return reply, http.StatusBadRequest
 	}
 
@@ -308,19 +303,23 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	workID := r.PathValue("workID")
-	if workID == "" {
+	type request struct {
+		ID           *int   `json:"id,omitempty"`
+		WorkspaceUID string `json:"workspaceUID,omitempty"`
+	}
+
+	var workRequest request
+
+	if decodeErr := json.NewDecoder(r.Body).Decode(&workRequest); decodeErr != nil {
+		return reply, http.StatusBadRequest
+	}
+
+	if workRequest.ID == nil || workRequest.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	workIDInteger, err := strconv.Atoi(workID)
-	if err != nil {
-		status = http.StatusBadRequest
-		return
-	}
-
-	uid, err := worker.GetFinishedHeuristicUID(workIDInteger, tUser.ID)
+	uid, err := worker.GetFinishedHeuristicUID(*workRequest.ID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -335,7 +334,7 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	h, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, uid, tUser.ID)
+	h, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, uid, tUser.ID, workRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -356,7 +355,8 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 	}
 
 	type request struct {
-		HeuristicUID string `json:"uid,omitempty"`
+		HeuristicUID string `json:"heuristicUID,omitempty"`
+		WorkspaceUID string `json:"workspaceUID,omitempty"`
 	}
 
 	var heuristicRequest request
@@ -367,12 +367,12 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 		return
 	}
 
-	if heuristicRequest.HeuristicUID == "" {
+	if heuristicRequest.HeuristicUID == "" || heuristicRequest.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	heuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID)
+	heuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -751,24 +751,37 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 // writeHeuristicReport writes heuristic data in CSV format
 func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
-	heuristicUID := r.PathValue("uid")
-	if heuristicUID == "" {
-		http.Error(w, "no heuristic UID provided", http.StatusNotFound)
-		return
-	}
 
 	const errReport = "error getting heuristic report"
 
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		http.Error(w, errReport, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusBadRequest)
 		warn(err)
 		return
 	}
 
-	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
+	type request struct {
+		HeuristicUID string `json:"heuristicUID,omitempty"`
+		WorkspaceUID string `json:"workspaceUID,omitempty"`
+	}
+
+	var heuristicRequest request
+	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
+		http.Error(w, errReport, http.StatusBadRequest)
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if heuristicRequest.HeuristicUID == "" || heuristicRequest.WorkspaceUID == "" {
+		http.Error(w, errReport, http.StatusBadRequest)
+		return
+	}
+
+	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID,
+		tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
-		http.Error(w, errReport, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusInternalServerError)
 		warn(err)
 		return
 	}
@@ -779,7 +792,7 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 	}
 
 	// headers for streaming data to client
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", heuristicUID))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", heuristicRequest.HeuristicUID))
 	w.Header().Set("Content-Type", "text/csv")
 
 	csvWriter := csv.NewWriter(w)

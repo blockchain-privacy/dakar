@@ -124,10 +124,12 @@ func (s *Server) handlerMeta() http.Handler {
 //	@Summary	Get a CSV file containing results of the specified heuristic
 //	@Tags		heuristic
 //	@Produce	text/csv
-//	@Param		uid	path		string	true	"Heuristic UID"
-//	@Success	200	{file}		file	"comma separated values"
-//	@Failure	500	{string}	string	"encoding error"
-//	@Router		/heuristics/report/{uid} [get]
+//	@Param		work	body		server.writeHeuristicReport.request	true	"work item"
+//	@Success	200		{file}		file								"comma separated values"
+//	@Failure	400		{string}	string								"bad request"
+//	@Failure	404		{string}	string								"resource not found"
+//	@Failure	500		{string}	string								"encoding error"
+//	@Router		/heuristics/report/ [post]
 func (s *Server) handlerHeuristicsReport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeHeuristicReport(w, r, s.db)
@@ -453,12 +455,12 @@ func (s *Server) handlerHeuristics() http.Handler {
 //	@Description	Get a specific heuristic by work ID
 //	@Tags			heuristic
 //	@Produce		json
-//	@Param			workID	path		string	true	"heuristic work ID"
+//	@Param			work	body		server.getHeuristicByWorkIDReply.request	true	"work item"
 //	@Success		200		{object}	server.heuristicByWorkIDReply
 //	@Failure		400		{object}	server.heuristicByWorkIDReply
 //	@Failure		401		{object}	server.heuristicByWorkIDReply
 //	@Failure		500		{object}	server.heuristicByWorkIDReply
-//	@Router			/heuristicByWorkID/{workID} [get]
+//	@Router			/heuristicByWorkID/ [post]
 func (s *Server) handlerHeuristicByWorkID() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHeuristicByWorkIDReply(r, s.db, s.worker)

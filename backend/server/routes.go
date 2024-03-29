@@ -67,7 +67,7 @@ func getRouteMeta() string {
 }
 
 func getRouteHeuristicByWorkID() string {
-	return buildRoutePattern(httpGET, routeHeuristicByWorkID, "workID")
+	return buildRoutePattern(httpPOST, routeHeuristicByWorkID, "")
 }
 
 func getRouteHeuristics() string {
@@ -75,7 +75,7 @@ func getRouteHeuristics() string {
 }
 
 func getRouteHeuristicReport() string {
-	return buildRoutePattern(httpGET, routeHeuristicReport, "uid")
+	return buildRoutePattern(httpPOST, routeHeuristicReport, "")
 }
 
 func getRouteHeuristicsExecution() string {
