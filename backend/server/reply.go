@@ -304,22 +304,32 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 	}
 
 	type request struct {
-		ID           *int   `json:"id,omitempty"`
+		ID           string `json:"id,omitempty"`
 		WorkspaceUID string `json:"workspaceUID,omitempty"`
 	}
 
 	var workRequest request
 
-	if decodeErr := json.NewDecoder(r.Body).Decode(&workRequest); decodeErr != nil {
-		return reply, http.StatusBadRequest
+	if err := json.NewDecoder(r.Body).Decode(&workRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(err)
+		return
 	}
 
-	if workRequest.ID == nil || workRequest.WorkspaceUID == "" {
+	if workRequest.ID == "" || workRequest.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	uid, err := worker.GetFinishedHeuristicUID(*workRequest.ID, tUser.ID)
+	// convert to integer
+	workID, err := strconv.Atoi(workRequest.ID)
+	if err != nil {
+		status = http.StatusBadRequest
+		warn(err)
+		return
+	}
+
+	uid, err := worker.GetFinishedHeuristicUID(workID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

@@ -509,7 +509,12 @@ async function addNewHeuristic(heuristic) {
 // Periodically check
 async function checkWork(workID, parentUID) {
 	try {
-		const response = await dakar.heuristic.heuristicByWorkIDPost({workID});
+		const response = await dakar.heuristic.heuristicByWorkIDPost({
+			work: {
+				workspaceUID: workspaceUID.value,
+				id: workID,
+			},
+		});
 		if (response.heuristic) {
 			replaceTemporaryHeuristic(workID, parentUID, response.heuristic);
 		} else {

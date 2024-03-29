@@ -661,7 +661,8 @@ func GetBasicFrontendHeuristics(c external.Database, txHash string, userUID stri
 // GetBasicFrontendHeuristic returns the requested heuristic, if it belongs the the provided workspace. Basic information only.
 func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
 	userUID string, workspaceUID string) (heuristic FrontendHeuristic, err error) {
-	const query = `query Q($uid:string, $user:string){
+	const query = `
+			  query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
 						h as Workspace.heuristics@filter(uid($heuristicUID))
