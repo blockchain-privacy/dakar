@@ -87,6 +87,7 @@
         <entity-side-bar
           v-model="isEntitySideBarOpen"
           :identifier="entityIdentifier"
+          :workspace-uid="workspaceUID"
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
@@ -508,7 +509,7 @@ async function addNewHeuristic(heuristic) {
 // Periodically check
 async function checkWork(workID, parentUID) {
 	try {
-		const response = await dakar.heuristic.heuristicByWorkIDWorkIDGet({workID});
+		const response = await dakar.heuristic.heuristicByWorkIDPost({workID});
 		if (response.heuristic) {
 			replaceTemporaryHeuristic(workID, parentUID, response.heuristic);
 		} else {

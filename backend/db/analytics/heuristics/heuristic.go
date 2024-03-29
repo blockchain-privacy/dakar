@@ -702,7 +702,7 @@ func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
 // GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID, which was created by userUID
 func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string, workspaceUID string) (
 	frontendHeuristic FrontendHeuristicShort, err error) {
-	const query = `query Q($uid:string,$user:string){
+	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
 						Workspace.heuristics@filter(uid($heuristicUID)){
@@ -732,7 +732,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return

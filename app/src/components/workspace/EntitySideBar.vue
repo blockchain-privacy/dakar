@@ -181,6 +181,7 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 const props = defineProps({
 	identifier: {type: String, required: true},
 	type: {type: String, required: true},
+	workspaceUid: {type: String, required: true},
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
@@ -298,7 +299,7 @@ async function getAddressData() {
 }
 
 async function getHeuristicData() {
-	if (props.identifier === '') {
+	if (!props.identifier || !props.workspaceUid) {
 		return;
 	}
 
@@ -323,7 +324,13 @@ async function getHeuristicData() {
 	}
 
 	try {
-		const response = await dakar.heuristic.heuristicDetailsPost({heuristic: {uid: props.identifier}});
+		console.log('heuristic uid', props.identifier, 'workspace uid', props.workspaceUid);
+		const response = await dakar.heuristic.heuristicDetailsPost({
+			heuristic: {
+				heuristicUID: props.identifier,
+				workspaceUID: props.workspaceUid,
+			},
+		});
 
 		if (!response.heuristic) {
 			throw new Error('response contains no heuristics');
@@ -344,8 +351,17 @@ function setErrorMessage(msg) {
 }
 
 async function downloadReport() {
+	if (!entityData.value.heuristicUid || !props.workspaceUid) {
+		return;
+	}
+
 	try {
-		const response = await dakar.heuristic.heuristicsReportUidGet({uid: entityData.value.heuristicUid});
+		const response = await dakar.heuristic.heuristicsReportPost({
+			work: {
+				workspaceUID: props.workspaceUid,
+				heuristicUID: entityData.value.heuristicUid,
+			},
+		});
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');
 		a.href = URL.createObjectURL(response);

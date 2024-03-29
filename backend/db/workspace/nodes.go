@@ -55,15 +55,15 @@ func GetFMIClustersByAddress(c external.Database, addresses []string) (map[strin
 }
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
-func GetWorkspaceConnections(c external.Database, uids []string, userUID string) (connections []NodeConnections,
-	heuristicNodes []FrontendGraphNode, clusterHeight int64, err error) {
+func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
+	connections []NodeConnections, heuristicNodes []FrontendGraphNode, clusterHeight int64, err error) {
 	// need at least two uids to find connections
 	if len(uids) < 2 {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
 	}
 
-	const query = `query Q($uids:string,$user:string){
+	const query = `query Q($uids:string,$userUID:string,$workspaceUID:string){
 					# get cluster height
 					cluster_height(func: type(CFMIStatus)){
 						lastclusteredid
@@ -76,8 +76,10 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 					t as var(func: uid(uids))@filter(type("Transaction"))
 					
 					# heuristic uids
-					var(func: uid($user)){
-						h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(t)))
+					var(func: uid($userUID)){
+						User.workspaces@filter(uid($workspaceUID)){
+							h as Workspace.heuristics@filter(uid_in(Heuristic.transaction, uid(t)))
+						}
 					}
 
 					# find fmi cluster for each address
@@ -170,7 +172,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 				}`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{
-		"$uids": db.CreateCommaArray(uids), "$user": userUID})
+		"$uids": db.CreateCommaArray(uids), "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return

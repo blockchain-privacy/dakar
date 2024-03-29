@@ -1939,7 +1939,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	nodeMap[newNode.UID] = newNode.ToFrontendGraphNode()
-	clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID)
+	clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap,
+		tUser.ID, searchRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -2032,7 +2033,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		var clusterHeight int64
 		if len(nodeMap) > 1 {
 			clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
-				heuristicMap, tUser.ID)
+				heuristicMap, tUser.ID, workspaceUID)
 			if err != nil {
 				status = http.StatusInternalServerError
 				warn(err)
