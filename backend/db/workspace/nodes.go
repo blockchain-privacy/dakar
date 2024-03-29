@@ -9,51 +9,6 @@ import (
 	"time"
 )
 
-// GetFMIClustersByAddress returns uid mappings between addresses and their associated FMI cluster
-func GetFMIClustersByAddress(c external.Database, addresses []string) (map[string]string, error) {
-	if len(addresses) == 0 {
-		return nil, cliutil.NewStackError(db.ErrEmptyRequestArgument)
-	}
-	// todo check if this function is still needed
-	// todo check address input at some point, also handle merging of clusters in client data
-	query := `query {
-			q(func: eq(addresshash,` + db.CreateCommaList(addresses) + `)){
-				addresshash
-				~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
-					uid
-				}
-			}
-		}`
-
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
-	if err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	// json struct
-	var r struct {
-		Addresses []struct {
-			Addresshash string `json:"addresshash,omitempty"`
-			Cluster     []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~Cluster.addresses,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	addressClusterMapping := map[string]string{}
-	for _, address := range r.Addresses {
-		if len(address.Cluster) == 1 {
-			addressClusterMapping[address.Addresshash] = address.Cluster[0].UID
-		}
-	}
-
-	return addressClusterMapping, nil
-}
-
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
 	connections []NodeConnections, heuristicNodes []FrontendGraphNode, clusterHeight int64, err error) {
