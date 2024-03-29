@@ -7,6 +7,13 @@ import (
 
 const DType = "Workspace"
 
+// possible type of workspace nodes. Addresses are not considered, only their connected FMI cluster
+const (
+	NodeTypeCluster     = "cluster"
+	NodeTypeTransaction = "transaction"
+	NodeTypeHeuristic   = "heuristic"
+)
+
 type Workspace struct {
 	UID              string   `json:"uid,omitempty"`
 	Name             string   `json:"Workspace.name,omitempty"`
@@ -160,7 +167,7 @@ func (g GraphNode) ToFrontendGraphNode() FrontendGraphNode {
 }
 
 func (g GraphNode) IsDestination() bool {
-	return g.Type == "transaction" && g.PrivacyType != nil && constants.PrivacyType(*g.PrivacyType).IsDestination()
+	return g.Type == NodeTypeTransaction && g.PrivacyType != nil && constants.PrivacyType(*g.PrivacyType).IsDestination()
 }
 
 // FrontendGraphNode include the coordinates of the client canvas
@@ -187,4 +194,8 @@ type FrontendGraphNode struct {
 	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
 	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
 	Timestamp           string   `json:"heuristicTs,omitempty"`
+}
+
+func (f FrontendGraphNode) IsDestination() bool {
+	return f.Type == NodeTypeTransaction && f.PrivacyType != nil && constants.PrivacyType(*f.PrivacyType).IsDestination()
 }

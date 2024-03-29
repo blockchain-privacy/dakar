@@ -6,7 +6,6 @@ import (
 	"backend/analytics/heuristics"
 	"backend/analytics/workspace"
 	"backend/cmd/cliutil"
-	"backend/constants"
 	"backend/db"
 	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
@@ -1844,7 +1843,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	heuristicMap := map[string]dbwork.FrontendGraphNode{}
 	for _, n := range w.Nodes {
 		// do not consider heuristics
-		if n.Type == "heuristic" {
+		if n.Type == dbwork.NodeTypeHeuristic {
 			heuristicMap[n.UID] = n
 		} else {
 			// remove previous connections
@@ -1955,12 +1954,14 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		nodeMap := map[string]dbwork.FrontendGraphNode{}
 		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
 		heuristicMap := map[string]dbwork.FrontendGraphNode{}
+
+		// todo check if extra handling for heuristics is still needed, as they are no findable via workspaces
 		for _, n := range w.Nodes {
 			if n.UID == "" || n.Type == "" {
 				continue
 			}
 
-			if n.Type == "heuristic" {
+			if n.Type == dbwork.NodeTypeHeuristic {
 				heuristicMap[n.UID] = n
 			} else {
 				nodeMap[n.UID] = n
@@ -2139,7 +2140,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 
 	var deletedNodes []string
 
-	if deletedNode.Type == "heuristic" {
+	if deletedNode.Type == dbwork.NodeTypeHeuristic {
 		nodeMap := make(map[string]dbwork.FrontendGraphNode, len(w.Nodes))
 		for _, n := range w.Nodes {
 			nodeMap[n.UID] = n
@@ -2161,7 +2162,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		// remove heuristics from nodes
 		w.Nodes = dbwork.DeleteNodes(w.Nodes, uids)
 		deletedNodes = uids
-	} else if deletedNode.Type == "transaction" && deletedNode.PrivacyType != nil && constants.PrivacyType(*deletedNode.PrivacyType).IsDestination() {
+	} else if deletedNode.IsDestination() {
 		nodeMap := make(map[string]dbwork.FrontendGraphNode, len(w.Nodes))
 		for _, n := range w.Nodes {
 			nodeMap[n.UID] = n

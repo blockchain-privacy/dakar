@@ -297,7 +297,7 @@ func FindDescandantHeuristicUIDs(nodes map[string]FrontendGraphNode, nodeUID str
 	var descendants []string
 
 	n, ok := nodes[nodeUID]
-	if !ok || n.Type != "heuristic" {
+	if !ok || n.Type != NodeTypeHeuristic {
 		return descendants
 	}
 

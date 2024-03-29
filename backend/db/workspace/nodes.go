@@ -354,7 +354,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 
 	if len(r.Transactions) > 0 {
 		tx := r.Transactions[0]
-		node = &GraphNode{UID: tx.UID, Type: "transaction", TransactionHash: nodeQuery, PrivacyType: tx.PrivacyType}
+		node = &GraphNode{UID: tx.UID, Type: NodeTypeTransaction, TransactionHash: nodeQuery, PrivacyType: tx.PrivacyType}
 		return
 	}
 
@@ -364,7 +364,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 			return nil, cliutil.NewStackErrorStr("address has no cluster attached")
 		}
 
-		node = &GraphNode{UID: addr.UID, Type: "cluster", AddressHash: nodeQuery, ClusterType: addr.Clusters[0].Type}
+		node = &GraphNode{UID: addr.UID, Type: NodeTypeCluster, AddressHash: nodeQuery, ClusterType: addr.Clusters[0].Type}
 		return
 	}
 
