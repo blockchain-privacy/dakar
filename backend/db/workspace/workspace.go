@@ -293,7 +293,7 @@ func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []stri
 
 // FindDescandantHeuristicUIDs returns the given node uid and all node uids which can
 // be found by recursively traversing their children. Only heuristics are considered.
-func FindDescandantHeuristicUIDs(nodes map[string]FrontendGraphNode, nodeUID string) []string {
+func FindDescandantHeuristicUIDs(nodes map[string]Node, nodeUID string) []string {
 	var descendants []string
 
 	n, ok := nodes[nodeUID]
@@ -310,8 +310,8 @@ func FindDescandantHeuristicUIDs(nodes map[string]FrontendGraphNode, nodeUID str
 }
 
 // DeleteNodes returns a new slice which contains nodes which do not have an UID contained in uids
-func DeleteNodes(nodes []FrontendGraphNode, uids []string) []FrontendGraphNode {
-	var newNodes []FrontendGraphNode
+func DeleteNodes(nodes []Node, uids []string) []Node {
+	var newNodes []Node
 
 	for _, n := range nodes {
 		if !slices.Contains(uids, n.UID) {

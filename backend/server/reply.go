@@ -1839,8 +1839,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	nodeMap := map[string]dbwork.FrontendGraphNode{}
-	heuristicMap := map[string]dbwork.FrontendGraphNode{}
+	nodeMap := map[string]dbwork.Node{}
+	heuristicMap := map[string]dbwork.Node{}
 	for _, n := range w.Nodes {
 		// do not consider heuristics
 		if n.Type == dbwork.NodeTypeHeuristic {
@@ -1855,7 +1855,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics. Therefore, do not go into this block.
 	if len(nodeMap) == 0 && !newNode.IsDestination() {
-		frontEndNodes := []dbwork.FrontendGraphNode{newNode.ToFrontendGraphNode()}
+		frontEndNodes := []dbwork.Node{*newNode}
 		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
 			frontEndNodes, time.Now(), w.ClusterHeight); err != nil {
 			status = http.StatusInternalServerError
@@ -1874,7 +1874,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	nodeMap[newNode.UID] = newNode.ToFrontendGraphNode()
+	nodeMap[newNode.UID] = *newNode
 	clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap,
 		tUser.ID, searchRequest.WorkspaceUID)
 	if err != nil {
@@ -1883,7 +1883,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	reply.Nodes = make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
+	reply.Nodes = make([]dbwork.Node, 0, len(nodeMap))
 	for _, n := range nodeMap {
 		reply.Nodes = append(reply.Nodes, n)
 	}
@@ -1951,11 +1951,11 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 	}
 
 	if isOutdated {
-		nodeMap := map[string]dbwork.FrontendGraphNode{}
+		nodeMap := map[string]dbwork.Node{}
 		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
-		heuristicMap := map[string]dbwork.FrontendGraphNode{}
+		heuristicMap := map[string]dbwork.Node{}
 
-		// todo check if extra handling for heuristics is still needed, as they are no findable via workspaces
+		// todo check if extra handling for heuristics is still needed, as they are now findable via workspaces
 		for _, n := range w.Nodes {
 			if n.UID == "" || n.Type == "" {
 				continue
@@ -1979,7 +1979,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 			}
 		}
 
-		nodesWithConnection := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
+		nodesWithConnection := make([]dbwork.Node, 0, len(nodeMap))
 		for _, v := range nodeMap {
 			nodesWithConnection = append(nodesWithConnection, v)
 		}
@@ -2033,8 +2033,8 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) 
 	}
 
 	type request struct {
-		CurrentState []dbwork.FrontendGraphNode `json:"currentState,omitempty"`
-		WorkspaceUID string                     `json:"workspaceUID,omitempty"`
+		CurrentState []dbwork.Node `json:"currentState,omitempty"`
+		WorkspaceUID string        `json:"workspaceUID,omitempty"`
 	}
 
 	var searchRequest request
@@ -2063,7 +2063,7 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) 
 		return
 	}
 
-	frontendState := make(map[string]dbwork.FrontendGraphNode, len(searchRequest.CurrentState))
+	frontendState := make(map[string]dbwork.Node, len(searchRequest.CurrentState))
 	for _, n := range searchRequest.CurrentState {
 		frontendState[n.UID] = n
 	}
@@ -2124,10 +2124,10 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		return
 	}
 
-	var deletedNode *dbwork.FrontendGraphNode
+	var deletedNode *dbwork.Node
 	for _, n := range w.Nodes {
 		if n.UID == searchRequest.NodeUID {
-			deletedNode = &n
+			deletedNode = &n // #nosec G601, false positive as of go1.22
 			break
 		}
 	}
@@ -2141,7 +2141,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 	var deletedNodes []string
 
 	if deletedNode.Type == dbwork.NodeTypeHeuristic {
-		nodeMap := make(map[string]dbwork.FrontendGraphNode, len(w.Nodes))
+		nodeMap := make(map[string]dbwork.Node, len(w.Nodes))
 		for _, n := range w.Nodes {
 			nodeMap[n.UID] = n
 		}
@@ -2163,7 +2163,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		w.Nodes = dbwork.DeleteNodes(w.Nodes, uids)
 		deletedNodes = uids
 	} else if deletedNode.IsDestination() {
-		nodeMap := make(map[string]dbwork.FrontendGraphNode, len(w.Nodes))
+		nodeMap := make(map[string]dbwork.Node, len(w.Nodes))
 		for _, n := range w.Nodes {
 			nodeMap[n.UID] = n
 		}

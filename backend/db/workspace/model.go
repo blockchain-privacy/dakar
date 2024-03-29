@@ -32,7 +32,7 @@ type DecodedWorkspace struct {
 	Name             string
 	ModificationTime string
 	ClusterHeight    *int64
-	Nodes            []FrontendGraphNode
+	Nodes            []Node
 }
 
 func (w *DecodedWorkspace) ToFrontendWorkspace() FrontendWorkspace {
@@ -45,10 +45,10 @@ func (w *DecodedWorkspace) ToFrontendWorkspace() FrontendWorkspace {
 }
 
 type FrontendWorkspace struct {
-	UID              string              `json:"uid,omitempty"`
-	Name             string              `json:"name,omitempty"`
-	ModificationTime string              `json:"ts,omitempty"`
-	Nodes            []FrontendGraphNode `json:"nodes,omitempty"`
+	UID              string `json:"uid,omitempty"`
+	Name             string `json:"name,omitempty"`
+	ModificationTime string `json:"ts,omitempty"`
+	Nodes            []Node `json:"nodes,omitempty"`
 }
 
 func (w *Workspace) ToFrontendWorkspace() FrontendWorkspace {
@@ -141,37 +141,8 @@ type connectionRequest struct {
 	} `json:"heuristics,omitempty"`
 }
 
-type GraphNode struct {
-	UID  string `json:"uid,omitempty"`
-	Type string `json:"type,omitempty"`
-
-	AddressHash string `json:"addressHash,omitempty"`
-	ClusterType string `json:"clusterType,omitempty"`
-
-	TransactionHash string `json:"transactionHash,omitempty"`
-	PrivacyType     *int   `json:"privacyType,omitempty"`
-
-	Children []string `json:"children,omitempty"`
-}
-
-func (g GraphNode) ToFrontendGraphNode() FrontendGraphNode {
-	return FrontendGraphNode{
-		UID:             g.UID,
-		Type:            g.Type,
-		AddressHash:     g.AddressHash,
-		ClusterType:     g.ClusterType,
-		TransactionHash: g.TransactionHash,
-		PrivacyType:     g.PrivacyType,
-		Children:        g.Children,
-	}
-}
-
-func (g GraphNode) IsDestination() bool {
-	return g.Type == NodeTypeTransaction && g.PrivacyType != nil && constants.PrivacyType(*g.PrivacyType).IsDestination()
-}
-
-// FrontendGraphNode include the coordinates of the client canvas
-type FrontendGraphNode struct {
+// Node is the data model of a workspace node
+type Node struct {
 	UID      string   `json:"uid,omitempty"`
 	Type     string   `json:"type,omitempty"`
 	Children []string `json:"children,omitempty"`
@@ -196,6 +167,6 @@ type FrontendGraphNode struct {
 	Timestamp           string   `json:"heuristicTs,omitempty"`
 }
 
-func (f FrontendGraphNode) IsDestination() bool {
+func (f Node) IsDestination() bool {
 	return f.Type == NodeTypeTransaction && f.PrivacyType != nil && constants.PrivacyType(*f.PrivacyType).IsDestination()
 }

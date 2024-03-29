@@ -11,7 +11,7 @@ import (
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
-	connections []NodeConnections, heuristicNodes []FrontendGraphNode, clusterHeight int64, err error) {
+	connections []NodeConnections, heuristicNodes []Node, clusterHeight int64, err error) {
 	// need at least two uids to find connections
 	if len(uids) < 2 {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
@@ -154,7 +154,8 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 //
 //nolint:gocyclo
-func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections, heuristics []FrontendGraphNode, clusterHeight int64, err error) {
+func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
+	heuristics []Node, clusterHeight int64, err error) {
 	if len(r.ClusterHeight) != 1 {
 		err = cliutil.NewStackErrorf("invalid number of cluster information: %d", len(r.ClusterHeight))
 		return
@@ -206,7 +207,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				}
 			}
 
-			heuristics = append(heuristics, FrontendGraphNode{
+			heuristics = append(heuristics, Node{
 				UID:                 h.UID,
 				Type:                "heuristic",
 				Children:            children,
@@ -305,7 +306,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 // SearchForNode returns the uid which matches to the given query. In case the query is an address
 // which is connected to clusters, they are returned instead.
-func SearchForNode(c external.Database, nodeQuery string, userUID string) (node *GraphNode, err error) {
+func SearchForNode(c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
 	if nodeQuery == "" || userUID == "" {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
@@ -354,7 +355,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 
 	if len(r.Transactions) > 0 {
 		tx := r.Transactions[0]
-		node = &GraphNode{UID: tx.UID, Type: NodeTypeTransaction, TransactionHash: nodeQuery, PrivacyType: tx.PrivacyType}
+		node = &Node{UID: tx.UID, Type: NodeTypeTransaction, TransactionHash: nodeQuery, PrivacyType: tx.PrivacyType}
 		return
 	}
 
@@ -364,7 +365,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 			return nil, cliutil.NewStackErrorStr("address has no cluster attached")
 		}
 
-		node = &GraphNode{UID: addr.UID, Type: NodeTypeCluster, AddressHash: nodeQuery, ClusterType: addr.Clusters[0].Type}
+		node = &Node{UID: addr.UID, Type: NodeTypeCluster, AddressHash: nodeQuery, ClusterType: addr.Clusters[0].Type}
 		return
 	}
 

@@ -9,7 +9,7 @@ import (
 )
 
 func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
-	workspaceUID string, state []workspace.FrontendGraphNode, timeStamp time.Time, clusterHeight *int64) error {
+	workspaceUID string, state []workspace.Node, timeStamp time.Time, clusterHeight *int64) error {
 	stateBytes, err := json.Marshal(state)
 	if err != nil {
 		return cliutil.NewStackError(err)
@@ -19,8 +19,8 @@ func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
 }
 
 // InsertNodeConnectionsAndHeuristics queries the db for connections between nodes in nodeMap and inserts them
-func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[string]workspace.FrontendGraphNode,
-	heuristicMap map[string]workspace.FrontendGraphNode, userUID string, workspaceUID string) (int64, error) {
+func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[string]workspace.Node,
+	heuristicMap map[string]workspace.Node, userUID string, workspaceUID string) (int64, error) {
 	connections, heuristics, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
 		cliutil.GetMapKeys(nodeMap), userUID, workspaceUID)
 	if err != nil {
