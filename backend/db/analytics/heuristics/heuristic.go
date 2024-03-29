@@ -48,12 +48,14 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string, workspace
 	}
 
 	type dummyWorkspace struct {
-		UID        string      `json:"uid,omitempty"`
-		Heuristics []Heuristic `json:"Workspace.heuristics,omitempty"`
+		UID           string      `json:"uid,omitempty"`
+		ClusterHeight int64       `json:"Workspace.clusterHeight"`
+		Heuristics    []Heuristic `json:"Workspace.heuristics,omitempty"`
 	}
 
 	// todo when deleting workspace and/or user make sure to also delete heuristics attached to workspaces
-	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{h}})
+	// set cluster height to 0, to force an update of the corresponding workspace
+	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{h}, ClusterHeight: 0})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
