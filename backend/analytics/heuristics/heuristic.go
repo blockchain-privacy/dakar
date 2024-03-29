@@ -70,6 +70,10 @@ type heuristic interface {
 	getExcludeSpendingGaps() bool
 	// setUserUID sets the UID of the user who created this heuristic
 	setUserUID(string)
+	// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
+	setWorkspaceUID(string)
+	// getWorkspaceUID returns the workspace UID this heuristic belongs to
+	getWorkspaceUID() string
 	// String returns the heuristic in string format
 	String() string
 	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
@@ -359,7 +363,7 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		Parameter:           h.getParameterString(),
 		ParentHeuristic:     pHeuristic,
 		TxHash:              txHash,
-	}, userUID)
+	}, userUID, h.getWorkspaceUID())
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's

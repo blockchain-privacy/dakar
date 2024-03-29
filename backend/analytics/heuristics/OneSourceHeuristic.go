@@ -17,6 +17,7 @@ type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
+	workspaceUID         string
 	excludeAddresses     bool
 	excludeSpendingGaps  bool
 	lookBackTime         time.Duration
@@ -98,6 +99,16 @@ func (h *oneSourceHeuristic) getExcludeSpendingGaps() bool {
 // setUserUID sets the UID of the user who created this heuristic
 func (h *oneSourceHeuristic) setUserUID(uid string) {
 	h.userUID = uid
+}
+
+// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
+func (h *oneSourceHeuristic) setWorkspaceUID(uid string) {
+	h.workspaceUID = uid
+}
+
+// getWorkspaceUID returns the workspace UID this heuristic belongs to
+func (h *oneSourceHeuristic) getWorkspaceUID() string {
+	return h.workspaceUID
 }
 
 func (h oneSourceHeuristic) String() string {

@@ -23,12 +23,11 @@ var (
 )
 
 type heuristicTreeElement struct {
-	uid                string
 	parentHeuristicUID string
 	heuristic          heuristic
 }
 
-func buildHeuristicTreeElements(hMap map[string]heuristic, h heuristics.DatabaseHeuristicRequest,
+func buildHeuristicTreeElement(hMap map[string]heuristic, h heuristics.DatabaseHeuristicRequest,
 	userUID string) (element heuristicTreeElement, err error) {
 	// create new heuristic
 	if modelHeuristic, ok := hMap[h.Type]; ok {
@@ -48,9 +47,9 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, h heuristics.Database
 		newHeuristic.setUserUID(userUID)
 		newHeuristic.setExcludeAddresses(h.ExcludeAddresses)
 		newHeuristic.setExcludeSpendingGaps(h.ExcludeSpendingGaps)
+		newHeuristic.setWorkspaceUID(h.WorkspaceUID)
 
 		element = heuristicTreeElement{
-			uid:                h.UID,
 			parentHeuristicUID: h.ParentHeuristicUID,
 			heuristic:          newHeuristic,
 		}
@@ -72,13 +71,18 @@ func constructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest,
 		}
 	}
 
+	if newHeuristic.WorkspaceUID == "" {
+		err = cliutil.NewStackError(errHeuristicNotValid)
+		return
+	}
+
 	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
 		(modelHeuristic.hasParameter() && len(newHeuristic.Parameter) == 0) {
 		err = cliutil.NewStackError(errHeuristicNotValid)
 		return
 	}
 
-	newHeuristicElement, err := buildHeuristicTreeElements(typeMap, newHeuristic, userUID)
+	newHeuristicElement, err := buildHeuristicTreeElement(typeMap, newHeuristic, userUID)
 	if err != nil {
 		return
 	}

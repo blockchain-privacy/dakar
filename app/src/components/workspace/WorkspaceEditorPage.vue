@@ -447,6 +447,7 @@ async function addNewHeuristic(heuristic) {
 
 	const newHeuristic = {
 		uid: `${newUidPrefix}${uidCounter}`,
+		workspaceUID: workspaceUID.value,
 		type: heuristic.type,
 		clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
 		useAddressExclusionList: heuristic.useAddressExclusionList,

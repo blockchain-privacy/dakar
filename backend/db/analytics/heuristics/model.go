@@ -56,6 +56,7 @@ type Heuristic struct {
 	ExcludeAddresses    *bool    `json:"Heuristic.excludeAddresses"`
 	ExcludeSpendingGaps *bool    `json:"Heuristic.excludeSpendingGaps"`
 	UserUID             string   `json:"~User.heuristics,omitempty"`
+	WorkspaceUID        string   `json:"~Workspace.heuristics,omitempty"`
 	Transaction         struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"Heuristic.transaction,omitempty"`
@@ -152,6 +153,7 @@ type FrontendHeuristicResult struct {
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
 	UID                 string                   `json:"uid,omitempty"`
+	WorkspaceUID        string                   `json:"workspaceUID,omitempty"`
 	Type                string                   `json:"type,omitempty"`
 	Parameter           string                   `json:"parameter,omitempty"`
 	ParentHeuristicUID  string                   `json:"parentUID,omitempty"`

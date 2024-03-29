@@ -27,7 +27,7 @@ var (
 )
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUID string, err error) {
+func InsertHeuristic(c external.Database, h Heuristic, userUID string, workspaceUID string) (insertUID string, err error) {
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
@@ -39,17 +39,21 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 	// if TxHash is not empty we have to search for the transaction uid
 	if h.TxHash != "" {
 		h.Transaction.UID = "uid(tx)"
-		query = `query Q($txhash: string) {
+		query = `query Q($txhash: string, $userUID: string, $workspaceUID: string) {
 					tx as var(func: eq(txhash, $txhash))
+					var(func: uid($userUID))@filter(type(User)){
+						w as User.workspaces@filter(uid($workspaceUID))
+					}
 				  }`
 	}
 
-	type dummyUser struct {
+	type dummyWorkspace struct {
 		UID        string      `json:"uid,omitempty"`
-		Heuristics []Heuristic `json:"User.heuristics,omitempty"`
+		Heuristics []Heuristic `json:"Workspace.heuristics,omitempty"`
 	}
 
-	pb, err := json.Marshal(dummyUser{UID: userUID, Heuristics: []Heuristic{h}})
+	// todo when deleting workspace and/or user make sure to also delete heuristics attached to workspaces
+	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{h}})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
@@ -57,8 +61,9 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$txhash": h.TxHash},
+		Vars:  map[string]string{"$txhash": h.TxHash, "$userUID": userUID, "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
+			Cond:    "@if(gt(len(w), 0))",
 			SetJson: pb,
 		}},
 		CommitNow: true,

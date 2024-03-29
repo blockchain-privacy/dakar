@@ -18,6 +18,7 @@ type reverseLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
+	workspaceUID         string
 	excludeAddresses     bool
 	excludeSpendingGaps  bool
 	lookBackTime         time.Duration
@@ -100,6 +101,16 @@ func (h *reverseLookupHeuristic) getExcludeSpendingGaps() bool {
 // setUserUID sets the UID of the user who created this heuristic
 func (h *reverseLookupHeuristic) setUserUID(uid string) {
 	h.userUID = uid
+}
+
+// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
+func (h *reverseLookupHeuristic) setWorkspaceUID(uid string) {
+	h.workspaceUID = uid
+}
+
+// getWorkspaceUID returns the workspace UID this heuristic belongs to
+func (h *reverseLookupHeuristic) getWorkspaceUID() string {
+	return h.workspaceUID
 }
 
 func (h reverseLookupHeuristic) String() string {

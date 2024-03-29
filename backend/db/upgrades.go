@@ -24,12 +24,14 @@ func AlterSchemaAddWorkspaces(c external.Database) error {
 			Workspace.ts: dateTime @index(day) . # modification date of the workspace
 			Workspace.state: string . # JSON encoded state of the workspace
 			Workspace.clusterHeight: int . # last clustered block at which this workspace was updated
+			Workspace.heuristics: [uid] @reverse . # heuristics which are managed by this workspace
 
 			type Workspace {
 				Workspace.name
 				Workspace.ts
 				Workspace.state
 				Workspace.clusterHeight
+				Workspace.heuristics
 			}`,
 	})
 }
