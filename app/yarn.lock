@@ -46,10 +46,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.23":
-  version: 1.1.23
-  resolution: "@blockchain/dakar@npm:1.1.23::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.23.tgz"
-  checksum: 10c0/8356bbe83247a27d84d5da6d4d01fd25b637b1f8704b8276e9e35f6fa835c0ea8e3578b6e3e6687bedce12e4b86b1b3a5850915a964aecfea72ab8ed4ade82be
+"@blockchain/dakar@npm:^1.1.24":
+  version: 1.1.24
+  resolution: "@blockchain/dakar@npm:1.1.24::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.24.tgz"
+  checksum: 10c0/354f380cc36e28bf6a087c4ae6027610e3c7db3bcfc7fa381749c5283bcd69aa998dfa99e1e842fe46356157528a97ca37156467c30de717565524240bdb0a6a
   languageName: node
   linkType: hard
 
@@ -1133,7 +1133,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.23"
+    "@blockchain/dakar": "npm:^1.1.24"
     "@fontsource/roboto": "npm:^5.0.12"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/wikiapi": "npm:^1.2.32"
@@ -1156,7 +1156,7 @@ __metadata:
     eslint-plugin-vuetify: "npm:^2.2.0"
     pinia: "npm:^2.1.7"
     sass: "npm:^1.72.0"
-    vite: "npm:^5.2.6"
+    vite: "npm:^5.2.7"
     vite-plugin-vuetify: "npm:^2.0.3"
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.4.21"
@@ -2388,7 +2388,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.4.35, postcss@npm:^8.4.36":
+"postcss@npm:^8.4.35, postcss@npm:^8.4.38":
   version: 8.4.38
   resolution: "postcss@npm:8.4.38"
   dependencies:
@@ -2852,13 +2852,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^5.2.6":
-  version: 5.2.6
-  resolution: "vite@npm:5.2.6"
+"vite@npm:^5.2.7":
+  version: 5.2.7
+  resolution: "vite@npm:5.2.7"
   dependencies:
     esbuild: "npm:^0.20.1"
     fsevents: "npm:~2.3.3"
-    postcss: "npm:^8.4.36"
+    postcss: "npm:^8.4.38"
     rollup: "npm:^4.13.0"
   peerDependencies:
     "@types/node": ^18.0.0 || >=20.0.0
@@ -2888,7 +2888,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/9ccaa65521b738ed5d6ad9cd118584a833191d29649eaa77ccb8096a60ded2ca9014193b8b866ad76054d0c89443f7b68b578686e4e2ef83147273e7788408c2
+  checksum: 10c0/ca927a8df388f75df194d5a5ba2be4ee46dc1d99d5be277f13c6d1ed4a4df833cc953741ef8e984061ea38b531df84e15e2a9f5deea1626317bcbec63c8ca01c
   languageName: node
   linkType: hard
 
