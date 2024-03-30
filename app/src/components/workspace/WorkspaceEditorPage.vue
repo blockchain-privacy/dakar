@@ -244,7 +244,12 @@ const contextMenuModel = ref({
 });
 
 const menuItems = [
-	{title: 'Reorder Nodes', icon: mdiCached, action: () => nodeGraph.reorderNodes()},
+	{
+		title: 'Reorder Nodes', icon: mdiCached, action() {
+			nodeGraph.reorderNodes();
+			queueAutoSave();
+		},
+	},
 	{title: 'Center Graph', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
 	{title: 'Workspaces Overview', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
 ];
