@@ -86,6 +86,9 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		MaxCost:     500,  // number of mappings
 		BufferItems: 64,   // number of keys per Get buffer
 	})
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
 	workLog, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 5000, // number of keys to track frequency of
 		MaxCost:     500,  // number of mappings

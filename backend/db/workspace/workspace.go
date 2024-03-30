@@ -63,14 +63,14 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 
 // SetWorkspaceState sets the state of the specified workspace
 func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
-	state string, timeStamp time.Time, clusterHeight *int64) (err error) {
+	state string, clusterHeight *int64) (err error) {
 	if workspaceUID == "" || userUID == "" || state == "" {
 		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
 	}
 	w := Workspace{
 		UID:              "uid(v)",
 		State:            state,
-		ModificationTime: timeStamp.UTC().Format(time.RFC3339),
+		ModificationTime: time.Now().UTC().Format(time.RFC3339),
 		ClusterHeight:    clusterHeight,
 	}
 	w.SetDType()

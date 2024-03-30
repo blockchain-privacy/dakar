@@ -335,8 +335,8 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	// todo also check ongoing work directly, if the heuristic is not in cache AND also not in the map, then return a special status
-	// this should be the case when the server is restarted, with the special status, the frontend can remove the "loading" node
+	// todo: also check ongoing work directly, if the heuristic is not in cache AND also not in the map, then return a special status
+	// todo: (newline) this should be the case when the server is restarted, with the special status, the frontend can remove the "loading" node
 
 	// heuristic not finished executing
 	if uid == "" {
@@ -393,7 +393,8 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 	return
 }
 
-func getHeuristicExecutionReply(r *http.Request, worker *heuristics.Worker) (reply heuristicExecutionReply, status int) {
+func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
+	worker *heuristics.Worker) (reply heuristicExecutionReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -426,7 +427,46 @@ func getHeuristicExecutionReply(r *http.Request, worker *heuristics.Worker) (rep
 		return
 	}
 
+	w, err := dbwork.GetFrontendWorkspace(dgraph, heuristicRequest.NewHeuristic.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	// sanity check
+	if len(w.Nodes) == 0 {
+		status = http.StatusBadRequest
+		warn(err)
+		return
+	}
+
+	clusterTypes := make([]string, len(heuristicRequest.NewHeuristic.ClusterTypes))
+	for i, c := range heuristicRequest.NewHeuristic.ClusterTypes {
+		clusterTypes[i] = string(c)
+	}
+
+	yes := true
+
 	reply.WorkID = strconv.Itoa(worker.AddWork(tUser.ID, work))
+	w.Nodes = append(w.Nodes, dbwork.Node{
+		UID:                 reply.WorkID,
+		Type:                dbwork.NodeTypeHeuristic,
+		HeuristicType:       heuristicRequest.NewHeuristic.Type,
+		Parameter:           heuristicRequest.NewHeuristic.Parameter,
+		ExcludeAddresses:    &heuristicRequest.NewHeuristic.ExcludeAddresses,
+		ExcludeSpendingGaps: &heuristicRequest.NewHeuristic.ExcludeSpendingGaps,
+		ClusterTypes:        clusterTypes,
+		Loading:             &yes,
+	})
+
+	err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, heuristicRequest.NewHeuristic.WorkspaceUID,
+		w.Nodes, w.ClusterHeight)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
 
 	return
 }
@@ -1857,7 +1897,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	if len(nodeMap) == 0 && !newNode.IsDestination() {
 		frontEndNodes := []dbwork.Node{*newNode}
 		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-			frontEndNodes, time.Now(), w.ClusterHeight); err != nil {
+			frontEndNodes, w.ClusterHeight); err != nil {
 			status = http.StatusInternalServerError
 			reply.Nodes = nil
 			warn(err)
@@ -1889,7 +1929,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		reply.Nodes, time.Now(), &clusterHeight); err != nil {
+		reply.Nodes, &clusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		reply.Nodes = nil
 		warn(err)
@@ -1955,7 +1995,6 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
 		heuristicMap := map[string]dbwork.Node{}
 
-		// todo check if extra handling for heuristics is still needed, as they are now findable via workspaces
 		for _, n := range w.Nodes {
 			if n.UID == "" || n.Type == "" {
 				continue
@@ -1984,8 +2023,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 			nodesWithConnection = append(nodesWithConnection, v)
 		}
 
-		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID,
-			nodesWithConnection, time.Now(), &clusterHeight)
+		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID, nodesWithConnection, &clusterHeight)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -2076,7 +2114,7 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) 
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		w.Nodes, time.Now(), w.ClusterHeight); err != nil {
+		w.Nodes, w.ClusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
@@ -2195,7 +2233,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		w.Nodes, time.Now(), w.ClusterHeight); err != nil {
+		w.Nodes, w.ClusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return

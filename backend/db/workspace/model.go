@@ -143,6 +143,7 @@ type connectionRequest struct {
 
 // Node is the data model of a workspace node
 type Node struct {
+	// UID can also hold the work ID of a pending heuristic
 	UID      string   `json:"uid,omitempty"`
 	Type     string   `json:"type,omitempty"`
 	Children []string `json:"children,omitempty"`
@@ -165,6 +166,8 @@ type Node struct {
 	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
 	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
 	Timestamp           string   `json:"heuristicTs,omitempty"`
+	// Loading is true if a new heuristic has been created, which is not yet finished executing
+	Loading *bool `json:"loading,omitempty"`
 }
 
 func (f Node) IsDestination() bool {

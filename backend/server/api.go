@@ -523,7 +523,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Router			/executeHeuristics/{hash} [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicExecutionReply(r, s.worker)
+		reply, status := getHeuristicExecutionReply(r, s.db, s.worker)
 
 		sendReply(w, reply, status)
 	})

@@ -5,17 +5,16 @@ import (
 	"backend/db/workspace"
 	"backend/external"
 	"encoding/json"
-	"time"
 )
 
-func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
-	workspaceUID string, state []workspace.Node, timeStamp time.Time, clusterHeight *int64) error {
+func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string,
+	state []workspace.Node, clusterHeight *int64) error {
 	stateBytes, err := json.Marshal(state)
 	if err != nil {
 		return cliutil.NewStackError(err)
 	}
 
-	return workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), timeStamp, clusterHeight)
+	return workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), clusterHeight)
 }
 
 // InsertNodeConnectionsAndHeuristics queries the db for connections between nodes in nodeMap and inserts them
