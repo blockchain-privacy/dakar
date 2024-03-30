@@ -12,8 +12,8 @@ import (
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
 	connections []NodeConnections, heuristicNodes []Node, clusterHeight int64, err error) {
-	// need at least two uids to find connections
-	if len(uids) < 2 {
+	// one uid is still okay, because it could a be destination transaction with connected heuristics
+	if len(uids) == 0 {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
 	}
@@ -38,7 +38,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 					}
 
 					# find fmi cluster for each address
-					address_cluster(func: uid(uids))@filter(type("Address")){
+					address_cluster(func: uid(uids))@filter(has(addresshash)){
 						uid
 						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
 							uid

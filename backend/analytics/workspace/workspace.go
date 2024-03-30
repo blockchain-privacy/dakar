@@ -53,37 +53,38 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 // IsWorkspaceOutdated returns true if the workspace state is outdated
 func IsWorkspaceOutdated(dgraph external.Database,
 	w *workspace.DecodedWorkspace) (bool, error) {
-	if len(w.Nodes) > 0 {
-		// no timestamp set, therefore we can not know if it is outdated -> respond with outdated
-		if w.ClusterHeight == nil {
-			return true, nil
-		}
-
-		// not outdated as there are no nodes or only one node
-		if len(w.Nodes) < 2 {
-			return false, nil
-		}
-
-		containsCluster := false
-		uids := make([]string, len(w.Nodes))
-		for i, n := range w.Nodes {
-			if n.Type == "cluster" {
-				containsCluster = true
-			}
-			uids[i] = n.UID
-		}
-
-		// workspace does not contain a cluster, therefore it can not be outdated
-		if !containsCluster {
-			return false, nil
-		}
-
-		isOutdated, err := workspace.IsWorkspaceStateOutdated(dgraph, *w.ClusterHeight, uids)
-		if err != nil {
-			return false, err
-		}
-		return isOutdated, nil
+	if len(w.Nodes) == 0 {
+		return false, nil
 	}
 
-	return false, nil
+	// no timestamp set, therefore it is unkown if the state is outdated -> respond with outdated
+	// or timestamp set to zero, therefore an update is necessary
+	if w.ClusterHeight == nil || *w.ClusterHeight == 0 {
+		return true, nil
+	}
+
+	// only one node with an non-zero cluster height -> not oudated
+	if len(w.Nodes) == 1 {
+		return false, nil
+	}
+
+	containsCluster := false
+	uids := make([]string, len(w.Nodes))
+	for i, n := range w.Nodes {
+		if n.Type == workspace.NodeTypeCluster {
+			containsCluster = true
+		}
+		uids[i] = n.UID
+	}
+
+	// workspace does not contain a cluster, therefore it can not be outdated
+	if !containsCluster {
+		return false, nil
+	}
+
+	isOutdated, err := workspace.IsWorkspaceStateOutdated(dgraph, *w.ClusterHeight, uids)
+	if err != nil {
+		return false, err
+	}
+	return isOutdated, nil
 }

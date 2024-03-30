@@ -74,12 +74,19 @@ type Worker struct {
 	// graphWrapper gives access to graph functions
 	graphWrapper *graph.Wrapper
 
+	// workLog is used to determine if a workID exist at all in the current server lifecycle
+	workLog      *ristretto.Cache
 	finishedWork *ristretto.Cache
 }
 
 // NewWorker constructs a new Worker
 func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 5000, // number of keys to track frequency of
+		MaxCost:     500,  // number of mappings
+		BufferItems: 64,   // number of keys per Get buffer
+	})
+	workLog, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 5000, // number of keys to track frequency of
 		MaxCost:     500,  // number of mappings
 		BufferItems: 64,   // number of keys per Get buffer
@@ -113,6 +120,7 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		mapMutex:     new(sync.RWMutex),
 		activeMutex:  new(sync.RWMutex),
 		graphWrapper: gWrapper,
+		workLog:      workLog,
 		finishedWork: cache,
 	}, nil
 }
@@ -180,6 +188,12 @@ func (w *Worker) GetFinishedHeuristicUID(workID int, userUID string) (string, er
 	return heuristicUID, nil
 }
 
+// DoesWorkExist returns true if the given workID exists in the worklog
+func (w *Worker) DoesWorkExist(workID int, userUID string) bool {
+	_, ok := w.workLog.Get(workKey{workID: workID, userUID: userUID}.toString())
+	return ok
+}
+
 // IsReady returns true the worker is ready to Work
 func (w *Worker) IsReady() bool {
 	return w.graphWrapper.IsTransactionGraphLoaded()
@@ -215,6 +229,8 @@ mainLoop:
 			}
 			w.currentWorkItem, work = cliutil.GetOneItem(w.executionMap)
 			w.mapMutex.RUnlock()
+
+			w.workLog.SetWithTTL(w.currentWorkItem.toString(), 1, 1, 12*time.Hour)
 
 			// if no error occurred -> execute the new heuristics
 			heuristicUID, err := work.executor.run(dgraph, w.graphWrapper, work.transactionHash, "",

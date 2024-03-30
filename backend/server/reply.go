@@ -1853,7 +1853,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
-	// If newNodes is a destination transaction, it might be connected to heuristics. Therefore, do not go into this block.
+	// If newNodes is a destination transaction, it might be connected to heuristics.
 	if len(nodeMap) == 0 && !newNode.IsDestination() {
 		frontEndNodes := []dbwork.Node{*newNode}
 		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,

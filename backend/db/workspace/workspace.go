@@ -247,7 +247,7 @@ func DeleteWorkspace(c external.Database, userUID string, workspaceUID string) e
 
 func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []string) (isOutdated bool, err error) {
 	const query = `query Q($uids:string){
-					var(func: uid($uids))@filter(type("Address")){
+					var(func: uid($uids)){
 						 ~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
 							Cluster.transaction{
 								~transactions{
