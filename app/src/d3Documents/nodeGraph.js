@@ -581,10 +581,6 @@ export default class NodeGraph {
 			.attr('fill', 'currentColor')
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
-				if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
-					return d.clusterType;
-				}
-
 				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyType) {
 					return getPrivacyTypeLabel(d.privacyType);
 				}
