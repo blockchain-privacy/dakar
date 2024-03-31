@@ -171,6 +171,7 @@ func (w *Worker) AddWork(userUID string, work Work) int {
 
 	w.executionMap[key] = work
 	w.jobsAdded.Inc()
+	w.workLog.SetWithTTL(key.toString(), 1, 1, 12*time.Hour)
 
 	return key.workID
 }
@@ -232,8 +233,6 @@ mainLoop:
 			}
 			w.currentWorkItem, work = cliutil.GetOneItem(w.executionMap)
 			w.mapMutex.RUnlock()
-
-			w.workLog.SetWithTTL(w.currentWorkItem.toString(), 1, 1, 12*time.Hour)
 
 			// if no error occurred -> execute the new heuristics
 			heuristicUID, err := work.executor.run(dgraph, w.graphWrapper, work.transactionHash, "",
