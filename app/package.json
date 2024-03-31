@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.26",
+    "@blockchain/dakar": "^1.1.28",
     "@fontsource/roboto": "^5.0.12",
     "@mdi/js": "^7.4.47",
     "@neondark/wikiapi": "^1.2.32",
