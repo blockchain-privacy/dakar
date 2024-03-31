@@ -39,18 +39,20 @@ func NewMutex() *Mutex {
 func (m *Mutex) Lock(key string) Unlocker {
 	// read or create entry for this key atomically
 	m.mapLock.Lock()
-	e, ok := m.ma[key]
+	entry, ok := m.ma[key]
 	if !ok {
-		e = &mutexEntry{thisMutexMap: m, key: key}
-		m.ma[key] = e
+		entry = &mutexEntry{thisMutexMap: m, key: key}
+		m.ma[key] = entry
 	}
-	e.cnt++ // ref count
+	entry.cnt++ // ref count
 	m.mapLock.Unlock()
 
-	// acquire lock, will block here until e.cnt==1
-	e.el.Lock()
+	info("locking mutex ...", "key", entry.key)
+	// acquire lock, will block here until entry.cnt==1
+	entry.el.Lock()
+	info("locked mutex", "key", entry.key)
 
-	return e
+	return entry
 }
 
 // Unlock releases the lock for this entry.
@@ -60,11 +62,13 @@ func (entry *mutexEntry) Unlock() {
 	thisMutexMap.mapLock.Lock()
 	entry.cnt--        // ref count
 	if entry.cnt < 1 { // if it hits zero then we own it and remove from map
+		info("deleting mutex", "key", entry.key)
 		delete(thisMutexMap.ma, entry.key)
 	}
 	thisMutexMap.mapLock.Unlock()
-
+	info("unlocking mutex ...", "key", entry.key)
 	// now that map stuff is handled, we unlock and let
 	// anything else waiting on this key through
 	entry.el.Unlock()
+	info("unlocked mutex", "key", entry.key)
 }

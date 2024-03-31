@@ -13,6 +13,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+	"backend/workspace"
 	"context"
 	"flag"
 	"fmt"
@@ -58,6 +59,7 @@ func initAllLoggers(fileHandle *os.File) {
 	processor.InitLogger()
 	server.InitLogger()
 	heuristic.InitLogger()
+	workspace.InitLogger()
 }
 
 func info(msg string, v ...any) {

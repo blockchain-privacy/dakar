@@ -4,7 +4,6 @@ import (
 	"backend/analytics"
 	analyticsClustering "backend/analytics/clustering"
 	"backend/analytics/heuristics"
-	"backend/analytics/workspace"
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbAnalytics "backend/db/analytics"
@@ -16,6 +15,7 @@ import (
 	dbus "backend/db/user"
 	dbwork "backend/db/workspace"
 	"backend/external"
+	"backend/workspace"
 	"io"
 	"strings"
 	"time"
@@ -390,8 +390,8 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 	return
 }
 
-func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
-	worker *heuristics.Worker) (reply heuristicExecutionReply, status int) {
+func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worker *heuristics.Worker,
+	workspaceMutex *workspace.Mutex) (reply heuristicExecutionReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -417,6 +417,9 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
 		warn(err)
 		return
 	}
+
+	workspaceLock := workspaceMutex.Lock(heuristicRequest.NewHeuristic.WorkspaceUID)
+	defer workspaceLock.Unlock()
 
 	w, err := dbwork.GetFrontendWorkspace(dgraph, heuristicRequest.NewHeuristic.WorkspaceUID, tUser.ID)
 	if err != nil {
@@ -1849,7 +1852,8 @@ func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
 	return
 }
 
-func getAddWorkspaceNodeReply(dgraph external.Database, worker *heuristics.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
+func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
+	worker *heuristics.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1891,6 +1895,9 @@ func getAddWorkspaceNodeReply(dgraph external.Database, worker *heuristics.Worke
 		status = http.StatusBadRequest
 		return
 	}
+
+	workspaceLock := workspaceMutex.Lock(searchRequest.WorkspaceUID)
+	defer workspaceLock.Unlock()
 
 	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
 	if err != nil {
@@ -1984,7 +1991,7 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 	return
 }
 
-func getGetWorkspaceReply(dgraph external.Database, worker *heuristics.Worker,
+func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mutex, worker *heuristics.Worker,
 	r *http.Request) (reply getWorkspaceReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -1998,6 +2005,9 @@ func getGetWorkspaceReply(dgraph external.Database, worker *heuristics.Worker,
 		status = http.StatusBadRequest
 		return
 	}
+
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
 
 	w, err := dbwork.GetFrontendWorkspace(dgraph, workspaceUID, tUser.ID)
 	if err != nil {
@@ -2098,7 +2108,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 	return
 }
 
-func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) {
+func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mutex, r *http.Request) (status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -2123,6 +2133,8 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) 
 		status = http.StatusBadRequest
 		return
 	}
+	workspaceLock := workspaceMutex.Lock(searchRequest.WorkspaceUID)
+	defer workspaceLock.Unlock()
 
 	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
 	if err != nil {
@@ -2159,7 +2171,8 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) 
 	return
 }
 
-func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply deleteWorkspaceNodeReply, status int) {
+func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
+	r *http.Request) (reply deleteWorkspaceNodeReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -2184,6 +2197,9 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		status = http.StatusBadRequest
 		return
 	}
+
+	workspaceLock := workspaceMutex.Lock(searchRequest.WorkspaceUID)
+	defer workspaceLock.Unlock()
 
 	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
 	if err != nil {

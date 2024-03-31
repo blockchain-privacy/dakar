@@ -2,9 +2,9 @@ package server
 
 import (
 	heuristic "backend/analytics/heuristics"
-	"backend/analytics/workspace"
 	"backend/cmd/cliutil"
 	"backend/external"
+	"backend/workspace"
 	"errors"
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"

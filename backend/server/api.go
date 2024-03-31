@@ -522,7 +522,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Router			/executeHeuristics/ [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicExecutionReply(r, s.db, s.worker)
+		reply, status := getHeuristicExecutionReply(r, s.db, s.worker, s.workspaceMutex)
 
 		sendReply(w, reply, status)
 	})
@@ -780,7 +780,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 //	@Router		/workspaces/node/ [post]
 func (s *Server) handlerAddWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceNodeReply(s.db, s.worker, r)
+		reply, status := getAddWorkspaceNodeReply(s.db, s.workspaceMutex, s.worker, r)
 
 		sendReply(w, reply, status)
 	})
@@ -833,7 +833,7 @@ func (s *Server) handlerAddWorkspace() http.Handler {
 //	@Router		/workspaces/{uid} [get]
 func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getGetWorkspaceReply(s.db, s.worker, r)
+		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, s.worker, r)
 
 		sendReply(w, reply, status)
 	})
@@ -852,7 +852,7 @@ func (s *Server) handlerGetWorkspace() http.Handler {
 //	@Router		/workspaces/ [put]
 func (s *Server) handlerUpdateWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		status := getUpdateWorkspace(s.db, r)
+		status := getUpdateWorkspace(s.db, s.workspaceMutex, r)
 
 		sendReply(w, "", status)
 	})
@@ -870,7 +870,7 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 //	@Router		/workspaces/node/ [delete]
 func (s *Server) handlerDeleteWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteWorkspaceNodeReply(s.db, r)
+		reply, status := getDeleteWorkspaceNodeReply(s.db, s.workspaceMutex, r)
 
 		sendReply(w, reply, status)
 	})
