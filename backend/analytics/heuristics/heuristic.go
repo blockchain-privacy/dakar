@@ -437,8 +437,7 @@ func insertHeuristicIntoWorkspace(dgraph external.Database, h *heuristics.Heuris
 	}
 
 	// connect node
-	index := -1
-
+	var index int
 	if h.ParentHeuristic != nil {
 		index = slices.IndexFunc(w.Nodes, func(node dbwork.Node) bool {
 			return node.UID == h.ParentHeuristic[0].UID
