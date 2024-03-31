@@ -311,12 +311,7 @@ func FindDescandantHeuristicUIDs(nodes map[string]Node, nodeUID string) []string
 
 // DeleteNodes returns a new slice which contains nodes which do not have an UID contained in uids
 func DeleteNodes(nodes []Node, uids []string) []Node {
-	var newNodes []Node
-
-	for _, n := range nodes {
-		if !slices.Contains(uids, n.UID) {
-			newNodes = append(newNodes, n)
-		}
-	}
-	return newNodes
+	return slices.DeleteFunc(nodes, func(node Node) bool {
+		return slices.Contains(uids, node.UID)
+	})
 }

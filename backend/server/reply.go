@@ -2247,7 +2247,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 		deletedNodes = append(children, deletedNode.UID)
 		w.Nodes = dbwork.DeleteNodes(w.Nodes, deletedNodes)
 	} else {
-		dbwork.DeleteNodes(w.Nodes, []string{deletedNode.UID})
+		w.Nodes = dbwork.DeleteNodes(w.Nodes, []string{deletedNode.UID})
 		deletedNodes = []string{deletedNode.UID}
 	}
 
