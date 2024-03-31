@@ -105,15 +105,20 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
 }
 
-// CreateWork does some checks changed and toRemove
-func CreateWork(newHeuristic heuristics.DatabaseHeuristicRequest, transactionHash string, userUID string) (w Work, err error) {
+// CreateWork validates the heuristic requests and creates a work package
+func CreateWork(heuristicRequest heuristics.DatabaseHeuristicRequest, userUID string) (w Work, err error) {
+	if heuristicRequest.TransactionHash == "" {
+		err = cliutil.NewStackErrorf("transaction of heuristic request is empty: %v", heuristicRequest)
+		return
+	}
+
 	// create heuristicExecutor trees
-	w.executor, err = constructExecutors(newHeuristic, userUID)
+	w.executor, err = constructExecutors(heuristicRequest, userUID)
 	if err != nil {
 		return
 	}
 
-	w.transactionHash = transactionHash
+	w.transactionHash = heuristicRequest.TransactionHash
 
 	return
 }

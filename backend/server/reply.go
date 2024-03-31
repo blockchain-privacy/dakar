@@ -399,12 +399,6 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	txHashString := r.PathValue("hash")
-	if !isValid(txHashString) {
-		status = http.StatusBadRequest
-		return
-	}
-
 	type request struct {
 		NewHeuristic dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic,omitempty"`
 	}
@@ -417,8 +411,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	// todo move transaction hash into heuristic request
-	work, err := heuristics.CreateWork(heuristicRequest.NewHeuristic, txHashString, tUser.ID)
+	work, err := heuristics.CreateWork(heuristicRequest.NewHeuristic, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -443,7 +436,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
 	parentIndex := -1
 	if heuristicRequest.NewHeuristic.ParentHeuristicUID == "" {
 		for i, n := range w.Nodes {
-			if n.TransactionHash == txHashString {
+			if n.TransactionHash == heuristicRequest.NewHeuristic.TransactionHash {
 				parentIndex = i
 				break
 			}

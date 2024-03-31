@@ -78,7 +78,7 @@ func getRouteHeuristicReport() string {
 }
 
 func getRouteHeuristicsExecution() string {
-	return buildRoutePattern(httpPOST, routeHeuristicsExecution, "hash")
+	return buildRoutePattern(httpPOST, routeHeuristicsExecution, "")
 }
 
 func getRouteHeuristicDetails() string {
