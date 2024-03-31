@@ -335,9 +335,6 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	// todo: also check ongoing work directly, if the heuristic is not in cache AND also not in the map, then return a special status
-	// todo: (newline) this should be the case when the server is restarted, with the special status, the frontend can remove the "loading" node
-
 	// heuristic not finished executing
 	if uid == "" {
 		return
@@ -2015,7 +2012,7 @@ func getGetWorkspaceReply(dgraph external.Database, worker *heuristics.Worker,
 		warn(err)
 		return
 	}
-	// todo test
+
 	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
 	needToStore, connectionsNeedUpdate, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
 	for _, e := range errs {
