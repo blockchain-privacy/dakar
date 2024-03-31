@@ -3,7 +3,7 @@ package main
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
-	heuristic "backend/analytics/heuristics"
+	"backend/analytics/heuristics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
@@ -37,7 +37,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	heuristic.InitLogger()
+	heuristics.InitLogger()
 }
 
 func info(msg string, v ...any) {

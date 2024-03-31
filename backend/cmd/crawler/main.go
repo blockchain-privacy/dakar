@@ -4,7 +4,7 @@ import (
 	"backend/analytics"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
-	heuristic "backend/analytics/heuristics"
+	"backend/analytics/heuristics"
 	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
@@ -58,7 +58,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	heuristic.InitLogger()
+	heuristics.InitLogger()
 	workspace.InitLogger()
 }
 
@@ -430,7 +430,7 @@ func main() {
 	}
 
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
-	worker, err := heuristic.NewWorker(graphWrapper)
+	worker, err := heuristics.NewWorker(graphWrapper)
 	if err != nil {
 		warn(err)
 		return
