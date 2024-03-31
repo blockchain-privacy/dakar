@@ -332,7 +332,6 @@ async function getHeuristicData() {
 	}
 
 	try {
-		console.log('heuristic uid', props.identifier, 'workspace uid', props.workspaceUid);
 		const response = await dakar.heuristic.heuristicDetailsPost({
 			heuristic: {
 				heuristicUID: props.identifier,
