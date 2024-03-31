@@ -2013,8 +2013,6 @@ func getGetWorkspaceReply(dgraph external.Database, worker *heuristics.Worker,
 		warn(e)
 	}
 
-	info("getworkspace", "needToStore", needToStore, "connectionsNeedUpdate", connectionsNeedUpdate)
-
 	if !connectionsNeedUpdate {
 		// no updated needed because of dummy heuristics, but maybe because clusters are outdated
 		connectionsNeedUpdate, err = workspace.IsWorkspaceOutdated(dgraph, w)

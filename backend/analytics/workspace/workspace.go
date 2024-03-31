@@ -6,7 +6,6 @@ import (
 	"backend/db/workspace"
 	"backend/external"
 	"encoding/json"
-	"log/slog"
 	"slices"
 	"strconv"
 )
@@ -158,8 +157,6 @@ func FilterDummyNodes(worker *heuristics.Worker, dummyHeuristics []workspace.Nod
 
 		return false
 	})
-
-	slog.Info("dummy heuristics length", "len(dummyHeuristics)", len(dummyHeuristics), "len(filteredDummies)", len(filteredDummies))
 
 	return
 }
