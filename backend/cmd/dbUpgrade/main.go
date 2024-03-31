@@ -2,7 +2,6 @@ package main
 
 import (
 	"backend/analytics"
-	heuristic "backend/analytics/heuristics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics/clustering"
@@ -10,6 +9,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+	"backend/worker"
 	"flag"
 	"fmt"
 	"io"
@@ -36,7 +36,7 @@ func initLogger(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	heuristic.InitLogger()
+	worker.InitLogger()
 }
 
 func info(msg string, v ...any) {

@@ -1,10 +1,10 @@
 package workspace
 
 import (
-	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/db/workspace"
 	"backend/external"
+	"backend/worker"
 	"encoding/json"
 	"log/slog"
 	"slices"
@@ -133,7 +133,7 @@ func SplitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node
 // if they are finished executing. It returns the filtered list and two flags:
 // - removedNode: true if at least one node was removed
 // - removedFinishedNode: true if at least one was removed because it was finished executing
-func FilterDummyNodes(worker *heuristics.Worker, dummyHeuristics []workspace.Node, userID string) (
+func FilterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node, userID string) (
 	removedNode bool, removedFinishedNode bool, filteredDummies []workspace.Node, errs []error) {
 	filteredDummies = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
 		workID, err := strconv.Atoi(node.UID)

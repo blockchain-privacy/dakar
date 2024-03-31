@@ -61,40 +61,6 @@ func buildHeuristicTreeElement(hMap map[string]heuristic, h heuristics.DatabaseH
 	return
 }
 
-// constructExecutors creates executors based on heuristics
-func constructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest,
-	userUID string) (executor heuristicExecutor, err error) {
-	// only set values for global type map once
-	if len(typeMap) == 0 {
-		for _, h := range ValidHeuristicTypes {
-			typeMap[h.getType()] = h
-		}
-	}
-
-	if newHeuristic.WorkspaceUID == "" {
-		err = cliutil.NewStackError(errHeuristicNotValid)
-		return
-	}
-
-	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
-		(modelHeuristic.hasParameter() && len(newHeuristic.Parameter) == 0) {
-		err = cliutil.NewStackError(errHeuristicNotValid)
-		return
-	}
-
-	newHeuristicElement, err := buildHeuristicTreeElement(typeMap, newHeuristic, userUID)
-	if err != nil {
-		return
-	}
-
-	executor = heuristicExecutor{
-		thisHeuristic: newHeuristicElement.heuristic,
-		rootUID:       newHeuristicElement.parentHeuristicUID,
-	}
-
-	return
-}
-
 // areClusterTypesValid checks if the given clusterTypes are valid
 func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 	if len(clusterTypes) == 0 {
@@ -103,22 +69,4 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 
 	// for now only one additional cluster type exists
 	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
-}
-
-// CreateWork validates the heuristic requests and creates a work package
-func CreateWork(heuristicRequest heuristics.DatabaseHeuristicRequest, userUID string) (w Work, err error) {
-	if heuristicRequest.TransactionHash == "" {
-		err = cliutil.NewStackErrorf("transaction of heuristic request is empty: %v", heuristicRequest)
-		return
-	}
-
-	// create heuristicExecutor trees
-	w.executor, err = constructExecutors(heuristicRequest, userUID)
-	if err != nil {
-		return
-	}
-
-	w.transactionHash = heuristicRequest.TransactionHash
-
-	return
 }

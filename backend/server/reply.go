@@ -15,6 +15,7 @@ import (
 	dbus "backend/db/user"
 	dbwork "backend/db/workspace"
 	"backend/external"
+	"backend/worker"
 	"backend/workspace"
 	"io"
 	"strings"
@@ -294,7 +295,7 @@ func getHeuristicsReply(r *http.Request, dgraph external.Database) (reply heuris
 }
 
 func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
-	worker *heuristics.Worker) (reply heuristicByWorkIDReply, status int) {
+	worker *worker.Worker) (reply heuristicByWorkIDReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -390,7 +391,7 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 	return
 }
 
-func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worker *heuristics.Worker,
+func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worker *worker.Worker,
 	workspaceMutex *workspace.Mutex) (reply heuristicExecutionReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -411,7 +412,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 		return
 	}
 
-	work, err := heuristics.CreateWork(heuristicRequest.NewHeuristic, tUser.ID)
+	work, err := heuristics.ConstructExecutors(heuristicRequest.NewHeuristic, tUser.ID, workspaceMutex)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -605,7 +606,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker,
+func getConnectionLookupReply(dgraph external.Database, worker *worker.Worker,
 	transactionHash string, urlHandle *url.URL) (reply connectionLookupReply, status int) {
 	if !worker.IsReady() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
@@ -1768,7 +1769,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	return
 }
 
-func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Worker,
+func getSpendingFingerprintReply(dgraph external.Database, worker *worker.Worker,
 	txhash string) (reply spendingFingerprintReply, status int) {
 	if !isValid(txhash) {
 		status = http.StatusBadRequest
@@ -1853,7 +1854,7 @@ func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
 }
 
 func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
-	worker *heuristics.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
+	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1991,7 +1992,7 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 	return
 }
 
-func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mutex, worker *heuristics.Worker,
+func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mutex, worker *worker.Worker,
 	r *http.Request) (reply getWorkspaceReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {

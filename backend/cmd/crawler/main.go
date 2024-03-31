@@ -4,7 +4,6 @@ import (
 	"backend/analytics"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
-	"backend/analytics/heuristics"
 	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
@@ -13,6 +12,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+	"backend/worker"
 	"backend/workspace"
 	"context"
 	"flag"
@@ -58,7 +58,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	heuristics.InitLogger()
+	worker.InitLogger()
 	workspace.InitLogger()
 }
 
@@ -430,7 +430,7 @@ func main() {
 	}
 
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
-	worker, err := heuristics.NewWorker(graphWrapper)
+	w, err := worker.NewWorker(graphWrapper)
 	if err != nil {
 		warn(err)
 		return
@@ -470,7 +470,7 @@ func main() {
 			}
 		}()
 
-		if ok := worker.Start(appContext, graphDB); !ok {
+		if ok := w.Start(appContext, graphDB); !ok {
 			info("could not start worker")
 			return
 		}
@@ -528,7 +528,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker)
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, w)
 		if serverErr != nil {
 			warn(serverErr)
 		}

@@ -1,9 +1,9 @@
 package server
 
 import (
-	heuristic "backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/external"
+	"backend/worker"
 	"backend/workspace"
 	"errors"
 	"github.com/dgraph-io/ristretto"
@@ -38,7 +38,7 @@ func warn(err error, v ...any) {
 type Server struct {
 	db             external.Database
 	client         external.RPCClient
-	worker         *heuristic.Worker
+	worker         *worker.Worker
 	cache          *ristretto.Cache
 	workspaceMutex *workspace.Mutex
 	auth           *ory.APIClient
@@ -47,7 +47,7 @@ type Server struct {
 }
 
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
-	worker *heuristic.Worker) (*Server, error) {
+	worker *worker.Worker) (*Server, error) {
 	if adminAuth == nil || auth == nil {
 		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
 	}

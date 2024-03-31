@@ -1,4 +1,4 @@
-package heuristics
+package worker
 
 import (
 	"backend/analytics/graph"
@@ -44,11 +44,8 @@ func (w workKey) toString() string {
 }
 
 // Work holds all Work related data for the Worker
-type Work struct {
-	// executor contains the heuristicExecutor trees
-	executor heuristicExecutor
-	// transactionHash is the hash of the transaction to which the executor belongs
-	transactionHash string
+type Work interface {
+	Run(external.Database, *graph.Wrapper) (string, error)
 }
 
 // Worker works on the data defined in Work
@@ -235,8 +232,7 @@ mainLoop:
 			w.mapMutex.RUnlock()
 
 			// if no error occurred -> execute the new heuristics
-			heuristicUID, err := work.executor.run(dgraph, w.graphWrapper, work.transactionHash, "",
-				w.currentWorkItem.userUID)
+			heuristicUID, err := work.Run(dgraph, w.graphWrapper)
 			if err != nil {
 				warn(err)
 			}

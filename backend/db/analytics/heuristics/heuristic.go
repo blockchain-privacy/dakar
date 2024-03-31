@@ -27,9 +27,8 @@ var (
 )
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c external.Database, h Heuristic, userUID string, workspaceUID string) (insertUID string, err error) {
+func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspaceUID string) (insertUID string, err error) {
 	h.SetDType()
-	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
 	const newHeuristicDummyUID = "new_h"
 	h.UID = "_:" + newHeuristicDummyUID
@@ -54,7 +53,7 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string, workspace
 	}
 
 	// set cluster height to 0, to force an update of the corresponding workspace
-	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{h}, ClusterHeight: 0})
+	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{*h}, ClusterHeight: 0})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
