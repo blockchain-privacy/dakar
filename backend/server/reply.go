@@ -1925,15 +1925,18 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	needToStore, connectionsNeedUpdate, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
+	removedDummyNodes, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
 	for _, e := range errs {
 		// no need to return early
 		warn(e)
 	}
 
-	info("getAddWorkspaceNode", "needToStore", needToStore, "connectionsNeedUpdate", connectionsNeedUpdate)
+	info("getAddWorkspaceNode", "removedDummyNodes", removedDummyNodes)
 
-	if !needToStore && !connectionsNeedUpdate {
+	// If dummy nodes have been removed, the new node list has to be stored.
+	// If no nodes where removed, a check if the new node is already part of the
+	// node list makes sense. Because in this case an early exit is possible.
+	if !removedDummyNodes {
 		if _, ok := nodeMap[newNode.UID]; ok {
 			// new node is already in current state, therefore there is nothing to do
 			return
@@ -2018,20 +2021,18 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 	}
 
 	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
-	needToStore, connectionsNeedUpdate, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
+	needToStore, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
 	for _, e := range errs {
 		// no need to return early
 		warn(e)
 	}
 
-	if !connectionsNeedUpdate {
-		// no updated needed because of dummy heuristics, but maybe because clusters are outdated
-		connectionsNeedUpdate, err = workspace.IsWorkspaceOutdated(dgraph, w)
-		if err != nil {
-			status = http.StatusInternalServerError
-			warn(cliutil.NewStackError(err))
-			return
-		}
+	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
+	isOutdated, err := workspace.IsWorkspaceOutdated(dgraph, w)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err))
+		return
 	}
 
 	var clusterHeight int64
@@ -2039,7 +2040,7 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		clusterHeight = *w.ClusterHeight
 	}
 
-	if connectionsNeedUpdate {
+	if isOutdated {
 		// Don't consider destination transactions with heuristic connections, because if
 		// this is the only node then the workspace can not be outdated. This is a different
 		// behaviour as when inserting node connections when adding a new node, because there
@@ -2058,7 +2059,7 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 	}
 
 	if needToStore {
-		if !connectionsNeedUpdate {
+		if !isOutdated {
 			// heuristics must be inserted back in this case
 			for _, h := range heuristicMap {
 				nodeMap[h.UID] = h

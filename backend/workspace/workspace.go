@@ -133,12 +133,11 @@ func SplitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node
 // if they are finished executing. It returns the filtered list and two flags:
 // - removedNode: true if at least one node was removed
 // - removedFinishedNode: true if at least one was removed because it was finished executing
-func FilterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node, userID string) (
-	removedNode bool, removedFinishedNode bool, filteredDummies []workspace.Node, errs []error) {
+func FilterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node,
+	userID string) (changedDummies bool, filteredDummies []workspace.Node, errs []error) {
 	filteredDummies = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
 		workID, err := strconv.Atoi(node.UID)
 		if err != nil {
-			removedNode = true
 			errs = append(errs, cliutil.NewStackErrorf("could not convert %s to an integer: %w", node.UID, err))
 			// if work ID is invalid delete it as it is useless
 			return true
@@ -146,7 +145,6 @@ func FilterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node, u
 
 		uid, err := worker.GetFinishedHeuristicUID(workID, userID)
 		if err != nil {
-			removedNode = true
 			errs = append(errs, err)
 			return true
 		}
@@ -154,20 +152,18 @@ func FilterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node, u
 		// if the heuristic has finished executing, then remove it from
 		// the dummy list
 		if uid != "" {
-			removedNode = true
-			removedFinishedNode = true
 			return true
 		}
 
 		// remove all dummy heuristics for which no work exists.
 		// This can happen if the server was restarted before an heuristic was executed.
 		if !worker.DoesWorkExist(workID, userID) {
-			removedNode = true
 			return true
 		}
 
 		return false
 	})
+	changedDummies = len(dummyHeuristics) != len(filteredDummies)
 
 	return
 }
