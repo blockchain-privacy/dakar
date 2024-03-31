@@ -781,7 +781,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 //	@Router		/workspaces/node/ [post]
 func (s *Server) handlerAddWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceNodeReply(s.db, r)
+		reply, status := getAddWorkspaceNodeReply(s.db, s.worker, r)
 
 		sendReply(w, reply, status)
 	})
@@ -834,7 +834,7 @@ func (s *Server) handlerAddWorkspace() http.Handler {
 //	@Router		/workspaces/{uid} [get]
 func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getGetWorkspaceReply(s.db, r)
+		reply, status := getGetWorkspaceReply(s.db, s.worker, r)
 
 		sendReply(w, reply, status)
 	})

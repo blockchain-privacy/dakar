@@ -173,3 +173,7 @@ type Node struct {
 func (f Node) IsDestination() bool {
 	return f.Type == NodeTypeTransaction && f.PrivacyType != nil && constants.PrivacyType(*f.PrivacyType).IsDestination()
 }
+
+func (f Node) IsLoading() bool {
+	return f.Loading != nil && *f.Loading
+}

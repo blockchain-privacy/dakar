@@ -107,11 +107,25 @@ func GetOneItem[M ~map[K]V, K comparable, V any](m M) (K, V) {
 }
 
 // GetMapKeys returns all keys of the given map in indeterminate order.
-// todo: review once go 1.22 is released. Could be replaced with maps.Keys(someMap)
+// todo: review once go 1.23 is released. Could be replaced with maps.Keys(someMap)
 func GetMapKeys[M ~map[K]V, K comparable, V any](m M) []K {
-	keys := make([]K, 0, len(m))
+	keys := make([]K, len(m))
+	i := 0
 	for k := range m {
-		keys = append(keys, k)
+		keys[i] = k
+		i++
 	}
 	return keys
+}
+
+// GetMapValues returns all values of the given map in indeterminate order.
+// todo: review once go 1.23 is released. Could be replaced with maps.Keys(someMap)
+func GetMapValues[M ~map[K]V, K comparable, V any](m M) []V {
+	values := make([]V, len(m))
+	i := 0
+	for _, v := range m {
+		values[i] = v
+		i++
+	}
+	return values
 }

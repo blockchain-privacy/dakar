@@ -1830,7 +1830,7 @@ func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
 	return
 }
 
-func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply addWorkspaceNodeReply, status int) {
+func getAddWorkspaceNodeReply(dgraph external.Database, worker *heuristics.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1879,18 +1879,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	nodeMap := map[string]dbwork.Node{}
-	heuristicMap := map[string]dbwork.Node{}
-	for _, n := range w.Nodes {
-		// do not consider heuristics
-		if n.Type == dbwork.NodeTypeHeuristic {
-			heuristicMap[n.UID] = n
-		} else {
-			// remove previous connections
-			n.Children = nil
-			nodeMap[n.UID] = n
-		}
-	}
+	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
@@ -1909,9 +1898,19 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	if _, ok := nodeMap[newNode.UID]; ok {
-		// new node is already in current state, therefore there is nothing to do
-		return
+	needToStore, connectionsNeedUpdate, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
+	for _, e := range errs {
+		// no need to return early
+		warn(e)
+	}
+
+	info("getAddWorkspaceNode", "needToStore", needToStore, "connectionsNeedUpdate", connectionsNeedUpdate)
+
+	if !needToStore && !connectionsNeedUpdate {
+		if _, ok := nodeMap[newNode.UID]; ok {
+			// new node is already in current state, therefore there is nothing to do
+			return
+		}
 	}
 
 	nodeMap[newNode.UID] = *newNode
@@ -1921,6 +1920,10 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		status = http.StatusInternalServerError
 		warn(err)
 		return
+	}
+
+	for _, dummy := range dummyHeuristics {
+		nodeMap[dummy.UID] = dummy
 	}
 
 	reply.Nodes = make([]dbwork.Node, 0, len(nodeMap))
@@ -1962,7 +1965,8 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 	return
 }
 
-func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getWorkspaceReply, status int) {
+func getGetWorkspaceReply(dgraph external.Database, worker *heuristics.Worker,
+	r *http.Request) (reply getWorkspaceReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1982,32 +1986,36 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		warn(err)
 		return
 	}
-
-	isOutdated, err := workspace.IsWorkspaceOutdated(dgraph, w)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err))
-		return
+	// todo test
+	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
+	needToStore, connectionsNeedUpdate, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
+	for _, e := range errs {
+		// no need to return early
+		warn(e)
 	}
 
-	if isOutdated {
-		nodeMap := map[string]dbwork.Node{}
-		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
-		heuristicMap := map[string]dbwork.Node{}
+	info("getworkspace", "needToStore", needToStore, "connectionsNeedUpdate", connectionsNeedUpdate)
 
-		for _, n := range w.Nodes {
-			if n.UID == "" || n.Type == "" {
-				continue
-			}
-
-			if n.Type == dbwork.NodeTypeHeuristic {
-				heuristicMap[n.UID] = n
-			} else {
-				nodeMap[n.UID] = n
-			}
+	if !connectionsNeedUpdate {
+		// no updated needed because of dummy heuristics, but maybe because clusters are outdated
+		connectionsNeedUpdate, err = workspace.IsWorkspaceOutdated(dgraph, w)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(cliutil.NewStackError(err))
+			return
 		}
+	}
 
-		var clusterHeight int64
+	var clusterHeight int64
+	if w.ClusterHeight != nil {
+		clusterHeight = *w.ClusterHeight
+	}
+
+	if connectionsNeedUpdate {
+		// Don't consider destination transactions with heuristic connections, because if
+		// this is the only node then the workspace can not be outdated. This is a different
+		// behaviour as when inserting node connections when adding a new node, because there
+		// the node connections are still unkown.
 		if len(nodeMap) > 1 {
 			clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
 				heuristicMap, tUser.ID, workspaceUID)
@@ -2018,19 +2026,30 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 			}
 		}
 
-		nodesWithConnection := make([]dbwork.Node, 0, len(nodeMap))
-		for _, v := range nodeMap {
-			nodesWithConnection = append(nodesWithConnection, v)
+		needToStore = true
+	}
+
+	if needToStore {
+		if !connectionsNeedUpdate {
+			// heuristics must be inserted back in this case
+			for _, h := range heuristicMap {
+				nodeMap[h.UID] = h
+			}
 		}
 
-		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID, nodesWithConnection, &clusterHeight)
+		// add dummies back into the node map
+		for _, dummy := range dummyHeuristics {
+			nodeMap[dummy.UID] = dummy
+		}
+
+		w.Nodes = cliutil.GetMapValues(nodeMap)
+
+		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID, w.Nodes, &clusterHeight)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
-
-		w.Nodes = nodesWithConnection
 	}
 
 	reply.Workspace = w.ToFrontendWorkspace()
