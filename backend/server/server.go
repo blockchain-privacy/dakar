@@ -2,6 +2,7 @@ package server
 
 import (
 	heuristic "backend/analytics/heuristics"
+	"backend/analytics/workspace"
 	"backend/cmd/cliutil"
 	"backend/external"
 	"errors"
@@ -35,13 +36,14 @@ func warn(err error, v ...any) {
 }
 
 type Server struct {
-	db        external.Database
-	client    external.RPCClient
-	worker    *heuristic.Worker
-	cache     *ristretto.Cache
-	auth      *ory.APIClient
-	adminAuth *ory.APIClient
-	handler   *http.ServeMux
+	db             external.Database
+	client         external.RPCClient
+	worker         *heuristic.Worker
+	cache          *ristretto.Cache
+	workspaceMutex *workspace.Mutex
+	auth           *ory.APIClient
+	adminAuth      *ory.APIClient
+	handler        *http.ServeMux
 }
 
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
@@ -65,13 +67,14 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 	}
 
 	return &Server{
-		db:        db,
-		client:    client,
-		worker:    worker,
-		cache:     cache,
-		auth:      auth,
-		adminAuth: adminAuth,
-		handler:   http.NewServeMux(),
+		db:             db,
+		client:         client,
+		worker:         worker,
+		cache:          cache,
+		auth:           auth,
+		adminAuth:      adminAuth,
+		workspaceMutex: workspace.NewMutex(),
+		handler:        http.NewServeMux(),
 	}, nil
 }
 
