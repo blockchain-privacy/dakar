@@ -306,9 +306,21 @@ export default class NodeGraph {
 	}
 
 	// Returns the node specified node. If the node does not
-	// exist in the graph, undefined is returned.
+	// exist in the graph undefined is returned.
 	getNode(uid) {
 		return this.nodeMap.get(uid);
+	}
+
+	// Returns the node's parent. If the node does not
+	// exist in the graph undefined is returned.
+	getParent(uid) {
+		const node = this.nodeMap.get(uid);
+		if (!node) {
+			return undefined;
+		}
+
+		const nodes = this.getNodes();
+		return nodes.find(v => v.children?.includes(uid));
 	}
 
 	getNodes() {

@@ -431,7 +431,6 @@ async function addNewHeuristic(heuristic) {
 
 	try {
 		const response = await dakar.heuristic.executeHeuristicsPost({heuristic: {newHeuristic}});
-		heuristicTimers.push(setTimeout(checkWork, 2000, response.workID, newHeuristicParentNodeUID));
 
 		if (parentNode.children) {
 			parentNode.children.push(response.workID);
@@ -449,6 +448,7 @@ async function addNewHeuristic(heuristic) {
 			heuristicClusterTypes: newHeuristic.clusterTypes,
 			heuristicParameter: newHeuristic.parameter,
 		}]);
+		addWork(response.workID);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -456,8 +456,12 @@ async function addNewHeuristic(heuristic) {
 	releaseAutosaveLock();
 }
 
+function addWork(workID) {
+	heuristicTimers.push(setTimeout(checkWork, 3000, workID));
+}
+
 // Periodically check
-async function checkWork(workID, parentUID) {
+async function checkWork(workID) {
 	try {
 		const response = await dakar.heuristic.heuristicByWorkIDPost({
 			work: {
@@ -466,16 +470,16 @@ async function checkWork(workID, parentUID) {
 			},
 		});
 		if (response.heuristic) {
-			replaceTemporaryHeuristic(workID, parentUID, response.heuristic);
+			replaceTemporaryHeuristic(workID, response.heuristic);
 		} else {
-			heuristicTimers.push(setTimeout(checkWork, 2000, workID, parentUID));
+			addWork(workID);
 		}
 	} catch (e) {
 		setErrorMessage(e);
 	}
 }
 
-function replaceTemporaryHeuristic(workID, parentUID, heuristic) {
+function replaceTemporaryHeuristic(workID, heuristic) {
 	// If temporary node exists in graph, collect coordinates
 	const n = nodeGraph.getNode(workID);
 	if (n) {
@@ -484,16 +488,19 @@ function replaceTemporaryHeuristic(workID, parentUID, heuristic) {
 	}
 
 	// If parent exists, set connection to new heuristic
-	const parent = nodeGraph.getNode(parentUID);
-	if (parent) {
-		const childPos = parent.children.indexOf(workID);
-		if (childPos === -1) {
-			// Temporary node not found in children -> create new connection
-			parent.children.push(heuristic.uid);
-		} else {
-			// Temporary node found in children -> replace connection
-			parent.children[childPos] = heuristic.uid;
-		}
+	const parent = nodeGraph.getParent(n.uid);
+	if (!parent) {
+		// Heuristic without a parent can not exist
+		return;
+	}
+
+	const childPos = parent.children.indexOf(workID);
+	if (childPos === -1) {
+		// Temporary node not found in children -> create new connection
+		parent.children.push(heuristic.uid);
+	} else {
+		// Temporary node found in children -> replace connection
+		parent.children[childPos] = heuristic.uid;
 	}
 
 	nodeGraph.removeNode(workID, false);
@@ -785,6 +792,13 @@ async function whenMounted() {
 	nodeGraph.addNodes(data.nodes);
 
 	await nodeGraph.centerGraph();
+
+	// Add for each dummy heuristics a timer which checks if their heuristic is done executing
+	for (const node of data.nodes) {
+		if (node.loading) {
+			addWork(node.uid);
+		}
+	}
 
 	return true;
 }
