@@ -420,6 +420,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
+	// todo move transaction hash into heuristic request
 	work, err := heuristics.CreateWork(heuristicRequest.NewHeuristic, txHashString, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -441,14 +442,42 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
+	// find the index of the hew heuristic's parent
+	parentIndex := -1
+	if heuristicRequest.NewHeuristic.ParentHeuristicUID == "" {
+		for i, n := range w.Nodes {
+			if n.TransactionHash == txHashString {
+				parentIndex = i
+				break
+			}
+		}
+	} else {
+		for i, n := range w.Nodes {
+			if n.UID == heuristicRequest.NewHeuristic.ParentHeuristicUID {
+				parentIndex = i
+				break
+			}
+		}
+	}
+
+	// no parent found
+	if parentIndex == -1 {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackErrorStr("could not determine parent for new heuristic"))
+		return
+	}
+
 	clusterTypes := make([]string, len(heuristicRequest.NewHeuristic.ClusterTypes))
 	for i, c := range heuristicRequest.NewHeuristic.ClusterTypes {
 		clusterTypes[i] = string(c)
 	}
 
 	yes := true
-
 	reply.WorkID = strconv.Itoa(worker.AddWork(tUser.ID, work))
+
+	// add new heuristic uid to children of parent
+	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, reply.WorkID)
+	// add node
 	w.Nodes = append(w.Nodes, dbwork.Node{
 		UID:                 reply.WorkID,
 		Type:                dbwork.NodeTypeHeuristic,
