@@ -320,7 +320,6 @@ async function removeGraphNode() {
 			},
 		});
 
-		console.log('delete these uids:', response.deletedNodeUIDs);
 		nodeGraph.removeNodes(response.deletedNodeUIDs);
 	} catch (e) {
 		setErrorMessage(e);
@@ -423,13 +422,15 @@ async function addNewHeuristic(heuristic) {
 		return;
 	}
 
-	if (nodeGraph.getNode(newHeuristicParentNodeUID).type === WORKSPACE_NODE_TYPE_HEURISTIC) {
+	newHeuristic.transactionHash = txHash;
+
+	if (parentNode.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
 		// Only set parent if the direct parent is a heuristic
 		newHeuristic.parentUID = newHeuristicParentNodeUID;
 	}
 
 	try {
-		const response = await dakar.heuristic.executeHeuristicsHashPost({hash: txHash, heuristic: {newHeuristic}});
+		const response = await dakar.heuristic.executeHeuristicsPost({heuristic: {newHeuristic}});
 		heuristicTimers.push(setTimeout(checkWork, 2000, response.workID, newHeuristicParentNodeUID));
 
 		if (parentNode.children) {
