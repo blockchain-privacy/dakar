@@ -33,7 +33,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 					# heuristic uids
 					var(func: uid($userUID)){
 						User.workspaces@filter(uid($workspaceUID)){
-							h as Workspace.heuristics@filter(uid_in(Heuristic.transaction, uid(t)))
+							h as Workspace.heuristics
 						}
 					}
 
@@ -90,30 +90,30 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 					heuristics(func: uid(t)){
 						uid
 						~Heuristic.transaction@filter(uid(h)){
+							uid
+							ts:Heuristic.ts
+							type:Heuristic.type
+							parameter:Heuristic.parameter
+							clusterTypes:Heuristic.clusterTypes
+							excludeAddresses:Heuristic.excludeAddresses
+							excludeSpendingGaps:Heuristic.excludeSpendingGaps
+							parent:Heuristic.parent{
 								uid
-								ts:Heuristic.ts
-								type:Heuristic.type
-								parameter:Heuristic.parameter
-								clusterTypes:Heuristic.clusterTypes
-								excludeAddresses:Heuristic.excludeAddresses
-								excludeSpendingGaps:Heuristic.excludeSpendingGaps
-								parent:Heuristic.parent{
-									uid
-								}
-								children:~Heuristic.parent{
-									uid
-								}
-								clusterCount: count(Heuristic.clusters)
-								Heuristic.clusters{
-									HeuristicCluster.results{
-										HeuristicResult.origin@filter(uid(t)){
-											uid
-										}
-										HeuristicResult.destinations@filter(uid(t)){
-											uid
-										}
+							}
+							children:~Heuristic.parent{
+								uid
+							}
+							clusterCount: count(Heuristic.clusters)
+							Heuristic.clusters{
+								HeuristicCluster.results{
+									HeuristicResult.origin@filter(uid(t)){
+										uid
+									}
+									HeuristicResult.destinations@filter(uid(t)){
+										uid
 									}
 								}
+							}
 						}
 					}
 				}
