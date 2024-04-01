@@ -6,20 +6,9 @@ import (
 	"backend/external"
 	"backend/worker"
 	"encoding/json"
-	"log/slog"
 	"slices"
 	"strconv"
 )
-
-var clusteringLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	clusteringLogger = slog.With(slog.String("module", "workspace"))
-}
-func info(msg string, v ...any) {
-	clusteringLogger.Info(msg, v...)
-}
 
 func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string,
 	state []workspace.Node, clusterHeight *int64) error {
