@@ -238,7 +238,7 @@ const contextMenuModel = ref({
 			title: 'Delete',
 			icon: mdiDelete,
 			action: removeGraphNode,
-			disabled: () => nodeGraph.getContextNode()?.loading,
+			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
 		},
 	],
 });
@@ -337,6 +337,28 @@ async function lockAutosave() {
 		// eslint-disable-next-line no-await-in-loop
 		await sleep(200);
 	}
+}
+
+// Checks if a node can be deleted. If a heuristic or a node
+// in a heuristic sub graph is loading it return false.
+function isDeleteEnabled(contextNode) {
+	if (!contextNode || contextNode.loading) {
+		return false;
+	}
+
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && !isDestination(contextNode.privacyType)) {
+		return true;
+	}
+
+	if (contextNode.children) {
+		for (const child of contextNode.children) {
+			if (!isDeleteEnabled(nodeGraph.getNode(child))) {
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 function releaseAutosaveLock() {
