@@ -28,7 +28,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 					uids as var(func: uid($uids))
 					
 					# transaction uids
-					t as var(func: uid(uids))@filter(type("Transaction"))
+					t as var(func: uid(uids))@filter(has(txhash))
 					
 					# heuristic uids
 					var(func: uid($userUID)){
