@@ -232,7 +232,7 @@ const contextMenuModel = ref({
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
-			disabled: () => !showContextMenuAddHeuristic.value,
+			disabled: () => !showContextMenuAddHeuristic.value || nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Delete',

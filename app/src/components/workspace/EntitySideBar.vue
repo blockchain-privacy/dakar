@@ -29,6 +29,7 @@
               variant="tonal"
               class="me-2"
               :prepend-icon="mdiShapeCirclePlus"
+              :disabled="disableAddingNodes || auxiliaryData?.loading"
               @click="handleAddHeuristicClick"
             >
               Add Heuristic
