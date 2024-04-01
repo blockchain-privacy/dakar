@@ -2026,7 +2026,6 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 	// behaviour as when inserting node connections when adding a new node, because there
 	// the node connections are still unkown.
 	if isOutdated && len(nodeMap) > 1 {
-
 		clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
 			heuristicMap, tUser.ID, workspaceUID)
 		if err != nil {
