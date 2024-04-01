@@ -100,6 +100,46 @@ type connectionRequest struct {
 		} `json:"tx_inputs,omitempty"`
 	} `json:"transactions,omitempty"`
 
+	HeuristicClusters []struct {
+		UID      string `json:"uid,omitempty"`
+		Clusters []struct {
+			Results []struct {
+				Destinations []struct {
+					Inputs []struct {
+						Addresses []struct {
+							Clusters []struct {
+								UID string `json:"uid,omitempty"`
+							} `json:"~Cluster.addresses,omitempty"`
+						} `json:"~addr_outputs,omitempty"`
+					} `json:"tx_inputs,omitempty"`
+					Outputs []struct {
+						Addresses []struct {
+							Clusters []struct {
+								UID string `json:"uid,omitempty"`
+							} `json:"~Cluster.addresses,omitempty"`
+						} `json:"~addr_outputs,omitempty"`
+					} `json:"tx_outputs,omitempty"`
+				} `json:"HeuristicResult.destinations,omitempty"`
+				Origin struct {
+					Inputs []struct {
+						Addresses []struct {
+							Clusters []struct {
+								UID string `json:"uid,omitempty"`
+							} `json:"~Cluster.addresses,omitempty"`
+						} `json:"~addr_outputs,omitempty"`
+					} `json:"tx_inputs,omitempty"`
+					Outputs []struct {
+						Addresses []struct {
+							Clusters []struct {
+								UID string `json:"uid,omitempty"`
+							} `json:"~Cluster.addresses,omitempty"`
+						} `json:"~addr_outputs,omitempty"`
+					} `json:"tx_outputs,omitempty"`
+				} `json:"HeuristicResult.origin,omitempty"`
+			} `json:"HeuristicCluster.results,omitempty"`
+		} `json:"Heuristic.clusters,omitempty"`
+	} `json:"heuristic_clusters,omitempty"`
+
 	ClusterClusters []struct {
 		UID       string `json:"uid,omitempty"`
 		Addresses []struct {

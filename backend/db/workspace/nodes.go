@@ -5,7 +5,6 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
-	"slices"
 	"time"
 )
 
@@ -34,6 +33,20 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 					var(func: uid($userUID)){
 						User.workspaces@filter(uid($workspaceUID)){
 							h as Workspace.heuristics
+						}
+					}
+
+					heuristic_clusters(func: uid(h)){
+						uid
+						Heuristic.clusters{
+							HeuristicCluster.results{
+								HeuristicResult.destinations{
+									...fGetHeuristicCluster
+								}
+								HeuristicResult.origin{
+									...fGetHeuristicCluster
+								}
+							}
 						}
 					}
 
@@ -124,6 +137,15 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 							uid:uid
 						}
 					}
+				}
+
+				fragment fGetHeuristicCluster {
+					tx_inputs{
+						...fGetCluster
+					}
+					tx_outputs{
+						...fGetCluster
+					}
 				}`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{
@@ -146,7 +168,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 		return
 	}
 
-	connections = slices.Concat(transactions, clusters)
+	connections = append(transactions, clusters...)
 
 	return
 }
@@ -169,7 +191,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 	clusterHeight = *r.ClusterHeight[0].LastClusteredID
 
 	// clusterToAddress contains the mapping of flat multi-input clusters to their addresses.
-	// This map is used to replace the uid of clusters with the uid of addresse.
+	// This map is used to replace the uid of clusters with the uid of addresses.
 	// This is done because we ultimatly want to store the address uids, not the cluster uids as they are not static.
 	clusterToAddress := map[string]string{}
 	for _, address := range r.AddressClusters {
@@ -179,6 +201,41 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		}
 
 		clusterToAddress[address.Cluster[0].UID] = address.UID
+	}
+
+	heuristicToClusters := map[string]map[string]bool{}
+	for _, heuristic := range r.HeuristicClusters {
+		heuristicClusters := map[string]bool{}
+		for _, heuristicCluster := range heuristic.Clusters {
+			for _, result := range heuristicCluster.Results {
+				for _, tx := range append(result.Destinations, result.Origin) {
+					for _, input := range tx.Inputs {
+						for _, address := range input.Addresses {
+							for _, cluster := range address.Clusters {
+
+								// find corresponding address UID and set it connected to this transaction
+								if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+									heuristicClusters[addressUID] = true
+								}
+							}
+						}
+					}
+
+					for _, input := range tx.Outputs {
+						for _, address := range input.Addresses {
+							for _, cluster := range address.Clusters {
+								// find corresponding address UID and set it connected to this transaction
+								if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+									heuristicClusters[addressUID] = true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		heuristicToClusters[heuristic.UID] = heuristicClusters
 	}
 
 	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
@@ -205,6 +262,11 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 						children = append(children, destination.UID)
 					}
 				}
+			}
+
+			// add cluster reachable from this heuristic as children
+			for heuristicClusters := range heuristicToClusters[h.UID] {
+				children = append(children, heuristicClusters)
 			}
 
 			heuristics = append(heuristics, Node{
