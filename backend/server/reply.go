@@ -1925,22 +1925,9 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	removedDummyNodes, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
-	for _, e := range errs {
-		// no need to return early
-		warn(e)
-	}
-
-	info("getAddWorkspaceNode", "removedDummyNodes", removedDummyNodes)
-
-	// If dummy nodes have been removed, the new node list has to be stored.
-	// If no nodes where removed, a check if the new node is already part of the
-	// node list makes sense. Because in this case an early exit is possible.
-	if !removedDummyNodes {
-		if _, ok := nodeMap[newNode.UID]; ok {
-			// new node is already in current state, therefore there is nothing to do
-			return
-		}
+	if _, ok := nodeMap[newNode.UID]; ok {
+		// new node is already in current state, therefore there is nothing to do
+		return
 	}
 
 	nodeMap[newNode.UID] = *newNode
@@ -1952,14 +1939,13 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	for _, dummy := range dummyHeuristics {
-		nodeMap[dummy.UID] = dummy
+	_, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
+	for _, e := range errs {
+		// no need to return early
+		warn(e)
 	}
 
-	reply.Nodes = make([]dbwork.Node, 0, len(nodeMap))
-	for _, n := range nodeMap {
-		reply.Nodes = append(reply.Nodes, n)
-	}
+	reply.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
 		reply.Nodes, &clusterHeight); err != nil {
@@ -2020,13 +2006,6 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		return
 	}
 
-	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
-	needToStore, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
-	for _, e := range errs {
-		// no need to return early
-		warn(e)
-	}
-
 	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
 	isOutdated, err := workspace.IsWorkspaceOutdated(dgraph, w)
 	if err != nil {
@@ -2035,43 +2014,45 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		return
 	}
 
+	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
+
 	var clusterHeight int64
 	if w.ClusterHeight != nil {
 		clusterHeight = *w.ClusterHeight
 	}
+	var updatedConnections bool
+	// Don't consider destination transactions with heuristic connections, because if
+	// it is the only node then the workspace can not be outdated. This is a different
+	// behaviour as when inserting node connections when adding a new node, because there
+	// the node connections are still unkown.
+	if isOutdated && len(nodeMap) > 1 {
 
-	if isOutdated {
-		// Don't consider destination transactions with heuristic connections, because if
-		// this is the only node then the workspace can not be outdated. This is a different
-		// behaviour as when inserting node connections when adding a new node, because there
-		// the node connections are still unkown.
-		if len(nodeMap) > 1 {
-			clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
-				heuristicMap, tUser.ID, workspaceUID)
-			if err != nil {
-				status = http.StatusInternalServerError
-				warn(err)
-				return
-			}
+		clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
+			heuristicMap, tUser.ID, workspaceUID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
 		}
 
-		needToStore = true
+		updatedConnections = true
 	}
 
-	if needToStore {
-		if !isOutdated {
+	needToStore, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
+	for _, e := range errs {
+		// no need to return early
+		warn(e)
+	}
+
+	if updatedConnections || needToStore {
+		if !updatedConnections {
 			// heuristics must be inserted back in this case
 			for _, h := range heuristicMap {
 				nodeMap[h.UID] = h
 			}
 		}
 
-		// add dummies back into the node map
-		for _, dummy := range dummyHeuristics {
-			nodeMap[dummy.UID] = dummy
-		}
-
-		w.Nodes = cliutil.GetMapValues(nodeMap)
+		w.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
 		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID, w.Nodes, &clusterHeight)
 		if err != nil {
