@@ -212,7 +212,6 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 					for _, input := range tx.Inputs {
 						for _, address := range input.Addresses {
 							for _, cluster := range address.Clusters {
-
 								// find corresponding address UID and set it connected to this transaction
 								if addressUID, ok := clusterToAddress[cluster.UID]; ok {
 									heuristicClusters[addressUID] = true
