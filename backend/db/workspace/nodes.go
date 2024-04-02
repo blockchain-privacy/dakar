@@ -16,7 +16,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
 	}
-
+	// todo: in block 'transactions' only select first input when searching for clusters (for performance)
 	const query = `query Q($uids:string,$userUID:string,$workspaceUID:string){
 					# get cluster height
 					cluster_height(func: type(CFMIStatus)){
@@ -88,7 +88,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 									}
 								}
 								~tx_outputs@normalize{
-									tx_inputs{
+									tx_inputs(first:1){
 										~addr_outputs{
 											~Cluster.addresses@filter(uid(c)){
 												uid:uid
@@ -138,12 +138,10 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 						}
 					}
 				}
-
+				
+				# only select the transaction creator
 				fragment fGetHeuristicCluster {
-					tx_inputs{
-						...fGetCluster
-					}
-					tx_outputs{
+					tx_inputs(first:1){
 						...fGetCluster
 					}
 				}`
