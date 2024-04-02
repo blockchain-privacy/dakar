@@ -352,7 +352,12 @@ function isDeleteEnabled(contextNode) {
 
 	if (contextNode.children) {
 		for (const child of contextNode.children) {
-			if (!isDeleteEnabled(nodeGraph.getNode(child))) {
+			const childNode = nodeGraph.getNode(child);
+			if (!childNode || childNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+				continue;
+			}
+
+			if (!isDeleteEnabled(childNode)) {
 				return false;
 			}
 		}
