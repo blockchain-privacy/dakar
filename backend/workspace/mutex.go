@@ -29,7 +29,7 @@ type Unlocker interface {
 	Unlock()
 }
 
-// NewMutex returns an initalized Mutex.
+// NewMutex returns an initialized Mutex.
 func NewMutex() *Mutex {
 	return &Mutex{ma: make(map[string]*mutexEntry)}
 }
