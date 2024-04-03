@@ -4,13 +4,14 @@ import (
 	"sync"
 )
 
+// todo: evaluate if golang native sync.map could be a replacement for Mutex
 // Credit: https://stackoverflow.com/questions/40931373/how-to-gc-a-map-of-mutexes-in-go/62562831#62562831
 // Package mutex provides locking per-key.
 // For example, you can acquire a lock for a specific user ID and all other requests for that user ID
 // will block until that entry is unlocked (effectively your work load will be run serially per-user ID),
 // and yet have work for separate user IDs happen concurrently.
 
-// Mutex wraps a map of mutexes.  Each key locks separately.
+// Mutex wraps a map of mutexes. Each key locks separately.
 type Mutex struct {
 	mapLock sync.Mutex             // lock for entry map
 	ma      map[string]*mutexEntry // entry map
