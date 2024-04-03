@@ -393,7 +393,9 @@ async function handleGraphQuery(query) {
 			},
 		});
 		if (response.nodes) {
+			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
+			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
 		}
 	} catch (e) {

@@ -293,6 +293,14 @@ export default class NodeGraph {
 		}
 	}
 
+	// Remove all nodes. Optionally redraw the graph.
+	removeAllNodes(draw) {
+		this.nodeMap.clear();
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
 	// Adds the given nodes. Nodes which have an
 	// already existing UID are instead updated.
 	// Set draw to false, if the graph should not be redrawn.

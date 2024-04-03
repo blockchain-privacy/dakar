@@ -1875,12 +1875,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	if searchRequest.WorkspaceUID == "" {
-		status = http.StatusBadRequest
-		return
-	}
-
-	if !isValid(searchRequest.Query) {
+	if searchRequest.WorkspaceUID == "" || !isValid(searchRequest.Query) {
 		status = http.StatusBadRequest
 		return
 	}
@@ -1897,60 +1892,9 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	workspaceLock := workspaceMutex.Lock(searchRequest.WorkspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
-	if err != nil {
-		status = http.StatusBadRequest
-		return
-	}
-
-	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
-
-	// If the transmitted state is empty, then there are only connections between the new nodes.
-	// If newNodes is a destination transaction, it might be connected to heuristics.
-	if len(nodeMap) == 0 && !newNode.IsDestination() {
-		frontEndNodes := []dbwork.Node{*newNode}
-		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-			frontEndNodes, w.ClusterHeight); err != nil {
-			status = http.StatusInternalServerError
-			reply.Nodes = nil
-			warn(err)
-			return
-		}
-
-		reply.Nodes = frontEndNodes
-
-		return
-	}
-
-	if _, ok := nodeMap[newNode.UID]; ok {
-		// new node is already in current state, therefore there is nothing to do
-		return
-	}
-
-	nodeMap[newNode.UID] = *newNode
-	clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap,
-		tUser.ID, searchRequest.WorkspaceUID)
+	reply.Nodes, err = workspace.AddNode(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID, tUser.ID, newNode)
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	_, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
-	for _, e := range errs {
-		// no need to return early
-		warn(e)
-	}
-
-	reply.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
-
-	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		reply.Nodes, &clusterHeight); err != nil {
-		status = http.StatusInternalServerError
-		reply.Nodes = nil
 		warn(err)
 		return
 	}
@@ -2026,7 +1970,7 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 	// behaviour as when inserting node connections when adding a new node, because there
 	// the node connections are still unkown.
 	if isOutdated && len(nodeMap) > 1 {
-		clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
+		clusterHeight, nodeMap, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
 			heuristicMap, tUser.ID, workspaceUID)
 		if err != nil {
 			status = http.StatusInternalServerError
@@ -2037,11 +1981,7 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		updatedConnections = true
 	}
 
-	needToStore, dummyHeuristics, errs := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
-	for _, e := range errs {
-		// no need to return early
-		warn(e)
-	}
+	needToStore, dummyHeuristics := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
 
 	if updatedConnections || needToStore {
 		if !updatedConnections {
