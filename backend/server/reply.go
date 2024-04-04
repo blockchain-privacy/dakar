@@ -2158,7 +2158,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 			nodeMap[n.UID] = n
 		}
 
-		uids := dbwork.FindDescandantHeuristicUIDs(nodeMap, deletedNode.UID)
+		uids := dbwork.FindDescendantHeuristicUIDs(nodeMap, deletedNode.UID)
 
 		// delete the actual heuristics
 		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, tUser.ID, searchRequest.WorkspaceUID); err != nil {
@@ -2183,7 +2183,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 		// collect all heuristic UIDs
 		var children []string
 		for _, child := range deletedNode.Children {
-			children = append(children, dbwork.FindDescandantHeuristicUIDs(nodeMap, child)...)
+			children = append(children, dbwork.FindDescendantHeuristicUIDs(nodeMap, child)...)
 		}
 
 		if len(children) > 0 {

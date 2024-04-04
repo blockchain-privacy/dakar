@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/dgraph-io/dgo/v230/protos/api"
-	"slices"
 	"strconv"
 	"time"
 )
@@ -137,7 +136,8 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 	return r.Workspaces, nil
 }
 
-func IsStateEmpty(state string) bool {
+// isStateEmpty returns true if the given string does not represent an empty state
+func isStateEmpty(state string) bool {
 	return state == "" || state == "[]" || state == "{}"
 }
 
@@ -186,7 +186,7 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 		ClusterHeight:    r.Workspaces[0].ClusterHeight,
 	}
 
-	if IsStateEmpty(r.Workspaces[0].State) {
+	if isStateEmpty(r.Workspaces[0].State) {
 		return &decodedWorkspace, nil
 	}
 
@@ -289,29 +289,4 @@ func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []stri
 	isOutdated = height < *r.Height[0].MaxHeight
 
 	return
-}
-
-// FindDescandantHeuristicUIDs returns the given node uid and all node uids which can
-// be found by recursively traversing their children. Only heuristics are considered.
-func FindDescandantHeuristicUIDs(nodes map[string]Node, nodeUID string) []string {
-	var descendants []string
-
-	n, ok := nodes[nodeUID]
-	if !ok || n.Type != NodeTypeHeuristic {
-		return descendants
-	}
-
-	descendants = append(descendants, n.UID)
-
-	for _, childNode := range n.Children {
-		descendants = append(descendants, FindDescandantHeuristicUIDs(nodes, childNode)...)
-	}
-	return descendants
-}
-
-// DeleteNodes returns a new slice which contains nodes which do not have an UID contained in uids
-func DeleteNodes(nodes []Node, uids []string) []Node {
-	return slices.DeleteFunc(nodes, func(node Node) bool {
-		return slices.Contains(uids, node.UID)
-	})
 }

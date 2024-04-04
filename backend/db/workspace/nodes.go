@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
+	"slices"
 	"time"
 )
 
@@ -16,6 +17,7 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
 	}
+
 	// todo: in block 'transactions' only select first input when searching for clusters (for performance)
 	const query = `query Q($uids:string,$userUID:string,$workspaceUID:string){
 					# get cluster height
@@ -429,4 +431,29 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 	}
 
 	return nil, nil
+}
+
+// FindDescendantHeuristicUIDs returns the given node uid and all node uids which can
+// be found by recursively traversing their children. Only heuristics are considered.
+func FindDescendantHeuristicUIDs(nodes map[string]Node, nodeUID string) []string {
+	var descendants []string
+
+	n, ok := nodes[nodeUID]
+	if !ok || n.Type != NodeTypeHeuristic {
+		return descendants
+	}
+
+	descendants = append(descendants, n.UID)
+
+	for _, childNode := range n.Children {
+		descendants = append(descendants, FindDescendantHeuristicUIDs(nodes, childNode)...)
+	}
+	return descendants
+}
+
+// DeleteNodes returns a new slice which contains nodes which do not have an UID contained in uids
+func DeleteNodes(nodes []Node, uids []string) []Node {
+	return slices.DeleteFunc(nodes, func(node Node) bool {
+		return slices.Contains(uids, node.UID)
+	})
 }
