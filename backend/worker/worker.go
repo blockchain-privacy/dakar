@@ -181,11 +181,6 @@ func (w *Worker) DoesWorkExist(workID int, userUID string) bool {
 	return ok
 }
 
-// IsReady returns true the worker is ready to Work
-func (w *Worker) IsReady() bool {
-	return w.graphWrapper.IsTransactionGraphLoaded()
-}
-
 func stoppingWork() {
 	info("stopping Work ...")
 }
