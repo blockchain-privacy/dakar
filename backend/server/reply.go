@@ -1940,68 +1940,12 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		return
 	}
 
-	workspaceLock := workspaceMutex.Lock(workspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := dbwork.GetFrontendWorkspace(dgraph, workspaceUID, tUser.ID)
+	reply.Workspace, err = workspace.GetAndRefreshWorkspace(dgraph, worker, workspaceMutex, workspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
-
-	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
-	isOutdated, err := workspace.IsWorkspaceOutdated(dgraph, w)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err))
-		return
-	}
-
-	nodeMap, heuristicMap, dummyHeuristics := workspace.SplitNodesIntoCategories(w.Nodes)
-
-	var clusterHeight int64
-	if w.ClusterHeight != nil {
-		clusterHeight = *w.ClusterHeight
-	}
-	var updatedConnections bool
-	// Don't consider destination transactions with heuristic connections, because if
-	// it is the only node then the workspace can not be outdated. This is a different
-	// behaviour as when inserting node connections when adding a new node, because there
-	// the node connections are still unkown.
-	if isOutdated && len(nodeMap) > 1 {
-		clusterHeight, nodeMap, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
-			heuristicMap, tUser.ID, workspaceUID)
-		if err != nil {
-			status = http.StatusInternalServerError
-			warn(err)
-			return
-		}
-
-		updatedConnections = true
-	}
-
-	needToStore, dummyHeuristics := workspace.FilterDummyNodes(worker, dummyHeuristics, tUser.ID)
-
-	if updatedConnections || needToStore {
-		if !updatedConnections {
-			// heuristics must be inserted back in this case
-			for _, h := range heuristicMap {
-				nodeMap[h.UID] = h
-			}
-		}
-
-		w.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
-
-		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID, w.Nodes, &clusterHeight)
-		if err != nil {
-			status = http.StatusInternalServerError
-			warn(err)
-			return
-		}
-	}
-
-	reply.Workspace = w.ToFrontendWorkspace()
 
 	return
 }

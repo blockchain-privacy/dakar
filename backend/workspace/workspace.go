@@ -12,6 +12,66 @@ import (
 	"strconv"
 )
 
+// GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.
+// This becomes necessary if connections become outdated, when new blocks are added to the blockchain.
+func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex, workspaceUID string,
+	userUID string) (*workspace.FrontendWorkspace, error) {
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
+	isOutdated, err := IsWorkspaceOutdated(dgraph, w)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	nodeMap, heuristicMap, dummyHeuristics := SplitNodesIntoCategories(w.Nodes)
+
+	var clusterHeight int64
+	if w.ClusterHeight != nil {
+		clusterHeight = *w.ClusterHeight
+	}
+	var updatedConnections bool
+	// Don't consider destination transactions with heuristic connections, because if
+	// it is the only node then the workspace can not be outdated. This is a different
+	// behaviour as when inserting node connections when adding a new node, because there
+	// the node connections are still unkown.
+	if isOutdated && len(nodeMap) > 1 {
+		clusterHeight, nodeMap, err = InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
+			heuristicMap, userUID, workspaceUID)
+		if err != nil {
+			return nil, err
+		}
+
+		updatedConnections = true
+	}
+
+	needToStore, dummyHeuristics := FilterDummyNodes(worker, dummyHeuristics, userUID)
+
+	if updatedConnections || needToStore {
+		if !updatedConnections {
+			// heuristics must be inserted back in this case
+			for _, h := range heuristicMap {
+				nodeMap[h.UID] = h
+			}
+		}
+
+		w.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
+
+		err = EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return w.ToFrontendWorkspace(), nil
+}
+
 // UpdateNodeCoordinates replaces the coordinates of the given workspace with the coordinates from state
 func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, state []workspace.Node) error {

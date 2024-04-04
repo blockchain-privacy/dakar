@@ -35,8 +35,8 @@ type DecodedWorkspace struct {
 	Nodes            []Node
 }
 
-func (w *DecodedWorkspace) ToFrontendWorkspace() FrontendWorkspace {
-	return FrontendWorkspace{
+func (w *DecodedWorkspace) ToFrontendWorkspace() *FrontendWorkspace {
+	return &FrontendWorkspace{
 		UID:              w.UID,
 		Name:             w.Name,
 		ModificationTime: w.ModificationTime,

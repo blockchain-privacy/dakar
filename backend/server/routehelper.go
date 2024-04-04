@@ -162,7 +162,7 @@ type workspacesReply struct {
 }
 
 type getWorkspaceReply struct {
-	Workspace workspace.FrontendWorkspace `json:"workspace"`
+	Workspace *workspace.FrontendWorkspace `json:"workspace,omitempty"`
 }
 
 type queryResultType string
