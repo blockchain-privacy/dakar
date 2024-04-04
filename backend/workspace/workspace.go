@@ -21,6 +21,7 @@ type HeuristicWork struct {
 	userUID        string
 }
 
+// Run processes the heuristic and inserts it into the workspace
 func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, error) {
 	newHeuristic, err := h.executor.Run(dgraph, g)
 	if err != nil {
@@ -30,62 +31,56 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, 
 	lock := h.workspaceMutex.Lock(h.workspaceUID)
 	defer lock.Unlock()
 
-	thisUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
+	newHeuristicUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
 	if err != nil {
 		return "", err
 	}
 
-	if err = insertHeuristicIntoWorkspace(dgraph, newHeuristic, h.workspaceUID, h.userUID, thisUID); err != nil {
-		return "", err
-	}
-
-	return thisUID, nil
-}
-
-// insertHeuristicIntoWorkspace inserts the heuristic into the specified workspace and attaches it to its parent
-func insertHeuristicIntoWorkspace(dgraph external.Database, h *dbHeuristic.Heuristic,
-	workspaceUID string, userUID string, newHeuristicUID string) (err error) {
 	// replace workspace dummy heuristic
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(dgraph, h.workspaceUID, h.userUID)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	// connect node
 	var index int
-	if h.ParentHeuristic != nil {
+	if newHeuristic.ParentHeuristic != nil {
 		index = slices.IndexFunc(w.Nodes, func(node workspace.Node) bool {
-			return node.UID == h.ParentHeuristic[0].UID
+			return node.UID == newHeuristic.ParentHeuristic[0].UID
 		})
 	} else {
 		index = slices.IndexFunc(w.Nodes, func(node workspace.Node) bool {
-			return node.TransactionHash == h.TxHash
+			return node.TransactionHash == newHeuristic.TxHash
 		})
 	}
 
 	if index != -1 {
 		w.Nodes[index].Children = append(w.Nodes[index].Children, newHeuristicUID)
 	} else {
-		err = cliutil.NewStackErrorf("could not find parent in workspace for heuristic: %s", newHeuristicUID)
-		return
+		return "", cliutil.NewStackErrorf("could not find parent in workspace for heuristic: %s", newHeuristicUID)
 	}
 
-	clusterCount := len(h.Clusters)
+	clusterCount := len(newHeuristic.Clusters)
 	w.Nodes = append(w.Nodes, workspace.Node{
 		UID:                 newHeuristicUID,
 		Type:                workspace.NodeTypeHeuristic,
-		HeuristicType:       h.HeuristicType,
-		Parameter:           h.Parameter,
-		ExcludeAddresses:    h.ExcludeAddresses,
-		ExcludeSpendingGaps: h.ExcludeSpendingGaps,
-		ClusterTypes:        h.ClusterTypes,
+		HeuristicType:       newHeuristic.HeuristicType,
+		Parameter:           newHeuristic.Parameter,
+		ExcludeAddresses:    newHeuristic.ExcludeAddresses,
+		ExcludeSpendingGaps: newHeuristic.ExcludeSpendingGaps,
+		ClusterTypes:        newHeuristic.ClusterTypes,
 		ClusterCount:        &clusterCount,
-		Timestamp:           h.Timestamp,
+		Timestamp:           newHeuristic.Timestamp,
 	})
 
-	return EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight)
+	if err := encodeAndStoreWorkspaceState(dgraph, h.userUID, h.workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
+		return "", err
+	}
+
+	return newHeuristicUID, nil
 }
 
+// CreateWork creates a new work package, which can be run at a later time
 func CreateWork(newHeuristic dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string,
 	workspaceMutex *Mutex) (worker.Work, error) {
 	if workspaceUID == "" {
@@ -172,7 +167,7 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 		Loading:             &yes,
 	})
 
-	if err = EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
+	if err = encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
 		return "", err
 	}
 
@@ -192,12 +187,12 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 	}
 
 	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
-	isOutdated, err := IsWorkspaceOutdated(dgraph, w)
+	isOutdated, err := isWorkspaceOutdated(dgraph, w)
 	if err != nil {
 		return nil, cliutil.NewStackError(err)
 	}
 
-	nodeMap, heuristicMap, dummyHeuristics := SplitNodesIntoCategories(w.Nodes)
+	nodeMap, heuristicMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
 
 	var clusterHeight int64
 	if w.ClusterHeight != nil {
@@ -218,7 +213,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 		updatedConnections = true
 	}
 
-	needToStore, dummyHeuristics := FilterDummyNodes(worker, dummyHeuristics, userUID)
+	needToStore, dummyHeuristics := filterDummyNodes(worker, dummyHeuristics, userUID)
 
 	if updatedConnections || needToStore {
 		if !updatedConnections {
@@ -230,7 +225,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 
 		w.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
-		err = EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
+		err = encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
 		if err != nil {
 			return nil, err
 		}
@@ -266,7 +261,7 @@ func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, work
 		}
 	}
 
-	return EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+	return encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 		w.Nodes, w.ClusterHeight)
 }
 
@@ -352,7 +347,7 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 		deletedNodes = []string{deletedNode.UID}
 	}
 
-	if err := EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 		w.Nodes, w.ClusterHeight); err != nil {
 		return nil, err
 	}
@@ -371,13 +366,13 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return nil, err
 	}
 
-	nodeMap, heuristicMap, dummyHeuristics := SplitNodesIntoCategories(w.Nodes)
+	nodeMap, heuristicMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
 	if len(nodeMap) == 0 && !newNode.IsDestination() {
 		frontEndNodes := []workspace.Node{*newNode}
-		if err := EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+		if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 			frontEndNodes, w.ClusterHeight); err != nil {
 			return nil, err
 		}
@@ -396,17 +391,19 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return nil, err
 	}
 
-	_, dummyHeuristics = FilterDummyNodes(worker, dummyHeuristics, userUID)
+	_, dummyHeuristics = filterDummyNodes(worker, dummyHeuristics, userUID)
 
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
-	if err := EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
+	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
 		return nil, err
 	}
 
 	return frontEndNodes, nil
 }
-func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string,
+
+// encodeAndStoreWorkspaceState transforms the workspace state into JSON and stores it in the database
+func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string,
 	state []workspace.Node, clusterHeight *int64) error {
 	stateBytes, err := json.Marshal(state)
 	if err != nil {
@@ -453,8 +450,8 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 	return clusterHeight, newNodeMap, nil
 }
 
-// IsWorkspaceOutdated returns true if the workspace state is outdated
-func IsWorkspaceOutdated(dgraph external.Database,
+// isWorkspaceOutdated returns true if the workspace state is outdated
+func isWorkspaceOutdated(dgraph external.Database,
 	w *workspace.DecodedWorkspace) (bool, error) {
 	if len(w.Nodes) == 0 {
 		return false, nil
@@ -492,11 +489,11 @@ func IsWorkspaceOutdated(dgraph external.Database,
 	return isOutdated, nil
 }
 
-// SplitNodesIntoCategories categorizes each node into its own map:
+// splitNodesIntoCategories categorizes each node into its own map:
 // - general node: transactions and clusters
 // - heuristic node: executed heuristics
 // - dummy heuristic node: heuristics waiting to be executed
-func SplitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node, map[string]workspace.Node, []workspace.Node) {
+func splitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node, map[string]workspace.Node, []workspace.Node) {
 	nodeMap := map[string]workspace.Node{}
 	// save heuristics in separate map, as they are transient. Stored heuristics are used only for coordinates
 	heuristicMap := map[string]workspace.Node{}
@@ -518,11 +515,11 @@ func SplitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node
 	return nodeMap, heuristicMap, dummyHeuristicMap
 }
 
-// FilterDummyNodes filters the given nodes based on wether they exist in the worker work log and/or
+// filterDummyNodes filters the given nodes based on wether they exist in the worker work log and/or
 // if they are finished executing. It returns the filtered list and two flags:
 // - removedNode: true if at least one node was removed
 // - removedFinishedNode: true if at least one was removed because it was finished executing
-func FilterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node,
+func filterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node,
 	userID string) (changedDummies bool, filteredDummies []workspace.Node) {
 	filteredDummies = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
 		workID, err := strconv.Atoi(node.UID)
