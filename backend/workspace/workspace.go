@@ -12,6 +12,76 @@ import (
 	"strconv"
 )
 
+// AddHeuristic adds a new heuristic to the workspace. It returns a work ID,
+// which can be used to check the execution status of the heuristic.
+func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex,
+	heuristicRequest dbHeuristic.DatabaseHeuristicRequest, userUID string, work worker.Work) (string, error) {
+	workspaceLock := workspaceMutex.Lock(heuristicRequest.WorkspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, heuristicRequest.WorkspaceUID, userUID)
+	if err != nil {
+		return "", err
+	}
+
+	// sanity check
+	if len(w.Nodes) == 0 {
+		return "", cliutil.NewStackErrorStr("received update for empty workspace")
+	}
+
+	// find the index of the hew heuristic's parent
+	parentIndex := -1
+	if heuristicRequest.ParentHeuristicUID == "" {
+		for i, n := range w.Nodes {
+			if n.TransactionHash == heuristicRequest.TransactionHash {
+				parentIndex = i
+				break
+			}
+		}
+	} else {
+		for i, n := range w.Nodes {
+			if n.UID == heuristicRequest.ParentHeuristicUID {
+				parentIndex = i
+				break
+			}
+		}
+	}
+
+	// no parent found
+	if parentIndex == -1 {
+		return "", cliutil.NewStackErrorStr("could not determine parent for new heuristic")
+	}
+
+	clusterTypes := make([]string, len(heuristicRequest.ClusterTypes))
+	for i, c := range heuristicRequest.ClusterTypes {
+		clusterTypes[i] = string(c)
+	}
+
+	yes := true
+	workID := strconv.Itoa(worker.AddWork(userUID, work))
+
+	// add new heuristic uid to children of parent
+	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, workID)
+	// add node
+	w.Nodes = append(w.Nodes, workspace.Node{
+		UID:                 workID,
+		Type:                workspace.NodeTypeHeuristic,
+		HeuristicType:       heuristicRequest.Type,
+		Parameter:           heuristicRequest.Parameter,
+		ExcludeAddresses:    &heuristicRequest.ExcludeAddresses,
+		ExcludeSpendingGaps: &heuristicRequest.ExcludeSpendingGaps,
+		ClusterTypes:        clusterTypes,
+		Loading:             &yes,
+	})
+
+	if err = EncodeAndStoreWorkspaceState(dgraph, userUID, heuristicRequest.WorkspaceUID,
+		w.Nodes, w.ClusterHeight); err != nil {
+		return "", err
+	}
+
+	return workID, nil
+}
+
 // GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.
 // This becomes necessary if connections become outdated, when new blocks are added to the blockchain.
 func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex, workspaceUID string,
@@ -147,9 +217,9 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, userUID, workspaceUID); err != nil {
 			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 				return nil, nil
-			} else {
-				return nil, err
 			}
+
+			return nil, err
 		}
 
 		// remove heuristics from nodes
@@ -172,9 +242,9 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 			if err := dbHeuristic.DeleteUserHeuristics(dgraph, children, userUID, workspaceUID); err != nil {
 				if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 					return nil, nil
-				} else {
-					return nil, err
 				}
+
+				return nil, err
 			}
 		}
 

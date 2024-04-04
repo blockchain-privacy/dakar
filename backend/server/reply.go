@@ -419,72 +419,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 		return
 	}
 
-	workspaceLock := workspaceMutex.Lock(heuristicRequest.NewHeuristic.WorkspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := dbwork.GetFrontendWorkspace(dgraph, heuristicRequest.NewHeuristic.WorkspaceUID, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	// sanity check
-	if len(w.Nodes) == 0 {
-		status = http.StatusBadRequest
-		warn(err)
-		return
-	}
-
-	// find the index of the hew heuristic's parent
-	parentIndex := -1
-	if heuristicRequest.NewHeuristic.ParentHeuristicUID == "" {
-		for i, n := range w.Nodes {
-			if n.TransactionHash == heuristicRequest.NewHeuristic.TransactionHash {
-				parentIndex = i
-				break
-			}
-		}
-	} else {
-		for i, n := range w.Nodes {
-			if n.UID == heuristicRequest.NewHeuristic.ParentHeuristicUID {
-				parentIndex = i
-				break
-			}
-		}
-	}
-
-	// no parent found
-	if parentIndex == -1 {
-		status = http.StatusBadRequest
-		warn(cliutil.NewStackErrorStr("could not determine parent for new heuristic"))
-		return
-	}
-
-	clusterTypes := make([]string, len(heuristicRequest.NewHeuristic.ClusterTypes))
-	for i, c := range heuristicRequest.NewHeuristic.ClusterTypes {
-		clusterTypes[i] = string(c)
-	}
-
-	yes := true
-	reply.WorkID = strconv.Itoa(worker.AddWork(tUser.ID, work))
-
-	// add new heuristic uid to children of parent
-	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, reply.WorkID)
-	// add node
-	w.Nodes = append(w.Nodes, dbwork.Node{
-		UID:                 reply.WorkID,
-		Type:                dbwork.NodeTypeHeuristic,
-		HeuristicType:       heuristicRequest.NewHeuristic.Type,
-		Parameter:           heuristicRequest.NewHeuristic.Parameter,
-		ExcludeAddresses:    &heuristicRequest.NewHeuristic.ExcludeAddresses,
-		ExcludeSpendingGaps: &heuristicRequest.NewHeuristic.ExcludeSpendingGaps,
-		ClusterTypes:        clusterTypes,
-		Loading:             &yes,
-	})
-
-	err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, heuristicRequest.NewHeuristic.WorkspaceUID,
-		w.Nodes, w.ClusterHeight)
+	reply.WorkID, err = workspace.AddHeuristic(dgraph, worker, workspaceMutex, heuristicRequest.NewHeuristic, tUser.ID, work)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
