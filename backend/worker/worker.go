@@ -248,21 +248,3 @@ mainLoop:
 		}
 	}
 }
-
-// ReverseLookup performs a reverse lookup for the given uid. It looks back at most maxLookBackTime
-func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
-	w.reverseLookups.Inc()
-	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime, nil, false)
-}
-
-// ForwardLookup performs a forward lookup for the given uid. It looks forward at most maxLookForwardTime
-func (w *Worker) ForwardLookup(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
-	w.forwardLookups.Inc()
-	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime, nil, false)
-}
-
-// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
-func (w *Worker) SpendingFingerprint(uid string) ([]graph.FingerPrint, int, error) {
-	w.spendingFingerprint.Inc()
-	return w.graphWrapper.SpendingFingerprint(uid)
-}

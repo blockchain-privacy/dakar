@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/external"
 	"backend/worker"
@@ -42,6 +43,8 @@ type Server struct {
 	client external.RPCClient
 	// worker which sequentially processes work packages (currently only used for heuristics)
 	worker *worker.Worker
+	// in-memory transaction and address graph of all privacy transactions
+	graphWrapper *graph.Wrapper
 	// web request cache
 	cache *ristretto.Cache
 	// mutex map which synchronizes access to workspaces
@@ -55,7 +58,7 @@ type Server struct {
 }
 
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
-	worker *worker.Worker) (*Server, error) {
+	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if adminAuth == nil || auth == nil {
 		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
 	}
@@ -78,6 +81,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		db:             db,
 		client:         client,
 		worker:         worker,
+		graphWrapper:   graphWrapper,
 		cache:          cache,
 		auth:           auth,
 		adminAuth:      adminAuth,

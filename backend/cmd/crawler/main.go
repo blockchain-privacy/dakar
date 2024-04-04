@@ -439,8 +439,7 @@ func main() {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
-			graphErr := graphWrapper.LoadGraphs()
-			if graphErr != nil {
+			if graphErr := graphWrapper.LoadGraphs(); graphErr != nil {
 				warn(graphErr)
 				return
 			}
@@ -526,7 +525,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, w)
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, w, graphWrapper)
 		if serverErr != nil {
 			warn(serverErr)
 		}

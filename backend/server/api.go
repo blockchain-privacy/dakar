@@ -633,7 +633,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Router		/connectionLookup/{hash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getConnectionLookupReply(s.db, s.worker, r.PathValue("hash"), r.URL)
+		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r.PathValue("hash"), r.URL)
 
 		sendReply(w, reply, status)
 	})
@@ -708,7 +708,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSpendingFingerprintReply(s.db, s.worker, r.PathValue("hash"))
+		reply, status := getSpendingFingerprintReply(s.db, s.graphWrapper, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})

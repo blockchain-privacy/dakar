@@ -3,6 +3,7 @@ package server
 import (
 	"backend/analytics"
 	analyticsClustering "backend/analytics/clustering"
+	"backend/analytics/graph"
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/db"
@@ -491,9 +492,9 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph external.Database, worker *worker.Worker,
+func getConnectionLookupReply(dgraph external.Database, graphWrapper *graph.Wrapper,
 	transactionHash string, urlHandle *url.URL) (reply connectionLookupReply, status int) {
-	if !worker.IsReady() {
+	if !graphWrapper.IsTransactionGraphLoaded() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
 		return
 	}
@@ -543,14 +544,14 @@ func getConnectionLookupReply(dgraph external.Database, worker *worker.Worker,
 
 	var endpoints map[string]bool
 	if isLookupForward {
-		endpoints, err = worker.ForwardLookup(uid, time.Hour*24*lookBackTime)
+		endpoints, err = graphWrapper.ForwardLookupByTime(uid, time.Hour*24*lookBackTime, nil, false)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 	} else {
-		endpoints, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
+		endpoints, err = graphWrapper.ReverseLookup(uid, time.Hour*24*lookBackTime, nil, false)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -1654,14 +1655,14 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	return
 }
 
-func getSpendingFingerprintReply(dgraph external.Database, worker *worker.Worker,
+func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.Wrapper,
 	txhash string) (reply spendingFingerprintReply, status int) {
 	if !isValid(txhash) {
 		status = http.StatusBadRequest
 		return
 	}
 
-	if !worker.IsReady() {
+	if !graphWrapper.IsTransactionGraphLoaded() {
 		reply.Msg = "Server is not ready to receive lookups. Please try again later."
 		return
 	}
@@ -1679,7 +1680,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *worker.Worker
 		return
 	}
 
-	similarTransactions, sessionCount, err := worker.SpendingFingerprint(uid)
+	similarTransactions, sessionCount, err := graphWrapper.SpendingFingerprint(uid)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
