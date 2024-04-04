@@ -14,7 +14,6 @@ const (
 	routeHeuristicReport      string = "heuristics/report"
 	routeHeuristicsExecution  string = "executeHeuristics"
 	routeHeuristicDetails     string = "heuristicDetails"
-	routeHeuristicList        string = "heuristicList"
 	routeHeuristicDescriptors string = "heuristicDescriptors"
 	routeShortestTxPath       string = "shortestTransactionPath"
 	routeConnectionLookup     string = "connectionLookup"
@@ -83,10 +82,6 @@ func getRouteHeuristicsExecution() string {
 
 func getRouteHeuristicDetails() string {
 	return buildRoutePattern(httpPOST, routeHeuristicDetails, "")
-}
-
-func getRouteHeuristicList() string {
-	return buildRoutePattern(httpGET, routeHeuristicList, "")
 }
 
 func getRouteHeuristicDescriptors() string {

@@ -429,25 +429,6 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 	return
 }
 
-func getHeuristicListReply(r *http.Request, dgraph external.Database) (reply heuristicListReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	items, err := dbHeuristic.GetHeuristicListByUser(dgraph, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.Item = items
-	return
-}
-
 // getShortestTransactionPathReply searches for the shortest path between two transactions
 func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply, status int) {
 	type request struct {
@@ -523,7 +504,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	}
 
 	// do 'shortest transaction path' lookup
-	txs, err := dbHeuristic.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
+	txs, err := dbAnalytics.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
 		req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
 		status = http.StatusInternalServerError

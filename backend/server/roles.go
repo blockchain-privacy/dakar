@@ -46,7 +46,6 @@ var (
 		getRouteHeuristicByWorkID():    true,
 		getRouteHeuristics():           true,
 		getRouteHeuristicReport():      true,
-		getRouteHeuristicList():        true,
 		getRouteHeuristicDescriptors(): true,
 		// analytics
 		getRouteShortestTransactionPath(): true,

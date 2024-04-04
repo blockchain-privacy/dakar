@@ -528,23 +528,6 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 	})
 }
 
-// List Heuristics godoc
-//
-//	@Summary	Lists all heuristics of the current user
-//	@Tags		heuristic
-//	@Produce	json
-//	@Success	200	{object}	server.heuristicListReply
-//	@Failure	401	{object}	server.heuristicListReply
-//	@Failure	500	{object}	server.heuristicListReply
-//	@Router		/heuristicList/ [get]
-func (s *Server) handlerHeuristicList() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicListReply(r, s.db)
-
-		sendReply(w, reply, status)
-	})
-}
-
 // Heuristic Descriptors godoc
 //
 //	@Summary		Gets available heuristic descriptors
@@ -948,8 +931,6 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicReport(),
 		adapt(s.handlerHeuristicsReport(), getRouteHeuristicReport(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicList(),
-		adapt(s.handlerHeuristicList(), getRouteHeuristicList(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDescriptors(),
 		adapt(s.handlerHeuristicDescriptors(), getRouteHeuristicDescriptors(), s.authorization(), s.useCache(0), maxBody()))
 
