@@ -350,7 +350,7 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 			h.Y = oldHeuristic.Y
 		}
 
-		nodeMap[h.UID] = h
+		newNodeMap[h.UID] = h
 	}
 
 	return clusterHeight, newNodeMap, nil
