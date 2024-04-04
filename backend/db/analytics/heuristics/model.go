@@ -153,7 +153,6 @@ type FrontendHeuristicResult struct {
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
 	UID                 string                   `json:"uid,omitempty"`
-	WorkspaceUID        string                   `json:"workspaceUID,omitempty"`
 	TransactionHash     string                   `json:"transactionHash,omitempty"`
 	Type                string                   `json:"type,omitempty"`
 	Parameter           string                   `json:"parameter,omitempty"`

@@ -47,7 +47,6 @@ func buildHeuristicTreeElement(hMap map[string]heuristic, h heuristics.DatabaseH
 		newHeuristic.setUserUID(userUID)
 		newHeuristic.setExcludeAddresses(h.ExcludeAddresses)
 		newHeuristic.setExcludeSpendingGaps(h.ExcludeSpendingGaps)
-		newHeuristic.setWorkspaceUID(h.WorkspaceUID)
 
 		element = heuristicTreeElement{
 			parentHeuristicUID: h.ParentHeuristicUID,

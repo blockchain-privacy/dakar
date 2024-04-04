@@ -14,7 +14,6 @@ type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
-	workspaceUID         string
 	excludeAddresses     bool
 	excludeSpendingGaps  bool
 	clusterTypes         []clustering.ClusterType
@@ -85,16 +84,6 @@ func (h *reverseAmountHeuristic) getExcludeSpendingGaps() bool {
 // setUserUID sets the UID of the user who created this heuristic
 func (h *reverseAmountHeuristic) setUserUID(uid string) {
 	h.userUID = uid
-}
-
-// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
-func (h *reverseAmountHeuristic) setWorkspaceUID(uid string) {
-	h.workspaceUID = uid
-}
-
-// getWorkspaceUID returns the workspace UID this heuristic belongs to
-func (h *reverseAmountHeuristic) getWorkspaceUID() string {
-	return h.workspaceUID
 }
 
 func (h reverseAmountHeuristic) String() string {

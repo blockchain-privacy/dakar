@@ -376,6 +376,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 
 	type request struct {
 		NewHeuristic dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic,omitempty"`
+		WorkspaceUID string                               `json:"workspaceUID,omitempty"`
 	}
 
 	var heuristicRequest request
@@ -386,14 +387,8 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 		return
 	}
 
-	work, err := heuristics.ConstructExecutors(heuristicRequest.NewHeuristic, tUser.ID, workspaceMutex)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.WorkID, err = workspace.AddHeuristic(dgraph, worker, workspaceMutex, heuristicRequest.NewHeuristic, tUser.ID, work)
+	reply.WorkID, err = workspace.AddHeuristic(dgraph, worker, workspaceMutex, heuristicRequest.NewHeuristic,
+		heuristicRequest.WorkspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

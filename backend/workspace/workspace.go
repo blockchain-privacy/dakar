@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"backend/analytics/graph"
+	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	dbHeuristic "backend/db/analytics/heuristics"
 	"backend/db/workspace"
@@ -12,14 +14,110 @@ import (
 	"strconv"
 )
 
+type HeuristicWork struct {
+	executor       heuristics.Executor
+	workspaceMutex *Mutex
+	workspaceUID   string
+	userUID        string
+}
+
+func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, error) {
+	newHeuristic, err := h.executor.Run(dgraph, g)
+	if err != nil {
+		return "", err
+	}
+
+	lock := h.workspaceMutex.Lock(h.workspaceUID)
+	defer lock.Unlock()
+
+	thisUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
+	if err != nil {
+		return "", err
+	}
+
+	if err = insertHeuristicIntoWorkspace(dgraph, newHeuristic, h.workspaceUID, h.userUID, thisUID); err != nil {
+		return "", err
+	}
+
+	return thisUID, nil
+}
+
+// insertHeuristicIntoWorkspace inserts the heuristic into the specified workspace and attaches it to its parent
+func insertHeuristicIntoWorkspace(dgraph external.Database, h *dbHeuristic.Heuristic,
+	workspaceUID string, userUID string, newHeuristicUID string) (err error) {
+	// replace workspace dummy heuristic
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return
+	}
+
+	// connect node
+	var index int
+	if h.ParentHeuristic != nil {
+		index = slices.IndexFunc(w.Nodes, func(node workspace.Node) bool {
+			return node.UID == h.ParentHeuristic[0].UID
+		})
+	} else {
+		index = slices.IndexFunc(w.Nodes, func(node workspace.Node) bool {
+			return node.TransactionHash == h.TxHash
+		})
+	}
+
+	if index != -1 {
+		w.Nodes[index].Children = append(w.Nodes[index].Children, newHeuristicUID)
+	} else {
+		err = cliutil.NewStackErrorf("could not find parent in workspace for heuristic: %s", newHeuristicUID)
+		return
+	}
+
+	clusterCount := len(h.Clusters)
+	w.Nodes = append(w.Nodes, workspace.Node{
+		UID:                 newHeuristicUID,
+		Type:                workspace.NodeTypeHeuristic,
+		HeuristicType:       h.HeuristicType,
+		Parameter:           h.Parameter,
+		ExcludeAddresses:    h.ExcludeAddresses,
+		ExcludeSpendingGaps: h.ExcludeSpendingGaps,
+		ClusterTypes:        h.ClusterTypes,
+		ClusterCount:        &clusterCount,
+		Timestamp:           h.Timestamp,
+	})
+
+	return EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight)
+}
+
+func CreateWork(newHeuristic dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string,
+	workspaceMutex *Mutex) (worker.Work, error) {
+	if workspaceUID == "" {
+		return nil, cliutil.NewStackErrorStr("workspace UID not set for heuristic request")
+	}
+
+	executor, err := heuristics.ConstructExecutors(newHeuristic, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return HeuristicWork{
+		executor:       executor,
+		workspaceMutex: workspaceMutex,
+		workspaceUID:   workspaceUID,
+		userUID:        userUID,
+	}, err
+}
+
 // AddHeuristic adds a new heuristic to the workspace. It returns a work ID,
 // which can be used to check the execution status of the heuristic.
 func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex,
-	heuristicRequest dbHeuristic.DatabaseHeuristicRequest, userUID string, work worker.Work) (string, error) {
-	workspaceLock := workspaceMutex.Lock(heuristicRequest.WorkspaceUID)
+	heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string) (string, error) {
+	work, err := CreateWork(heuristicRequest, workspaceUID, userUID, workspaceMutex)
+	if err != nil {
+		return "", err
+	}
+
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, heuristicRequest.WorkspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
 	if err != nil {
 		return "", err
 	}
@@ -74,8 +172,7 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 		Loading:             &yes,
 	})
 
-	if err = EncodeAndStoreWorkspaceState(dgraph, userUID, heuristicRequest.WorkspaceUID,
-		w.Nodes, w.ClusterHeight); err != nil {
+	if err = EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
 		return "", err
 	}
 

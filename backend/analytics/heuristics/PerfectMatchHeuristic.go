@@ -14,7 +14,6 @@ type perfectMatchHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
-	workspaceUID         string
 	excludeAddresses     bool
 	excludeSpendingGaps  bool
 	clusterTypes         []clustering.ClusterType
@@ -87,15 +86,6 @@ func (h *perfectMatchHeuristic) setUserUID(uid string) {
 	h.userUID = uid
 }
 
-// getWorkspaceUID returns the workspace UID this heuristic belongs to
-func (h *perfectMatchHeuristic) getWorkspaceUID() string {
-	return h.workspaceUID
-}
-
-// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
-func (h *perfectMatchHeuristic) setWorkspaceUID(uid string) {
-	h.workspaceUID = uid
-}
 func (h perfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Perfect Match",

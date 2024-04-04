@@ -16,7 +16,6 @@ type forwardAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
-	workspaceUID         string
 	lookForwardTime      time.Duration
 	excludeAddresses     bool
 	excludeSpendingGaps  bool
@@ -99,16 +98,6 @@ func (h *forwardAmountHeuristic) getExcludeSpendingGaps() bool {
 // setUserUID sets the UID of the user who created this heuristic
 func (h *forwardAmountHeuristic) setUserUID(uid string) {
 	h.userUID = uid
-}
-
-// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
-func (h *forwardAmountHeuristic) setWorkspaceUID(uid string) {
-	h.workspaceUID = uid
-}
-
-// getWorkspaceUID returns the workspace UID this heuristic belongs to
-func (h *forwardAmountHeuristic) getWorkspaceUID() string {
-	return h.workspaceUID
 }
 
 func (h *forwardAmountHeuristic) String() string {

@@ -147,13 +147,13 @@ type deleteWorkspaceNodeReply struct {
 }
 
 type workspacesReply struct {
-	Workspaces []workspace.FrontendWorkspace `json:"workspaces"`
+	Workspaces []workspace.FrontendWorkspace `json:"workspaces,omitempty"`
 }
 
 type getWorkspaceReply struct {
 	Workspace *workspace.FrontendWorkspace `json:"workspace,omitempty"`
 	// Contains all available heuristic descriptors, which define the heuristic interface
-	Descriptors []heuristics.Descriptor `json:"descriptors"`
+	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty"`
 }
 
 type queryResultType string

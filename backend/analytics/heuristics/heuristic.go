@@ -9,12 +9,9 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
-	dbwork "backend/db/workspace"
 	"backend/external"
-	"backend/workspace"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 )
 
@@ -72,10 +69,6 @@ type heuristic interface {
 	getExcludeSpendingGaps() bool
 	// setUserUID sets the UID of the user who created this heuristic
 	setUserUID(string)
-	// setWorkspaceUID sets the UID of the workspace to which this heuristic belongs
-	setWorkspaceUID(string)
-	// getWorkspaceUID returns the workspace UID this heuristic belongs to
-	getWorkspaceUID() string
 	// String returns the heuristic in string format
 	String() string
 	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
@@ -306,21 +299,13 @@ func isParentHeuristicSet(parentHeuristicUID string) bool {
 type Executor struct {
 	rootUID         string
 	thisHeuristic   heuristic
-	userUID         string
 	transactionHash string
-	workspaceMutex  *workspace.Mutex
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUID string,
-	workspaceMutex *workspace.Mutex) (executor Executor, err error) {
+func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
 	if newHeuristic.TransactionHash == "" {
 		err = cliutil.NewStackErrorf("transaction of heuristic request is empty: %v", newHeuristic)
-		return
-	}
-
-	if workspaceMutex == nil {
-		err = cliutil.NewStackErrorStr("workspace mutex is not set")
 		return
 	}
 
@@ -329,11 +314,6 @@ func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUI
 		for _, h := range ValidHeuristicTypes {
 			typeMap[h.getType()] = h
 		}
-	}
-
-	if newHeuristic.WorkspaceUID == "" {
-		err = cliutil.NewStackError(errHeuristicNotValid)
-		return
 	}
 
 	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
@@ -350,9 +330,7 @@ func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUI
 	executor = Executor{
 		thisHeuristic:   newHeuristicElement.heuristic,
 		rootUID:         newHeuristicElement.parentHeuristicUID,
-		userUID:         userUID,
 		transactionHash: newHeuristic.TransactionHash,
-		workspaceMutex:  workspaceMutex,
 	}
 
 	return
@@ -360,19 +338,19 @@ func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUI
 
 // Run start the execution of the given heuristic executor. If parentHeuristicUID is not
 // set (e.g. "") than the Executor.rootUID is used
-func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (string, error) {
-	newUID, err := exec(dgraph, g, hx.transactionHash, hx.rootUID, hx.thisHeuristic, hx.userUID, hx.workspaceMutex)
+func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.Heuristic, error) {
+	newHeuristic, err := exec(dgraph, g, hx.transactionHash, hx.rootUID, hx.thisHeuristic)
 	if err != nil {
-		return "", fmt.Errorf("heuristic type: %s, parameter: %s, %w",
+		return nil, fmt.Errorf("heuristic type: %s, parameter: %s, %w",
 			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
 	}
 
-	return newUID, nil
+	return newHeuristic, nil
 }
 
 // exec executes the heuristic on the transaction specified by txHash for the given userUID
-func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h heuristic,
-	userUID string, workspaceMutex *workspace.Mutex) (thisUID string, err error) {
+func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string,
+	h heuristic) (newHeuristic *heuristics.Heuristic, err error) {
 	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return
@@ -399,13 +377,8 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 
 	shouldExcludeAddresses := h.getExcludeAddresses()
 	shouldExcludeSpendingGaps := h.getExcludeSpendingGaps()
-	workspaceUID := h.getWorkspaceUID()
 
-	lock := workspaceMutex.Lock(workspaceUID)
-	defer lock.Unlock()
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-
-	newHeuristic := heuristics.Heuristic{
+	newHeuristic = &heuristics.Heuristic{
 		HeuristicType:       h.getType(),
 		ClusterTypes:        clusterTypes,
 		ExcludeAddresses:    &shouldExcludeAddresses,
@@ -414,61 +387,10 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		Parameter:           h.getParameterString(),
 		ParentHeuristic:     pHeuristic,
 		TxHash:              txHash,
-		Timestamp:           timestamp,
+		Timestamp:           time.Now().UTC().Format(time.RFC3339),
 	}
-
-	thisUID, err = heuristics.InsertHeuristic(dgraph, &newHeuristic, userUID, workspaceUID)
-	if err != nil {
-		return
-	}
-
-	err = insertHeuristicIntoWorkspace(dgraph, &newHeuristic, workspaceUID, userUID, thisUID)
 
 	return
-}
-
-// insertHeuristicIntoWorkspace inserts the heuristic into the specified workspace and attaches it to its parent
-func insertHeuristicIntoWorkspace(dgraph external.Database, h *heuristics.Heuristic,
-	workspaceUID string, userUID string, newHeuristicUID string) (err error) {
-	// replace workspace dummy heuristic
-	w, err := dbwork.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
-	if err != nil {
-		return
-	}
-
-	// connect node
-	var index int
-	if h.ParentHeuristic != nil {
-		index = slices.IndexFunc(w.Nodes, func(node dbwork.Node) bool {
-			return node.UID == h.ParentHeuristic[0].UID
-		})
-	} else {
-		index = slices.IndexFunc(w.Nodes, func(node dbwork.Node) bool {
-			return node.TransactionHash == h.TxHash
-		})
-	}
-
-	if index != -1 {
-		w.Nodes[index].Children = append(w.Nodes[index].Children, newHeuristicUID)
-	} else {
-		err = cliutil.NewStackErrorf("could not find parent in workspace for heuristic: %s", newHeuristicUID)
-		return
-	}
-
-	clusterCount := len(h.Clusters)
-	w.Nodes = append(w.Nodes, dbwork.Node{
-		UID:                 newHeuristicUID,
-		Type:                dbwork.NodeTypeHeuristic,
-		HeuristicType:       h.HeuristicType,
-		Parameter:           h.Parameter,
-		ExcludeAddresses:    h.ExcludeAddresses,
-		ExcludeSpendingGaps: h.ExcludeSpendingGaps,
-		ClusterTypes:        h.ClusterTypes,
-		ClusterCount:        &clusterCount,
-		Timestamp:           h.Timestamp,
-	})
-
-	return workspace.EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight)
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's
