@@ -508,22 +508,6 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 	})
 }
 
-// Heuristic Descriptors godoc
-//
-//	@Summary		Gets available heuristic descriptors
-//	@Description	Returns available heuristic descriptors, which define the heuristic interface
-//	@Tags			heuristic
-//	@Produce		json
-//	@Success		200	{object}	server.heuristicDescriptorReply
-//	@Router			/heuristicDescriptors/ [get]
-func (s *Server) handlerHeuristicDescriptors() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		reply := getHeuristicDescriptorReply()
-
-		sendReply(w, reply, http.StatusOK)
-	})
-}
-
 // Create Identity godoc
 //
 //	@Summary	Create a new identity. This is an admin endpoint.
@@ -909,8 +893,6 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicReport(),
 		adapt(s.handlerHeuristicsReport(), getRouteHeuristicReport(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicDescriptors(),
-		adapt(s.handlerHeuristicDescriptors(), getRouteHeuristicDescriptors(), s.authorization(), s.useCache(0), maxBody()))
 
 	// Analytics
 	s.handler.Handle(getRouteShortestTransactionPath(),

@@ -3,32 +3,31 @@ package server
 const (
 	routePrefix string = "/api/v1/"
 
-	routeSearch               string = "blockchain/search"
-	routeTransaction          string = "blockchain/transactions"
-	routeBlock                string = "blockchain/blocks"
-	routeAddress              string = "blockchain/addresses"
-	routeAddressOutputRange   string = "blockchain/outputs"
-	routeMeta                 string = "meta"
-	routeHeuristicByWorkID    string = "heuristicByWorkID"
-	routeHeuristicReport      string = "heuristics/report"
-	routeHeuristicsExecution  string = "executeHeuristics"
-	routeHeuristicDetails     string = "heuristicDetails"
-	routeHeuristicDescriptors string = "heuristicDescriptors"
-	routeShortestTxPath       string = "shortestTransactionPath"
-	routeConnectionLookup     string = "connectionLookup"
-	routeMixingActivity       string = "mixingActivity"
-	routeSpendingFingerprint  string = "spendingFingerprint"
-	routeIdentities           string = "identities"
-	routeExclusions           string = "exclusions"
-	routeClusters             string = "clusters"
-	routeHMILookup            string = "clusters/hmi"
-	clusterReport             string = "clusters/report"
-	routeAttributions         string = "attributions"
-	routeAttributionsPublic   string = "attributions/public"
-	routeAttributionsSearch   string = "attributions/search"
-	routeWorkspaces           string = "workspaces"
-	routeAddWorkspaceNode     string = "workspaces/node"
-	routeMetrics              string = "/metrics"
+	routeSearch              string = "blockchain/search"
+	routeTransaction         string = "blockchain/transactions"
+	routeBlock               string = "blockchain/blocks"
+	routeAddress             string = "blockchain/addresses"
+	routeAddressOutputRange  string = "blockchain/outputs"
+	routeMeta                string = "meta"
+	routeHeuristicByWorkID   string = "heuristicByWorkID"
+	routeHeuristicReport     string = "heuristics/report"
+	routeHeuristicsExecution string = "executeHeuristics"
+	routeHeuristicDetails    string = "heuristicDetails"
+	routeShortestTxPath      string = "shortestTransactionPath"
+	routeConnectionLookup    string = "connectionLookup"
+	routeMixingActivity      string = "mixingActivity"
+	routeSpendingFingerprint string = "spendingFingerprint"
+	routeIdentities          string = "identities"
+	routeExclusions          string = "exclusions"
+	routeClusters            string = "clusters"
+	routeHMILookup           string = "clusters/hmi"
+	clusterReport            string = "clusters/report"
+	routeAttributions        string = "attributions"
+	routeAttributionsPublic  string = "attributions/public"
+	routeAttributionsSearch  string = "attributions/search"
+	routeWorkspaces          string = "workspaces"
+	routeAddWorkspaceNode    string = "workspaces/node"
+	routeMetrics             string = "/metrics"
 )
 
 const (
@@ -77,10 +76,6 @@ func getRouteHeuristicsExecution() string {
 
 func getRouteHeuristicDetails() string {
 	return buildRoutePattern(httpPOST, routeHeuristicDetails, "")
-}
-
-func getRouteHeuristicDescriptors() string {
-	return buildRoutePattern(httpGET, routeHeuristicDescriptors, "")
 }
 
 func getRouteSearch() string {

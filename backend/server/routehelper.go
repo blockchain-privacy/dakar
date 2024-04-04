@@ -126,10 +126,6 @@ type shortestTransactionPathReply struct {
 	Transactions []db.FrontendTransaction `json:"transactions"`
 }
 
-type heuristicDescriptorReply struct {
-	Descriptors []heuristics.Descriptor `json:"descriptors"`
-}
-
 type fingerprintScore struct {
 	Score        float64 `json:"score"`
 	Txhash       string  `json:"txhash"`
@@ -156,6 +152,8 @@ type workspacesReply struct {
 
 type getWorkspaceReply struct {
 	Workspace *workspace.FrontendWorkspace `json:"workspace,omitempty"`
+	// Contains all available heuristic descriptors, which define the heuristic interface
+	Descriptors []heuristics.Descriptor `json:"descriptors"`
 }
 
 type queryResultType string

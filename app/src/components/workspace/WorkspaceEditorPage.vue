@@ -663,36 +663,15 @@ async function refreshData() {
 
 	try {
 		const response = await dakar.workspace.workspacesUidGet({uid: workspaceUID.value});
+		if (!response.descriptors) {
+			throw Error('heuristic descriptor list is empty');
+		}
+
 		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
 		} else {
 			data = null;
-		}
-
-		msgStore.resetMessages();
-	} catch (e) {
-		handleError(context, e);
-	}
-
-	isLoadingWorkspace.value = false;
-
-	if (!data) {
-		return false;
-	}
-
-	// If the workspace does not yet contain any nodes, set an empty array
-	data.nodes ??= [];
-
-	return true;
-}
-
-async function getDescriptors() {
-	try {
-		const response = await dakar.heuristic.heuristicDescriptorsGet();
-
-		if (!response.descriptors) {
-			throw Error('heuristic descriptor list is empty');
 		}
 
 		heuristicDescriptors.value = response.descriptors.map(e => {
@@ -713,9 +692,22 @@ async function getDescriptors() {
 
 			return 0;
 		});
+
+		msgStore.resetMessages();
 	} catch (e) {
-		setErrorMessage(e);
+		handleError(context, e);
 	}
+
+	isLoadingWorkspace.value = false;
+
+	if (!data) {
+		return false;
+	}
+
+	// If the workspace does not yet contain any nodes, set an empty array
+	data.nodes ??= [];
+
+	return true;
 }
 
 function createTabs() {
@@ -801,19 +793,14 @@ async function whenMounted() {
 		return false;
 	}
 
-	// Gets all heuristic type configurations
-	await getDescriptors();
-	if (heuristicDescriptors.value.length === 0) {
+	nodeGraph.initSvg(svgCanvasId);
+	if (!await refreshData()) {
 		return false;
 	}
 
 	// Creates the tab descriptions based on the heuristic categories
 	createTabs();
 	nodeGraph.populateHeuristicMap(heuristicDescriptors.value);
-	nodeGraph.initSvg(svgCanvasId);
-	if (!await refreshData()) {
-		return false;
-	}
 
 	// Update page title
 	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;

@@ -41,11 +41,10 @@ var (
 		// user
 		getRouteDeleteIdentity(): true,
 		// heuristics
-		getRouteHeuristicDetails():     true,
-		getRouteHeuristicsExecution():  true,
-		getRouteHeuristicByWorkID():    true,
-		getRouteHeuristicReport():      true,
-		getRouteHeuristicDescriptors(): true,
+		getRouteHeuristicDetails():    true,
+		getRouteHeuristicsExecution(): true,
+		getRouteHeuristicByWorkID():   true,
+		getRouteHeuristicReport():     true,
 		// analytics
 		getRouteShortestTransactionPath(): true,
 		getRouteConnectionLookup():        true,

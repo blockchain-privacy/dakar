@@ -1733,16 +1733,6 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *worker.Worker
 	return
 }
 
-func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
-	reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
-
-	for i, t := range heuristics.ValidHeuristicTypes {
-		reply.Descriptors[i] = t.GetDescriptor()
-	}
-
-	return
-}
-
 func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
@@ -1835,6 +1825,11 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		status = http.StatusInternalServerError
 		warn(err)
 		return
+	}
+
+	reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
+	for i, t := range heuristics.ValidHeuristicTypes {
+		reply.Descriptors[i] = t.GetDescriptor()
 	}
 
 	return
