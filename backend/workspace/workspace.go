@@ -2,13 +2,105 @@ package workspace
 
 import (
 	"backend/cmd/cliutil"
+	dbHeuristic "backend/db/analytics/heuristics"
 	"backend/db/workspace"
 	"backend/external"
 	"backend/worker"
 	"encoding/json"
+	"errors"
 	"slices"
 	"strconv"
 )
+
+// DeleteNode removes a node and all its dependent node from a workspace.
+// Returns all node UIDs which have been deleted.
+func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+	userUID string, nodeUID string) ([]string, error) {
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(w.Nodes) == 0 {
+		return nil, cliutil.NewStackErrorf(
+			"node deletion request for empty workspace. workspace: %s, node: %s", workspaceUID, nodeUID)
+	}
+
+	var deletedNode *workspace.Node
+	for _, n := range w.Nodes {
+		if n.UID == nodeUID {
+			deletedNode = &n // #nosec G601, false positive as of go1.22
+			break
+		}
+	}
+
+	if deletedNode == nil {
+		return nil, cliutil.NewStackErrorf(
+			"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, nodeUID)
+	}
+
+	var deletedNodes []string
+
+	if deletedNode.Type == workspace.NodeTypeHeuristic {
+		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
+		for _, n := range w.Nodes {
+			nodeMap[n.UID] = n
+		}
+
+		uids := workspace.FindDescendantHeuristicUIDs(nodeMap, deletedNode.UID)
+
+		// delete the actual heuristics
+		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, userUID, workspaceUID); err != nil {
+			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+				return nil, nil
+			} else {
+				return nil, err
+			}
+		}
+
+		// remove heuristics from nodes
+		w.Nodes = workspace.DeleteNodes(w.Nodes, uids)
+		deletedNodes = uids
+	} else if deletedNode.IsDestination() {
+		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
+		for _, n := range w.Nodes {
+			nodeMap[n.UID] = n
+		}
+
+		// collect all heuristic UIDs
+		var children []string
+		for _, child := range deletedNode.Children {
+			children = append(children, workspace.FindDescendantHeuristicUIDs(nodeMap, child)...)
+		}
+
+		if len(children) > 0 {
+			// delete the actual heuristics
+			if err := dbHeuristic.DeleteUserHeuristics(dgraph, children, userUID, workspaceUID); err != nil {
+				if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+					return nil, nil
+				} else {
+					return nil, err
+				}
+			}
+		}
+
+		deletedNodes = append(children, deletedNode.UID)
+		w.Nodes = workspace.DeleteNodes(w.Nodes, deletedNodes)
+	} else {
+		w.Nodes = workspace.DeleteNodes(w.Nodes, []string{deletedNode.UID})
+		deletedNodes = []string{deletedNode.UID}
+	}
+
+	if err := EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+		w.Nodes, w.ClusterHeight); err != nil {
+		return nil, err
+	}
+
+	return deletedNodes, nil
+}
 
 // AddNode adds a node to a workspace and refreshes the connections between all nodes.
 func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,

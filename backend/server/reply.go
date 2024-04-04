@@ -2120,100 +2120,12 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 		return
 	}
 
-	workspaceLock := workspaceMutex.Lock(searchRequest.WorkspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
+	reply.DeletedNodeUIDs, err = workspace.DeleteNode(dgraph, workspaceMutex, searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
-
-	if len(w.Nodes) == 0 {
-		status = http.StatusInternalServerError
-		warn(cliutil.NewStackErrorf("received node deletion request for empty workspace. request %v", searchRequest))
-		return
-	}
-
-	var deletedNode *dbwork.Node
-	for _, n := range w.Nodes {
-		if n.UID == searchRequest.NodeUID {
-			deletedNode = &n // #nosec G601, false positive as of go1.22
-			break
-		}
-	}
-
-	if deletedNode == nil {
-		status = http.StatusBadRequest
-		warn(cliutil.NewStackErrorf("node does not exist in workspace. request: %v", searchRequest))
-		return
-	}
-
-	var deletedNodes []string
-
-	if deletedNode.Type == dbwork.NodeTypeHeuristic {
-		nodeMap := make(map[string]dbwork.Node, len(w.Nodes))
-		for _, n := range w.Nodes {
-			nodeMap[n.UID] = n
-		}
-
-		uids := dbwork.FindDescendantHeuristicUIDs(nodeMap, deletedNode.UID)
-
-		// delete the actual heuristics
-		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, tUser.ID, searchRequest.WorkspaceUID); err != nil {
-			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
-				status = http.StatusNotFound
-			} else {
-				status = http.StatusInternalServerError
-				warn(err)
-			}
-			return
-		}
-
-		// remove heuristics from nodes
-		w.Nodes = dbwork.DeleteNodes(w.Nodes, uids)
-		deletedNodes = uids
-	} else if deletedNode.IsDestination() {
-		nodeMap := make(map[string]dbwork.Node, len(w.Nodes))
-		for _, n := range w.Nodes {
-			nodeMap[n.UID] = n
-		}
-
-		// collect all heuristic UIDs
-		var children []string
-		for _, child := range deletedNode.Children {
-			children = append(children, dbwork.FindDescendantHeuristicUIDs(nodeMap, child)...)
-		}
-
-		if len(children) > 0 {
-			// delete the actual heuristics
-			if err := dbHeuristic.DeleteUserHeuristics(dgraph, children, tUser.ID, searchRequest.WorkspaceUID); err != nil {
-				if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
-					status = http.StatusNotFound
-				} else {
-					status = http.StatusInternalServerError
-					warn(err)
-				}
-				return
-			}
-		}
-
-		deletedNodes = append(children, deletedNode.UID)
-		w.Nodes = dbwork.DeleteNodes(w.Nodes, deletedNodes)
-	} else {
-		w.Nodes = dbwork.DeleteNodes(w.Nodes, []string{deletedNode.UID})
-		deletedNodes = []string{deletedNode.UID}
-	}
-
-	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		w.Nodes, w.ClusterHeight); err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.DeletedNodeUIDs = deletedNodes
 
 	return
 }
