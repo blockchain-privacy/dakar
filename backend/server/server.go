@@ -36,14 +36,22 @@ func warn(err error, v ...any) {
 }
 
 type Server struct {
-	db             external.Database
-	client         external.RPCClient
-	worker         *worker.Worker
-	cache          *ristretto.Cache
+	// dgraph database
+	db external.Database
+	// Dash or Bitcoin RPC client
+	client external.RPCClient
+	// worker which sequentially processes work packages (currently only used for heuristics)
+	worker *worker.Worker
+	// web request cache
+	cache *ristretto.Cache
+	// mutex map which synchronizes access to workspaces
 	workspaceMutex *workspace.Mutex
-	auth           *ory.APIClient
-	adminAuth      *ory.APIClient
-	handler        *http.ServeMux
+	// ory kratos authentifaction handle
+	auth *ory.APIClient
+	// ory kratos admin authentifaction handle
+	adminAuth *ory.APIClient
+	// HTTP mux
+	handler *http.ServeMux
 }
 
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
