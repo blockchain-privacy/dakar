@@ -425,7 +425,6 @@ async function addNewHeuristic(heuristic) {
 
 	const newHeuristic = {
 		uid: `${newUidPrefix}${uidCounter}`,
-		workspaceUID: workspaceUID.value,
 		type: heuristic.type,
 		clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
 		useAddressExclusionList: heuristic.useAddressExclusionList,
@@ -459,7 +458,9 @@ async function addNewHeuristic(heuristic) {
 	}
 
 	try {
-		const response = await dakar.heuristic.executeHeuristicsPost({heuristic: {newHeuristic}});
+		const response = await dakar.heuristic.executeHeuristicsPost({
+			heuristic: {newHeuristic, workspaceUID: workspaceUID.value},
+		});
 
 		if (parentNode.children) {
 			parentNode.children.push(response.workID);
