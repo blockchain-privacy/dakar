@@ -126,7 +126,7 @@ func (w *Worker) Start(ctx context.Context, dgraph external.Database) bool {
 	return false
 }
 
-// Stop stops the worker.
+// Stop stops the worker. The worker can also be stopped by cancelling the passed context to Start
 func (w *Worker) Stop() {
 	w.activeMutex.Lock()
 	defer w.activeMutex.Unlock()
