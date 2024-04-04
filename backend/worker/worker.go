@@ -51,11 +51,8 @@ type Work interface {
 
 // Worker works on the data defined in Work
 type Worker struct {
-	jobsAdded           prometheus.Counter
-	jobsCompleted       prometheus.Counter
-	forwardLookups      prometheus.Counter
-	reverseLookups      prometheus.Counter
-	spendingFingerprint prometheus.Counter
+	jobsAdded     prometheus.Counter
+	jobsCompleted prometheus.Counter
 
 	// cancel stops the go routine started by Start
 	cancel context.CancelFunc
@@ -104,18 +101,6 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		jobsCompleted: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_worker_jobs_completed_total",
 			Help: "The total number of jobs completed by the worker",
-		}),
-		reverseLookups: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_worker_reverse_lookups_total",
-			Help: "The total number of reverse lookups executed by the worker",
-		}),
-		forwardLookups: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_worker_forward_lookups_total",
-			Help: "The total number of forward lookups executed by the worker",
-		}),
-		spendingFingerprint: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_worker_spending_fingerprint_lookups_total",
-			Help: "The total number of spending fingerprint lookups",
 		}),
 		executionMap: make(map[workKey]Work),
 		mapMutex:     new(sync.RWMutex),
