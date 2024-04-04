@@ -2051,40 +2051,13 @@ func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mute
 		return
 	}
 
-	if searchRequest.WorkspaceUID == "" {
+	if searchRequest.WorkspaceUID == "" || len(searchRequest.CurrentState) == 0 {
 		status = http.StatusBadRequest
 		return
 	}
-	workspaceLock := workspaceMutex.Lock(searchRequest.WorkspaceUID)
-	defer workspaceLock.Unlock()
 
-	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	if len(w.Nodes) == 0 {
-		status = http.StatusInternalServerError
-		warn(cliutil.NewStackErrorStr("received update for empty workspace"))
-		return
-	}
-
-	frontendState := make(map[string]dbwork.Node, len(searchRequest.CurrentState))
-	for _, n := range searchRequest.CurrentState {
-		frontendState[n.UID] = n
-	}
-
-	for i, backendNode := range w.Nodes {
-		if frontendNode, ok := frontendState[backendNode.UID]; ok {
-			w.Nodes[i].X = frontendNode.X
-			w.Nodes[i].Y = frontendNode.Y
-		}
-	}
-
-	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		w.Nodes, w.ClusterHeight); err != nil {
+	if err = workspace.UpdateNodeCoordinates(dgraph, workspaceMutex,
+		searchRequest.WorkspaceUID, tUser.ID, searchRequest.CurrentState); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return

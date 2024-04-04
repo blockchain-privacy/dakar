@@ -12,6 +12,37 @@ import (
 	"strconv"
 )
 
+// UpdateNodeCoordinates replaces the coordinates of the given workspace with the coordinates from state
+func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+	userUID string, state []workspace.Node) error {
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return err
+	}
+
+	if len(w.Nodes) == 0 {
+		return cliutil.NewStackErrorStr("received update for empty workspace")
+	}
+
+	frontendState := make(map[string]workspace.Node, len(state))
+	for _, n := range state {
+		frontendState[n.UID] = n
+	}
+
+	for i, backendNode := range w.Nodes {
+		if frontendNode, ok := frontendState[backendNode.UID]; ok {
+			w.Nodes[i].X = frontendNode.X
+			w.Nodes[i].Y = frontendNode.Y
+		}
+	}
+
+	return EncodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+		w.Nodes, w.ClusterHeight)
+}
+
 // DeleteNode removes a node and all its dependent node from a workspace.
 // Returns all node UIDs which have been deleted.
 func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
