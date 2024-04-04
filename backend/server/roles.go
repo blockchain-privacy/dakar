@@ -44,7 +44,6 @@ var (
 		getRouteHeuristicDetails():     true,
 		getRouteHeuristicsExecution():  true,
 		getRouteHeuristicByWorkID():    true,
-		getRouteHeuristics():           true,
 		getRouteHeuristicReport():      true,
 		getRouteHeuristicDescriptors(): true,
 		// analytics

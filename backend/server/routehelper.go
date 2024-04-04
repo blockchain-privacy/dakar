@@ -109,9 +109,6 @@ type metaReply struct {
 	Blocks *int64                 `json:"blocks,omitempty"`
 }
 
-type heuristicsReply struct {
-	Heuristics []dbh.FrontendHeuristic `json:"heuristics,omitempty"`
-}
 type heuristicByWorkIDReply struct {
 	Heuristic *dbh.FrontendHeuristic `json:"heuristic,omitempty"`
 }
@@ -127,10 +124,6 @@ type heuristicDetailsReply struct {
 type shortestTransactionPathReply struct {
 	Msg          string                   `json:"msg,omitempty"`
 	Transactions []db.FrontendTransaction `json:"transactions"`
-}
-
-type heuristicListReply struct {
-	Item []dbh.HeuristicListItem `json:"items"`
 }
 
 type heuristicDescriptorReply struct {

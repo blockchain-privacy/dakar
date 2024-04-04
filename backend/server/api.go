@@ -429,26 +429,6 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 	})
 }
 
-// Heuristics godoc
-//
-//	@Summary		Get all heuristics defined for a transaction
-//	@Description	Get all heuristics defined for a transaction and the current heuristic execution status
-//	@Tags			heuristic
-//	@Produce		json
-//	@Param			hash	path		string	true	"Transaction hash"
-//	@Success		200		{object}	server.heuristicsReply
-//	@Failure		400		{object}	server.heuristicsReply
-//	@Failure		401		{object}	server.heuristicsReply
-//	@Failure		500		{object}	server.heuristicsReply
-//	@Router			/heuristics/{hash} [get]
-func (s *Server) handlerHeuristics() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicsReply(r, s.db)
-
-		sendReply(w, reply, status)
-	})
-}
-
 // Heuristic by Work ID godoc
 //
 //	@Summary		Get a specific heuristic by work ID
@@ -923,8 +903,6 @@ func (s *Server) setupHandlers() {
 	// heuristic
 	s.handler.Handle(getRouteHeuristicByWorkID(),
 		adapt(s.handlerHeuristicByWorkID(), getRouteHeuristicByWorkID(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristics(),
-		adapt(s.handlerHeuristics(), getRouteHeuristics(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDetails(),
 		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicsExecution(),

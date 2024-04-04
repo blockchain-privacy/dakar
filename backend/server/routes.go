@@ -10,7 +10,6 @@ const (
 	routeAddressOutputRange   string = "blockchain/outputs"
 	routeMeta                 string = "meta"
 	routeHeuristicByWorkID    string = "heuristicByWorkID"
-	routeHeuristics           string = "heuristics"
 	routeHeuristicReport      string = "heuristics/report"
 	routeHeuristicsExecution  string = "executeHeuristics"
 	routeHeuristicDetails     string = "heuristicDetails"
@@ -66,10 +65,6 @@ func getRouteMeta() string {
 
 func getRouteHeuristicByWorkID() string {
 	return buildRoutePattern(httpPOST, routeHeuristicByWorkID, "")
-}
-
-func getRouteHeuristics() string {
-	return buildRoutePattern(httpGET, routeHeuristics, "hash")
 }
 
 func getRouteHeuristicReport() string {

@@ -545,59 +545,6 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	return
 }
 
-const QueryBasicHeuristicAttributes = `
-	uid
-	ts:Heuristic.ts
-	type:Heuristic.type
-	parameter:Heuristic.parameter
-	clusterTypes:Heuristic.clusterTypes
-	excludeAddresses:Heuristic.excludeAddresses
-	excludeSpendingGaps:Heuristic.excludeSpendingGaps
-	parent:Heuristic.parent{
-		uid
-	}
-	children:~Heuristic.parent{
-		uid
-	}
-	clusterCount: count(Heuristic.clusters)
-`
-
-// GetBasicFrontendHeuristics returns all heuristics for a given transaction created by userUid. Basic information only.
-func GetBasicFrontendHeuristics(c external.Database, txHash string, userUID string) (
-	heuristics []FrontendHeuristic, err error) {
-	const query = `query Q($hash:string, $user:string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				var(func: uid($user)){
-					h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(tx)))
-				}
-				
-				q(func: uid(h)){` + QueryBasicHeuristicAttributes + `}
-			  }`
-
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$user": userUID})
-	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Heuristics []FrontendHeuristic `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	heuristics = r.Heuristics
-
-	return
-}
-
 // GetBasicFrontendHeuristic returns the requested heuristic, if it belongs the the provided workspace. Basic information only.
 func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
 	userUID string, workspaceUID string) (heuristic FrontendHeuristic, err error) {
@@ -609,7 +556,22 @@ func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
 					}
 				}
 				
-				q(func: uid(h)){` + QueryBasicHeuristicAttributes + `}
+				q(func: uid(h)){
+					uid
+					ts:Heuristic.ts
+					type:Heuristic.type
+					parameter:Heuristic.parameter
+					clusterTypes:Heuristic.clusterTypes
+					excludeAddresses:Heuristic.excludeAddresses
+					excludeSpendingGaps:Heuristic.excludeSpendingGaps
+					parent:Heuristic.parent{
+						uid
+					}
+					children:~Heuristic.parent{
+						uid
+					}
+					clusterCount: count(Heuristic.clusters)
+				}
 			  }`
 
 	ctx, cancel := db.GetFrontendContext()

@@ -268,32 +268,6 @@ func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identi
 	return
 }
 
-func getHeuristicsReply(r *http.Request, dgraph external.Database) (reply heuristicsReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	txHashString := r.PathValue("hash")
-	if !isValid(txHashString) {
-		status = http.StatusBadRequest
-		return
-	}
-
-	results, err := dbHeuristic.GetBasicFrontendHeuristics(dgraph, txHashString, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.Heuristics = results
-
-	return
-}
-
 func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 	worker *worker.Worker) (reply heuristicByWorkIDReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
