@@ -21,7 +21,7 @@ var thisLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "heuristic_worker"))
+	thisLogger = slog.With(slog.String("module", "worker"))
 }
 
 func info(msg string, v ...any) {
@@ -33,7 +33,7 @@ func warn(err error, v ...any) {
 }
 
 type workKey struct {
-	// todo rethink limits of queue per user and how to add the temp unique identifier
+	// todo rethink limits of queue per user
 	userUID string
 	// workID is used to identify the work package per user
 	workID int
@@ -43,8 +43,9 @@ func (w workKey) toString() string {
 	return fmt.Sprintf("%s|%d", w.userUID, w.workID)
 }
 
-// Work holds all Work related data for the Worker
+// Work is an interface to pass a package of work to a Worker, which will process it eventually.
 type Work interface {
+	// Run processes the a Work package. If available, it returns the resulting UID of the stored data.
 	Run(external.Database, *graph.Wrapper) (string, error)
 }
 
@@ -97,23 +98,23 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 
 	return &Worker{
 		jobsAdded: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_heuristic_jobs_added_total",
-			Help: "The total number of jobs added to the heuristic worker",
+			Name: "dakar_worker_jobs_added_total",
+			Help: "The total number of jobs added to the worker",
 		}),
 		jobsCompleted: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_heuristic_jobs_completed_total",
-			Help: "The total number of jobs completed by the heuristic worker",
+			Name: "dakar_worker_jobs_completed_total",
+			Help: "The total number of jobs completed by the worker",
 		}),
 		reverseLookups: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_heuristic_reverse_lookups_total",
-			Help: "The total number of reverse lookups executed by the heuristic worker",
+			Name: "dakar_worker_reverse_lookups_total",
+			Help: "The total number of reverse lookups executed by the worker",
 		}),
 		forwardLookups: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_heuristic_forward_lookups_total",
-			Help: "The total number of forward lookups executed by the heuristic worker",
+			Name: "dakar_worker_forward_lookups_total",
+			Help: "The total number of forward lookups executed by the worker",
 		}),
 		spendingFingerprint: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_analytics_spending_fingerprint_lookups_total",
+			Name: "dakar_worker_spending_fingerprint_lookups_total",
 			Help: "The total number of spending fingerprint lookups",
 		}),
 		executionMap: make(map[workKey]Work),
@@ -173,20 +174,20 @@ func (w *Worker) AddWork(userUID string, work Work) int {
 	return key.workID
 }
 
-// GetFinishedHeuristicUID returns the heuristic UID if the Work package specified by its id and user is finished executing
+// GetFinishedDatabaseUID returns the database UID if the Work package specified by its id is finished executing.
 // Returns an empty string, if the work package is not found in the list of finished Work packages.
-func (w *Worker) GetFinishedHeuristicUID(workID int, userUID string) (string, error) {
-	heuristicUIDInterface, ok := w.finishedWork.Get(workKey{workID: workID, userUID: userUID}.toString())
+func (w *Worker) GetFinishedDatabaseUID(workID int, userUID string) (string, error) {
+	databaseUIDInterface, ok := w.finishedWork.Get(workKey{workID: workID, userUID: userUID}.toString())
 	if !ok {
 		return "", nil
 	}
 
-	heuristicUID, ok := heuristicUIDInterface.(string)
+	databaseUID, ok := databaseUIDInterface.(string)
 	if !ok {
 		return "", cliutil.NewStackErrorStr("not able to convert cache item to string")
 	}
 
-	return heuristicUID, nil
+	return databaseUID, nil
 }
 
 // DoesWorkExist returns true if the given workID exists in the worklog
@@ -231,8 +232,7 @@ mainLoop:
 			w.currentWorkItem, work = cliutil.GetOneItem(w.executionMap)
 			w.mapMutex.RUnlock()
 
-			// if no error occurred -> execute the new heuristics
-			heuristicUID, err := work.Run(dgraph, w.graphWrapper)
+			databaseUID, err := work.Run(dgraph, w.graphWrapper)
 			if err != nil {
 				warn(err)
 			}
@@ -240,7 +240,7 @@ mainLoop:
 			w.jobsCompleted.Inc()
 
 			w.mapMutex.Lock()
-			w.finishedWork.SetWithTTL(w.currentWorkItem.toString(), heuristicUID, 1, 12*time.Hour)
+			w.finishedWork.SetWithTTL(w.currentWorkItem.toString(), databaseUID, 1, 12*time.Hour)
 
 			delete(w.executionMap, w.currentWorkItem)
 			w.currentWorkItem = workKey{}

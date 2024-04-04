@@ -528,7 +528,7 @@ func filterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node,
 			return true
 		}
 
-		uid, err := worker.GetFinishedHeuristicUID(workID, userID)
+		uid, err := worker.GetFinishedDatabaseUID(workID, userID)
 		if err != nil {
 			// workID can not be retrieved, so remove it
 			return true

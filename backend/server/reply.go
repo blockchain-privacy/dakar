@@ -303,7 +303,7 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	uid, err := worker.GetFinishedHeuristicUID(workID, tUser.ID)
+	uid, err := worker.GetFinishedDatabaseUID(workID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
