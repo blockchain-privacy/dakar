@@ -316,14 +316,14 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	h, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, uid, tUser.ID, workRequest.WorkspaceUID)
+	w, err := dbwork.GetFrontendWorkspace(dgraph, workRequest.WorkspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Heuristic = &h
+	reply.Nodes = w.Nodes
 
 	return
 }

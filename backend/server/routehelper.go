@@ -110,7 +110,7 @@ type metaReply struct {
 }
 
 type heuristicByWorkIDReply struct {
-	Heuristic *dbh.FrontendHeuristic `json:"heuristic,omitempty"`
+	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 
 type heuristicExecutionReply struct {

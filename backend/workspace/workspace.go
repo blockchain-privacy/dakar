@@ -36,44 +36,23 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, 
 		return "", err
 	}
 
-	// replace workspace dummy heuristic
+	// update workspace
+
 	w, err := workspace.GetFrontendWorkspace(dgraph, h.workspaceUID, h.userUID)
 	if err != nil {
 		return "", err
 	}
 
-	// connect node
-	var index int
-	if newHeuristic.ParentHeuristic != nil {
-		index = slices.IndexFunc(w.Nodes, func(node workspace.Node) bool {
-			return node.UID == newHeuristic.ParentHeuristic[0].UID
-		})
-	} else {
-		index = slices.IndexFunc(w.Nodes, func(node workspace.Node) bool {
-			return node.TransactionHash == newHeuristic.TxHash
-		})
+	nodeMap, heuristicMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, h.userUID, h.workspaceUID)
+	if err != nil {
+		return "", err
 	}
 
-	if index != -1 {
-		w.Nodes[index].Children = append(w.Nodes[index].Children, newHeuristicUID)
-	} else {
-		return "", cliutil.NewStackErrorf("could not find parent in workspace for heuristic: %s", newHeuristicUID)
-	}
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
-	clusterCount := len(newHeuristic.Clusters)
-	w.Nodes = append(w.Nodes, workspace.Node{
-		UID:                 newHeuristicUID,
-		Type:                workspace.NodeTypeHeuristic,
-		HeuristicType:       newHeuristic.HeuristicType,
-		Parameter:           newHeuristic.Parameter,
-		ExcludeAddresses:    newHeuristic.ExcludeAddresses,
-		ExcludeSpendingGaps: newHeuristic.ExcludeSpendingGaps,
-		ClusterTypes:        newHeuristic.ClusterTypes,
-		ClusterCount:        &clusterCount,
-		Timestamp:           newHeuristic.Timestamp,
-	})
-
-	if err := encodeAndStoreWorkspaceState(dgraph, h.userUID, h.workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
+	if err := encodeAndStoreWorkspaceState(dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight); err != nil {
 		return "", err
 	}
 
