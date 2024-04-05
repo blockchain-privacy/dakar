@@ -46,7 +46,8 @@ func (w workKey) toString() string {
 // Work is an interface to pass a package of work to a Worker, which will process it eventually.
 type Work interface {
 	// Run processes the a Work package. If available, it returns the resulting UID of the stored data.
-	Run(external.Database, *graph.Wrapper) (string, error)
+	// It receives the database, the graph wrapper and the work ID.
+	Run(external.Database, *graph.Wrapper, int) (string, error)
 }
 
 // Worker works on the data defined in Work
@@ -212,7 +213,7 @@ mainLoop:
 			w.currentWorkItem, work = cliutil.GetOneItem(w.executionMap)
 			w.mapMutex.RUnlock()
 
-			databaseUID, err := work.Run(dgraph, w.graphWrapper)
+			databaseUID, err := work.Run(dgraph, w.graphWrapper, w.currentWorkItem.workID)
 			if err != nil {
 				warn(err)
 			}

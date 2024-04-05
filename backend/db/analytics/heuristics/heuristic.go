@@ -544,6 +544,7 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	return
 }
 
+// todo remove
 // GetBasicFrontendHeuristic returns the requested heuristic, if it belongs the the provided workspace. Basic information only.
 func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
 	userUID string, workspaceUID string) (heuristic FrontendHeuristic, err error) {

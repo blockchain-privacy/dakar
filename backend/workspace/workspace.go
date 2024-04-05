@@ -22,7 +22,7 @@ type HeuristicWork struct {
 }
 
 // Run processes the heuristic and inserts it into the workspace
-func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, error) {
+func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID int) (string, error) {
 	newHeuristic, err := h.executor.Run(dgraph, g)
 	if err != nil {
 		return "", err
@@ -50,6 +50,11 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, 
 		return "", err
 	}
 
+	workIDString := strconv.Itoa(workID)
+	dummyHeuristics = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
+		return node.UID == workIDString
+	})
+
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
 	if err := encodeAndStoreWorkspaceState(dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight); err != nil {
@@ -60,8 +65,8 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) (string, 
 }
 
 // CreateWork creates a new work package, which can be run at a later time
-func CreateWork(newHeuristic dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string,
-	workspaceMutex *Mutex) (worker.Work, error) {
+func CreateWork(newHeuristic dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
+	userUID string, workspaceMutex *Mutex) (worker.Work, error) {
 	if workspaceUID == "" {
 		return nil, cliutil.NewStackErrorStr("workspace UID not set for heuristic request")
 	}

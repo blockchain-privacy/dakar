@@ -499,8 +499,11 @@ async function checkWork(workID) {
 				id: workID,
 			},
 		});
-		if (response.heuristic) {
-			replaceTemporaryHeuristic(workID, response.heuristic);
+		if (response.nodes) {
+			nodeGraph.removeAllNodes(false);
+			nodeGraph.addNodes(response.nodes);
+
+			// ReplaceTemporaryHeuristic(workID, response.heuristic);
 		} else {
 			addWork(workID);
 		}
