@@ -150,7 +150,18 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 
 	// json struct
 	var r struct {
-		Clusters []queryHeuristicClusters `json:"q,omitempty"`
+		Clusters []struct {
+			UID     ClusterUID `json:"uid,omitempty"`
+			Results []struct {
+				Origin struct {
+					UID     string            `json:"uid,omitempty"`
+					Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+				} `json:"HeuristicResult.origin,omitempty"`
+			} `json:"HeuristicCluster.results,omitempty"`
+			Attributions []struct {
+				UID string `json:"uid,omitempty"`
+			} `json:"HeuristicCluster.attributions,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -210,7 +221,17 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 
 	// json struct
 	var r struct {
-		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
+		Transaction []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+			Inputs  []struct {
+				Address string `json:"addr_uid,omitempty"`
+				Cluster string `json:"cluster_uid,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Block []struct {
+				Timestamp time.Time `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -483,7 +504,10 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 
 	// json struct
 	var r struct {
-		Origins []queryHeuristicTransactionInputs `json:"q,omitempty"`
+		Origins []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -540,64 +564,6 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 		UID:     t.UID,
 		Outputs: t.Outputs,
 	}
-
-	return
-}
-
-// todo remove
-// GetBasicFrontendHeuristic returns the requested heuristic, if it belongs the the provided workspace. Basic information only.
-func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
-	userUID string, workspaceUID string) (heuristic FrontendHeuristic, err error) {
-	const query = `
-			  query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
-				var(func: uid($userUID)){
-					User.workspaces@filter(uid($workspaceUID)){
-						h as Workspace.heuristics@filter(uid($heuristicUID))
-					}
-				}
-				
-				q(func: uid(h)){
-					uid
-					ts:Heuristic.ts
-					type:Heuristic.type
-					parameter:Heuristic.parameter
-					clusterTypes:Heuristic.clusterTypes
-					excludeAddresses:Heuristic.excludeAddresses
-					excludeSpendingGaps:Heuristic.excludeSpendingGaps
-					parent:Heuristic.parent{
-						uid
-					}
-					children:~Heuristic.parent{
-						uid
-					}
-					clusterCount: count(Heuristic.clusters)
-				}
-			  }`
-
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID,
-		"$userUID": userUID, "$workspaceUID": workspaceUID})
-	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Heuristics []FrontendHeuristic `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	if len(r.Heuristics) == 0 {
-		return
-	}
-
-	heuristic = r.Heuristics[0]
 
 	return
 }

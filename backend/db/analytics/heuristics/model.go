@@ -102,54 +102,6 @@ func (h HeuristicTransaction) String() string {
 		h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
-// HeuristicInput only holds the uid of the input address
-type HeuristicInput struct {
-	Address string `json:"addr_uid,omitempty"`
-	Cluster string `json:"cluster_uid,omitempty"`
-}
-
-type queryHeuristicTransaction struct {
-	UID     string            `json:"uid,omitempty"`
-	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-	Inputs  []HeuristicInput  `json:"tx_inputs,omitempty"`
-	Block   []struct {
-		Timestamp time.Time `json:"ts,omitempty"`
-	} `json:"~transactions,omitempty"`
-}
-
-type queryHeuristicClusters struct {
-	UID     ClusterUID `json:"uid,omitempty"`
-	Results []struct {
-		Origin struct {
-			UID     string            `json:"uid,omitempty"`
-			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-		} `json:"HeuristicResult.origin,omitempty"`
-	} `json:"HeuristicCluster.results,omitempty"`
-	Attributions []struct {
-		UID string `json:"uid,omitempty"`
-	} `json:"HeuristicCluster.attributions,omitempty"`
-}
-
-type queryHeuristicTransactionInputs struct {
-	UID     string            `json:"uid,omitempty"`
-	Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
-}
-
-// FrontendHeuristicResult holds heuristic result data which is exposed to the frontend
-type FrontendHeuristicResult struct {
-	Origin struct {
-		UID         string `json:"uid,omitempty"`
-		Timestamp   string `json:"ts,omitempty"`
-		AddressHash string `json:"addresshash,omitempty"`
-		TxHash      string `json:"txhash,omitempty"`
-	} `json:"origin,omitempty"`
-	Destinations []struct {
-		UID       string `json:"uid,omitempty"`
-		Timestamp string `json:"ts,omitempty"`
-		TxHash    string `json:"txhash,omitempty"`
-	} `json:"destinations,omitempty"`
-}
-
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
 	UID                 string                   `json:"uid,omitempty"`
@@ -160,21 +112,6 @@ type DatabaseHeuristicRequest struct {
 	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
 	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
 	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
-}
-
-// FrontendHeuristic holds all heuristic data which is exposed to the frontend
-type FrontendHeuristic struct {
-	UID                 string                    `json:"uid,omitempty"`
-	Timestamp           string                    `json:"ts,omitempty"`
-	Type                string                    `json:"type,omitempty"`
-	Parameter           string                    `json:"parameter,omitempty"`
-	ExcludeAddresses    bool                      `json:"excludeAddresses"`
-	ExcludeSpendingGaps bool                      `json:"excludeSpendingGaps"`
-	ClusterTypes        []string                  `json:"clusterTypes,omitempty"`
-	ParentHeuristic     []HollowHeuristic         `json:"parent,omitempty"`
-	ChildHeuristics     []HollowHeuristic         `json:"children,omitempty"`
-	ClusterCount        *int                      `json:"clusterCount,omitempty"`
-	Results             []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
 type HollowHeuristic struct {
@@ -202,13 +139,6 @@ type Attribution struct {
 type FrontendHeuristicShort struct {
 	UID      string                     `json:"uid,omitempty"`
 	Clusters []FrontendHeuristicCluster `json:"clusters,omitempty"`
-}
-
-// HeuristicListItem holds data for an item in the heuristic list of a user
-type HeuristicListItem struct {
-	Transaction      string `json:"txhash,omitempty"`
-	LastModification string `json:"mod_time,omitempty"`
-	HeuristicCount   uint64 `json:"h_count,omitempty"`
 }
 
 type mergedClusterItem struct {
