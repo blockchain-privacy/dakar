@@ -512,7 +512,7 @@ async function checkWork(workID) {
 	}
 }
 
-function replaceTemporaryHeuristic(workID, heuristic) {
+function _replaceTemporaryHeuristic(workID, heuristic) {
 	// If temporary node exists in graph, collect coordinates
 	const n = nodeGraph.getNode(workID);
 	if (n) {

@@ -7,7 +7,7 @@
     "dev": "vite --host --port=8082",
     "build": "vite build",
     "preview": "vite preview --host --port=8082",
-    "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
+    "lint": "eslint src --fix"
   },
   "dependencies": {
     "@blockchain/dakar": "^1.1.32",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
-    "eslint": "^8.57.0",
+    "eslint": "^9.0.0",
     "eslint-config-xo": "^0.44.0",
     "eslint-plugin-vue": "^9.24.0",
     "eslint-plugin-vuetify": "^2.2.0",
