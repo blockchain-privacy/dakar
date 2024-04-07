@@ -51,8 +51,20 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 	}
 
 	workIDString := strconv.Itoa(workID)
+
 	dummyHeuristics = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
-		return node.UID == workIDString
+		if node.UID == workIDString {
+			// try to set node position
+			if newNode, ok := nodeMap[newHeuristicUID]; ok {
+				newNode.X = node.X
+				newNode.Y = node.Y
+				nodeMap[newHeuristicUID] = newNode
+			}
+
+			return true
+		}
+
+		return false
 	})
 
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)

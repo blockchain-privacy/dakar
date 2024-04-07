@@ -478,6 +478,8 @@ async function addNewHeuristic(heuristic) {
 			heuristicClusterTypes: newHeuristic.clusterTypes,
 			heuristicParameter: newHeuristic.parameter,
 		}]);
+		// Immediatly auto save to store coordinates of dummy node
+		queueAutoSave(0);
 		addWork(response.workID);
 	} catch (e) {
 		setErrorMessage(e);
@@ -510,45 +512,6 @@ async function checkWork(workID) {
 	} catch (e) {
 		setErrorMessage(e);
 	}
-}
-
-function _replaceTemporaryHeuristic(workID, heuristic) {
-	// If temporary node exists in graph, collect coordinates
-	const n = nodeGraph.getNode(workID);
-	if (n) {
-		heuristic.x = n.x;
-		heuristic.y = n.y;
-	}
-
-	// If parent exists, set connection to new heuristic
-	const parent = nodeGraph.getParent(n.uid);
-	if (!parent) {
-		// Heuristic without a parent can not exist
-		return;
-	}
-
-	const childPos = parent.children.indexOf(workID);
-	if (childPos === -1) {
-		// Temporary node not found in children -> create new connection
-		parent.children.push(heuristic.uid);
-	} else {
-		// Temporary node found in children -> replace connection
-		parent.children[childPos] = heuristic.uid;
-	}
-
-	nodeGraph.removeNode(workID, false);
-	nodeGraph.addNodes([parent, {
-		uid: heuristic.uid,
-		type: WORKSPACE_NODE_TYPE_HEURISTIC,
-		heuristicType: heuristic.type,
-		heuristicExcludeAddresses: heuristic.excludeAddresses,
-		heuristicExcludeSpendingGaps: heuristic.excludeSpendingGaps,
-		heuristicClusterTypes: heuristic.clusterTypes,
-		heuristicParameter: heuristic.parameter,
-		heuristicClusterCount: heuristic.clusterCount,
-		x: heuristic.x,
-		y: heuristic.y,
-	}]);
 }
 
 // Returns the transaction hash of the given heuristic
