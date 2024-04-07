@@ -43,7 +43,7 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 		return "", err
 	}
 
-	nodeMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
 
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, h.userUID, h.workspaceUID)
 	if err != nil {
@@ -176,7 +176,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 		return nil, cliutil.NewStackError(err)
 	}
 
-	nodeMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
 
 	var clusterHeight int64
 	if w.ClusterHeight != nil {
@@ -342,7 +342,7 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return nil, err
 	}
 
-	nodeMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
@@ -464,10 +464,10 @@ func isWorkspaceOutdated(dgraph external.Database,
 	return isOutdated, nil
 }
 
-// splitNodesIntoCategories categorizes each node into its own map:
-// - general node: transactions and clusters
+// separateDummyHeuristics separates dummy heuristics from other nodes:
+// - general node: transactions, heuristics and clusters
 // - dummy heuristic node: heuristics waiting to be executed
-func splitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node) {
+func separateDummyHeuristics(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node) {
 	nodeMap := map[string]workspace.Node{}
 	var dummyHeuristicMap []workspace.Node
 
