@@ -43,9 +43,9 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 		return "", err
 	}
 
-	nodeMap, heuristicMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+	nodeMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
 
-	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, h.userUID, h.workspaceUID)
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, h.userUID, h.workspaceUID)
 	if err != nil {
 		return "", err
 	}
@@ -176,7 +176,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 		return nil, cliutil.NewStackError(err)
 	}
 
-	nodeMap, heuristicMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+	nodeMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
 
 	var clusterHeight int64
 	if w.ClusterHeight != nil {
@@ -188,8 +188,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 	// behaviour as when inserting node connections when adding a new node, because there
 	// the node connections are still unkown.
 	if isOutdated && len(nodeMap) > 1 {
-		clusterHeight, nodeMap, err = InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
-			heuristicMap, userUID, workspaceUID)
+		clusterHeight, nodeMap, err = InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
 		if err != nil {
 			return nil, err
 		}
@@ -200,13 +199,6 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 	needToStore, dummyHeuristics := filterDummyNodes(worker, dummyHeuristics, userUID)
 
 	if updatedConnections || needToStore {
-		if !updatedConnections {
-			// heuristics must be inserted back in this case
-			for _, h := range heuristicMap {
-				nodeMap[h.UID] = h
-			}
-		}
-
 		w.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
 		err = encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
@@ -350,7 +342,7 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return nil, err
 	}
 
-	nodeMap, heuristicMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
+	nodeMap, dummyHeuristics := splitNodesIntoCategories(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
@@ -370,7 +362,7 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 	}
 
 	nodeMap[newNode.UID] = *newNode
-	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, userUID, workspaceUID)
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
 	if err != nil {
 		return nil, err
 	}
@@ -400,8 +392,7 @@ func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, work
 // InsertNodeConnectionsAndHeuristics queries the db for connections between nodes in nodeMap and inserts them.
 // Also inserts found heuristics into the node map
 func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[string]workspace.Node,
-	heuristicMap map[string]workspace.Node, userUID string, workspaceUID string) (int64,
-	map[string]workspace.Node, error) {
+	userUID string, workspaceUID string) (int64, map[string]workspace.Node, error) {
 	connections, nodeHeuristics, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
 		cliutil.GetMapKeys(nodeMap), userUID, workspaceUID)
 	if err != nil {
@@ -423,7 +414,7 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 	// add heuristic nodes to map
 	for _, h := range nodeHeuristics {
 		// set coordinates
-		if oldHeuristic, ok := heuristicMap[h.UID]; ok {
+		if oldHeuristic, ok := nodeMap[h.UID]; ok {
 			h.X = oldHeuristic.X
 			h.Y = oldHeuristic.Y
 		}
@@ -475,12 +466,9 @@ func isWorkspaceOutdated(dgraph external.Database,
 
 // splitNodesIntoCategories categorizes each node into its own map:
 // - general node: transactions and clusters
-// - heuristic node: executed heuristics
 // - dummy heuristic node: heuristics waiting to be executed
-func splitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node, map[string]workspace.Node, []workspace.Node) {
+func splitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node) {
 	nodeMap := map[string]workspace.Node{}
-	// save heuristics in separate map, as they are transient. Stored heuristics are used only for coordinates
-	heuristicMap := map[string]workspace.Node{}
 	var dummyHeuristicMap []workspace.Node
 
 	for _, n := range nodes {
@@ -490,13 +478,11 @@ func splitNodesIntoCategories(nodes []workspace.Node) (map[string]workspace.Node
 
 		if n.IsLoading() {
 			dummyHeuristicMap = append(dummyHeuristicMap, n)
-		} else if n.Type == workspace.NodeTypeHeuristic {
-			heuristicMap[n.UID] = n
 		} else {
 			nodeMap[n.UID] = n
 		}
 	}
-	return nodeMap, heuristicMap, dummyHeuristicMap
+	return nodeMap, dummyHeuristicMap
 }
 
 // filterDummyNodes filters the given nodes based on wether they exist in the worker work log and/or
