@@ -102,31 +102,31 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 						}
 					}
 
-					heuristics(func: uid(t)){
+					heuristics(func: uid(h)){
 						uid
-						~Heuristic.transaction@filter(uid(h)){
+						transaction:Heuristic.transaction{
 							uid
-							ts:Heuristic.ts
-							type:Heuristic.type
-							parameter:Heuristic.parameter
-							clusterTypes:Heuristic.clusterTypes
-							excludeAddresses:Heuristic.excludeAddresses
-							excludeSpendingGaps:Heuristic.excludeSpendingGaps
-							parent:Heuristic.parent{
-								uid
-							}
-							children:~Heuristic.parent{
-								uid
-							}
-							clusterCount: count(Heuristic.clusters)
-							Heuristic.clusters{
-								HeuristicCluster.results{
-									HeuristicResult.origin@filter(uid(t)){
-										uid
-									}
-									HeuristicResult.destinations@filter(uid(t)){
-										uid
-									}
+						}
+						ts:Heuristic.ts
+						type:Heuristic.type
+						parameter:Heuristic.parameter
+						clusterTypes:Heuristic.clusterTypes
+						excludeAddresses:Heuristic.excludeAddresses
+						excludeSpendingGaps:Heuristic.excludeSpendingGaps
+						parent:Heuristic.parent{
+							uid
+						}
+						children:~Heuristic.parent{
+							uid
+						}
+						clusterCount: count(Heuristic.clusters)
+						Heuristic.clusters{
+							HeuristicCluster.results{
+								HeuristicResult.origin@filter(uid(t)){
+									uid
+								}
+								HeuristicResult.destinations@filter(uid(t)){
+									uid
 								}
 							}
 						}
@@ -240,48 +240,44 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
 	// This map is used to add the contained heuristic uids as children to their corresponding transaction.
 	txToHeuristic := map[string][]string{}
-	for _, heuristicTransaction := range r.Heuristics {
-		var rootHeuristics []string
-		for _, h := range heuristicTransaction.Heuristics {
-			// no parent -> root heuristic
-			if len(h.ParentHeuristic) == 0 {
-				rootHeuristics = append(rootHeuristics, h.UID)
-			}
+	for _, h := range r.Heuristics {
+		// no parent -> root heuristic
+		if len(h.ParentHeuristic) == 0 {
+			txToHeuristic[h.Transaction.UID] = append(txToHeuristic[h.Transaction.UID], h.UID)
+		}
 
-			children := make([]string, len(h.ChildHeuristics))
-			for i, c := range h.ChildHeuristics {
-				children[i] = c.UID
-			}
+		children := make([]string, len(h.ChildHeuristics))
+		for i, c := range h.ChildHeuristics {
+			children[i] = c.UID
+		}
 
-			// add connections between heuristics and their found origins
-			for _, cluster := range h.Clusters {
-				for _, result := range cluster.Results {
-					children = append(children, result.Origin.UID)
-					for _, destination := range result.Destinations {
-						children = append(children, destination.UID)
-					}
+		// add connections between heuristics and their found origins
+		for _, cluster := range h.Clusters {
+			for _, result := range cluster.Results {
+				children = append(children, result.Origin.UID)
+				for _, destination := range result.Destinations {
+					children = append(children, destination.UID)
 				}
 			}
-
-			// add cluster reachable from this heuristic as children
-			for heuristicClusters := range heuristicToClusters[h.UID] {
-				children = append(children, heuristicClusters)
-			}
-
-			heuristics = append(heuristics, Node{
-				UID:                 h.UID,
-				Type:                "heuristic",
-				Children:            children,
-				HeuristicType:       h.Type,
-				Parameter:           h.Parameter,
-				ExcludeAddresses:    &h.ExcludeAddresses,    // #nosec G601, false positive as of go1.22
-				ExcludeSpendingGaps: &h.ExcludeSpendingGaps, // #nosec G601, false positive as of go1.22
-				ClusterTypes:        h.ClusterTypes,
-				ClusterCount:        h.ClusterCount,
-				Timestamp:           h.Timestamp,
-			})
 		}
-		txToHeuristic[heuristicTransaction.UID] = rootHeuristics
+
+		// add cluster reachable from this heuristic as children
+		for heuristicClusters := range heuristicToClusters[h.UID] {
+			children = append(children, heuristicClusters)
+		}
+
+		heuristics = append(heuristics, Node{
+			UID:                 h.UID,
+			Type:                "heuristic",
+			Children:            children,
+			HeuristicType:       h.Type,
+			Parameter:           h.Parameter,
+			ExcludeAddresses:    &h.ExcludeAddresses,    // #nosec G601, false positive as of go1.22
+			ExcludeSpendingGaps: &h.ExcludeSpendingGaps, // #nosec G601, false positive as of go1.22
+			ClusterTypes:        h.ClusterTypes,
+			ClusterCount:        h.ClusterCount,
+			Timestamp:           h.Timestamp,
+		})
 	}
 
 	connectedTransactions := map[string]NodeConnections{}

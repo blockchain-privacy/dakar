@@ -155,29 +155,29 @@ type connectionRequest struct {
 	} `json:"cluster_clusters,omitempty"`
 
 	Heuristics []struct {
-		UID        string `json:"uid,omitempty"`
-		Heuristics []struct {
-			UID                 string                       `json:"uid,omitempty"`
-			Timestamp           string                       `json:"ts,omitempty"`
-			Type                string                       `json:"type,omitempty"`
-			Parameter           string                       `json:"parameter,omitempty"`
-			ExcludeAddresses    bool                         `json:"excludeAddresses"`
-			ExcludeSpendingGaps bool                         `json:"excludeSpendingGaps"`
-			ClusterTypes        []string                     `json:"clusterTypes,omitempty"`
-			ParentHeuristic     []heuristics.HollowHeuristic `json:"parent,omitempty"`
-			ChildHeuristics     []heuristics.HollowHeuristic `json:"children,omitempty"`
-			ClusterCount        *int                         `json:"clusterCount,omitempty"`
-			Clusters            []struct {
-				Results []struct {
-					Origin struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"HeuristicResult.origin,omitempty"`
-					Destinations []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"HeuristicResult.destinations,omitempty"`
-				} `json:"HeuristicCluster.results,omitempty"`
-			} `json:"Heuristic.clusters,omitempty"`
-		} `json:"~Heuristic.transaction,omitempty"`
+		UID                 string   `json:"uid,omitempty"`
+		Timestamp           string   `json:"ts,omitempty"`
+		Type                string   `json:"type,omitempty"`
+		Parameter           string   `json:"parameter,omitempty"`
+		ExcludeAddresses    bool     `json:"excludeAddresses"`
+		ExcludeSpendingGaps bool     `json:"excludeSpendingGaps"`
+		ClusterTypes        []string `json:"clusterTypes,omitempty"`
+		Transaction         struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"transaction,omitempty"`
+		ParentHeuristic []heuristics.HollowHeuristic `json:"parent,omitempty"`
+		ChildHeuristics []heuristics.HollowHeuristic `json:"children,omitempty"`
+		ClusterCount    *int                         `json:"clusterCount,omitempty"`
+		Clusters        []struct {
+			Results []struct {
+				Origin struct {
+					UID string `json:"uid,omitempty"`
+				} `json:"HeuristicResult.origin,omitempty"`
+				Destinations []struct {
+					UID string `json:"uid,omitempty"`
+				} `json:"HeuristicResult.destinations,omitempty"`
+			} `json:"HeuristicCluster.results,omitempty"`
+		} `json:"Heuristic.clusters,omitempty"`
 	} `json:"heuristics,omitempty"`
 }
 
