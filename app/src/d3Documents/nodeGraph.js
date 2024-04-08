@@ -36,6 +36,14 @@ function dragStarted(event, context) {
 		context.simulation.alphaTarget(0.3).restart();
 	}
 
+	if (context.lassoSelectedNodes) {
+		const lassoData = context.lassoSelectedNodes.data();
+		// Reset the lasso selection if it has only one element or if the root node is not in the lasso selection
+		if (lassoData.length === 1 || !lassoData.some(d => d.uid === event.subject.uid)) {
+			context.resetLasso();
+		}
+	}
+
 	event.subject.fx = event.subject.x;
 	event.subject.fy = event.subject.y;
 	context.dragStartX = event.subject.x;
@@ -97,6 +105,7 @@ export default class NodeGraph {
 		this.dragStartY = 0;
 
 		// Lasso
+		this.isLassoEnabled = false;
 		this.lasso = null;
 		this.lassoSelectedNodes = null;
 
@@ -175,6 +184,14 @@ export default class NodeGraph {
 		}
 	}
 
+	setLassoEnabled(flag) {
+		this.isLassoEnabled = flag;
+	}
+
+	getLassoEnabled() {
+		return this.isLassoEnabled;
+	}
+
 	initSvg(svgID) {
 		// Add attributes to root svg
 		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
@@ -191,6 +208,7 @@ export default class NodeGraph {
 
 				this.rootGroup.attr('transform', event.transform);
 			})
+			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e.type === 'wheel') && !e.button)
 			.scaleExtent([0.5, 3]);
 		this.rootSvg.call(this.zoom);
 
@@ -199,6 +217,7 @@ export default class NodeGraph {
 		this.lasso = d3lasso()
 			.closePathDistance(2000)
 			.closePathSelect(true)
+			.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
 			.targetArea(this.rootSvg)
 			.on('draw', () => {
 				self.lasso.possibleItems().classed('lasso-selected', true);

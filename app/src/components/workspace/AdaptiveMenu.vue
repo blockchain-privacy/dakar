@@ -5,7 +5,7 @@
       :key="i"
       variant="text"
       :to="item.to?item.to:undefined"
-      class="my-2"
+      class="my-1"
       @click="item.action?item.action():undefined"
     >
       <v-icon
@@ -15,6 +15,16 @@
       />
       {{ item.title }}
     </v-btn>
+    <v-btn-toggle
+      v-model="selectionToggle"
+      color="primary"
+      rounded="0"
+      mandatory
+      @update:model-value="selectionModeChanged"
+    >
+      <v-btn :icon="mdiSelect" />
+      <v-btn :icon="mdiCursorPointer" />
+    </v-btn-toggle>
   </template>
   <v-menu
     v-if="$vuetify.display.mdAndDown"
@@ -50,16 +60,41 @@
           </v-list-item-title>
         </v-list-item>
       </template>
+      <v-container>
+        <v-btn-toggle
+          v-model="selectionToggle"
+          color="primary"
+          mandatory
+          @update:model-value="selectionModeChanged"
+        >
+          <v-btn>
+            <v-icon :icon="mdiSelect" />
+            Select
+          </v-btn>
+          <v-btn>
+            Drag
+            <v-icon :icon="mdiCursorPointer" />
+          </v-btn>
+        </v-btn-toggle>
+      </v-container>
     </v-list>
   </v-menu>
 </template>
 
 <script setup>
-import {mdiDotsVertical} from '@mdi/js';
+import {mdiDotsVertical, mdiSelect, mdiCursorPointer} from '@mdi/js';
+import {ref} from 'vue';
 
+const emit = defineEmits(['isSelectionEnabled']);
 defineProps({
 	items: {type: Array, required: true},
 });
+
+const selectionToggle = ref(1);
+
+function selectionModeChanged(mode) {
+	emit('isSelectionEnabled', mode === 0);
+}
 
 </script>
 

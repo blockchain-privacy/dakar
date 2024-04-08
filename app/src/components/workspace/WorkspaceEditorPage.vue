@@ -31,7 +31,10 @@
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
           />
-          <adaptive-menu :items="menuItems" />
+          <adaptive-menu
+            :items="menuItems"
+            @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
+          />
         </v-card-text>
         <v-progress-linear
           v-if="isModifyingWorkspace"

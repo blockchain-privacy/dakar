@@ -59,6 +59,7 @@ export default function lasso() {
 	let closePathSelect = true;
 	let isPathClosed = false;
 	let hoverSelect = true;
+	let dragFilter = null;
 	let targetArea;
 	const on = {start() {}, draw() {}, end() {}};
 
@@ -90,7 +91,7 @@ export default function lasso() {
 
 		// Apply drag behaviors
 		const dragAction = drag()
-			.filter(e => e.ctrlKey)
+			.filter(e => dragFilter(e))
 			.on('start', dragstart)
 			.on('drag', dragMove)
 			.on('end', dragend);
@@ -257,6 +258,16 @@ export default function lasso() {
 		return items.filter(function () {
 			return !this.__lasso.selected;
 		});
+	};
+
+	// Distance required before path auto closes loop
+	lasso.dragFilter = function (_) {
+		if (!arguments.length) {
+			return dragFilter;
+		}
+
+		dragFilter = _;
+		return lasso;
 	};
 
 	// Distance required before path auto closes loop
