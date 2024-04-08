@@ -613,11 +613,7 @@ function showContextMenu(e, nodeData) {
 
 	e.preventDefault();
 
-	if (nodeData?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeData.privacyType)) {
-		showContextMenuAddHeuristic.value = true;
-	} else {
-		showContextMenuAddHeuristic.value = false;
-	}
+	showContextMenuAddHeuristic.value = Boolean(nodeData?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeData.privacyType));
 
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
