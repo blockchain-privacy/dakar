@@ -15,6 +15,7 @@ import {
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
+import d3lasso from './d3Lasso.js';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -41,13 +42,27 @@ function dragStarted(event, context) {
 	context.dragStartY = event.subject.y;
 }
 
-function dragged(event, context, d3This) {
+function dragged(event, context, d3This, data) {
 	if (!context.enableInteractions) {
 		return;
 	}
 
 	event.subject.fx = event.x;
 	event.subject.fy = event.y;
+
+	if (context.lassoSelectedNodes) {
+		context.lassoSelectedNodes.each(d => {
+			// Don't change the actual dragged ndoe
+			if (d.uid === data.uid) {
+				return;
+			}
+
+			// Set selected node positions
+			d.fx += event.dx;
+			d.fy += event.dy;
+		});
+	}
+
 	// Raise() causes bug in chrome: click is only
 	// recognized on second time. moved here from dragStart
 	d3Select(d3This).raise();
@@ -80,6 +95,10 @@ export default class NodeGraph {
 		this.dragEndCallback = null;
 		this.dragStartX = 0;
 		this.dragStartY = 0;
+
+		// Lasso
+		this.lasso = null;
+		this.lassoSelectedNodes = null;
 
 		// Context node, set when a node is clicked or the contextmenu is shown
 		this.contextNodeData = null;
@@ -118,6 +137,7 @@ export default class NodeGraph {
 
 	svgClick() {
 		this.resetClick();
+		this.resetLasso();
 		if (this.svgClickCallback !== null) {
 			this.svgClickCallback();
 		}
@@ -127,8 +147,14 @@ export default class NodeGraph {
 		this.nodeGroup.selectAll('.clicked').classed('clicked', false);
 	}
 
+	resetLasso() {
+		this.nodeGroup.selectAll('.lasso-selected').classed('lasso-selected', false);
+		this.lassoSelectedNodes = null;
+	}
+
 	setContextNodeClicked() {
 		this.resetClick();
+		this.resetLasso();
 		d3Select(this.contextNodeSelection).select('.node').classed('clicked', true);
 	}
 
@@ -168,6 +194,22 @@ export default class NodeGraph {
 			.scaleExtent([0.5, 3]);
 		this.rootSvg.call(this.zoom);
 
+		// Add lasso
+		const self = this;
+		this.lasso = d3lasso()
+			.closePathDistance(2000)
+			.closePathSelect(true)
+			.targetArea(this.rootSvg)
+			.on('draw', () => {
+				self.lasso.possibleItems().classed('lasso-selected', true);
+				self.lasso.notPossibleItems().classed('lasso-selected', false);
+			})
+			.on('end', () => {
+				self.lassoSelectedNodes = self.lasso.selectedItems();
+			});
+
+		this.rootSvg.call(this.lasso);
+
 		const defs = this.rootSvg.append('svg:defs');
 
 		// Set pattern and arrowhead.
@@ -190,9 +232,33 @@ export default class NodeGraph {
 		style.node().innerHTML
       = `
         .clicked {
-            stroke: #B71C1C;
-            stroke-width: 3;
+          stroke: #B71C1C;
+          stroke-width: 3;
          }
+
+        .lasso-selected {
+          stroke: #18FFFF;
+          stroke-width: 3;
+        }
+
+        .lasso path {
+            stroke: rgb(80,80,80);
+            stroke-width: 2px;
+        }
+
+        .lasso .drawn {
+            fill-opacity: 0.05 ;
+        }
+
+        .lasso .loop_close {
+            fill: none;
+            stroke-dasharray: 4, 4;
+        }
+
+        .lasso .origin {
+            fill: #3399FF;
+            fill-opacity: 0.5;
+        }
     `;
 	}
 
@@ -661,8 +727,31 @@ export default class NodeGraph {
 			});
 	}
 
+	applyDragHandler(nodes) {
+		if (!nodes) {
+			return;
+		}
+
+		const self = this;
+		nodes.call(drag()
+			.on('start', e => {
+				dragStarted(e, self);
+			})
+			.on('drag', function (e, d) {
+				dragged(e, self, this, d);
+			})
+			.on('end', e => {
+				dragEnded(e, self);
+			})
+			.clickDistance(3),
+		);
+	}
+
 	// Draws the state of the graph, returns all newly added nodes
 	draw() {
+		this.resetClick();
+		this.resetLasso();
+
 		// If there is a simulation ongoing from a previous call, stop it
 		if (this.simulation) {
 			this.simulation.stop();
@@ -695,7 +784,6 @@ export default class NodeGraph {
 			.attr('x2', d => d.target.x)
 			.attr('y2', d => d.target.y);
 
-		const self = this;
 		const node = this.nodeGroup
 			.selectAll('.nodeContainer')
 			.data(nodes, d => d.uid)
@@ -714,18 +802,6 @@ export default class NodeGraph {
 
 				return update;
 			})
-			.call(drag()
-				.on('start', e => {
-					dragStarted(e, self);
-				})
-				.on('drag', function (e) {
-					dragged(e, self, this);
-				})
-				.on('end', e => {
-					dragEnded(e, self);
-				})
-				.clickDistance(3),
-			)
 			.attr('class', 'nodeContainer')
 			.each(d => {
 				// Exclude every node from force simulation
@@ -733,6 +809,8 @@ export default class NodeGraph {
 				d.fy = d.y;
 			})
 			.attr('transform', d => `translate(${d.x},${d.y})`);
+
+		this.applyDragHandler(node);
 
 		this.simulation.on('tick', () => {
 			link
@@ -743,6 +821,8 @@ export default class NodeGraph {
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
+
+		this.lasso.items(node.selectAll('.node'));
 
 		this.changedData.clear();
 	}

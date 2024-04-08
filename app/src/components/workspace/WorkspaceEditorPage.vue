@@ -265,6 +265,7 @@ watch(isAddHeuristicSheetOpen, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal) {
 		nodeGraph.resetClick();
+		nodeGraph.resetLasso();
 	}
 });
 
@@ -272,6 +273,7 @@ watch(isEntitySideBarOpen, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal) {
 		nodeGraph.resetClick();
+		nodeGraph.resetLasso();
 	}
 });
 
