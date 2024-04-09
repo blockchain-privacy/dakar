@@ -256,17 +256,19 @@ export default class NodeGraph {
          }
 
         .lasso-selected {
-          stroke: #18FFFF;
+          stroke: rgb(var(--v-theme-primary));
           stroke-width: 3;
         }
 
         .lasso path {
-            stroke: rgb(80,80,80);
+            # stroke: rgb(80,80,80);
+            stroke: rgb(var(--v-theme-primary));
             stroke-width: 2px;
         }
 
         .lasso .drawn {
-            fill-opacity: 0.05 ;
+            fill: rgb(var(--v-theme-primary));
+            fill-opacity: 0.1 ;
         }
 
         .lasso .loop_close {
