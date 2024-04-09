@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.21-alpine as build-stage
+FROM golang:1.22-alpine as build-stage
 ARG BLOCKCHAIN_MODE="unkown"
 ARG MODFILE_PATH="go.mod"
 ARG MODSUM_PATH="go.sum"
