@@ -10,6 +10,7 @@ import (
 	"backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
+	"backend/jsonrpc"
 	"backend/processor"
 	"backend/server"
 	"backend/worker"
@@ -26,8 +27,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-
-	"github.com/btcsuite/btcd/rpcclient"
 )
 
 // versionString displays the version of the Crawler
@@ -172,44 +171,21 @@ func createAdminUser(database external.Database, adminAuth *ory.APIClient) error
 }
 
 // connectBlockchainRPCClient connects to blockchain RPC client specified in the given configuration.
-func connectBlockchainRPCClient(rpcConfig RPCConfig) (*rpcclient.Client, *rpcclient.Client, error) {
+func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error) {
 	rpcEndpoint, err := cli.BuildEndpoint(rpcConfig.Host, rpcConfig.Port)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	connection := rpcclient.ConnConfig{
-		Host:                rpcEndpoint,
-		User:                rpcConfig.User,
-		Pass:                rpcConfig.Password,
-		DisableConnectOnNew: true,
-		DisableTLS:          true,
-		HTTPPostMode:        true,
-	}
-
-	client, err := rpcclient.New(&connection, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	batchClient, err := rpcclient.NewBatch(&connection)
-	if err != nil {
-		return nil, nil, err
-	}
+	client := jsonrpc.NewDashClient(rpcEndpoint, rpcConfig.User, rpcConfig.Password)
 
 	// test if rpc client is active
 	if !waitForRPCClient(client) {
 		// no error text, was already handled in function above
-		return nil, nil, cli.NewStackErrorStr("")
+		return nil, cli.NewStackErrorStr("")
 	}
 
-	// test if batch rpc client is active
-	if !waitForBatchRPCClient(batchClient) {
-		// no error text, was already handled in function above
-		return nil, nil, cli.NewStackErrorStr("")
-	}
-
-	return client, batchClient, nil
+	return client, nil
 }
 
 //	@title			Dakar API
@@ -383,10 +359,9 @@ func main() {
 	////// CONNECT TO RPC //////
 
 	// Set up the RPC connection, only if needed
-	var client *rpcclient.Client
-	var batchClient *rpcclient.Client
+	var client external.RPCClient
 	if config.Modules.HTTP.Active || config.Modules.Crawler.Active {
-		client, batchClient, err = connectBlockchainRPCClient(config.RPC)
+		client, err = connectBlockchainRPCClient(config.RPC)
 		if err != nil {
 			warn(err)
 			return
@@ -420,7 +395,7 @@ func main() {
 			}()
 
 			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
-				appContext, graphDB, client, batchClient, config.Modules.Crawler.InitialCacheSize,
+				appContext, graphDB, client, config.Modules.Crawler.InitialCacheSize,
 				processorConfig)); processorErr != nil {
 				warn(processorErr)
 			}

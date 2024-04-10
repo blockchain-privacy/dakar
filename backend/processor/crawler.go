@@ -4,9 +4,9 @@ import (
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
 	"backend/external"
+	"backend/jsonrpc"
 	"context"
 	"fmt"
-	"github.com/btcsuite/btcd/btcjson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"log/slog"
@@ -17,27 +17,25 @@ type Crawler struct {
 	config       Config
 	db           external.Database
 	rpc          external.RPCClient
-	batchRPC     external.BatchRPCClient
 	ctx          context.Context
 	state        crawlerState
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
 	blockHeight  prometheus.Gauge
 
-	currentBlock *btcjson.GetBlockVerboseResult
+	currentBlock *jsonrpc.GetBlockVerboseResult
 
 	initialBlockCacheSize int64
 	cache                 *outputCache
 }
 
 // NewCrawler creates a new Crawler object
-func NewCrawler(ctx context.Context, database external.Database, rpc external.RPCClient,
-	batchRPC external.BatchRPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
+func NewCrawler(ctx context.Context, database external.Database,
+	rpc external.RPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
 	return &Crawler{
 		config:                cfg,
 		db:                    database,
 		rpc:                   rpc,
-		batchRPC:              batchRPC,
 		ctx:                   ctx,
 		initialBlockCacheSize: initialBlockCacheSize,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
@@ -132,7 +130,7 @@ func (c *Crawler) CurrentBlock() uint64 {
 func (c *Crawler) NextBlock() (bool, error) {
 	if !c.state.incremented {
 		// state is on next block
-		block, err := c.rpc.GetBlockVerbose(c.state.chainHash)
+		block, err := c.rpc.GetBlockVerbose(c.state.hash)
 		if err != nil {
 			return false, cliutil.NewStackError(err)
 		}
@@ -152,7 +150,7 @@ func (c *Crawler) NextBlock() (bool, error) {
 	}
 
 	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
-		currentBlock, getErr := c.rpc.GetBlockVerbose(c.state.chainHash)
+		currentBlock, getErr := c.rpc.GetBlockVerbose(c.state.hash)
 		if getErr != nil {
 			return false, cliutil.NewStackError(getErr)
 		}
@@ -173,13 +171,13 @@ func (c *Crawler) Iterate() (bool, error) {
 
 	var err error
 	// get block from RPC-Client
-	c.currentBlock, err = c.rpc.GetBlockVerbose(c.state.chainHash)
+	c.currentBlock, err = c.rpc.GetBlockVerbose(c.state.hash)
 	if err != nil {
 		return false, cliutil.NewStackError(err)
 	}
 
 	// do the actual processing and aggregate the resulting metrics
-	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.batchRPC, c.state, c.currentBlock,
+	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.rpc, c.state, c.currentBlock,
 		c.config, c.cache); processErr == nil {
 		c.blocks.Add(float64(rBlockCounter))
 		c.transactions.Add(float64(rTransactionCounter))

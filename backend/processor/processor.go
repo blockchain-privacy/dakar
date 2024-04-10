@@ -5,19 +5,17 @@ import (
 	"backend/db"
 	dbstat "backend/db/status"
 	"backend/external"
+	"backend/jsonrpc"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/txscript"
 )
 
@@ -44,8 +42,6 @@ type crawlerState struct {
 	top uint64
 	// current block hash
 	hash string
-	// current block hash as a chainhash.Hash
-	chainHash *chainhash.Hash
 
 	incremented bool
 }
@@ -59,11 +55,6 @@ func (p *crawlerState) increment(nextHash string) (err error) {
 	p.incremented = false
 
 	if nextHash == "" {
-		return
-	}
-
-	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
-	if err != nil {
 		return
 	}
 
@@ -200,6 +191,28 @@ func createOutputUID(transaction string, outputID uint32) string {
 	return "_:" + transaction + strconv.FormatUint(uint64(outputID), 10)
 }
 
+func round(f float64) int64 {
+	if f < 0 {
+		return int64(f - 0.5)
+	}
+	return int64(f + 0.5)
+}
+
+func newAmount(f float64) (int64, error) {
+	// The amount is only considered invalid if it cannot be represented
+	// as an integer type.  This may happen if f is NaN or +-Infinity.
+	switch {
+	case math.IsNaN(f):
+		fallthrough
+	case math.IsInf(f, 1):
+		fallthrough
+	case math.IsInf(f, -1):
+		return 0, errors.New("invalid bitcoin amount")
+	}
+
+	return round(f * 1e8), nil
+}
+
 // buildTransactionMapping processes given transaction.
 // arguments:
 // - rawTransaction: the transaction which is being processed
@@ -208,8 +221,8 @@ func createOutputUID(transaction string, outputID uint32) string {
 // returns:
 // - txDetails: the created transaction
 // - tMap: the transaction mapping between the transaction and its output, this needed for address processing
-func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
-	txHashMap map[string]btcjson.TxRawResult, externalOutputs map[string]map[uint32]db.Output,
+func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
+	txHashMap map[string]jsonrpc.TxRawResult, externalOutputs map[string]map[uint32]db.Output,
 	config Config, cache *outputCache) (txDetails db.Transaction, tMap transactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
@@ -243,8 +256,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 	// process all outputs
 	outputMappings := make(map[string]outputMapping)
 	for _, d := range rawTransaction.Vout {
-		amt, valErr := btcutil.NewAmount(d.Value)
-		intAmount := int64(amt)
+		intAmount, valErr := newAmount(d.Value)
 		if valErr != nil {
 			err = cliutil.NewStackError(valErr)
 			return
@@ -303,7 +315,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 }
 
 // filterExternalOutputs returns all inputs for which the outputs need to be loaded from the database
-func filterExternalOutputs(txHashMap map[string]btcjson.TxRawResult, cache *outputCache) map[string][]uint32 {
+func filterExternalOutputs(txHashMap map[string]jsonrpc.TxRawResult, cache *outputCache) map[string][]uint32 {
 	externalOutputs := make(map[string][]uint32)
 
 	for _, t := range txHashMap {
@@ -327,7 +339,7 @@ func filterExternalOutputs(txHashMap map[string]btcjson.TxRawResult, cache *outp
 
 // processTxVin maps the input information to the output if it exists already in the database
 func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32]db.Output,
-	vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult, cache *outputCache) error {
+	vin jsonrpc.Vin, index uint32, txHashMap map[string]jsonrpc.TxRawResult, cache *outputCache) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -342,8 +354,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 
 	if v, ok := txHashMap[vin.Txid]; ok {
 		refOutput.UID = createOutputUID(vin.Txid, vin.Vout)
-		amt, err := btcutil.NewAmount(v.Vout[vin.Vout].Value)
-		intAmount := int64(amt)
+		intAmount, err := newAmount(v.Vout[vin.Vout].Value)
 		if err != nil {
 			return cliutil.NewStackError(err)
 		}
@@ -420,9 +431,9 @@ func processingInterrupted() {
 
 // waitForNextRPCBlock waits for the next block. If the interrupt receives a signal isInterrupt is true.
 // If the next block is available, currentBlock gets updated.
-func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *chainhash.Hash,
-	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
-	if hashObj == nil {
+func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj string,
+	rpcNumBlocks uint64, config Config) (currentBlock *jsonrpc.GetBlockVerboseResult, isInterrupt bool, err error) {
+	if hashObj == "" {
 		err = cliutil.NewStackErrorStr("blockhash is nil")
 		return
 	}
@@ -480,11 +491,10 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 		warn(cliutil.NewStackError(errBlockIDsDoNotMatch), "continuing...")
 	}
 
-	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
+	if state.hash, err = client.GetBlockHash(int64(state.id)); err != nil {
 		err = cliutil.NewStackError(err)
 		return
 	}
-	state.hash = state.chainHash.String()
 
 	// get RPC client block count
 	numBlocks, rpcErr := getRPCNumberOfBlocks(client)
@@ -498,72 +508,27 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 	return
 }
 
-// createTransactionHashmap creates a hash map of btcjson.TxRawResult
-func createTransactionHashmap(client external.BatchRPCClient,
-	transactions []string) (map[string]btcjson.TxRawResult, error) {
-	type txLookup struct {
-		hash   string
-		result rpcclient.FutureGetRawTransactionVerboseResult
-		err    error
+// createTransactionHashmap gets all requested transactions from the RPCClient
+// and organizes them in a map indexed by the transaction hash
+func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]jsonrpc.TxRawResult, error) {
+	rawTransactions, err := client.GetRawTransactionVerboseBatch(transactions)
+	if err != nil {
+		return nil, err
 	}
-
-	c := make(chan txLookup, 5)
-
-	for _, t := range transactions {
-		go func(t string, c chan txLookup) {
-			l := txLookup{hash: t}
-
-			txHash, err := chainhash.NewHashFromStr(t)
-			if err != nil {
-				l.err = cliutil.NewStackError(err)
-				c <- l
-				return
-			}
-			futureResults := client.GetRawTransactionVerboseAsync(txHash)
-			if err != nil {
-				l.err = cliutil.NewStackError(err)
-				c <- l
-				return
-			}
-
-			l.result = futureResults
-
-			c <- l
-		}(t, c)
-	}
-
-	// collect future results
-	futures := make([]txLookup, len(transactions))
-	for i := range len(transactions) {
-		lookup := <-c
-		if lookup.err != nil {
-			return nil, cliutil.NewStackError(lookup.err)
-		}
-		futures[i] = lookup
-	}
-
-	// send batch request
-	if err := client.Send(); err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	// collect results
-	txs := map[string]btcjson.TxRawResult{}
-	for _, f := range futures {
-		r, err := f.result.Receive()
-		if err != nil {
-			return nil, cliutil.NewStackError(err)
+	txs := make(map[string]jsonrpc.TxRawResult, len(rawTransactions))
+	for _, rawTransaction := range rawTransactions {
+		if rawTransaction == nil {
+			return nil, cliutil.NewStackErrorf("raw transaction is nil. Request: %v", transactions)
 		}
 
-		txs[f.hash] = *r
+		txs[rawTransaction.Txid] = *rawTransaction
 	}
 
 	return txs, nil
 }
 
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
-func getExternalOutputs(dgraph external.Database,
-	outputs map[string][]uint32) (map[string]map[uint32]db.Output, error) {
+func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (map[string]map[uint32]db.Output, error) {
 	if len(outputs) == 0 {
 		return nil, nil
 	}
@@ -602,12 +567,12 @@ func getExternalOutputs(dgraph external.Database,
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, state crawlerState,
-	block *btcjson.GetBlockVerboseResult, config Config, cache *outputCache) (
+func processRound(dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
+	block *jsonrpc.GetBlockVerboseResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []transactionMapping
 
-	txHashMap, err := createTransactionHashmap(batchRPC, block.Tx)
+	txHashMap, err := createTransactionHashmap(rpcClient, block.Tx)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", state.String(), err)
 		return

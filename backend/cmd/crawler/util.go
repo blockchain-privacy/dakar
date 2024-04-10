@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"runtime"
@@ -141,45 +140,6 @@ func waitForRPCClient(client external.RPCClient) bool {
 
 	for i := range maxRetries {
 		_, err := client.GetBlockCount()
-		if err == nil {
-			if printedErrMessage {
-				info("Successfully established connection to RPC client.")
-			}
-			return true
-		}
-
-		if strings.Contains(err.Error(), "status code: 401") {
-			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
-			return false
-		}
-
-		if !printedErrMessage {
-			info("Waiting for RPC client to start")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-	info("RPC client is not ready to receive requests.")
-	return false
-}
-
-// waitForBatchRPCClient waits until the batch RPC client is ready to receive requests
-func waitForBatchRPCClient(client external.BatchRPCClient) bool {
-	const maxRetries = 5
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := range maxRetries {
-		result := client.GetBlockCountAsync()
-		err := client.Send()
-		if err != nil {
-			log.Fatal(err)
-		}
-		_, err = result.Receive()
 		if err == nil {
 			if printedErrMessage {
 				info("Successfully established connection to RPC client.")
