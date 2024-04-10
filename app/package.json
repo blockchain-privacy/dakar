@@ -29,14 +29,14 @@
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
-    "vuetify": "^3.5.14"
+    "vuetify": "^3.5.15"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
     "eslint": "^9.0.0",
     "eslint-config-xo": "^0.44.0",
-    "eslint-plugin-vue": "^9.24.0",
-    "eslint-plugin-vuetify": "^2.2.0",
+    "eslint-plugin-vue": "^9.24.1",
+    "eslint-plugin-vuetify": "^2.3.0",
     "sass": "^1.74.1",
     "vite": "^5.2.8",
     "vite-plugin-vuetify": "^2.0.3",
