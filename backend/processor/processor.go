@@ -191,13 +191,7 @@ func createOutputUID(transaction string, outputID uint32) string {
 	return "_:" + transaction + strconv.FormatUint(uint64(outputID), 10)
 }
 
-func round(f float64) int64 {
-	if f < 0 {
-		return int64(f - 0.5)
-	}
-	return int64(f + 0.5)
-}
-
+// newAmount mulitplies the given float times 1e8 and returns an integer
 func newAmount(f float64) (int64, error) {
 	// The amount is only considered invalid if it cannot be represented
 	// as an integer type.  This may happen if f is NaN or +-Infinity.
@@ -207,10 +201,15 @@ func newAmount(f float64) (int64, error) {
 	case math.IsInf(f, 1):
 		fallthrough
 	case math.IsInf(f, -1):
-		return 0, errors.New("invalid bitcoin amount")
+		return 0, errors.New("invalid amount")
 	}
 
-	return round(f * 1e8), nil
+	f *= 1e8
+
+	if f < 0 {
+		return int64(f - 0.5), nil
+	}
+	return int64(f + 0.5), nil
 }
 
 // buildTransactionMapping processes given transaction.
