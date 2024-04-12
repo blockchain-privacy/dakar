@@ -47,6 +47,15 @@ type APIModule struct {
 	KratosAdminEndpoint  string `yaml:"kratosAdminEndpoint"`
 }
 
+// check returns an error if the module has invalid values
+func (c APIModule) check() error {
+	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
+		return cliutil.NewStackErrorStr("http module config invalid, not all fields are filled")
+	}
+
+	return nil
+}
+
 type MetricsModule struct {
 	Active bool `yaml:"active"`
 	Port   uint `yaml:"port"`
@@ -62,14 +71,18 @@ type ModulesConfig struct {
 }
 
 type Config struct {
-	Logfile  string         `yaml:"logfile"`
-	RPC      RPCConfig      `yaml:"rpc"`
-	Database DatabaseConfig `yaml:"database"`
-	Modules  ModulesConfig  `yaml:"modules"`
+	Logfile string `yaml:"logfile"`
+	// BlockchainMode controls various config parameters (see config.go).
+	// Allowed values: "Dash" and "Bitcoin"
+	BlockchainMode string         `yaml:"blockchainMode"`
+	RPC            RPCConfig      `yaml:"rpc"`
+	Database       DatabaseConfig `yaml:"database"`
+	Modules        ModulesConfig  `yaml:"modules"`
 }
 
 var defaultConfig = Config{
-	Logfile: "dakar.log",
+	Logfile:        "dakar.log",
+	BlockchainMode: "",
 	RPC: RPCConfig{
 		Host:     "0.0.0.0",
 		Port:     9998,
@@ -96,15 +109,6 @@ var defaultConfig = Config{
 		Crawler:    CrawlerModule{Active: true, InitialCacheSize: 25000},
 		Clustering: ClusterModule{HMI: false, FMI: false},
 	},
-}
-
-// checkAPIModuleConfig returns an error if the given http module has invalid values
-func checkAPIModuleConfig(c APIModule) error {
-	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
-		return cliutil.NewStackErrorStr("http module config invalid, not all fields are filled")
-	}
-
-	return nil
 }
 
 type Commands struct {
@@ -184,7 +188,7 @@ func shutdownServer(srv *http.Server) {
 }
 
 // printVersion prints the version of the application and build information
-func printVersion() {
+func printVersion(blockchainMode string) {
 	fmt.Println("Dakar", versionString, "compiled with", runtime.Version())
 	fmt.Println("Blockchain mode:", blockchainMode)
 	buildInfo, ok := debug.ReadBuildInfo()
@@ -202,18 +206,18 @@ func printVersion() {
 }
 
 // checkMeta returns true if the blockchain mode and the schema version of the database match with the executable.
-func checkMeta(db external.Database) bool {
+func checkMeta(db external.Database, blockchainMode string) bool {
 	meta, err := status.GetMeta(db)
 	if err != nil {
 		warn(err)
 		return false
 	}
 
-	// check if the blockchain mode of database matches the blockchain mode of the executable
+	// check if the blockchain mode of database matches the blockchain mode of the configuration
 	if meta.BlockchainMode != blockchainMode {
-		info("Database is using a different blockchain mode than the executable. You likely used the wrong executable or connected to the wrong database.",
+		info("Database is using a different blockchain mode than the "+executableName+" configuration. You likely are connecting to the wrong database.",
 			"database blockchain mode", meta.BlockchainMode,
-			"executable blockchain mode", blockchainMode)
+			"crawler "+executableName+" blockchain mode", blockchainMode)
 		return false
 	}
 

@@ -22,31 +22,31 @@ func unregisterCollectors(c *Crawler) {
 }
 
 func TestNewCrawler(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, nil, 0, Config{})
+	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
 	require.NotNil(t, crawler)
 }
 
 func TestCrawler_Name(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, nil, 0, Config{})
+	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
 	require.NotEmpty(t, crawler.Name())
 }
 
 func TestCrawler_Logger(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, nil, 0, Config{})
+	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
 	require.NotNil(t, crawler.Logger())
 }
 
 func TestCrawler_Context(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, nil, 0, Config{})
+	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
 	require.NotNil(t, crawler.Context())
 }
 
 func TestCrawler_DB(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, nil, 0, Config{})
+	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
 	require.Nil(t, crawler.DB())
 }
@@ -56,7 +56,7 @@ func TestCrawler_IncrementState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
+	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	unregisterCollectors(crawler)
 
 	// initial state is not set yet
@@ -75,7 +75,7 @@ func TestCrawler_Empty(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
+	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	unregisterCollectors(crawler)
 	require.True(t, crawler.Empty())
 
@@ -96,7 +96,7 @@ func TestCrawler_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
+	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	unregisterCollectors(crawler)
 	require.NoError(t, crawler.CalculateInitialState())
 }
@@ -105,14 +105,14 @@ func TestCrawler_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
+	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	unregisterCollectors(crawler)
 
 	require.NoError(t, crawler.PostExecution())
 }
 
 func TestCrawler_CurrentBlock(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, nil, 0, Config{})
+	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
 	require.Zero(t, crawler.CurrentBlock())
 }
@@ -122,7 +122,7 @@ func TestCrawler_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
+	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	unregisterCollectors(crawler)
 
 	_, err := crawler.NextBlock()
@@ -139,7 +139,7 @@ func TestCrawler_Iterate(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
+	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	unregisterCollectors(crawler)
 
 	_, err := crawler.Iterate()

@@ -26,6 +26,8 @@ type RPCClient interface {
 	GetRawTransactionVerbose(txHash string) (*jsonrpc.TxRawResult, error)
 	// todo
 	GetRawTransactionVerboseBatch(txs []string) ([]*jsonrpc.TxRawResult, error)
+	// todo for tests
+	GenerateToAddress(numBlocks int, address string) ([]string, error)
 }
 
 // Database defines the methods which Dgraph of Dgo implements.

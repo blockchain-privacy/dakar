@@ -32,10 +32,8 @@ import (
 // versionString displays the version of the Crawler
 const versionString = "v1.0.0"
 
-// blockchainMode is empty by default and should be set at compile time via the ldflags options.
-// blockchainMode controls various config parameters (see config.go).
-// Allowed values: "Dash" "Bitcoin" "Doge"
-var blockchainMode = ""
+// name of the executable
+const executableName = "crawler"
 
 var thisLogger *slog.Logger
 
@@ -80,8 +78,6 @@ func selectConfig(blockchainMode string) (processor.Config, analytics.Config, er
 		return processor.NewDashConfig(), analytics.NewDashConfig(), nil
 	case "Bitcoin":
 		return processor.NewBitcoinConfig(), analytics.NewBitcoinConfig(), nil
-	case "Doge":
-		return processor.NewDogecoinConfig(), analytics.NewDogecoinConfig(), nil
 	default:
 		return processor.Config{}, analytics.Config{}, cli.NewStackErrorStr("invalid blockchain mode")
 	}
@@ -111,7 +107,7 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 // resetDatabaseDialog asks the user if the database should be reset and performs the reset if necessary.
 // Returns false if the program should be shutdown.
-func resetDatabaseDialog(database external.Database) bool {
+func resetDatabaseDialog(database external.Database, blockchainMode string) bool {
 	// get confirmation for database deletion
 	var userAnswer string
 	info("All data in the database will we deleted! Do you want to continue (yes/no)?")
@@ -213,13 +209,6 @@ func main() {
 	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
 
-	////// PRINT VERSION //////
-
-	if commands.ShowVersion {
-		printVersion()
-		return
-	}
-
 	////// CONFIGURATION FILE HANDLING //////
 
 	if createConfigFile {
@@ -240,8 +229,15 @@ func main() {
 		return
 	}
 
-	if moduleErr := checkAPIModuleConfig(config.Modules.HTTP); moduleErr != nil {
+	if moduleErr := config.Modules.HTTP.check(); moduleErr != nil {
 		fmt.Println(moduleErr)
+		return
+	}
+
+	////// PRINT VERSION //////
+
+	if commands.ShowVersion {
+		printVersion(config.BlockchainMode)
 		return
 	}
 
@@ -262,11 +258,9 @@ func main() {
 
 	initAllLoggers(f)
 
-	processorConfig, analyserConfig, err := selectConfig(blockchainMode)
+	processorConfig, analyserConfig, err := selectConfig(config.BlockchainMode)
 	if err != nil {
-		fmt.Println("invalid blockchain mode selected: '" + blockchainMode + "'")
-		fmt.Println("the blockchain mode has to be set at compile time via the ldflags option.")
-		fmt.Println("example: go build -ldflags \"-X main.blockchainMode=Dash\" .")
+		fmt.Printf("invalid blockchain mode: '%s', valid values are 'Dash' and 'Bitcoin'\n", config.BlockchainMode)
 		return
 	}
 
@@ -301,7 +295,7 @@ func main() {
 	}
 
 	if commands.ResetDB {
-		if !resetDatabaseDialog(graphDB) {
+		if !resetDatabaseDialog(graphDB, config.BlockchainMode) {
 			return
 		}
 	}
@@ -323,7 +317,7 @@ func main() {
 		return
 	}
 
-	if !checkMeta(graphDB) {
+	if !checkMeta(graphDB, config.BlockchainMode) {
 		return
 	}
 

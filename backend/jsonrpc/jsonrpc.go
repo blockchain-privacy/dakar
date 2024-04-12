@@ -272,3 +272,13 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 
 	return txResults, nil
 }
+
+func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
+	var blockHashes []string
+	err := d.rpc.Call("getrawtransaction", []any{numBlocks, address}, blockHashes)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return blockHashes, nil
+}

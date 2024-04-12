@@ -38,16 +38,19 @@ func TestCheckHTTPModuleConfig(t *testing.T) {
 	}
 
 	for _, c := range cases {
+		err := c.module.check()
 		if c.shouldFail {
-			require.Error(t, checkAPIModuleConfig(c.module))
+			require.Error(t, err)
 		} else {
-			require.NoError(t, checkAPIModuleConfig(c.module))
+			require.NoError(t, err)
 		}
 	}
 }
 
 func TestPrintVersion(t *testing.T) {
-	require.NotPanics(t, printVersion)
+	require.NotPanics(t, func() {
+		printVersion("Dash")
+	})
 }
 
 func TestNewKratosClient(t *testing.T) {
