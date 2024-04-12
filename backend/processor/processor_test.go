@@ -77,7 +77,6 @@ func TestMain(m *testing.M) {
 		} else {
 			client = jsonrpc.NewDashClientTLS(rpcConfig.Host, rpcConfig.User, rpcConfig.Pass, rpcConfig.Certificates)
 		}
-
 	}
 
 	m.Run()

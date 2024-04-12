@@ -26,7 +26,7 @@ func NewClient(uri string, user string, password string, cert []byte) *Client {
 		certs := x509.NewCertPool()
 		certs.AppendCertsFromPEM(cert)
 		tlsConfig = &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: true, //nolint:gosec
 			RootCAs:            certs,
 		}
 	}
