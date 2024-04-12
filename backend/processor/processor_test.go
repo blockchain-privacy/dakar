@@ -21,9 +21,6 @@ var (
 	client   *jsonrpc.DashClient
 )
 
-// random bitcoin address
-const generateToAddress = "12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX"
-
 func TestMain(m *testing.M) {
 	InitLogger()
 
@@ -75,7 +72,12 @@ func TestMain(m *testing.M) {
 
 		rpcConfig := harness.RPCConfig()
 
-		client = jsonrpc.NewDashClient(rpcConfig.Host, rpcConfig.User, rpcConfig.Pass)
+		if rpcConfig.DisableTLS {
+			client = jsonrpc.NewDashClient(rpcConfig.Host, rpcConfig.User, rpcConfig.Pass)
+		} else {
+			client = jsonrpc.NewDashClientTLS(rpcConfig.Host, rpcConfig.User, rpcConfig.Pass, rpcConfig.Certificates)
+		}
+
 	}
 
 	m.Run()
@@ -270,7 +272,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	blkCount, err := client.GetBlockCount()
 	require.NoError(t, err)
 	// add two blocks, so the first block has a reference to the next block
-	hashes, err := client.GenerateToAddress(2, generateToAddress)
+	hashes, err := client.Generate(2)
 	require.NoError(t, err)
 
 	// normal operation
@@ -417,7 +419,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
 
-	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
+	blockHashes, err := client.Generate(1)
 	require.NoError(t, err)
 	require.Len(t, blockHashes, 1)
 
@@ -726,7 +728,7 @@ func Test_getInitialState(t *testing.T) {
 func Test_createTransactionHashmap(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
-	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
+	blockHashes, err := client.Generate(1)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
 
@@ -780,7 +782,7 @@ func Test_processRound(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
+	blockHashes, err := client.Generate(1)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
 

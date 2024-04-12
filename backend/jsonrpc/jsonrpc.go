@@ -3,9 +3,12 @@ package jsonrpc
 import (
 	"backend/cmd/cliutil"
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
+	"sync"
 )
 
 type Client struct {
@@ -13,21 +16,38 @@ type Client struct {
 	URI        string
 	User       string
 	Password   string
+	ID         int
+	mutex      sync.Mutex
 }
 
-func NewClient(host string, user string, password string) *Client {
+func NewClient(uri string, user string, password string, cert []byte) *Client {
+	var tlsConfig *tls.Config
+	if cert != nil {
+		certs := x509.NewCertPool()
+		certs.AppendCertsFromPEM(cert)
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+			RootCAs:            certs,
+		}
+	}
+
 	return &Client{
-		httpClient: &http.Client{},
-		URI:        "http://" + host,
-		User:       user,
-		Password:   password,
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
+		},
+		URI:      uri,
+		User:     user,
+		Password: password,
 	}
 }
 
 type Request struct {
 	Version string `json:"jsonrpc"`
 	Method  string `json:"method"`
-	Params  []any  `json:"params"`
+	Params  []any  `json:"params,omitempty"`
+	ID      *int   `json:"id,omitempty"`
 }
 
 type Response struct {
@@ -38,11 +58,20 @@ type Response struct {
 	} `json:"error,omitempty"`
 }
 
-func (j Client) Call(method string, params []any, result any) error {
+func (j *Client) NewRequestID() *int {
+	j.mutex.Lock()
+	newID := j.ID
+	j.ID++
+	j.mutex.Unlock()
+	return &newID
+}
+
+func (j *Client) Call(method string, params []any, result any) error {
 	replyBuffer, err := json.Marshal(Request{
 		Version: "1.0",
 		Method:  method,
 		Params:  params,
+		ID:      j.NewRequestID(),
 	})
 	if err != nil {
 		return cliutil.NewStackError(err)
@@ -83,7 +112,7 @@ func (j Client) Call(method string, params []any, result any) error {
 	return nil
 }
 
-func (j Client) Batch(requests []Request, results []Response) error {
+func (j *Client) Batch(requests []Request, results []Response) error {
 	replyBuffer, err := json.Marshal(requests)
 	if err != nil {
 		return cliutil.NewStackError(err)
@@ -129,7 +158,13 @@ type DashClient struct {
 
 func NewDashClient(host string, user string, password string) *DashClient {
 	return &DashClient{
-		rpc: NewClient(host, user, password),
+		rpc: NewClient("http://"+host, user, password, nil),
+	}
+}
+
+func NewDashClientTLS(host string, user string, password string, cert []byte) *DashClient {
+	return &DashClient{
+		rpc: NewClient("https://"+host, user, password, cert),
 	}
 }
 
@@ -235,7 +270,7 @@ func (d DashClient) GetBlockHash(blockHeight int64) (string, error) {
 
 func (d DashClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error) {
 	var r TxRawResult
-	err := d.rpc.Call("getrawtransaction", []any{txHash, true}, &r)
+	err := d.rpc.Call("getrawtransaction", []any{txHash, 1}, &r)
 	if err != nil {
 		return nil, cliutil.NewStackError(err)
 	}
@@ -251,7 +286,8 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 		Method:  "getrawtransaction",
 	}
 	for i, tx := range txs {
-		thisRequest.Params = []any{tx, true}
+		thisRequest.Params = []any{tx, 1}
+		thisRequest.ID = d.rpc.NewRequestID()
 		request[i] = thisRequest
 		results[i] = Response{Result: &TxRawResult{}}
 	}
@@ -273,9 +309,9 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 	return txResults, nil
 }
 
-func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
+func (d DashClient) Generate(numBlocks int) ([]string, error) {
 	var blockHashes []string
-	err := d.rpc.Call("getrawtransaction", []any{numBlocks, address}, blockHashes)
+	err := d.rpc.Call("generate", []any{numBlocks}, &blockHashes)
 	if err != nil {
 		return nil, cliutil.NewStackError(err)
 	}
