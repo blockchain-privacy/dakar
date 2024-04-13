@@ -6,8 +6,6 @@ import (
 	"backend/external"
 	"backend/jsonrpc"
 	"backend/testhelper"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/integration/rpctest"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"log"
@@ -17,9 +15,26 @@ import (
 )
 
 var (
-	dbHandle = &testhelper.TestDB{IsDirty: true}
-	client   *jsonrpc.DashClient
+	dbHandle          = &testhelper.TestDB{IsDirty: true}
+	client            *jsonrpc.DashClient
+	generateToAddress string
 )
+
+func setupRPCTest(client *jsonrpc.DashClient, numBlocks int) error {
+	// wallet might already exist -> ignore error
+	_, _ = client.CreateWallet("testwallet")
+	// wallet might already be loaded -> ignore error
+	_, _ = client.LoadWallet("testwallet")
+
+	var err error
+	generateToAddress, err = client.GetNewAddress()
+	if err != nil {
+		return err
+	}
+
+	_, err = client.GenerateToAddress(numBlocks, generateToAddress)
+	return err
+}
 
 func TestMain(m *testing.M) {
 	InitLogger()
@@ -51,31 +66,17 @@ func TestMain(m *testing.M) {
 	}
 
 	if testhelper.DoRPCTests() {
-		// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
-		harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd", "--txindex"}, "btcd")
-		if err != nil {
-			log.Panic("unable to create primary harness: ", err)
+		rpcHostname, ok := testhelper.GetRPCName()
+		if !ok {
+			log.Panic("environment variable " + testhelper.EnvRPCHostname + " is not set")
 			return
 		}
 
-		defer func(harness *rpctest.Harness) {
-			_ = harness.TearDown()
-		}(harness)
+		client = jsonrpc.NewDashClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
 
-		// Initialize the primary mining node with a chain of length 105,
-		// providing 5 mature coinbases to allow spending from for testing
-		// purposes.
-		if err := harness.SetUp(true, 5); err != nil {
-			log.Panic("unable to setup test chain: ", err)
+		if err := setupRPCTest(client, 5); err != nil {
+			log.Panic("Could not setup RPC test", err)
 			return
-		}
-
-		rpcConfig := harness.RPCConfig()
-
-		if rpcConfig.DisableTLS {
-			client = jsonrpc.NewDashClient(rpcConfig.Host, rpcConfig.User, rpcConfig.Pass)
-		} else {
-			client = jsonrpc.NewDashClientTLS(rpcConfig.Host, rpcConfig.User, rpcConfig.Pass, rpcConfig.Certificates)
 		}
 	}
 
@@ -271,7 +272,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	blkCount, err := client.GetBlockCount()
 	require.NoError(t, err)
 	// add two blocks, so the first block has a reference to the next block
-	hashes, err := client.Generate(2)
+	hashes, err := client.GenerateToAddress(2, generateToAddress)
 	require.NoError(t, err)
 
 	// normal operation
@@ -418,7 +419,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
 
-	blockHashes, err := client.Generate(1)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.Len(t, blockHashes, 1)
 
@@ -727,7 +728,7 @@ func Test_getInitialState(t *testing.T) {
 func Test_createTransactionHashmap(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
-	blockHashes, err := client.Generate(1)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
 
@@ -781,7 +782,7 @@ func Test_processRound(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	blockHashes, err := client.Generate(1)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
 

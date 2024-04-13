@@ -16,30 +16,30 @@ type Client struct {
 	URI        string
 	User       string
 	Password   string
-	ID         int
-	mutex      sync.Mutex
+	// mutex controls access to id
+	mutex sync.Mutex
+	id    int
 }
 
-func NewClient(uri string, user string, password string, cert []byte) *Client {
+func NewClient(host string, user string, password string, cert []byte) *Client {
+	httpProtocol := "http://"
 	var tlsConfig *tls.Config
 	if cert != nil {
+		// set custom certificate without validation
 		certs := x509.NewCertPool()
 		certs.AppendCertsFromPEM(cert)
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: true, //nolint:gosec
 			RootCAs:            certs,
 		}
+		httpProtocol = "https://"
 	}
 
 	return &Client{
-		httpClient: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-			},
-		},
-		URI:      uri,
-		User:     user,
-		Password: password,
+		httpClient: &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}},
+		URI:        httpProtocol + host,
+		User:       user,
+		Password:   password,
 	}
 }
 
@@ -60,8 +60,8 @@ type Response struct {
 
 func (j *Client) NewRequestID() *int {
 	j.mutex.Lock()
-	newID := j.ID
-	j.ID++
+	newID := j.id
+	j.id++
 	j.mutex.Unlock()
 	return &newID
 }
@@ -92,6 +92,13 @@ func (j *Client) Call(method string, params []any, result any) error {
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(r.Body)
+
+	//all, err := io.ReadAll(r.Body)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//fmt.Println(all)
 
 	if r.StatusCode >= 400 {
 		return cliutil.NewStackErrorf("status code: %d", r.StatusCode)
@@ -156,16 +163,8 @@ type DashClient struct {
 	rpc *Client
 }
 
-func NewDashClient(host string, user string, password string) *DashClient {
-	return &DashClient{
-		rpc: NewClient("http://"+host, user, password, nil),
-	}
-}
-
-func NewDashClientTLS(host string, user string, password string, cert []byte) *DashClient {
-	return &DashClient{
-		rpc: NewClient("https://"+host, user, password, cert),
-	}
+func NewDashClient(host string, user string, password string, cert []byte) *DashClient {
+	return &DashClient{rpc: NewClient(host, user, password, cert)}
 }
 
 type ScriptSig struct {
@@ -309,12 +308,41 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 	return txResults, nil
 }
 
-func (d DashClient) Generate(numBlocks int) ([]string, error) {
+func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
 	var blockHashes []string
-	err := d.rpc.Call("generate", []any{numBlocks}, &blockHashes)
+	err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes)
 	if err != nil {
 		return nil, cliutil.NewStackError(err)
 	}
 
 	return blockHashes, nil
+}
+
+func (d DashClient) GetNewAddress() (string, error) {
+	var newAddress string
+	err := d.rpc.Call("getnewaddress", []any{}, &newAddress)
+	if err != nil {
+		return "", cliutil.NewStackError(err)
+	}
+
+	return newAddress, nil
+}
+
+func (d DashClient) CreateWallet(name string) (string, error) {
+	var newName string
+	err := d.rpc.Call("createwallet", []any{name}, &newName)
+	if err != nil {
+		return "", cliutil.NewStackError(err)
+	}
+
+	return newName, nil
+}
+func (d DashClient) LoadWallet(fileName string) (string, error) {
+	var newName string
+	err := d.rpc.Call("loadwallet", []any{fileName}, &newName)
+	if err != nil {
+		return "", cliutil.NewStackError(err)
+	}
+
+	return newName, nil
 }

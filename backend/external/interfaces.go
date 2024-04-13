@@ -23,8 +23,8 @@ type RPCClient interface {
 	GetRawTransactionVerbose(txHash string) (*jsonrpc.TxRawResult, error)
 	// GetRawTransactionVerboseBatch returns several GetRawTransactionVerbose in one batch
 	GetRawTransactionVerboseBatch(txs []string) ([]*jsonrpc.TxRawResult, error)
-	// Generate mines blocks immediately. This is an non-standard RPC used for testing with BTCD
-	Generate(numBlocks int) ([]string, error)
+	// GenerateToAddress mines blocks immediately. Only available on regtest mode
+	GenerateToAddress(numBlocks int, address string) ([]string, error)
 }
 
 // Database defines the methods which Dgraph of Dgo implements.

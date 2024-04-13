@@ -173,7 +173,7 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error)
 		return nil, err
 	}
 
-	client := jsonrpc.NewDashClient(rpcEndpoint, rpcConfig.User, rpcConfig.Password)
+	client := jsonrpc.NewDashClient(rpcEndpoint, rpcConfig.User, rpcConfig.Password, nil)
 
 	// test if rpc client is active
 	if !waitForRPCClient(client) {

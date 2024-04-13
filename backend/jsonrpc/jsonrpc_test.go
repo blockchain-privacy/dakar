@@ -52,7 +52,7 @@ func getOldBatchRPC() (*rpcclient.Client, error) {
 }
 
 func BenchmarkGetBlockCount(b *testing.B) {
-	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass")
+	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
 
 	for range b.N {
 		_, err := rpc.GetBlockCount()
@@ -79,7 +79,7 @@ func BenchmarkGetBlockCount_old(b *testing.B) {
 }
 
 func BenchmarkGetBlockHash(b *testing.B) {
-	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass")
+	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
 
 	for i := range b.N {
 		_, err := rpc.GetBlockHash(100000 + int64(i))
@@ -276,7 +276,7 @@ var testTransactions40 = []string{
 }
 
 func BenchmarkGetRawTransactionVerbose(b *testing.B) {
-	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass")
+	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
 
 	for i := range b.N {
 		_, err := rpc.GetRawTransactionVerbose(testTransactions4[i%len(testTransactions4)])
@@ -314,7 +314,7 @@ func BenchmarkGetRawTransactionVerbose_old(b *testing.B) {
 }
 
 func BenchmarkGetRawTransactionVerboseSimulatedBatch(b *testing.B) {
-	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass")
+	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
 
 	for range b.N {
 		for y := range len(testTransactions40) {
@@ -367,7 +367,7 @@ func BenchmarkGetRawTransactionVerboseBatch_old(b *testing.B) {
 }
 
 func BenchmarkGetRawTransactionVerboseBatch(b *testing.B) {
-	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass")
+	rpc := NewDashClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
 
 	for range b.N {
 		_, err := rpc.GetRawTransactionVerboseBatch(testTransactions40)

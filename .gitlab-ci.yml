@@ -8,8 +8,8 @@ default:
 variables:
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v23.1.0
-  BTCD_VERSION: v0.23.3
   SWAGGO_VERSION: 1.16.3
+  BITCOIND_VERSION: v26.0
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
 
 .modcache: &modcache
@@ -41,17 +41,18 @@ test:
     DB_TESTS: "1" # variable which controls if tests requiring the database should be run
     RPC_TESTS: "1" # variable which controls if tests requiring the RPC-client should be run
     DB_HOSTNAME: "dgraph_db" # name of the dgraph database container
+    RPC_HOSTNAME: "bitcoind" # name of the bitcoin container
   script:
-    # get btcd for rpc testing
-    - curl --fail --silent --show-error -LO https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/btcd-linux-amd64-$BTCD_VERSION.tar.gz
-    - tar -xvzf btcd-linux-amd64-$BTCD_VERSION.tar.gz
-    - mv btcd-linux-amd64-$BTCD_VERSION/btcd /bin/btcd
     # start tests
     - go install gotest.tools/gotestsum@latest
     - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race -p 1 ./...
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
+    - name: lncm/bitcoind:$BITCOIND_VERSION
+      alias: bitcoind # rpc server for rpc testing
+      entrypoint: ["bitcoind"]
+      command: -regtest -rpcuser=rpc1user -rpcpassword=1234pass -rpcport=8131 -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0 -txindex
   cache:
     <<: *modcache
     policy: pull
