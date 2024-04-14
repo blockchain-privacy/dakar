@@ -93,13 +93,6 @@ func (j *Client) Call(method string, params []any, result any) error {
 		_ = Body.Close()
 	}(r.Body)
 
-	//all, err := io.ReadAll(r.Body)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//fmt.Println(all)
-
 	if r.StatusCode >= 400 {
 		return cliutil.NewStackErrorf("status code: %d", r.StatusCode)
 	}
@@ -308,6 +301,7 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 	return txResults, nil
 }
 
+// GenerateToAddress mines a new block and rewards the resulting coins to the given address
 func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
 	var blockHashes []string
 	err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes)
@@ -318,6 +312,7 @@ func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, 
 	return blockHashes, nil
 }
 
+// GetNewAddress creates a new address in the current wallet. Fails if now wallet is loaded.
 func (d DashClient) GetNewAddress() (string, error) {
 	var newAddress string
 	err := d.rpc.Call("getnewaddress", []any{}, &newAddress)
@@ -328,6 +323,7 @@ func (d DashClient) GetNewAddress() (string, error) {
 	return newAddress, nil
 }
 
+// CreateWallet creates a wallet with the given file name. Fails if the wallet already exists
 func (d DashClient) CreateWallet(name string) (string, error) {
 	var newName string
 	err := d.rpc.Call("createwallet", []any{name}, &newName)
@@ -337,6 +333,8 @@ func (d DashClient) CreateWallet(name string) (string, error) {
 
 	return newName, nil
 }
+
+// LoadWallet loads a wallet with the given file name: Fails if the wallet is already loaded
 func (d DashClient) LoadWallet(fileName string) (string, error) {
 	var newName string
 	err := d.rpc.Call("loadwallet", []any{fileName}, &newName)
