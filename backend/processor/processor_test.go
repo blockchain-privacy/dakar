@@ -16,11 +16,11 @@ import (
 
 var (
 	dbHandle          = &testhelper.TestDB{IsDirty: true}
-	client            *jsonrpc.DashClient
+	client            *jsonrpc.BlockchainClient
 	generateToAddress string
 )
 
-func setupRPCTest(client *jsonrpc.DashClient, numBlocks int) error {
+func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
 	// wallet might already exist -> ignore error
 	_, _ = client.CreateWallet("testwallet")
 	// wallet might already be loaded -> ignore error
@@ -72,7 +72,7 @@ func TestMain(m *testing.M) {
 			return
 		}
 
-		client = jsonrpc.NewDashClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
+		client = jsonrpc.NewBlockchainClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
 
 		if err := setupRPCTest(client, 5); err != nil {
 			log.Panic("Could not setup RPC test", err)

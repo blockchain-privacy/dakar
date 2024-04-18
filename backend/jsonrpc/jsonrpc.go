@@ -21,6 +21,8 @@ type Client struct {
 	id    int
 }
 
+// NewClient creates a new rpc client, which uses the given user and password when making a request to host.
+// If cert is not nil, a TLS connection is created, the passed certificate is not validated.
 func NewClient(host string, user string, password string, cert []byte) *Client {
 	httpProtocol := "http://"
 	var tlsConfig *tls.Config
@@ -47,7 +49,8 @@ type Request struct {
 	Version string `json:"jsonrpc"`
 	Method  string `json:"method"`
 	Params  []any  `json:"params,omitempty"`
-	ID      *int   `json:"id,omitempty"`
+	// ID should be unique per session
+	ID *int `json:"id,omitempty"`
 }
 
 type Response struct {
@@ -58,6 +61,7 @@ type Response struct {
 	} `json:"error,omitempty"`
 }
 
+// NewRequestID creates a new request ID which will be unique per client instance
 func (j *Client) NewRequestID() *int {
 	j.mutex.Lock()
 	newID := j.id
@@ -66,6 +70,7 @@ func (j *Client) NewRequestID() *int {
 	return &newID
 }
 
+// Call makes a call to the provided method with the given parameters and stores the returned values into result
 func (j *Client) Call(method string, params []any, result any) error {
 	replyBuffer, err := json.Marshal(Request{
 		Version: "1.0",
@@ -112,6 +117,7 @@ func (j *Client) Call(method string, params []any, result any) error {
 	return nil
 }
 
+// Batch makes mutliple RPC calls in one request.
 func (j *Client) Batch(requests []Request, results []Response) error {
 	replyBuffer, err := json.Marshal(requests)
 	if err != nil {
@@ -152,12 +158,15 @@ func (j *Client) Batch(requests []Request, results []Response) error {
 	return nil
 }
 
-type DashClient struct {
+// BlockchainClient implements several RPCs of Bitcoin and Dash
+type BlockchainClient struct {
 	rpc *Client
 }
 
-func NewDashClient(host string, user string, password string, cert []byte) *DashClient {
-	return &DashClient{rpc: NewClient(host, user, password, cert)}
+// NewBlockchainClient creates a new rpc client, which uses the given user and password when making a request to host.
+// If cert is not nil, a TLS connection is created, the passed certificate is not validated.
+func NewBlockchainClient(host string, user string, password string, cert []byte) *BlockchainClient {
+	return &BlockchainClient{rpc: NewClient(host, user, password, cert)}
 }
 
 type ScriptSig struct {
@@ -230,7 +239,7 @@ type GetBlockVerboseResult struct {
 	NextHash      string        `json:"nextblockhash,omitempty"`
 }
 
-func (d DashClient) GetBlockCount() (int64, error) {
+func (d BlockchainClient) GetBlockCount() (int64, error) {
 	var r int64
 	err := d.rpc.Call("getblockcount", nil, &r)
 	if err != nil {
@@ -240,7 +249,7 @@ func (d DashClient) GetBlockCount() (int64, error) {
 	return r, nil
 }
 
-func (d DashClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseResult, error) {
+func (d BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseResult, error) {
 	var r GetBlockVerboseResult
 	err := d.rpc.Call("getblock", []any{blockHash, 1}, &r)
 	if err != nil {
@@ -250,7 +259,7 @@ func (d DashClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseResult, e
 	return &r, nil
 }
 
-func (d DashClient) GetBlockHash(blockHeight int64) (string, error) {
+func (d BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 	var r string
 	err := d.rpc.Call("getblockhash", []any{blockHeight}, &r)
 	if err != nil {
@@ -260,7 +269,7 @@ func (d DashClient) GetBlockHash(blockHeight int64) (string, error) {
 	return r, nil
 }
 
-func (d DashClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error) {
+func (d BlockchainClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error) {
 	var r TxRawResult
 	err := d.rpc.Call("getrawtransaction", []any{txHash, 1}, &r)
 	if err != nil {
@@ -270,21 +279,21 @@ func (d DashClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error
 	return &r, nil
 }
 
-func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult, error) {
-	request := make([]Request, len(txs))
+func (d BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult, error) {
+	requests := make([]Request, len(txs))
 	results := make([]Response, len(txs))
-	thisRequest := Request{
+	request := Request{
 		Version: "2.0",
 		Method:  "getrawtransaction",
 	}
 	for i, tx := range txs {
-		thisRequest.Params = []any{tx, 1}
-		thisRequest.ID = d.rpc.NewRequestID()
-		request[i] = thisRequest
+		request.Params = []any{tx, 1}
+		request.ID = d.rpc.NewRequestID()
+		requests[i] = request
 		results[i] = Response{Result: &TxRawResult{}}
 	}
 
-	err := d.rpc.Batch(request, results)
+	err := d.rpc.Batch(requests, results)
 	if err != nil {
 		return nil, cliutil.NewStackError(err)
 	}
@@ -293,7 +302,7 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 	for i, batchResult := range results {
 		converted, ok := batchResult.Result.(*TxRawResult)
 		if !ok {
-			return nil, cliutil.NewStackErrorStr("not able to convert rpc result to type")
+			return nil, cliutil.NewStackErrorStr("conversion of rpc result to type failed")
 		}
 		txResults[i] = converted
 	}
@@ -302,7 +311,7 @@ func (d DashClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult,
 }
 
 // GenerateToAddress mines a new block and rewards the resulting coins to the given address
-func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
+func (d BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
 	var blockHashes []string
 	err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes)
 	if err != nil {
@@ -313,7 +322,7 @@ func (d DashClient) GenerateToAddress(numBlocks int, address string) ([]string, 
 }
 
 // GetNewAddress creates a new address in the current wallet. Fails if now wallet is loaded.
-func (d DashClient) GetNewAddress() (string, error) {
+func (d BlockchainClient) GetNewAddress() (string, error) {
 	var newAddress string
 	err := d.rpc.Call("getnewaddress", []any{}, &newAddress)
 	if err != nil {
@@ -324,7 +333,7 @@ func (d DashClient) GetNewAddress() (string, error) {
 }
 
 // CreateWallet creates a wallet with the given file name. Fails if the wallet already exists
-func (d DashClient) CreateWallet(name string) (string, error) {
+func (d BlockchainClient) CreateWallet(name string) (string, error) {
 	var newName string
 	err := d.rpc.Call("createwallet", []any{name}, &newName)
 	if err != nil {
@@ -335,7 +344,7 @@ func (d DashClient) CreateWallet(name string) (string, error) {
 }
 
 // LoadWallet loads a wallet with the given file name: Fails if the wallet is already loaded
-func (d DashClient) LoadWallet(fileName string) (string, error) {
+func (d BlockchainClient) LoadWallet(fileName string) (string, error) {
 	var newName string
 	err := d.rpc.Call("loadwallet", []any{fileName}, &newName)
 	if err != nil {
