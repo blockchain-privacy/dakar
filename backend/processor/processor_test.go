@@ -818,3 +818,90 @@ func Test_processRound(t *testing.T) {
 		}
 	}
 }
+
+func Test_getOutputAddress(t *testing.T) {
+	tests := []struct {
+		pubKey           *jsonrpc.ScriptPubKeyResult
+		pubKeyHashAddrID byte
+		want             string
+		wantErr          bool
+	}{
+		{
+			pubKey:  nil,
+			wantErr: true,
+		},
+		{
+			pubKey:  &jsonrpc.ScriptPubKeyResult{},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Address: "a",
+			},
+			want:    "a",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Addresses: []string{"b"},
+				Address:   "a",
+			},
+			want:    "a",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Addresses: []string{"b"},
+			},
+			want:    "b",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Type: "nulldata",
+			},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Type: "nonstandard",
+			},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Hex: "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788ac",
+			},
+			pubKeyHashAddrID: 0x4c,
+			want:             "XssjzLKgsfATYGqTQmiJURQzeKdpL5K1k3",
+			wantErr:          false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Hex: "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788ac",
+			},
+			pubKeyHashAddrID: 0x00,
+			want:             "1JBuA5fnuwwsPLEsYtQ5ctjCoz48JpqMmB",
+			wantErr:          false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				// invalid hex
+				Hex: "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788a",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		address, err := getOutputAddress(tt.pubKey, tt.pubKeyHashAddrID)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, address)
+		}
+	}
+}

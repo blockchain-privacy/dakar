@@ -212,6 +212,45 @@ func newAmount(f float64) (int64, error) {
 	return int64(f + 0.5), nil
 }
 
+// getOutputAddress returns the address associated with the given output.
+// If no address can be found, an empty address is returned.
+func getOutputAddress(pubKey *jsonrpc.ScriptPubKeyResult, pubKeyHashAddrID byte) (string, error) {
+	if pubKey == nil {
+		return "", cliutil.NewStackErrorStr("received nil ScriptPubKeyResult")
+	}
+
+	if pubKey.Address != "" {
+		return pubKey.Address, nil
+	}
+
+	if len(pubKey.Addresses) > 0 {
+		// use first address, ignore others
+		return pubKey.Addresses[0], nil
+	}
+
+	// try to extract addresses
+	if pubKey.Type != "nulldata" && pubKey.Type != "nonstandard" {
+		decodeString, err := hex.DecodeString(pubKey.Hex)
+		if err != nil {
+			return "", cliutil.NewStackError(err)
+		}
+
+		cfg := chaincfg.MainNetParams
+		cfg.PubKeyHashAddrID = pubKeyHashAddrID
+		_, addresses, _, err := txscript.ExtractPkScriptAddrs(decodeString, &cfg)
+		if err != nil {
+			return "", cliutil.NewStackError(err)
+		}
+
+		if len(addresses) > 0 {
+			// use first address, ignore others
+			return addresses[0].EncodeAddress(), nil
+		}
+	}
+
+	return "", nil
+}
+
 // buildTransactionMapping processes given transaction.
 // arguments:
 // - rawTransaction: the transaction which is being processed
@@ -262,29 +301,14 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 		}
 		index := d.N
 
-		// check if addresses can be extracted
-		if d.ScriptPubKey.Addresses == nil && d.ScriptPubKey.Type != "nulldata" && d.ScriptPubKey.Type != "nonstandard" {
-			decodeString, decodingErr := hex.DecodeString(d.ScriptPubKey.Hex)
-			if decodingErr != nil {
-				err = cliutil.NewStackError(decodingErr)
-				return
-			}
-
-			cfg := chaincfg.MainNetParams
-			cfg.PubKeyHashAddrID = config.PubKeyHashAddrID
-			_, addresses, _, extractionError := txscript.ExtractPkScriptAddrs(decodeString, &cfg)
-			if extractionError != nil {
-				err = cliutil.NewStackError(extractionError)
-				return
-			}
-
-			for _, e := range addresses {
-				d.ScriptPubKey.Addresses = append(d.ScriptPubKey.Addresses, e.EncodeAddress())
-			}
+		address, outputErr := getOutputAddress(&d.ScriptPubKey, config.PubKeyHashAddrID) //nolint:gosec
+		if outputErr != nil {
+			err = outputErr
+			return
 		}
 
-		for _, e := range d.ScriptPubKey.Addresses {
-			outputMappings = addOutputToMapping(outputMappings, e, index)
+		if address != "" {
+			outputMappings = addOutputToMapping(outputMappings, address, index)
 		}
 
 		// create new output
