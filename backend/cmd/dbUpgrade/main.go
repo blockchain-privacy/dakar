@@ -169,6 +169,14 @@ func main() {
 	}
 	info("reset FMI cluster status")
 
+	info("dropping hex starting ...")
+	err = db.DropPredicateHex(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("dropping hex finished")
+
 	info("removing hex starting ...")
 	err = db.AlterSchemaRemoveHex(dgraph)
 	if err != nil {
