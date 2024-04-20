@@ -318,7 +318,6 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
 			KeyAsm:      d.ScriptPubKey.Asm,
-			KeyHex:      d.ScriptPubKey.Hex,
 			OutputIndex: &index,
 		})
 	}
@@ -372,7 +371,6 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 	refOutput := db.Output{
 		InputIndex: &index,
 		SigAsm:     vin.ScriptSig.Asm,
-		SigHex:     vin.ScriptSig.Hex,
 	}
 
 	if v, ok := txHashMap[vin.Txid]; ok {

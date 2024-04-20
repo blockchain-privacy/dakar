@@ -13,7 +13,7 @@ import (
 // SchemaVersion is the identifier for the schema defined in SetupSchema.
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required
-const SchemaVersion uint64 = 4
+const SchemaVersion uint64 = 5
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -63,10 +63,8 @@ func SetupSchema(c external.Database) error {
 			txtype: string .
 			amount: int .
 			iscoinbase: bool .
-			keyasm: string @index(term) .
+			keyasm: string .
 			sigasm: string .
-			keyhex: string .
-			sighex: string .
 
 			type Output {
 				outputindex
@@ -76,8 +74,6 @@ func SetupSchema(c external.Database) error {
 				iscoinbase
 				keyasm
 				sigasm
-				keyhex
-				sighex
 				<~tx_inputs>
 				<~tx_outputs>
 				<~addr_outputs>

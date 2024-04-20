@@ -15,9 +15,7 @@ type Output struct {
 	TxType      string   `json:"txtype,omitempty"`
 	Amount      *int64   `json:"amount,omitempty"`
 	IsCoinbase  *bool    `json:"iscoinbase,omitempty"`
-	SigHex      string   `json:"sighex,omitempty"`
 	SigAsm      string   `json:"sigasm,omitempty"`
-	KeyHex      string   `json:"keyhex,omitempty"`
 	KeyAsm      string   `json:"keyasm,omitempty"`
 	DType       []string `json:"dgraph.type,omitempty"`
 }

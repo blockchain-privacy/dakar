@@ -35,3 +35,30 @@ func AlterSchemaAddWorkspaces(c external.Database) error {
 			}`,
 	})
 }
+
+// AlterSchemaRemoveHex removes hex signature and script from Output type
+func AlterSchemaRemoveHex(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			outputindex: int .
+			inputindex: int .
+			txtype: string .
+			amount: int .
+			iscoinbase: bool .
+			keyasm: string .
+			sigasm: string .
+
+			type Output {
+				outputindex
+				inputindex
+				txtype
+				amount
+				iscoinbase
+				keyasm
+				sigasm
+				<~tx_inputs>
+				<~tx_outputs>
+				<~addr_outputs>
+			}`,
+	})
+}

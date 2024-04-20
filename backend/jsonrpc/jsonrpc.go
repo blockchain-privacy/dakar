@@ -171,7 +171,6 @@ func NewBlockchainClient(host string, user string, password string, cert []byte)
 
 type ScriptSig struct {
 	Asm string `json:"asm"`
-	Hex string `json:"hex"`
 }
 
 type Vin struct {

@@ -574,7 +574,6 @@ func Test_processTxVin(t *testing.T) {
 					Txid: "txhash1",
 					ScriptSig: &jsonrpc.ScriptSig{
 						Asm: "some_asm",
-						Hex: "some_hex",
 					},
 					Vout: 0,
 				},
@@ -595,7 +594,6 @@ func Test_processTxVin(t *testing.T) {
 					Txid: "txhash1",
 					ScriptSig: &jsonrpc.ScriptSig{
 						Asm: "some_asm",
-						Hex: "some_hex",
 					},
 					Vout: 0,
 				},
@@ -613,7 +611,6 @@ func Test_processTxVin(t *testing.T) {
 					Txid: "txhash1",
 					ScriptSig: &jsonrpc.ScriptSig{
 						Asm: "some_asm",
-						Hex: "some_hex",
 					},
 					Vout: 0,
 				},
