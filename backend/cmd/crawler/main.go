@@ -142,9 +142,9 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) bool
 	return true
 }
 
-// createAdminUser creates an admin user if no user exist in the database and
+// createAdminIdentity creates an admin identity if no identity exist in the database and
 // prints the credentials to stdout
-func createAdminUser(database external.Database, adminAuth *ory.APIClient) error {
+func createAdminIdentity(database external.Database, adminAuth *ory.APIClient) error {
 	// check if users already exist
 	userCount, userErr := dbus.GetUserCount(database)
 	if userErr != nil {
@@ -176,9 +176,8 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error)
 	client := jsonrpc.NewBlockchainClient(rpcEndpoint, rpcConfig.User, rpcConfig.Password, nil)
 
 	// test if rpc client is active
-	if !waitForRPCClient(client) {
-		// no error text, was already handled in function above
-		return nil, cli.NewStackErrorStr("")
+	if err := waitForRPCClient(client); err != nil {
+		return nil, err
 	}
 
 	return client, nil
@@ -333,18 +332,18 @@ func main() {
 
 	////// CONNECT TO KRATOS //////
 
-	auth, adminAuth, err := getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
-		config.Modules.HTTP.KratosAdminEndpoint)
-	if err != nil {
-		warn(err)
-		return
-	}
+	var auth *ory.APIClient
+	var adminAuth *ory.APIClient
 
-	////// CREATE ADMIN USER //////
-
-	// create admin account if none is set
 	if config.Modules.HTTP.Active {
-		if err := createAdminUser(graphDB, adminAuth); err != nil {
+		auth, adminAuth, err = getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
+			config.Modules.HTTP.KratosAdminEndpoint)
+		if err != nil {
+			warn(err)
+			return
+		}
+		// create admin identity if none is set
+		if err := createAdminIdentity(graphDB, adminAuth); err != nil {
 			warn(err)
 			return
 		}

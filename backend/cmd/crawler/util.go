@@ -136,7 +136,7 @@ func isCrawling(db external.Database) (bool, error) {
 }
 
 // waitForRPCClient waits until the RPC client is ready to receive requests
-func waitForRPCClient(client external.RPCClient) bool {
+func waitForRPCClient(client external.RPCClient) error {
 	const maxRetries = 5
 	const retrySleepDuration = time.Second * 5
 
@@ -148,12 +148,11 @@ func waitForRPCClient(client external.RPCClient) bool {
 			if printedErrMessage {
 				info("Successfully established connection to RPC client.")
 			}
-			return true
+			return nil
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
-			return false
+			return cliutil.NewStackErrorf("Authentication error: %w", err)
 		}
 
 		if !printedErrMessage {
@@ -165,8 +164,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 			time.Sleep(retrySleepDuration)
 		}
 	}
-	info("RPC client is not ready to receive requests.")
-	return false
+	return cliutil.NewStackErrorStr("RPC client is not ready to receive requests")
 }
 
 // shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
