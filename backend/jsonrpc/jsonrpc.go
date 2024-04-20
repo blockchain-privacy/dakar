@@ -179,8 +179,6 @@ type Vin struct {
 	Txid      string     `json:"txid"`
 	Vout      uint32     `json:"vout"`
 	ScriptSig *ScriptSig `json:"scriptSig"`
-	Sequence  uint32     `json:"sequence"`
-	Witness   []string   `json:"txinwitness"`
 }
 
 // IsCoinBase returns a bool to show if a Vin is a Coinbase one or not.
@@ -205,40 +203,20 @@ type Vout struct {
 }
 
 type TxRawResult struct {
-	Hex           string `json:"hex"`
-	Txid          string `json:"txid"`
-	Hash          string `json:"hash,omitempty"`
-	Size          int32  `json:"size,omitempty"`
-	Vsize         int32  `json:"vsize,omitempty"`
-	Weight        int32  `json:"weight,omitempty"`
-	Version       int16  `json:"version"`
-	LockTime      uint32 `json:"locktime"`
-	Vin           []Vin  `json:"vin"`
-	Vout          []Vout `json:"vout"`
-	BlockHash     string `json:"blockhash,omitempty"`
-	Confirmations uint64 `json:"confirmations,omitempty"`
-	Time          int64  `json:"time,omitempty"`
-	Blocktime     int64  `json:"blocktime,omitempty"`
+	Txid string `json:"txid"`
+	Hash string `json:"hash,omitempty"`
+	Size int32  `json:"size,omitempty"`
+	Vin  []Vin  `json:"vin"`
+	Vout []Vout `json:"vout"`
 }
 
 type GetBlockVerboseResult struct {
-	Hash          string        `json:"hash"`
-	Confirmations int64         `json:"confirmations"`
-	StrippedSize  int32         `json:"strippedsize"`
-	Size          int32         `json:"size"`
-	Weight        int32         `json:"weight"`
-	Height        int64         `json:"height"`
-	Version       int32         `json:"version"`
-	VersionHex    string        `json:"versionHex"`
-	MerkleRoot    string        `json:"merkleroot"`
-	Tx            []string      `json:"tx,omitempty"`
-	RawTx         []TxRawResult `json:"rawtx,omitempty"` // Note: this field is always empty when verbose != 2.
-	Time          int64         `json:"time"`
-	Nonce         uint32        `json:"nonce"`
-	Bits          string        `json:"bits"`
-	Difficulty    float64       `json:"difficulty"`
-	PreviousHash  string        `json:"previousblockhash"`
-	NextHash      string        `json:"nextblockhash,omitempty"`
+	Hash         string        `json:"hash"`
+	Tx           []string      `json:"tx,omitempty"`
+	RawTx        []TxRawResult `json:"rawtx,omitempty"` // Note: this field is always empty when verbose != 2.
+	Time         int64         `json:"time"`
+	PreviousHash string        `json:"previousblockhash"`
+	NextHash     string        `json:"nextblockhash,omitempty"`
 }
 
 func (d BlockchainClient) GetBlockCount() (int64, error) {
