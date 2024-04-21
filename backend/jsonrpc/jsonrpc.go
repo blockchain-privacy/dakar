@@ -191,7 +191,7 @@ type ScriptPubKeyResult struct {
 	Type string `json:"type"`
 	// Dash still uses Addresses instead of Address
 	Addresses []string `json:"addresses,omitempty"`
-	// Since Bitcoin Core v24 Address is used instead of Addresses is not set https://github.com/bitcoin/bitcoin/pull/20286
+	// Since Bitcoin Core v24 Address is used instead of Addresses: https://github.com/bitcoin/bitcoin/pull/20286
 	Address string `json:"address"`
 }
 
