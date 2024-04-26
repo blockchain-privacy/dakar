@@ -72,7 +72,7 @@ export default class ForceGraph {
 		this.rootSvg
 			.append('svg:defs')
 			.append('svg:marker')
-			.attr('id', 'arrowhead')
+			.attr('id', 'forcegraph_arrowhead')
 			.attr('viewBox', '0 -5 10 10')
 			.attr('refX', this.nodeRadius)
 			.attr('refY', 0)
@@ -113,7 +113,7 @@ export default class ForceGraph {
 			.join('line')
 			.attr('class', 'arrow')
 			.attr('stroke', '#999')
-			.attr('marker-end', 'url(#arrowhead)')
+			.attr('marker-end', 'url(#forcegraph_arrowhead)')
 			.attr('stroke-width', 1);
 
 		const node = this.nodeGroup

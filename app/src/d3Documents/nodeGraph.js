@@ -243,7 +243,7 @@ export default class NodeGraph {
           <rect width="8" height="8" fill="rgb(var(--v-theme-primary))" />
           <path id="a" data-color="fill" fill="#000" d="M4 4h4v4H4zM0 0h4v4H0z"></path>
         </pattern>
-        <marker id="arrowhead" viewBox="0 -5 10 10" refX="8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+        <marker id="nodegraph_arrowhead" viewBox="0 -5 10 10" refX="8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="currentColor"/>
         </marker>`;
 
@@ -800,7 +800,7 @@ export default class NodeGraph {
 			.attr('stroke', 'currentColor')
 			.attr('stroke-opacity', 1)
 			.attr('stroke-width', 1)
-			.attr('marker-end', 'url(#arrowhead)')
+			.attr('marker-end', 'url(#nodegraph_arrowhead)')
 			.attr('x1', d => d.source.x)
 			.attr('y1', d => d.source.y)
 			.attr('x2', d => reduceX(d, this.nodeRadius))
