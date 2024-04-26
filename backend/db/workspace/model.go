@@ -64,6 +64,11 @@ type NodeConnections struct {
 	Children []string `json:"children,omitempty"`
 }
 
+type NodeConnectionsMap struct {
+	UID      string
+	children map[string]bool
+}
+
 type connectionRequest struct {
 	ClusterHeight []struct {
 		LastClusteredID *int64 `json:"lastclusteredid,omitempty"`

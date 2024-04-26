@@ -5,7 +5,7 @@ import {zoom} from 'd3-zoom';
 import {
 	forceCollide, forceLink, forceManyBody, forceSimulation,
 } from 'd3-force';
-import {abbreviateNumber} from '@/d3Documents/util';
+import {abbreviateNumber, reduceX, reduceY} from '@/d3Documents/util';
 import {
 	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
@@ -243,8 +243,8 @@ export default class NodeGraph {
           <rect width="8" height="8" fill="rgb(var(--v-theme-primary))" />
           <path id="a" data-color="fill" fill="#000" d="M4 4h4v4H4zM0 0h4v4H0z"></path>
         </pattern>
-        <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="10" markerHeight="10" orient="auto">
-            <path d="M0,-5L10,0L0,5" fill="#999"/>
+        <marker id="arrowhead" viewBox="0 -5 10 10" refX="8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0,-5L10,0L0,5" fill="currentColor"/>
         </marker>`;
 
 		const style = this.rootSvg.append('svg:style');
@@ -299,12 +299,12 @@ export default class NodeGraph {
 				}
 
 				// Check if link already exists
-				if (linkSet.has(child + d.uid) || linkSet.has(d.uid + child)) {
+				if (linkSet.has(d.uid + child)) {
 					return;
 				}
 
-				links.push({source: child, target: d.uid});
-				linkSet.add(child + d.uid);
+				links.push({source: d.uid, target: child});
+				linkSet.add(d.uid + child);
 			});
 		});
 		return links;
@@ -800,10 +800,11 @@ export default class NodeGraph {
 			.attr('stroke', 'currentColor')
 			.attr('stroke-opacity', 1)
 			.attr('stroke-width', 1)
+			.attr('marker-end', 'url(#arrowhead)')
 			.attr('x1', d => d.source.x)
 			.attr('y1', d => d.source.y)
-			.attr('x2', d => d.target.x)
-			.attr('y2', d => d.target.y);
+			.attr('x2', d => reduceX(d, this.nodeRadius))
+			.attr('y2', d => reduceY(d, this.nodeRadius));
 
 		const node = this.nodeGroup
 			.selectAll('.nodeContainer')
@@ -837,8 +838,8 @@ export default class NodeGraph {
 			link
 				.attr('x1', d => d.source.x)
 				.attr('y1', d => d.source.y)
-				.attr('x2', d => d.target.x)
-				.attr('y2', d => d.target.y);
+				.attr('x2', d => reduceX(d, this.nodeRadius))
+				.attr('y2', d => reduceY(d, this.nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});

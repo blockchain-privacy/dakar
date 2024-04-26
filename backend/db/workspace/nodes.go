@@ -280,27 +280,31 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		})
 	}
 
-	connectedTransactions := map[string]NodeConnections{}
+	connectedTransactions := map[string]NodeConnectionsMap{}
+	connectedClusters := map[string]NodeConnectionsMap{}
 	for _, queryTx := range r.Transactions {
-		children := map[string]bool{}
+		ct, ok := connectedTransactions[queryTx.UID]
+		if !ok {
+			ct = NodeConnectionsMap{UID: queryTx.UID, children: map[string]bool{}}
+		}
 
 		// add root heuristics to transaction if available
 		if rootHeuristics, ok := txToHeuristic[queryTx.UID]; ok {
 			for _, h := range rootHeuristics {
-				children[h] = true
+				ct.children[h] = true
 			}
 		}
 
 		for _, output := range queryTx.Outputs {
 			for _, inputTx := range output.InputTransactions {
-				children[inputTx.UID] = true
+				ct.children[inputTx.UID] = true
 			}
 
 			for _, address := range output.Addresses {
 				for _, cluster := range address.Clusters {
 					// find corresponding address UID and set it connected to this transaction
 					if addressUID, ok := clusterToAddress[cluster.UID]; ok {
-						children[addressUID] = true
+						ct.children[addressUID] = true
 					}
 				}
 			}
@@ -308,28 +312,44 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 		for _, inputs := range queryTx.Inputs {
 			for _, outputTx := range inputs.OutputTransactions {
-				children[outputTx.UID] = true
+				// add this transaction as child of the input transaction
+				parentTransaction, ok := connectedTransactions[outputTx.UID]
+				if !ok {
+					parentTransaction = NodeConnectionsMap{UID: outputTx.UID, children: map[string]bool{}}
+				}
+
+				parentTransaction.children[queryTx.UID] = true
+				connectedTransactions[outputTx.UID] = parentTransaction
 			}
 
 			for _, address := range inputs.Addresses {
 				for _, cluster := range address.Clusters {
 					// find corresponding address UID and set it connected to this transaction
 					if addressUID, ok := clusterToAddress[cluster.UID]; ok {
-						children[addressUID] = true
+						// add this transaction as child of the connected cluster
+						parentCluster, ok := connectedClusters[addressUID]
+						if !ok {
+							parentCluster = NodeConnectionsMap{UID: addressUID, children: map[string]bool{}}
+						}
+
+						parentCluster.children[queryTx.UID] = true
+						connectedClusters[addressUID] = parentCluster
 					}
 				}
 			}
 		}
 
-		connectedTransactions[queryTx.UID] = NodeConnections{
-			UID:      queryTx.UID,
-			Children: cliutil.GetMapKeys(children),
-		}
+		connectedTransactions[queryTx.UID] = ct
 	}
 
-	transactions = make([]NodeConnections, 0, len(connectedTransactions))
-	for _, v := range connectedTransactions {
-		transactions = append(transactions, v)
+	i := 0
+	transactions = make([]NodeConnections, len(connectedTransactions))
+	for _, ct := range connectedTransactions {
+		transactions[i] = NodeConnections{
+			UID:      ct.UID,
+			Children: cliutil.GetMapKeys(ct.children),
+		}
+		i++
 	}
 
 	for _, cluster := range r.ClusterClusters {
@@ -338,24 +358,47 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 			continue
 		}
 
-		clusterUIDs := map[string]bool{}
+		cc, ok := connectedClusters[thisClusterAddressUID]
+		if !ok {
+			cc = NodeConnectionsMap{UID: thisClusterAddressUID, children: map[string]bool{}}
+		}
+
 		for _, address := range cluster.Addresses {
 			for _, output := range address.Outputs {
 				for _, outputCluster := range output.OutputClusters {
 					// find corresponding address UID and set it connected to this transaction
 					if addressUID, ok := clusterToAddress[outputCluster.UID]; ok {
-						clusterUIDs[addressUID] = true
+						// add cluster as child of current cluster
+						cc.children[addressUID] = true
 					}
 				}
 				for _, inputCluster := range output.InputClusters {
 					// find corresponding address UID and set it connected to this transaction
 					if addressUID, ok := clusterToAddress[inputCluster.UID]; ok {
-						clusterUIDs[addressUID] = true
+						// add current cluster as child of cluster
+						parentCluster, ok := connectedClusters[addressUID]
+						if !ok {
+							parentCluster = NodeConnectionsMap{UID: addressUID, children: map[string]bool{}}
+						}
+
+						parentCluster.children[thisClusterAddressUID] = true
+						connectedClusters[addressUID] = parentCluster
 					}
 				}
 			}
 		}
-		clusters = append(clusters, NodeConnections{UID: thisClusterAddressUID, Children: cliutil.GetMapKeys(clusterUIDs)})
+
+		connectedClusters[thisClusterAddressUID] = cc
+	}
+
+	i = 0
+	clusters = make([]NodeConnections, len(connectedClusters))
+	for _, cc := range connectedClusters {
+		clusters[i] = NodeConnections{
+			UID:      cc.UID,
+			Children: cliutil.GetMapKeys(cc.children),
+		}
+		i++
 	}
 
 	return
