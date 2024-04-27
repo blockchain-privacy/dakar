@@ -121,6 +121,7 @@ export default class NodeGraph {
 		this.rootSvg = null;
 		this.rootGroup = null;
 		this.lineGroup = null;
+		this.shadowLineGroup = null;
 		this.nodeGroup = null;
 		this.zoom = null;
 		this.newNodes = null;
@@ -199,6 +200,7 @@ export default class NodeGraph {
 		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 		this.lineGroup = this.rootGroup.append('g');
+		this.shadowLineGroup = this.rootGroup.append('g');
 		this.nodeGroup = this.rootGroup.append('g');
 
 		// Add zoom and drag
@@ -245,11 +247,17 @@ export default class NodeGraph {
           <rect width="8" height="8" fill="rgb(var(--v-theme-primary))" />
           <path id="a" data-color="fill" fill="#000" d="M4 4h4v4H4zM0 0h4v4H0z"></path>
         </pattern>
-        <marker id="nodegraph_arrowhead" viewBox="0 -5 10 10" refX="8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+        <marker id="nodegraph_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="currentColor"/>
         </marker>
-        <marker id="nodegraph_arrowhead_reversed" viewBox="-10 -5 10 10" refX="-8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+        <marker id="nodegraph_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+            <path d="M0,-5L10,0L0,5" fill="rgb(var(--v-theme-primary))" />
+        </marker>
+        <marker id="nodegraph_arrowhead_reversed" viewBox="-10 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L-10,0L0,5" fill="currentColor" />
+        </marker>
+        <marker id="nodegraph_arrowhead_reversed_shadow" viewBox="-10 -5 10 10" refX="-1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+            <path d="M0,-5L-10,0L0,5" fill="rgb(var(--v-theme-primary))" />
         </marker>`;
 
 		const style = this.rootSvg.append('svg:style');
@@ -259,6 +267,32 @@ export default class NodeGraph {
           stroke: #B71C1C;
           stroke-width: 3;
          }
+
+        .arrow {
+          stroke: currentColor;
+          stroke-opacity: 1;
+          stroke-width: 1;
+          marker-end: url(#nodegraph_arrowhead);
+        }
+
+        .shadowArrow {
+          transition: all 0.1s linear;
+          stroke: rgb(var(--v-theme-primary));
+          stroke-opacity: 1;
+          stroke-width: 4;
+          opacity: 0;
+          marker-end: url(#nodegraph_arrowhead_shadow);
+        }
+
+        .lineHovered {
+          stroke-width: 5;
+          opacity: 0.3;
+        }
+
+        .lineClicked {
+          stroke-width: 5;
+          opacity: 0.3;
+        }
 
         .lasso-selected {
           stroke: rgb(var(--v-theme-primary));
@@ -808,15 +842,35 @@ export default class NodeGraph {
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
 			.attr('class', 'arrow')
-			.attr('stroke', 'currentColor')
-			.attr('stroke-opacity', 1)
-			.attr('stroke-width', 1)
-			.attr('marker-end', 'url(#nodegraph_arrowhead)')
 			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed)' : undefined)
 			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
 			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
 			.attr('x2', d => reduceX(d, this.nodeRadius))
 			.attr('y2', d => reduceY(d, this.nodeRadius));
+
+		// For mouseover events
+		const shadowLinks = this.shadowLineGroup
+			.selectAll('.shadowArrow')
+			.data(links, d => `${d.source}${d.target}`)
+			.join('line')
+			.attr('class', 'shadowArrow')
+			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed_shadow)' : undefined)
+			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d, this.nodeRadius))
+			.attr('y2', d => reduceY(d, this.nodeRadius));
+
+		shadowLinks
+			.on('click', function (_, d) {
+				console.log('target:', d.target, 'source', d.source);
+				d3Select(this).classed('lineClicked', true);
+			})
+			.on('mouseenter', function () {
+				d3Select(this).classed('lineHovered', true);
+			})
+			.on('mouseleave', function () {
+				d3Select(this).classed('lineHovered', false);
+			});
 
 		const node = this.nodeGroup
 			.selectAll('.nodeContainer')
@@ -848,6 +902,11 @@ export default class NodeGraph {
 
 		this.simulation.on('tick', () => {
 			link
+				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d, this.nodeRadius))
+				.attr('y2', d => reduceY(d, this.nodeRadius));
+			shadowLinks
 				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
 				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
 				.attr('x2', d => reduceX(d, this.nodeRadius))
