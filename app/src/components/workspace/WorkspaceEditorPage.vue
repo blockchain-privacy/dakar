@@ -98,6 +98,10 @@
           @add-node="handleGraphQuery"
           @delete-entity="removeGraphNode"
         />
+        <connection-side-bar
+          v-model="isConnectionSideBarOpen"
+          :connection="connectionData"
+        />
         <v-menu
           v-model="contextMenuModel.display"
           :open-on-hover="false"
@@ -163,6 +167,7 @@ import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
+import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -197,11 +202,13 @@ const workspaceUID = ref('');
 const workspaceName = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
+const isConnectionSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
+const connectionData = ref(null);
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -273,6 +280,14 @@ watch(isAddHeuristicSheetOpen, newVal => {
 });
 
 watch(isEntitySideBarOpen, newVal => {
+	// If sheet is being closed reset click state of graph
+	if (!newVal) {
+		nodeGraph.resetClick();
+		nodeGraph.resetLasso();
+	}
+});
+
+watch(isConnectionSideBarOpen, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal) {
 		nodeGraph.resetClick();
@@ -556,8 +571,19 @@ function contextMenuOpenTypeSelection(node) {
 	openTypeSelectionSheet();
 }
 
+function openConnectionSheet(d) {
+	isEntitySideBarOpen.value = false;
+	isAddHeuristicSheetOpen.value = false;
+	connectionData.value = d;
+	isConnectionSideBarOpen.value = true;
+
+	// Next tick so watcher actions are executed first
+	nextTick(() => nodeGraph.setContextObjectClicked());
+}
+
 function openTypeSelectionSheet() {
 	isEntitySideBarOpen.value = false;
+	isConnectionSideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
@@ -601,6 +627,7 @@ function openEntitySideBar(nodeData) {
 	}
 
 	isAddHeuristicSheetOpen.value = false;
+	isConnectionSideBarOpen.value = false;
 	isEntitySideBarOpen.value = true;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
@@ -609,6 +636,7 @@ function openEntitySideBar(nodeData) {
 function closeSideBars() {
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = false;
+	isConnectionSideBarOpen.value = false;
 }
 
 function showContextMenu(e, nodeData) {
@@ -739,7 +767,7 @@ async function whenMounted() {
 		return false;
 	}
 
-	if (!nodeGraph.setLineClickHandler(() => nodeGraph.setContextObjectClicked())) {
+	if (!nodeGraph.setLineClickHandler(openConnectionSheet)) {
 		setErrorMessage('error setting line click handler');
 		return false;
 	}
@@ -779,8 +807,7 @@ async function whenMounted() {
 	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
 
 	nodeGraph.addNodes(data.nodes);
-
-	await nodeGraph.centerGraph();
+	nodeGraph.centerGraph();
 
 	// Add for each dummy heuristics a timer which checks if their heuristic is done executing
 	for (const node of data.nodes) {
