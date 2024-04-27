@@ -560,7 +560,7 @@ function openTypeSelectionSheet() {
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
 	// Next tick so watcher actions are executed first
-	nextTick(() => nodeGraph.setContextNodeClicked());
+	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
 function openEntitySideBar(nodeData) {
@@ -603,7 +603,7 @@ function openEntitySideBar(nodeData) {
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = true;
 	// Next tick so watcher actions are executed first
-	nextTick(() => nodeGraph.setContextNodeClicked());
+	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
 function closeSideBars() {
@@ -735,7 +735,12 @@ async function whenMounted() {
 	document.title = `Workspace - ${APPLICATION_NAME}`;
 
 	if (!nodeGraph.setNodeClickHandler(openEntitySideBar)) {
-		setErrorMessage('error setting heuristic click handler');
+		setErrorMessage('error setting node click handler');
+		return false;
+	}
+
+	if (!nodeGraph.setLineClickHandler(() => nodeGraph.setContextObjectClicked())) {
+		setErrorMessage('error setting line click handler');
 		return false;
 	}
 

@@ -97,6 +97,7 @@ function dragEnded(event, context) {
 export default class NodeGraph {
 	constructor(nodeTypeColorMap) {
 		this.nodeClickCallBack = null;
+		this.lineClickCallBack = null;
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
 		this.contextMenuCallback = null;
@@ -157,6 +158,7 @@ export default class NodeGraph {
 
 	resetClick() {
 		this.nodeGroup.selectAll('.clicked').classed('clicked', false);
+		this.shadowLineGroup.selectAll('.lineClicked').classed('lineClicked', false);
 	}
 
 	resetLasso() {
@@ -164,10 +166,18 @@ export default class NodeGraph {
 		this.lassoSelectedNodes = null;
 	}
 
-	setContextNodeClicked() {
+	setContextObjectClicked() {
 		this.resetClick();
 		this.resetLasso();
-		d3Select(this.contextNodeSelection).select('.node').classed('clicked', true);
+
+		const contextNode = d3Select(this.contextNodeSelection);
+
+		// Try selecting the active object, can be a node or a line
+		if (contextNode.classed('shadowArrow')) {
+			contextNode.classed('lineClicked', true);
+		} else {
+			contextNode.select('.node').classed('clicked', true);
+		}
 	}
 
 	nodeClick(e, d, d3This) {
@@ -184,6 +194,23 @@ export default class NodeGraph {
 
 		if (this.nodeClickCallBack !== null) {
 			this.nodeClickCallBack(d);
+		}
+	}
+
+	lineClick(e, d, d3This) {
+		if (e) {
+			e.stopPropagation();
+		}
+
+		if (!this.enableInteractions) {
+			return;
+		}
+
+		this.contextNodeData = d;
+		this.contextNodeSelection = d3This;
+
+		if (this.lineClickCallBack !== null) {
+			this.lineClickCallBack(d);
 		}
 	}
 
@@ -263,6 +290,12 @@ export default class NodeGraph {
 		const style = this.rootSvg.append('svg:style');
 		style.node().innerHTML
       = `
+        .node {
+          stroke: currentColor;
+          stroke-width: 1;
+          cursor: pointer;
+        }
+
         .clicked {
           stroke: #B71C1C;
           stroke-width: 3;
@@ -276,12 +309,13 @@ export default class NodeGraph {
         }
 
         .shadowArrow {
-          transition: all 0.1s linear;
+          cursor: pointer;
           stroke: rgb(var(--v-theme-primary));
           stroke-opacity: 1;
           stroke-width: 4;
           opacity: 0;
           marker-end: url(#nodegraph_arrowhead_shadow);
+          transition: all 0.1s linear;
         }
 
         .lineHovered {
@@ -565,9 +599,6 @@ export default class NodeGraph {
 		circleGroup.append('circle')
 			.attr('class', 'node')
 			.attr('r', this.nodeRadius)
-			.attr('stroke', 'currentColor')
-			.attr('stroke-width', 1)
-			.attr('cursor', 'pointer')
 			.attr('fill', d => {
 				if (this.nodeTypeColorMap) {
 					let nodeColor;
@@ -860,10 +891,10 @@ export default class NodeGraph {
 			.attr('x2', d => reduceX(d, this.nodeRadius))
 			.attr('y2', d => reduceY(d, this.nodeRadius));
 
+		const self = this;
 		shadowLinks
-			.on('click', function (_, d) {
-				console.log('target:', d.target, 'source', d.source);
-				d3Select(this).classed('lineClicked', true);
+			.on('click', function (e, d) {
+				self.lineClick(e, d, this);
 			})
 			.on('mouseenter', function () {
 				d3Select(this).classed('lineHovered', true);
@@ -966,6 +997,15 @@ export default class NodeGraph {
 		}
 
 		this.nodeClickCallBack = callback;
+		return true;
+	}
+
+	setLineClickHandler(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.lineClickCallBack = callback;
 		return true;
 	}
 
