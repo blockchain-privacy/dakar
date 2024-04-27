@@ -5,7 +5,9 @@ import {zoom} from 'd3-zoom';
 import {
 	forceCollide, forceLink, forceManyBody, forceSimulation,
 } from 'd3-force';
-import {abbreviateNumber, reduceX, reduceY} from '@/d3Documents/util';
+import {
+	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
+} from '@/d3Documents/util';
 import {
 	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
@@ -245,6 +247,9 @@ export default class NodeGraph {
         </pattern>
         <marker id="nodegraph_arrowhead" viewBox="0 -5 10 10" refX="8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="currentColor"/>
+        </marker>
+        <marker id="nodegraph_arrowhead_reversed" viewBox="-10 -5 10 10" refX="-8.5" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0,-5L-10,0L0,5" fill="currentColor" />
         </marker>`;
 
 		const style = this.rootSvg.append('svg:style');
@@ -285,9 +290,8 @@ export default class NodeGraph {
 
 	// Creates links based on the given nodes
 	getLinks(nodes) {
-		const linkSet = new Set();
+		const links = new Map();
 
-		const links = [];
 		nodes.forEach(d => {
 			if (!d.children) {
 				return;
@@ -299,15 +303,22 @@ export default class NodeGraph {
 				}
 
 				// Check if link already exists
-				if (linkSet.has(d.uid + child)) {
+				if (links.has(d.uid + child)) {
 					return;
 				}
 
-				links.push({source: d.uid, target: child});
-				linkSet.add(d.uid + child);
+				// If reverse link exist, mark it as having both directions
+				const reversedLink = links.get(child + d.uid);
+				if (reversedLink !== undefined) {
+					reversedLink.isDual = true;
+					return;
+				}
+
+				links.set(d.uid + child, {source: d.uid, target: child});
 			});
 		});
-		return links;
+
+		return Array.from(links.values());
 	}
 
 	// CheckNode returns tur if both the UID and type of the node is set
@@ -801,8 +812,9 @@ export default class NodeGraph {
 			.attr('stroke-opacity', 1)
 			.attr('stroke-width', 1)
 			.attr('marker-end', 'url(#nodegraph_arrowhead)')
-			.attr('x1', d => d.source.x)
-			.attr('y1', d => d.source.y)
+			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed)' : undefined)
+			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
 			.attr('x2', d => reduceX(d, this.nodeRadius))
 			.attr('y2', d => reduceY(d, this.nodeRadius));
 
@@ -836,8 +848,8 @@ export default class NodeGraph {
 
 		this.simulation.on('tick', () => {
 			link
-				.attr('x1', d => d.source.x)
-				.attr('y1', d => d.source.y)
+				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
 				.attr('x2', d => reduceX(d, this.nodeRadius))
 				.attr('y2', d => reduceY(d, this.nodeRadius));
 
