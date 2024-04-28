@@ -572,9 +572,10 @@ function contextMenuOpenTypeSelection(node) {
 }
 
 function openConnectionSheet(d) {
+	connectionData.value = d;
+
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = false;
-	connectionData.value = d;
 	isConnectionSideBarOpen.value = true;
 
 	// Next tick so watcher actions are executed first
