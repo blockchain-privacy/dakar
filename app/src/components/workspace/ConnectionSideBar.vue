@@ -11,13 +11,14 @@
           <p v-if="showEmptyText">
             empty
           </p>
-          <p
-            v-for="t in transactions"
+          <transaction-item
+            v-for="(tx) in transactions"
             v-else
-            :key="t"
-          >
-            {{ t }}
-          </p>
+            :key="tx.txhash"
+            :tx="tx"
+            class="mx-auto mt-3"
+            max-width="1000"
+          />
         </v-card-text>
       </v-card>
     </template>
@@ -31,6 +32,7 @@ import {inject, onUpdated, ref} from 'vue';
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
 import {WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER} from '@/constants/index.js';
+import TransactionItem from '@/components/common/TransactionItem.vue';
 
 const props = defineProps({
 	connection: {type: Object, required: true},

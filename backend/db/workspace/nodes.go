@@ -357,13 +357,6 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				for _, outputCluster := range output.OutputClusters {
 					// find corresponding address UID and set it connected to this transaction
 					if addressUID, ok := clusterToAddress[outputCluster.UID]; ok {
-						// add cluster as child of current cluster
-						cc.children[addressUID] = true
-					}
-				}
-				for _, inputCluster := range output.InputClusters {
-					// find corresponding address UID and set it connected to this transaction
-					if addressUID, ok := clusterToAddress[inputCluster.UID]; ok {
 						// add current cluster as child of cluster
 						parentCluster, ok := connectedClusters[addressUID]
 						if !ok {
@@ -372,6 +365,13 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 						parentCluster.children[thisClusterAddressUID] = true
 						connectedClusters[addressUID] = parentCluster
+					}
+				}
+				for _, inputCluster := range output.InputClusters {
+					// find corresponding address UID and set it connected to this transaction
+					if addressUID, ok := clusterToAddress[inputCluster.UID]; ok {
+						// add cluster as child of current cluster
+						cc.children[addressUID] = true
 					}
 				}
 			}
@@ -393,10 +393,10 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 	return
 }
 
-// GetConnectionClusterToCluster return the transactions which connect two clusters.
+// GetConnectionClusterToCluster return the transaction UIDs which connect two clusters.
 // The provided UIDs must be of addresses of the respective clusters.
 func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string, userUID string, workspaceUID string) (
-	transactions []string, err error) {
+	frontendTransactions []db.FrontendTransaction, err error) {
 	const query = `query Q($first:string,$second:string,$userUID:string,$workspaceUID:string){
 			# find fmi cluster for first address
 			var(func: uid($first))@filter(has(addresshash)){
@@ -419,7 +419,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 				Cluster.addresses{
 					addr_outputs {
 						~tx_inputs@cascade{
-							txhash
+							uid
 							tx_outputs{
 								~addr_outputs{
 									~Cluster.addresses@filter(uid(c2)){
@@ -429,7 +429,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 							}
 						}
 						~tx_outputs@cascade{
-							txhash:txhash
+							uid
 							tx_inputs(first:1){
 								~addr_outputs{
 									~Cluster.addresses@filter(uid(c2)){
@@ -457,10 +457,10 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 			Addresses []struct {
 				Outputs []struct {
 					InputClusters []struct {
-						TransactionHash string `json:"txhash,omitempty"`
+						UID string `json:"uid,omitempty"`
 					} `json:"~tx_inputs,omitempty"`
 					OutputClusters []struct {
-						TransactionHash string `json:"txhash,omitempty"`
+						UID string `json:"uid,omitempty"`
 					} `json:"~tx_outputs,omitempty"`
 				} `json:"addr_outputs,omitempty"`
 			} `json:"Cluster.addresses,omitempty"`
@@ -480,23 +480,28 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	for _, addresses := range r.ClusterClusters[0].Addresses {
 		for _, outputs := range addresses.Outputs {
 			for _, txs := range outputs.InputClusters {
-				transactionMap[txs.TransactionHash] = true
+				transactionMap[txs.UID] = true
 			}
 			for _, txs := range outputs.OutputClusters {
-				transactionMap[txs.TransactionHash] = true
+				transactionMap[txs.UID] = true
 			}
 		}
 	}
 
-	transactions = cliutil.GetMapKeys(transactionMap)
+	if len(transactionMap) > 0 {
+		frontendTransactions, err = db.GetFrontendTransactionsByUID(c, cliutil.GetMapKeys(transactionMap))
+		if err != nil {
+			return
+		}
+	}
 
 	return
 }
 
-// GetConnectionClusterToHeuristic return the transactions which connects a cluster to an heuristic.
+// GetConnectionClusterToHeuristic return the transaction UIDs which connects a cluster to an heuristic.
 // The provided cluster UID must be of a cluster address.
 func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
-	workspaceUID string) (transactions []string, err error) {
+	workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
 	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
@@ -517,13 +522,13 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 					HeuristicCluster.results{
 						# todo show only transaction which connects to cluster
 						HeuristicResult.destinations@cascade{
-							txhash
+							uid
 							tx_inputs(first:1){
 								...fGetCluster
 							}
 						}
 						HeuristicResult.origin@cascade{
-							txhash
+							uid
 							tx_inputs(first:1){
 								...fGetCluster
 							}
@@ -555,10 +560,10 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 			Clusters []struct {
 				Results []struct {
 					Destinations []struct {
-						TransactionHash string `json:"txhash,omitempty"`
+						UID string `json:"uid,omitempty"`
 					} `json:"HeuristicResult.destinations,omitempty"`
 					Origin struct {
-						TransactionHash string `json:"txhash,omitempty"`
+						UID string `json:"uid,omitempty"`
 					} `json:"HeuristicResult.origin,omitempty"`
 				} `json:"HeuristicCluster.results,omitempty"`
 			} `json:"Heuristic.clusters,omitempty"`
@@ -583,12 +588,17 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 	transactionMap := map[string]bool{}
 	for _, results := range r.HeuristicClusters[0].Clusters[0].Results {
 		for _, destination := range results.Destinations {
-			transactionMap[destination.TransactionHash] = true
+			transactionMap[destination.UID] = true
 		}
-		transactionMap[results.Origin.TransactionHash] = true
+		transactionMap[results.Origin.UID] = true
 	}
 
-	transactions = cliutil.GetMapKeys(transactionMap)
+	if len(transactionMap) > 0 {
+		frontendTransactions, err = db.GetFrontendTransactionsByUID(c, cliutil.GetMapKeys(transactionMap))
+		if err != nil {
+			return
+		}
+	}
 
 	return
 }
