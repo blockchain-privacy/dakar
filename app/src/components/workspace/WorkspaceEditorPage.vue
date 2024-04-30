@@ -101,6 +101,7 @@
         <connection-side-bar
           v-model="isConnectionSideBarOpen"
           :connection="connectionData"
+          :workspace-uid="workspaceUID"
         />
         <v-menu
           v-model="contextMenuModel.display"
