@@ -494,7 +494,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 }
 
 // GetConnectionClusterToHeuristic return the transactions which connects a cluster to an heuristic.
-// The provided cluster UID must be of an address of the cluster.
+// The provided cluster UID must be of a cluster address.
 func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
 	workspaceUID string) (transactions []string, err error) {
 	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
