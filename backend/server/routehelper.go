@@ -147,7 +147,7 @@ type deleteWorkspaceNodeReply struct {
 }
 
 type workspaceConnectionReply struct {
-	Transactions []db.FrontendTransaction `json:"transactions,omitempty"`
+	Transactions []db.AmountTransaction `json:"transactions,omitempty"`
 }
 
 type workspacesReply struct {

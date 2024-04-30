@@ -396,7 +396,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 // GetConnectionClusterToCluster return the transaction UIDs which connect two clusters.
 // The provided UIDs must be of addresses of the respective clusters.
 func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string, userUID string, workspaceUID string) (
-	frontendTransactions []db.FrontendTransaction, err error) {
+	frontendTransactions []db.AmountTransaction, err error) {
 	const query = `query Q($first:string,$second:string,$userUID:string,$workspaceUID:string){
 			# find fmi cluster for first address
 			var(func: uid($first))@filter(has(addresshash)){
@@ -489,7 +489,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	}
 
 	if len(transactionMap) > 0 {
-		frontendTransactions, err = db.GetFrontendTransactionsByUID(c, cliutil.GetMapKeys(transactionMap))
+		frontendTransactions, err = db.GetFrontendTransactionAmounts(c, cliutil.GetMapKeys(transactionMap))
 		if err != nil {
 			return
 		}
@@ -501,7 +501,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 // GetConnectionClusterToHeuristic return the transaction UIDs which connects a cluster to an heuristic.
 // The provided cluster UID must be of a cluster address.
 func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
-	workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
+	workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
 	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
@@ -594,7 +594,7 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 	}
 
 	if len(transactionMap) > 0 {
-		frontendTransactions, err = db.GetFrontendTransactionsByUID(c, cliutil.GetMapKeys(transactionMap))
+		frontendTransactions, err = db.GetFrontendTransactionAmounts(c, cliutil.GetMapKeys(transactionMap))
 		if err != nil {
 			return
 		}

@@ -505,6 +505,94 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 	return
 }
 
+type AmountTransaction struct {
+	Hash         string `json:"txhash,omitempty"`
+	Fee          *int64 `json:"fee,omitempty"`
+	PrivacyType  *int64 `json:"privacytype,omitempty"`
+	Timestamp    string `json:"ts,omitempty"`
+	InputAmount  *int64 `json:"inputAmount,omitempty"`
+	OutputAmount *int64 `json:"outputAmount,omitempty"`
+}
+
+// GetFrontendTransactionAmounts returns summed up amount values per transaction
+func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []AmountTransaction, err error) {
+	if len(txUids) == 0 {
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		return
+	}
+
+	const query = `query Q($uids:string){
+			t as var(func: uid($uids)){
+				tx_outputs{
+					outputAmount as amount
+				}
+				
+				tx_inputs{
+					inputAmount as amount
+				}
+				
+				outputSum as sum(val(outputAmount))
+				inputSum as sum(val(inputAmount))
+			}
+			
+			q(func: uid(t)){
+				txhash
+				privacytype
+				fee
+				~transactions{
+					ts
+				}
+				inputAmount:val(inputSum)
+				outputAmount:val(outputSum)
+			}
+		}`
+
+	// without retry, as this request can easily time out
+	ctx, cancel := GetFrontendContext()
+	defer cancel()
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []struct {
+			Hash        string `json:"txhash,omitempty"`
+			Fee         *int64 `json:"fee,omitempty"`
+			PrivacyType *int64 `json:"privacytype,omitempty"`
+			Block       []struct {
+				Timestamp string `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
+			InputAmount  *int64 `json:"inputAmount,omitempty"`
+			OutputAmount *int64 `json:"outputAmount,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+	txs = make([]AmountTransaction, len(r.Transactions))
+	for i, tx := range r.Transactions {
+		if len(tx.Block) != 1 {
+			err = cliutil.NewStackErrorf("multiple blocks returned for transaction %s", tx.Hash)
+			return
+		}
+		txs[i] = AmountTransaction{
+			Hash:         tx.Hash,
+			Fee:          tx.Fee,
+			PrivacyType:  tx.PrivacyType,
+			Timestamp:    tx.Block[0].Timestamp,
+			InputAmount:  tx.InputAmount,
+			OutputAmount: tx.OutputAmount,
+		}
+	}
+
+	return
+}
+
 // GetTransactionUIDMapping returns for each transaction a mapping between transaction UID and transaction hash
 func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Transaction, err error) {
 	if len(txUids) == 0 {

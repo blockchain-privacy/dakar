@@ -11,14 +11,41 @@
           <p v-if="showEmptyText">
             empty
           </p>
-          <transaction-item
-            v-for="(tx) in transactions"
+          <v-data-table
             v-else
-            :key="tx.txhash"
-            :tx="tx"
-            class="mx-auto mt-3"
-            max-width="1000"
-          />
+            v-model:sort-by="identitiesSortBy"
+            :headers="headers"
+            :items="transactions? transactions: []"
+            item-key="txhash"
+            :loading="!transactions"
+            items-per-page="50"
+          >
+            <template #item.txhash="{ item }">
+              <router-link
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+                target="_blank"
+              >
+                <span
+                  class="shorten"
+                >{{ item.txhash }}</span>
+              </router-link>
+            </template>
+            <template #item.privacytype="{ item }">
+              <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
+            </template>
+            <template #item.ts="{ item }">
+              <span>{{ item.ts.toLocaleString() }}</span>
+            </template>
+            <template #item.fee="{ item }">
+              <span>{{ convertAmount(item.fee) }}</span>
+            </template>
+            <template #item.inputAmount="{ item }">
+              <span>{{ convertAmount(item.inputAmount) }}</span>
+            </template>
+            <template #item.outputAmount="{ item }">
+              <span>{{ convertAmount(item.outputAmount) }}</span>
+            </template>
+          </v-data-table>
         </v-card-text>
       </v-card>
     </template>
@@ -31,8 +58,8 @@ import SideBar from '@/components/common/SideBar.vue';
 import {inject, onUpdated, ref} from 'vue';
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
-import {WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER} from '@/constants/index.js';
-import TransactionItem from '@/components/common/TransactionItem.vue';
+import {WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
@@ -47,8 +74,20 @@ const dakar = inject('dakar');
 let oldConnection = null;
 const connectionSource = ref(null);
 const connectionTarget = ref(null);
-const transactions = ref([]);
+const transactions = ref(null);
 const showEmptyText = ref(false);
+const identitiesSortBy = ref([{key: 'ts', order: 'desc'}]);
+
+const headers = [
+	{
+		title: 'Hash', key: 'txhash', align: 'start', sortable: false,
+	},
+	{title: 'Privacy Type', key: 'privacytype'},
+	{title: 'Timestamp', key: 'ts'},
+	{title: 'Fee', key: 'fee'},
+	{title: 'Input Amount', key: 'inputAmount'},
+	{title: 'Output Amount', key: 'outputAmount'},
+];
 
 // Hooks
 
@@ -93,7 +132,7 @@ async function getConnectionData() {
 		return;
 	}
 
-	transactions.value = [];
+	transactions.value = null;
 
 	try {
 		const response = await dakar.workspace.workspacesConnectionPost({
@@ -109,7 +148,11 @@ async function getConnectionData() {
 				workspaceUID: props.workspaceUid,
 			},
 		});
-		transactions.value = response.transactions;
+
+		transactions.value = response.transactions.map(d => {
+			d.ts = new Date(d.ts);
+			return d;
+		});
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -118,5 +161,11 @@ async function getConnectionData() {
 </script>
 
 <style scoped>
-
+.shorten {
+  display: block;
+  max-width: 125px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
 </style>
