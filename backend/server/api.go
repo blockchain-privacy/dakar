@@ -823,6 +823,24 @@ func (s *Server) handlerDeleteWorkspaceNode() http.Handler {
 	})
 }
 
+// Get the connection between two nodes godoc
+//
+//	@Summary	Get the connection between two nodes
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		state	body		server.getWorkspaceConnectionReply.request	true	"Node which shall be deleted"
+//	@Success	200		{object}	server.workspaceConnectionReply
+//	@Failure	400		{object}	server.workspaceConnectionReply
+//	@Failure	500		{object}	server.workspaceConnectionReply
+//	@Router		/workspaces/connection/ [post]
+func (s *Server) handlerWorkspaceConnection() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getWorkspaceConnectionReply(s.db, r)
+
+		sendReply(w, reply, status)
+	})
+}
+
 // Delete a Workspace godoc
 //
 //	@Summary	Deletes a workspace of the current user
@@ -974,4 +992,6 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllWorkspaces(),
 		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteWorkspacesConnection(),
+		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), maxBody()))
 }

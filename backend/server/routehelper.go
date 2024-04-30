@@ -146,6 +146,10 @@ type deleteWorkspaceNodeReply struct {
 	DeletedNodeUIDs []string `json:"deletedNodeUIDs,omitempty"`
 }
 
+type workspaceConnectionReply struct {
+	Transactions []string `json:"transactions,omitempty"`
+}
+
 type workspacesReply struct {
 	Workspaces []workspace.FrontendWorkspace `json:"workspaces,omitempty"`
 }

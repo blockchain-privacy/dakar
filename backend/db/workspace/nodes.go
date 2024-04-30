@@ -219,17 +219,6 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 							}
 						}
 					}
-
-					for _, input := range tx.Outputs {
-						for _, address := range input.Addresses {
-							for _, cluster := range address.Clusters {
-								// find corresponding address UID and set it connected to this transaction
-								if addressUID, ok := clusterToAddress[cluster.UID]; ok {
-									heuristicClusters[addressUID] = true
-								}
-							}
-						}
-					}
 				}
 			}
 		}
@@ -400,6 +389,206 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		}
 		i++
 	}
+
+	return
+}
+
+// GetConnectionClusterToCluster return the transactions which connect two clusters.
+// The provided UIDs must be of addresses of the respective clusters.
+func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string, userUID string, workspaceUID string) (
+	transactions []string, err error) {
+	const query = `query Q($first:string,$second:string,$userUID:string,$workspaceUID:string){
+			# find fmi cluster for first address
+			var(func: uid($first))@filter(has(addresshash)){
+				uid
+				c1 as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+					uid
+				}
+			}
+			
+			# find fmi cluster for second address
+			var(func: uid($second))@filter(has(addresshash)){
+				uid
+				c2 as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+					uid
+				}
+			}
+			
+			
+			cluster_clusters(func: uid(c1))@ignorereflex{
+				Cluster.addresses{
+					addr_outputs {
+						~tx_inputs@cascade{
+							txhash
+							tx_outputs{
+								~addr_outputs{
+									~Cluster.addresses@filter(uid(c2)){
+										uid
+									}
+								}
+							}
+						}
+						~tx_outputs@cascade{
+							txhash:txhash
+							tx_inputs(first:1){
+								~addr_outputs{
+									~Cluster.addresses@filter(uid(c2)){
+										uid
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$first": firstUID,
+		"$second": secondUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	// while the query also returns the cluster uids, only the transaction hashes are collected
+	var r struct {
+		ClusterClusters []struct {
+			Addresses []struct {
+				Outputs []struct {
+					InputClusters []struct {
+						TransactionHash string `json:"txhash,omitempty"`
+					} `json:"~tx_inputs,omitempty"`
+					OutputClusters []struct {
+						TransactionHash string `json:"txhash,omitempty"`
+					} `json:"~tx_outputs,omitempty"`
+				} `json:"addr_outputs,omitempty"`
+			} `json:"Cluster.addresses,omitempty"`
+		} `json:"cluster_clusters,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.ClusterClusters) != 1 {
+		err = cliutil.NewStackErrorf("invalid number of clusters returned: %d", len(r.ClusterClusters))
+		return
+	}
+	transactionMap := map[string]bool{}
+	for _, addresses := range r.ClusterClusters[0].Addresses {
+		for _, outputs := range addresses.Outputs {
+			for _, txs := range outputs.InputClusters {
+				transactionMap[txs.TransactionHash] = true
+			}
+			for _, txs := range outputs.OutputClusters {
+				transactionMap[txs.TransactionHash] = true
+			}
+		}
+	}
+
+	transactions = cliutil.GetMapKeys(transactionMap)
+
+	return
+}
+
+// GetConnectionClusterToHeuristic return the transactions which connects a cluster to an heuristic.
+// The provided cluster UID must be of an address of the cluster.
+func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
+	workspaceUID string) (transactions []string, err error) {
+	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
+			# heuristic uids
+			var(func: uid($userUID)){
+				User.workspaces@filter(uid($workspaceUID)){
+					h as Workspace.heuristics@filter(uid($heuristic))
+				}
+			}
+			
+			# find fmi cluster for address
+			var(func: uid($cluster))@filter(has(addresshash)){
+				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+					uid
+				}
+			}
+			
+			heuristic_clusters(func: uid(h)){
+				Heuristic.clusters{
+					HeuristicCluster.results{
+						# todo show only transaction which connects to cluster
+						HeuristicResult.destinations@cascade{
+							txhash
+							tx_inputs(first:1){
+								...fGetCluster
+							}
+						}
+						HeuristicResult.origin@cascade{
+							txhash
+							tx_inputs(first:1){
+								...fGetCluster
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		fragment fGetCluster {
+			~addr_outputs{
+				~Cluster.addresses@filter(uid(c)){
+					uid:uid
+				}
+			}
+		}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$cluster": clusterUID,
+		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	// while the query also returns the cluster uids, only the transaction hashes are collected
+	var r struct {
+		HeuristicClusters []struct {
+			Clusters []struct {
+				Results []struct {
+					Destinations []struct {
+						TransactionHash string `json:"txhash,omitempty"`
+					} `json:"HeuristicResult.destinations,omitempty"`
+					Origin struct {
+						TransactionHash string `json:"txhash,omitempty"`
+					} `json:"HeuristicResult.origin,omitempty"`
+				} `json:"HeuristicCluster.results,omitempty"`
+			} `json:"Heuristic.clusters,omitempty"`
+		} `json:"heuristic_clusters,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.HeuristicClusters) != 1 {
+		err = cliutil.NewStackErrorf("invalid number of heuristic results returned: %d", len(r.HeuristicClusters))
+		return
+	}
+
+	if len(r.HeuristicClusters[0].Clusters) != 1 {
+		err = cliutil.NewStackErrorf("invalid number of cluster results returned: %d", len(r.HeuristicClusters[0].Clusters))
+		return
+	}
+
+	transactionMap := map[string]bool{}
+	for _, results := range r.HeuristicClusters[0].Clusters[0].Results {
+		for _, destination := range results.Destinations {
+			transactionMap[destination.TransactionHash] = true
+		}
+		transactionMap[results.Origin.TransactionHash] = true
+	}
+
+	transactions = cliutil.GetMapKeys(transactionMap)
 
 	return
 }
