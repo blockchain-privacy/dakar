@@ -149,10 +149,14 @@ async function getConnectionData() {
 			},
 		});
 
-		transactions.value = response.transactions.map(d => {
-			d.ts = new Date(d.ts);
-			return d;
-		});
+		if (response.transactions) {
+			transactions.value = response.transactions.map(d => {
+				d.ts = new Date(d.ts);
+				return d;
+			});
+		} else {
+			transactions.value = [];
+		}
 	} catch (e) {
 		setErrorMessage(e);
 	}
