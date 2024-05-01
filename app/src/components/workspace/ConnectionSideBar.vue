@@ -14,8 +14,8 @@
           <v-data-table
             v-else
             v-model:sort-by="identitiesSortBy"
-            :headers="headers"
-            :items="transactions? transactions: []"
+            :headers="filteredHeaders"
+            :items="transactions?transactions:[]"
             item-key="txhash"
             :loading="!transactions"
             items-per-page="50"
@@ -25,9 +25,7 @@
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
                 target="_blank"
               >
-                <span
-                  class="shorten"
-                >{{ item.txhash }}</span>
+                <span class="shorten">{{ item.txhash }}</span>
               </router-link>
             </template>
             <template #item.privacytype="{ item }">
@@ -77,6 +75,7 @@ const connectionTarget = ref(null);
 const transactions = ref(null);
 const showEmptyText = ref(false);
 const identitiesSortBy = ref([{key: 'ts', order: 'desc'}]);
+const filteredHeaders = ref([]);
 
 const headers = [
 	{
@@ -150,10 +149,22 @@ async function getConnectionData() {
 		});
 
 		if (response.transactions) {
+			let hasPrivacyType = false;
 			transactions.value = response.transactions.map(d => {
+				if (d.privacytype !== undefined) {
+					hasPrivacyType = true;
+				}
+
 				d.ts = new Date(d.ts);
 				return d;
 			});
+
+			if (hasPrivacyType) {
+				filteredHeaders.value = headers;
+			} else {
+				// Data has no privacy type, so remove it from header
+				filteredHeaders.value = headers.filter(d => d.key !== 'privacytype');
+			}
 		} else {
 			transactions.value = [];
 		}
