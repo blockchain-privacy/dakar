@@ -993,5 +993,5 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(getRouteDeleteAllWorkspaces(),
 		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteWorkspacesConnection(),
-		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), maxBody()))
+		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 }
