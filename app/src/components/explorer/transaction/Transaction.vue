@@ -236,7 +236,7 @@ import {convertAmount, isDestination, shortenHash} from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, onMounted, ref, toRaw, toRef,
+	computed, isProxy, ref, toRaw, toRef,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';

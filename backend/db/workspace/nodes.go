@@ -497,7 +497,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	return
 }
 
-// GetConnectionClusterToHeuristic return the transaction UIDs which connects a cluster to an heuristic.
+// GetConnectionClusterToHeuristic returns the transaction UIDs which connects a cluster to an heuristic.
 // The provided cluster UID must be of a cluster address.
 func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
 	workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
@@ -668,6 +668,111 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 	}
 
 	return nil, nil
+}
+
+// GetConnectionClusterToTransaction returns the given transaction, with each output
+// having a flag if it belongs to one of the clusters' addresses.
+func GetConnectionClusterToTransaction(c external.Database, clusterUID string, transactionUID string) (
+	frontendTransactions []db.FrontendTransaction, err error) {
+	const query = `query Q($transaction:string,$address:string){
+					# find fmi cluster for address
+					var(func: uid($address))@filter(has(addresshash)){
+						uid
+						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+							uid
+						}
+					}
+				
+					q(func: uid($transaction)){
+						txhash
+						tx_outputs@cascade{
+							...fGetCluster
+						}
+						tx_inputs@cascade{
+							...fGetCluster
+						}
+					}
+				}
+				
+				fragment fGetCluster {
+					~addr_outputs{
+						addresshash
+						~Cluster.addresses@filter(uid(c)){
+							uid
+						}
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$cluster": clusterUID})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	// while the query also returns the cluster uids, only the address hashes are collected
+	var r struct {
+		Transactions []struct {
+			TransactionHash string `json:"txhash"`
+			Inputs          []struct {
+				Adddresses []struct {
+					AddressHash string `json:"addresshash,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Outputs []struct {
+				Adddresses []struct {
+					AddressHash string `json:"addresshash,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_outputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.Transactions) < 1 || len(r.Transactions) > 2 {
+		err = cliutil.NewStackErrorf("invalid number of clusters returned: %d", len(r.Transactions))
+		return
+	}
+	addressMap := map[string]bool{}
+	for _, transaction := range r.Transactions {
+		for _, outputs := range transaction.Outputs {
+			for _, address := range outputs.Adddresses {
+				addressMap[address.AddressHash] = true
+			}
+		}
+
+		for _, inputs := range transaction.Inputs {
+			for _, address := range inputs.Adddresses {
+				addressMap[address.AddressHash] = true
+			}
+		}
+	}
+
+	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
+		frontendTransactions, err = db.GetFrontendTransaction(c, r.Transactions[0].TransactionHash)
+		if err != nil {
+			return
+		}
+		yes := true
+		for i, transaction := range frontendTransactions {
+			for y, inputs := range transaction.Inputs {
+				if addressMap[inputs.AddressHash] {
+					frontendTransactions[i].Inputs[y].Highlight = &yes
+				}
+			}
+
+			for y, output := range transaction.Outputs {
+				if addressMap[output.AddressHash] {
+					frontendTransactions[i].Outputs[y].Highlight = &yes
+				}
+			}
+		}
+	}
+
+	return
 }
 
 // FindDescendantHeuristicUIDs returns the given node uid and all node uids which can

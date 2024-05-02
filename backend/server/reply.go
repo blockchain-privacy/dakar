@@ -2022,7 +2022,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 	}
 
 	if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeCluster {
-		reply.Transactions, err = dbwork.GetConnectionClusterToCluster(dgraph, req.FirstNode.UID, req.SecondNode.UID)
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToCluster(dgraph, req.FirstNode.UID, req.SecondNode.UID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -2038,7 +2038,23 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			heuristicUID = req.FirstNode.UID
 		}
 
-		reply.Transactions, err = dbwork.GetConnectionClusterToHeuristic(dgraph, clusterUID, heuristicUID, tUser.ID, req.WorkspaceUID)
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToHeuristic(dgraph, clusterUID, heuristicUID, tUser.ID, req.WorkspaceUID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
+		}
+	} else if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeTransaction ||
+		req.FirstNode.Type == dbwork.NodeTypeTransaction && req.SecondNode.Type == dbwork.NodeTypeCluster {
+		clusterUID := req.FirstNode.UID
+		transactionUID := req.SecondNode.UID
+
+		if req.SecondNode.Type == dbwork.NodeTypeTransaction {
+			clusterUID = req.SecondNode.UID
+			transactionUID = req.FirstNode.UID
+		}
+
+		reply.FrontendTransactions, err = dbwork.GetConnectionClusterToTransaction(dgraph, clusterUID, transactionUID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)

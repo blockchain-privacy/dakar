@@ -109,6 +109,9 @@ type FrontendTransactionOutput struct {
 	PrivacyType    int64  `json:"privacytype,omitempty"`
 	Hash           string `json:"txhash,omitempty"`
 	BlockTimestamp string `json:"ts,omitempty"`
+
+	// set to true if the output should be highlighted on the frontend
+	Highlight *bool `json:"highlight,omitempty"`
 }
 
 // FrontendTransaction holds the transaction data which is exposed to the frontend

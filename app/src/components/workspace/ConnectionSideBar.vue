@@ -120,6 +120,7 @@ const headers = [
 
 // Hooks
 
+// eslint-disable-next-line complexity
 onUpdated(async () => {
 	if (props.connection?.target?.uid && props.connection.source?.uid) {
 		const sourceUID = props.connection.source.uid;
@@ -135,12 +136,22 @@ onUpdated(async () => {
 		connectionTarget.value = props.connection.target;
 
 		// Only pull data if the pair is [cluster,cluster] or [heuristic,cluster]
-		if ((connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
+		if (
+
+		// Cluster <-> cluster
+			(connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+      // Cluster <-> transaction
       || (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)) {
+        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
+     // Cluster <-> transaction
+     || (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
+        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
+        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+		) {
 			await getConnectionData();
 		} else if (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
       && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
@@ -196,7 +207,7 @@ async function getConnectionData() {
 			},
 		});
 
-		if (response.transactions) {
+		if (response.amountTransactions) {
 			let hasPrivacyType = false;
 			transactionList.value = response.transactions.map(d => {
 				if (d.privacytype !== undefined) {
@@ -213,6 +224,8 @@ async function getConnectionData() {
 				// Data has no privacy type, so remove it from header
 				filteredHeaders.value = headers.filter(d => d.key !== 'privacytype');
 			}
+		} else if (response.frontendTransactions) {
+			transactions.value = response.frontendTransactions;
 		} else {
 			transactionList.value = [];
 		}
