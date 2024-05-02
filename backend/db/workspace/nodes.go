@@ -671,7 +671,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 }
 
 // GetConnectionClusterToTransaction returns the given transaction, with each output
-// having a flag if it belongs to one of the clusters' addresses.
+// having a flag if it belongs to one of the cluster's addresses.
 func GetConnectionClusterToTransaction(c external.Database, clusterUID string, transactionUID string) (
 	frontendTransactions []db.FrontendTransaction, err error) {
 	const query = `query Q($transaction:string,$address:string){
@@ -704,6 +704,137 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 				}`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	// while the query also returns the cluster uids, only the address hashes are collected
+	var r struct {
+		Transactions []struct {
+			TransactionHash string `json:"txhash"`
+			Inputs          []struct {
+				Adddresses []struct {
+					AddressHash string `json:"addresshash,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Outputs []struct {
+				Adddresses []struct {
+					AddressHash string `json:"addresshash,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_outputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.Transactions) < 1 || len(r.Transactions) > 2 {
+		err = cliutil.NewStackErrorf("invalid number of transactions returned: %d", len(r.Transactions))
+		return
+	}
+
+	addressMap := map[string]bool{}
+	for _, transaction := range r.Transactions {
+		for _, outputs := range transaction.Outputs {
+			for _, address := range outputs.Adddresses {
+				addressMap[address.AddressHash] = true
+			}
+		}
+
+		for _, inputs := range transaction.Inputs {
+			for _, address := range inputs.Adddresses {
+				addressMap[address.AddressHash] = true
+			}
+		}
+	}
+
+	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
+		frontendTransactions, err = db.GetFrontendTransaction(c, r.Transactions[0].TransactionHash)
+		if err != nil {
+			return
+		}
+		yes := true
+		for i, transaction := range frontendTransactions {
+			for y, inputs := range transaction.Inputs {
+				if addressMap[inputs.AddressHash] {
+					frontendTransactions[i].Inputs[y].Highlight = &yes
+				}
+			}
+
+			for y, output := range transaction.Outputs {
+				if addressMap[output.AddressHash] {
+					frontendTransactions[i].Outputs[y].Highlight = &yes
+				}
+			}
+		}
+	}
+
+	return
+}
+
+// GetConnectionHeuristicToTransaction returns the given transaction, with each output
+// having a flag if it belongs to one of the heuristic's clusters addresses.
+func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID string, transactionUID string, userUID string,
+	workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
+	const query = `query Q($transaction:string,$heuristic:string,$userUID:string,$workspaceUID:string){
+			# heuristic uids
+			var(func: uid($userUID)){
+				User.workspaces@filter(uid($workspaceUID)){
+					h as Workspace.heuristics@filter(uid($heuristic))
+				}
+			}
+
+			# get all cluster of heuristic
+			var(func: uid(h)){
+				Heuristic.clusters{
+					HeuristicCluster.results{
+						# todo show only transaction which connects to cluster
+						HeuristicResult.destinations{
+							tx_inputs(first:1){
+								~addr_outputs{
+									c1 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
+								}
+							}
+						}
+						HeuristicResult.origin{
+							tx_inputs(first:1){
+								~addr_outputs{
+									c2 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
+								}
+							}
+						}
+					}
+				}
+			}
+
+			c as var(func: uid(c1,c2))
+
+			q(func: uid($transaction)){
+				txhash
+				tx_outputs@cascade{
+					...fGetCluster
+				}
+				tx_inputs@cascade{
+					...fGetCluster
+				}
+			}
+		}
+
+		fragment fGetCluster {
+			~addr_outputs{
+				addresshash
+				~Cluster.addresses@filter(uid(c)){
+					uid
+				}
+			}
+		}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID,
+		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return

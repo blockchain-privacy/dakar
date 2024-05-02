@@ -144,19 +144,23 @@ onUpdated(async () => {
 
 		// Only pull data if the pair is [cluster,cluster] or [heuristic,cluster]
 		if (
-
 		// Cluster <-> cluster
 			(connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+      && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
       // Cluster <-> transaction
       || (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
-     || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
+      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
-     // Cluster <-> transaction
-     || (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
+      // Cluster <-> transaction
+      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
       || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
+        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+      // Heuristic <-> transaction
+      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
+        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
+      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		) {
 			await getConnectionData();
