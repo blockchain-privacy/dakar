@@ -395,9 +395,9 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 // GetConnectionClusterToCluster return the transaction UIDs which connect two clusters.
 // The provided UIDs must be of addresses of the respective clusters.
-func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string, userUID string, workspaceUID string) (
+func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string) (
 	frontendTransactions []db.AmountTransaction, err error) {
-	const query = `query Q($first:string,$second:string,$userUID:string,$workspaceUID:string){
+	const query = `query Q($first:string,$second:string){
 			# find fmi cluster for first address
 			var(func: uid($first))@filter(has(addresshash)){
 				uid
@@ -443,8 +443,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 			}
 }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$first": firstUID,
-		"$second": secondUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$first": firstUID, "$second": secondUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return

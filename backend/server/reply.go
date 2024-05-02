@@ -2022,8 +2022,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 	}
 
 	if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeCluster {
-		reply.Transactions, err = dbwork.GetConnectionClusterToCluster(dgraph, req.FirstNode.UID, req.SecondNode.UID,
-			tUser.ID, req.WorkspaceUID)
+		reply.Transactions, err = dbwork.GetConnectionClusterToCluster(dgraph, req.FirstNode.UID, req.SecondNode.UID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
