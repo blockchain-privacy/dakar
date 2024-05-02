@@ -218,9 +218,9 @@ const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
-const connectionData = ref(null);
+const connectionData = ref({});
 const routeGuardDialogModel = ref(false);
-const routeGuardTo = ref(null);
+const routeGuardTo = ref({});
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,

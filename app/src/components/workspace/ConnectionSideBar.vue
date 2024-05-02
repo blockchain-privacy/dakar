@@ -10,7 +10,7 @@
         <v-card-text>
           <fade-transition>
             <p v-if="showEmptyText">
-              empty
+              Nothing to show, try another connection.
             </p>
             <div v-else-if="transactionList !== null">
               <v-card-text>
