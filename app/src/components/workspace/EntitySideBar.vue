@@ -246,7 +246,7 @@ onUpdated(async () => {
 });
 
 onBeforeRouteLeave(to => {
-	// Don't activate route guard if sidbar is closed
+	// Don't activate route guard if sidebar is closed
 	if (!model.value) {
 		return true;
 	}

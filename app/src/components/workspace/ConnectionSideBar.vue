@@ -25,12 +25,12 @@
                 items-per-page="50"
               >
                 <template #item.txhash="{ item }">
-                  <router-link
+                  <store-link
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
                     target="_blank"
                   >
                     <span class="shorten">{{ item.txhash }}</span>
-                  </router-link>
+                  </store-link>
                 </template>
                 <template #item.privacytype="{ item }">
                   <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
@@ -92,6 +92,7 @@ import {
 import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 const props = defineProps({
 	connection: {type: Object, required: true},

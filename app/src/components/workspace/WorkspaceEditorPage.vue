@@ -103,6 +103,12 @@
           :connection="connectionData"
           :workspace-uid="workspaceUID"
         />
+        <routing-dialog
+          v-model="routeGuardDialogModel"
+          :to="routeGuardTo"
+          :disable-adding-nodes="isModifyingWorkspace"
+          @add-node="handleGraphQuery"
+        />
         <v-menu
           v-model="contextMenuModel.display"
           :open-on-hover="false"
@@ -164,15 +170,18 @@ import {
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
 import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
+import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
+const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const newUidPrefix = 'newUid_';
@@ -210,6 +219,8 @@ const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
 const connectionData = ref(null);
+const routeGuardDialogModel = ref(false);
+const routeGuardTo = ref(null);
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -296,6 +307,14 @@ watch(isConnectionSideBarOpen, newVal => {
 	}
 });
 
+watch(
+	() => workspaceStore.workspaceNode,
+	newVal => {
+		routeGuardTo.value = newVal.to;
+		routeGuardDialogModel.value = true;
+	},
+);
+
 // Hooks
 function onDocumentClose() {
 	if (document.visibilityState === 'hidden') {
@@ -308,6 +327,7 @@ function onDocumentClose() {
 }
 
 onMounted(async () => {
+	workspaceStore.setWorkspaceActive(true);
 	await whenMounted();
 	document.addEventListener('visibilitychange', onDocumentClose);
 });
@@ -324,6 +344,7 @@ onUnmounted(() => {
 	heuristicTimers.forEach(d => clearTimeout(d));
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
+	workspaceStore.setWorkspaceActive(false);
 });
 
 // Functions
