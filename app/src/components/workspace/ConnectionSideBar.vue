@@ -159,8 +159,6 @@ onUpdated(async () => {
       || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
       // Heuristic <-> transaction
-      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
       || (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		) {
