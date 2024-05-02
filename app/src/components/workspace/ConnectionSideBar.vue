@@ -13,7 +13,9 @@
               empty
             </p>
             <div v-else-if="transactionList !== null">
-              The following transactions transfer value between the two clusters.
+              <v-card-text>
+                The following transactions transfer value between the two clusters.
+              </v-card-text>
               <v-data-table
                 v-model:sort-by="identitiesSortBy"
                 :headers="filteredHeaders"
@@ -48,7 +50,9 @@
               </v-data-table>
             </div>
             <div v-else-if="transactions !== null">
-              Outputs which are used by the target transaction are marked in red.
+              <v-card-text>
+                Outputs which connect the two nodes are marked in red.
+              </v-card-text>
               <!-- duplicate transaction hashes can exist -> loop through all results
                (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
               <template
