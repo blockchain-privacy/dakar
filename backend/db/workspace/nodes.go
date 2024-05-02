@@ -703,7 +703,7 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$cluster": clusterUID})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
@@ -733,9 +733,10 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 	}
 
 	if len(r.Transactions) < 1 || len(r.Transactions) > 2 {
-		err = cliutil.NewStackErrorf("invalid number of clusters returned: %d", len(r.Transactions))
+		err = cliutil.NewStackErrorf("invalid number of transactions returned: %d", len(r.Transactions))
 		return
 	}
+
 	addressMap := map[string]bool{}
 	for _, transaction := range r.Transactions {
 		for _, outputs := range transaction.Outputs {

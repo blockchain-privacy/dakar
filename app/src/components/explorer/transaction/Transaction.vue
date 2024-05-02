@@ -110,7 +110,7 @@
               :input-index="i.inputindex"
               :timestamp="i.ts"
               :privacy-type="Number(i.privacytype)"
-              :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
+              :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
             />
             <v-divider
               v-if="y+1 < getInputs.length"
@@ -136,7 +136,7 @@
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
                   :privacy-type="Number(i.privacytype)"
-                  :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
+                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
                 />
                 <v-divider
                   v-if="y+1 < getResidualInputs.length"
@@ -167,7 +167,7 @@
               :input-index="i.inputindex"
               :timestamp="i.ts"
               :privacy-type="Number(i.privacytype)"
-              :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
+              :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
             />
             <v-divider
               v-if="y+1<getOutputs.length"
@@ -194,7 +194,7 @@
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
                   :privacy-type="Number(i.privacytype)"
-                  :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
+                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
                 />
                 <v-divider
                   v-if="y+1<getResidualOutputs.length"

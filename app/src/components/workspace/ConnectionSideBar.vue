@@ -8,63 +8,65 @@
     <template #body>
       <v-card flat>
         <v-card-text>
-          <p v-if="showEmptyText">
-            empty
-          </p>
-          <template v-else-if="transactionList !== null">
-            The following transactions transfer value between the two clusters.
-            <v-data-table
-              v-model:sort-by="identitiesSortBy"
-              :headers="filteredHeaders"
-              :items="transactionList?transactionList:[]"
-              item-key="txhash"
-              :loading="!transactionList"
-              items-per-page="50"
-            >
-              <template #item.txhash="{ item }">
-                <router-link
-                  :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
-                  target="_blank"
-                >
-                  <span class="shorten">{{ item.txhash }}</span>
-                </router-link>
+          <fade-transition>
+            <p v-if="showEmptyText">
+              empty
+            </p>
+            <div v-else-if="transactionList !== null">
+              The following transactions transfer value between the two clusters.
+              <v-data-table
+                v-model:sort-by="identitiesSortBy"
+                :headers="filteredHeaders"
+                :items="transactionList?transactionList:[]"
+                item-key="txhash"
+                :loading="!transactionList"
+                items-per-page="50"
+              >
+                <template #item.txhash="{ item }">
+                  <router-link
+                    :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+                    target="_blank"
+                  >
+                    <span class="shorten">{{ item.txhash }}</span>
+                  </router-link>
+                </template>
+                <template #item.privacytype="{ item }">
+                  <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
+                </template>
+                <template #item.ts="{ item }">
+                  <span>{{ item.ts.toLocaleString() }}</span>
+                </template>
+                <template #item.fee="{ item }">
+                  <span>{{ convertAmount(item.fee) }}</span>
+                </template>
+                <template #item.inputAmount="{ item }">
+                  <span>{{ convertAmount(item.inputAmount) }}</span>
+                </template>
+                <template #item.outputAmount="{ item }">
+                  <span>{{ convertAmount(item.outputAmount) }}</span>
+                </template>
+              </v-data-table>
+            </div>
+            <div v-else-if="transactions !== null">
+              Outputs which are used by the target transaction are marked in red.
+              <!-- duplicate transaction hashes can exist -> loop through all results
+               (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
+              <template
+                v-for="t in transactions"
+                :key="t.txhash+t.bid"
+              >
+                <transaction
+                  :show-fingerprint-link="true"
+                  :show-heuristic-editor-link="false"
+                  :tx="t"
+                  show-details
+                  :embed="false"
+                  :show-title-bar="false"
+                  :highlight-transaction="connectionTarget.transactionHash"
+                />
               </template>
-              <template #item.privacytype="{ item }">
-                <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
-              </template>
-              <template #item.ts="{ item }">
-                <span>{{ item.ts.toLocaleString() }}</span>
-              </template>
-              <template #item.fee="{ item }">
-                <span>{{ convertAmount(item.fee) }}</span>
-              </template>
-              <template #item.inputAmount="{ item }">
-                <span>{{ convertAmount(item.inputAmount) }}</span>
-              </template>
-              <template #item.outputAmount="{ item }">
-                <span>{{ convertAmount(item.outputAmount) }}</span>
-              </template>
-            </v-data-table>
-          </template>
-          <template v-else-if="transactions !== null">
-            Outputs which are used by the target transaction are marked in red.
-            <!-- duplicate transaction hashes can exist -> loop through all results
-           (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
-            <template
-              v-for="t in transactions"
-              :key="t.txhash+t.bid"
-            >
-              <transaction
-                :show-fingerprint-link="true"
-                :show-heuristic-editor-link="false"
-                :tx="t"
-                show-details
-                :embed="false"
-                :show-title-bar="false"
-                :highlight-transaction="connectionTarget.transactionHash"
-              />
-            </template>
-          </template>
+            </div>
+          </fade-transition>
         </v-card-text>
       </v-card>
     </template>
@@ -85,6 +87,7 @@ import {
 } from '@/constants/index.js';
 import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
+import FadeTransition from '@/components/common/FadeTransition.vue';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
@@ -209,7 +212,7 @@ async function getConnectionData() {
 
 		if (response.amountTransactions) {
 			let hasPrivacyType = false;
-			transactionList.value = response.transactions.map(d => {
+			transactionList.value = response.amountTransactions.map(d => {
 				if (d.privacytype !== undefined) {
 					hasPrivacyType = true;
 				}

@@ -2049,7 +2049,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 		clusterUID := req.FirstNode.UID
 		transactionUID := req.SecondNode.UID
 
-		if req.SecondNode.Type == dbwork.NodeTypeTransaction {
+		if req.FirstNode.Type == dbwork.NodeTypeTransaction {
 			clusterUID = req.SecondNode.UID
 			transactionUID = req.FirstNode.UID
 		}
