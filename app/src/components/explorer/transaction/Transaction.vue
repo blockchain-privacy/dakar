@@ -110,6 +110,7 @@
               :input-index="i.inputindex"
               :timestamp="i.ts"
               :privacy-type="Number(i.privacytype)"
+              :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
             />
             <v-divider
               v-if="y+1 < getInputs.length"
@@ -125,7 +126,6 @@
                 :key="i.addresshash + i.inputindex"
               >
                 <output-item
-
                   :is-input="true"
                   :amount="i.amount"
                   :address-hash="i.addresshash"
@@ -136,6 +136,7 @@
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
                   :privacy-type="Number(i.privacytype)"
+                  :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
                 />
                 <v-divider
                   v-if="y+1 < getResidualInputs.length"
@@ -166,6 +167,7 @@
               :input-index="i.inputindex"
               :timestamp="i.ts"
               :privacy-type="Number(i.privacytype)"
+              :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
             />
             <v-divider
               v-if="y+1<getOutputs.length"
@@ -192,6 +194,7 @@
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
                   :privacy-type="Number(i.privacytype)"
+                  :highlight="highlightTransaction?highlightTransaction === i.txhash:false"
                 />
                 <v-divider
                   v-if="y+1<getResidualOutputs.length"
@@ -233,7 +236,7 @@ import {convertAmount, isDestination, shortenHash} from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef,
+	computed, isProxy, onMounted, ref, toRaw, toRef,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
@@ -247,6 +250,7 @@ const props = defineProps({
 	showTitleLink: {type: Boolean, required: false, default: false},
 	embed: {type: Boolean, required: false, default: false},
 	showTitleBar: {type: Boolean, required: false, default: true},
+	highlightTransaction: {type: String, required: false, default: ''},
 });
 
 const showTransactionDetails = toRef(props.showDetails);

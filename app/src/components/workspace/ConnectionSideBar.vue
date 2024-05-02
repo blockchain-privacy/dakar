@@ -1,7 +1,7 @@
 <template>
   <side-bar
     v-model="model"
-    title="Connections"
+    :title="title"
     :icon="mdiArrowLeftRight"
     max-width="648px"
   >
@@ -11,39 +11,60 @@
           <p v-if="showEmptyText">
             empty
           </p>
-          <v-data-table
-            v-else
-            v-model:sort-by="identitiesSortBy"
-            :headers="filteredHeaders"
-            :items="transactions?transactions:[]"
-            item-key="txhash"
-            :loading="!transactions"
-            items-per-page="50"
-          >
-            <template #item.txhash="{ item }">
-              <router-link
-                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
-                target="_blank"
-              >
-                <span class="shorten">{{ item.txhash }}</span>
-              </router-link>
+          <template v-else-if="transactionList !== null">
+            The following transactions transfer value between the two clusters.
+            <v-data-table
+              v-model:sort-by="identitiesSortBy"
+              :headers="filteredHeaders"
+              :items="transactionList?transactionList:[]"
+              item-key="txhash"
+              :loading="!transactionList"
+              items-per-page="50"
+            >
+              <template #item.txhash="{ item }">
+                <router-link
+                  :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+                  target="_blank"
+                >
+                  <span class="shorten">{{ item.txhash }}</span>
+                </router-link>
+              </template>
+              <template #item.privacytype="{ item }">
+                <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
+              </template>
+              <template #item.ts="{ item }">
+                <span>{{ item.ts.toLocaleString() }}</span>
+              </template>
+              <template #item.fee="{ item }">
+                <span>{{ convertAmount(item.fee) }}</span>
+              </template>
+              <template #item.inputAmount="{ item }">
+                <span>{{ convertAmount(item.inputAmount) }}</span>
+              </template>
+              <template #item.outputAmount="{ item }">
+                <span>{{ convertAmount(item.outputAmount) }}</span>
+              </template>
+            </v-data-table>
+          </template>
+          <template v-else-if="transactions !== null">
+            Outputs which are used by the target transaction are marked in red.
+            <!-- duplicate transaction hashes can exist -> loop through all results
+           (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
+            <template
+              v-for="t in transactions"
+              :key="t.txhash+t.bid"
+            >
+              <transaction
+                :show-fingerprint-link="true"
+                :show-heuristic-editor-link="false"
+                :tx="t"
+                show-details
+                :embed="false"
+                :show-title-bar="false"
+                :highlight-transaction="connectionTarget.transactionHash"
+              />
             </template>
-            <template #item.privacytype="{ item }">
-              <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
-            </template>
-            <template #item.ts="{ item }">
-              <span>{{ item.ts.toLocaleString() }}</span>
-            </template>
-            <template #item.fee="{ item }">
-              <span>{{ convertAmount(item.fee) }}</span>
-            </template>
-            <template #item.inputAmount="{ item }">
-              <span>{{ convertAmount(item.inputAmount) }}</span>
-            </template>
-            <template #item.outputAmount="{ item }">
-              <span>{{ convertAmount(item.outputAmount) }}</span>
-            </template>
-          </v-data-table>
+          </template>
         </v-card-text>
       </v-card>
     </template>
@@ -53,11 +74,17 @@
 <script setup>
 import {mdiArrowLeftRight} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
-import {inject, onUpdated, ref} from 'vue';
+import {
+	computed, inject, onUpdated, ref,
+} from 'vue';
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
-import {WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {
+	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER,
+	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
+} from '@/constants/index.js';
 import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
+import Transaction from '@/components/explorer/transaction/Transaction.vue';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
@@ -72,6 +99,9 @@ const dakar = inject('dakar');
 let oldConnection = null;
 const connectionSource = ref(null);
 const connectionTarget = ref(null);
+// For cluster <-> cluster and cluster <-> heuristic
+const transactionList = ref(null);
+// For transaction <-> transaction
 const transactions = ref(null);
 const showEmptyText = ref(false);
 const identitiesSortBy = ref([{key: 'ts', order: 'desc'}]);
@@ -112,10 +142,27 @@ onUpdated(async () => {
      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
         && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)) {
 			await getConnectionData();
+		} else if (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
+      && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+			await getTransactionData();
 		} else {
 			showEmptyText.value = true;
 		}
 	}
+});
+
+// Computed
+
+const title = computed(() => {
+	if (transactionList.value !== null) {
+		return 'Connection List';
+	}
+
+	if (transactions.value !== null && transactions.value[0]?.txhash) {
+		return `Transaction ${transactions.value[0].txhash}`;
+	}
+
+	return 'Connections';
 });
 
 // Functions
@@ -131,6 +178,7 @@ async function getConnectionData() {
 		return;
 	}
 
+	transactionList.value = null;
 	transactions.value = null;
 
 	try {
@@ -150,7 +198,7 @@ async function getConnectionData() {
 
 		if (response.transactions) {
 			let hasPrivacyType = false;
-			transactions.value = response.transactions.map(d => {
+			transactionList.value = response.transactions.map(d => {
 				if (d.privacytype !== undefined) {
 					hasPrivacyType = true;
 				}
@@ -166,7 +214,27 @@ async function getConnectionData() {
 				filteredHeaders.value = headers.filter(d => d.key !== 'privacytype');
 			}
 		} else {
-			transactions.value = [];
+			transactionList.value = [];
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
+
+async function getTransactionData() {
+	if (!connectionSource.value?.transactionHash) {
+		return;
+	}
+
+	transactionList.value = null;
+	transactions.value = null;
+
+	try {
+		const response = await dakar.data.blockchainTransactionsHashGet(
+			{hash: connectionSource.value.transactionHash});
+
+		if (response.transactions) {
+			transactions.value = response.transactions;
 		}
 	} catch (e) {
 		setErrorMessage(e);

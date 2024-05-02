@@ -3,6 +3,7 @@
     variant="text"
     class="my-2"
     :ripple="false"
+    :color="highlight?'red':undefined"
   >
     <v-card-text style="min-height: 90px">
       <v-row>
@@ -133,6 +134,7 @@ defineProps({
 	txHash: {type: String, required: false, default: ''},
 	timestamp: {type: String, required: false, default: ''},
 	privacyType: {type: Number, required: false, default: -1},
+	highlight: {type: Boolean, required: false, default: false},
 });
 
 const expanded = ref(false);
