@@ -748,6 +748,10 @@ function createTabs() {
 }
 
 function queueAutoSave(t = 5000) {
+	if (nodeGraph.isEmpty()) {
+		return;
+	}
+
 	isAutoSaving.value = true;
 	wasAutoSaved.value = true;
 	if (autoSaveTimer !== null) {
@@ -761,10 +765,15 @@ async function doAutoSave() {
 	isAutoSaving.value = true;
 	autoSaveTimer = null;
 	try {
+		const exportedNodes = nodeGraph.exportNodes();
+		if (exportedNodes.length === 0) {
+			return;
+		}
+
 		await dakar.workspace.workspacesPut({
 			state: {
 				workspaceUID: workspaceUID.value,
-				currentState: nodeGraph.exportNodes(),
+				currentState: exportedNodes,
 			},
 		});
 	} catch (e) {

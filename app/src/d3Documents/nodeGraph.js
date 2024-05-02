@@ -991,6 +991,10 @@ export default class NodeGraph {
 		});
 	}
 
+	isEmpty() {
+		return this.nodeMap.size === 0;
+	}
+
 	setNodeClickHandler(callback) {
 		if (!isFunction(callback)) {
 			return false;
