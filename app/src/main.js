@@ -8,6 +8,7 @@ import {router, setupStore} from '@/router';
 import oryConfig from './plugins/ory';
 import dakarConfig from './plugins/dakarAPI';
 import wikiapiConfig from './plugins/wikiAPI';
+import './assets/main.css';
 
 const pinia = createPinia();
 const app = createApp(App);

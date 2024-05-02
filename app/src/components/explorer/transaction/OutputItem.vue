@@ -9,13 +9,13 @@
       <v-row>
         <v-col>
           <div class="d-flex justify-space-between">
-            <router-link
+            <store-link
               v-if="addressHash"
               :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
               class="shorten"
             >
               {{ addressHash }}
-            </router-link>
+            </store-link>
             <div class="text-no-wrap ms-2">
               {{ convertAmount(amount) }} {{ COIN_UNIT }}
             </div>
@@ -28,9 +28,9 @@
             class="d-flex justify-space-between align-center"
           >
             <div class="text-caption">
-              <router-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
+              <store-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
                 <span>{{ isInput ? 'created' : 'spent' }}</span>
-              </router-link>
+              </store-link>
               on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
             </div>
             <privacy-chip
@@ -122,6 +122,7 @@ import {convertAmount} from '@/utilities';
 import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ref} from 'vue';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 defineProps({
 	isInput: {type: Boolean, required: true},
@@ -166,9 +167,5 @@ function scriptToAscii(script) {
 </script>
 
 <style scoped>
-.shorten {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
+
 </style>

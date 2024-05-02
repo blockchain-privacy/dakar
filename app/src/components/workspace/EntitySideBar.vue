@@ -102,55 +102,6 @@
       </fade-transition>
     </template>
   </side-bar>
-  <v-dialog
-    v-model="routeGuardDialogModel"
-    max-width="300px"
-    :contained="true"
-    :no-click-animation="true"
-  >
-    <v-card>
-      <v-card-text class="d-flex align-center flex-column">
-        <v-btn
-          class="mx-auto"
-          variant="text"
-          size="x-large"
-          :to="routeGuardTo"
-          target="_blank"
-          @click="routeGuardDialogModel = false"
-        >
-          <v-icon
-            :icon="mdiOpenInNew"
-            class="me-2"
-          />
-          <div
-            class="shorten"
-            style="max-width: 200px; text-transform: none !important;"
-          >
-            Go to {{ routeGuardId }}
-          </div>
-        </v-btn>
-        <named-divider
-          title="Or"
-          style="width:100%"
-          :vertical-margin="2"
-        />
-        <v-btn
-          class="mx-auto"
-          variant="text"
-          size="x-large"
-          style="text-transform: none !important;"
-          :disabled="disableAddingNodes"
-          @click="handleRouteGuardDialogAdd"
-        >
-          <v-icon
-            :icon="mdiPlus"
-            class="me-2"
-          />
-          Add to Workspace
-        </v-btn>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
 </template>
 
 <script setup>
@@ -159,8 +110,6 @@ import {
 	mdiChartBar,
 	mdiDelete,
 	mdiFileDownloadOutline,
-	mdiOpenInNew,
-	mdiPlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -170,7 +119,7 @@ import {
 } from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
-import {onBeforeRouteLeave, useRoute} from 'vue-router';
+import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
@@ -179,12 +128,10 @@ import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities';
 import {
-	ROUTE_NAME_ADDRESS_PAGE,
-	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants';
-import NamedDivider from '@/components/common/NamedDivider.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 
 const props = defineProps({
@@ -206,9 +153,6 @@ const isLoading = ref(true);
 const entityData = ref();
 
 let oldIdentifier = null;
-let routeGuardTo = null;
-let routeGuardId = '';
-const routeGuardDialogModel = ref(false);
 
 // Computed
 const title = computed(() => {
@@ -243,22 +187,6 @@ onUpdated(async () => {
 
 		isLoading.value = false;
 	}
-});
-
-onBeforeRouteLeave(to => {
-	// Don't activate route guard if sidebar is closed
-	if (!model.value) {
-		return true;
-	}
-
-	if ((to.name === ROUTE_NAME_TRANSACTION_PAGE || to.name === ROUTE_NAME_ADDRESS_PAGE) && to.params?.id) {
-		routeGuardTo = to;
-		routeGuardId = to.params.id;
-		routeGuardDialogModel.value = true;
-		return false;
-	}
-
-	return true;
 });
 
 // Computed
@@ -394,18 +322,8 @@ function handleAddHeuristicClick() {
 	emit('addHeuristic');
 }
 
-function handleRouteGuardDialogAdd() {
-	emit('addNode', routeGuardId);
-	routeGuardDialogModel.value = false;
-}
-
 </script>
 
 <style scoped>
-.shorten {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  margin-right: 2px;
-}
+
 </style>

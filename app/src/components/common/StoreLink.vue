@@ -1,31 +1,33 @@
 <template>
   <router-link
-    :to="to"
-    @click="routing"
-  />
-  <router-link
     v-slot="{href, navigate}"
-    :to="to"
-    :custom="true"
-    :target="target"
+    custom
+    v-bind="$props"
+    :class="$attrs.class"
   >
     <a
       :href="href"
+      v-bind="$attrs"
       @click="onLinkClick($event, navigate)"
     >
       <slot />
     </a>
   </router-link>
 </template>
-<script setup>
 
+<script setup>
 import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {RouterLink} from 'vue-router';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
+import '@/assets/main.css';
+
+defineOptions({
+	inheritAttrs: false,
+});
 
 const props = defineProps({
-	to: {type: Object, required: true},
-	target: {type: String, required: false, default: undefined},
+	...RouterLink.props,
 });
-import {useWorkspaceStore} from '@/pinia/workspace.js';
 
 const workspaceStore = useWorkspaceStore();
 

@@ -130,22 +130,22 @@
                 @update:page="getTableData"
               >
                 <template #item.input_transaction="{ item }">
-                  <router-link
+                  <store-link
                     v-if="item.input_transaction"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.input_transaction }}"
                   >
                     {{ shortenHash(item.input_transaction) }}
-                  </router-link>
+                  </store-link>
                 </template>
                 <template #item.output_transaction="{ item }">
-                  <router-link
+                  <store-link
                     v-if="item.output_transaction"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.output_transaction }}"
                   >
                     {{ shortenHash(item.output_transaction) }}
-                  </router-link>
+                  </store-link>
                 </template>
                 <template #item.input_ts="{ item }">
                   {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
@@ -202,6 +202,7 @@ import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
