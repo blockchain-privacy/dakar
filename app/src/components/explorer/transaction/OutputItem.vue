@@ -1,9 +1,8 @@
 <template>
   <v-card
-    variant="text"
+    :variant="highlight?'outlined':'text'"
     class="my-2"
     :ripple="false"
-    :color="highlight?'red':undefined"
   >
     <v-card-text style="min-height: 90px">
       <v-row>

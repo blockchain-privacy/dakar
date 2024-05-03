@@ -50,8 +50,10 @@
               </v-data-table>
             </div>
             <div v-else-if="transactions !== null">
-              <v-card-text class="d-flex align-center flex-wrap">
-                Outputs which connect the two nodes are highlighted.
+              <v-card-text class="d-flex align-center flex-wrap py-0">
+                <div class="text-subtitle-1">
+                  Outputs which connect the two nodes are <span class="textBorder">outlined</span>.
+                </div>
                 <v-chip-group
                   class="ms-auto"
                   color="primary"
@@ -61,7 +63,7 @@
                     filter
                     @click="showOnlyHiglightedOutputs = !showOnlyHiglightedOutputs"
                   >
-                    Filter highlighted outputs
+                    Filter connected outputs
                   </v-chip>
                 </v-chip-group>
               </v-card-text>
@@ -152,6 +154,7 @@ onUpdated(async () => {
 			return;
 		}
 
+		showOnlyHiglightedOutputs.value = false;
 		showEmptyText.value = false;
 		oldConnection = props.connection;
 		connectionSource.value = props.connection.source;
@@ -281,6 +284,12 @@ async function getTransactionData() {
 </script>
 
 <style scoped>
+.textBorder {
+  border-style: solid;
+  border-radius: 5px;
+  border-width: 1px;
+}
+
 .shorten {
   display: block;
   max-width: 125px;
