@@ -788,19 +788,21 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 				}
 			}
 
+			t as var(func: uid($transaction))
+
 			# get all cluster of heuristic
 			var(func: uid(h)){
 				Heuristic.clusters{
 					HeuristicCluster.results{
 						# todo show only transaction which connects to cluster
-						HeuristicResult.destinations{
+						HeuristicResult.destinations@filter(uid(t)){
 							tx_inputs(first:1){
 								~addr_outputs{
 									c1 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 								}
 							}
 						}
-						HeuristicResult.origin{
+						HeuristicResult.origin@filter(uid(t)){
 							tx_inputs(first:1){
 								~addr_outputs{
 									c2 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
@@ -813,7 +815,7 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 
 			c as var(func: uid(c1,c2))
 
-			q(func: uid($transaction)){
+			q(func: uid(t)){
 				txhash
 				tx_outputs@cascade{
 					...fGetCluster
