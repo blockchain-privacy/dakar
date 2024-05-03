@@ -50,8 +50,20 @@
               </v-data-table>
             </div>
             <div v-else-if="transactions !== null">
-              <v-card-text>
-                Outputs which connect the two nodes are marked in red.
+              <v-card-text class="d-flex align-center flex-wrap">
+                Outputs which connect the two nodes are highlighted.
+                <v-chip-group
+                  class="ms-auto"
+                  color="primary"
+                >
+                  <v-chip
+                    rounded
+                    filter
+                    @click="showOnlyHiglightedOutputs = !showOnlyHiglightedOutputs"
+                  >
+                    Filter highlighted outputs
+                  </v-chip>
+                </v-chip-group>
               </v-card-text>
               <!-- duplicate transaction hashes can exist -> loop through all results
                (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
@@ -67,6 +79,7 @@
                   :embed="false"
                   :show-title-bar="false"
                   :highlight-transaction="connectionTarget.transactionHash"
+                  :filter-highlighted-outputs="showOnlyHiglightedOutputs"
                 />
               </template>
             </div>
@@ -114,6 +127,7 @@ const transactions = ref(null);
 const showEmptyText = ref(false);
 const identitiesSortBy = ref([{key: 'ts', order: 'desc'}]);
 const filteredHeaders = ref([]);
+const showOnlyHiglightedOutputs = ref(false);
 
 const headers = [
 	{

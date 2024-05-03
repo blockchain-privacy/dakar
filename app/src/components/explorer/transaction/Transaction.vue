@@ -90,7 +90,7 @@
       >
         <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
-      <v-row style="container-type: inline-size">
+      <v-row class="outputContainer">
         <v-col v-if="tx.inputs && getInputs.length > 0">
           <p class="ms-2">
             {{ getLabel(tx.inputs.length, 'Input') }}
@@ -242,7 +242,7 @@ import {convertAmount, isDestination, shortenHash} from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef,
+	computed, isProxy, ref, toRaw, toRef, isRef,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
@@ -257,6 +257,7 @@ const props = defineProps({
 	embed: {type: Boolean, required: false, default: false},
 	showTitleBar: {type: Boolean, required: false, default: true},
 	highlightTransaction: {type: String, required: false, default: ''},
+	filterHighlightedOutputs: {type: Boolean, required: false, default: false},
 });
 
 const showTransactionDetails = toRef(props.showDetails);
@@ -264,10 +265,15 @@ const showAllOutputs = ref(false);
 const maxOutputs = ref(3);
 
 // Computed
-const getInputs = computed(() => getLimitedItems(sortByTimestamp(props.tx.inputs)));
-const getResidualInputs = computed(() => getResidualItems(sortByTimestamp(props.tx.inputs)));
-const getOutputs = computed(() => getLimitedItems(sortByTimestamp(props.tx.outputs)));
-const getResidualOutputs = computed(() => getResidualItems(sortByTimestamp(props.tx.outputs)));
+
+const filteredInputs = computed(() => props.tx.inputs
+	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
+const filteredOutputs = computed(() => props.tx.outputs
+	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
+const getInputs = computed(() => getLimitedItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredInputs : props.tx.inputs)));
+const getResidualInputs = computed(() => getResidualItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredInputs : props.tx.inputs)));
+const getOutputs = computed(() => getLimitedItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredOutputs : props.tx.outputs)));
+const getResidualOutputs = computed(() => getResidualItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredOutputs : props.tx.outputs)));
 const areItemsLimited = computed(() => {
 	if (!props.tx) {
 		return false;
@@ -298,6 +304,9 @@ function sortByTimestamp(outputs) {
 
 	if (isProxy(outputs)) {
 		copiedOutputs = structuredClone(toRaw(outputs));
+	} else if (isRef(outputs)) {
+		// If 'outputs' is a computed value we need to convert each array element from proxy to raw
+		copiedOutputs = structuredClone(outputs.value.map(toRaw));
 	} else {
 		copiedOutputs = structuredClone(outputs);
 	}
@@ -347,7 +356,13 @@ function getResidualItems(items) {
 
 <style scoped>
 
-@container (width < 700px) {
+.outputContainer {
+  container-type: inline-size;
+  container-name: outputContainer;
+}
+
+/* don't show col if parent is sm or smaller */
+@container outputContainer (width < 960px) {
   .emptyCol {
     display: none;
   }
