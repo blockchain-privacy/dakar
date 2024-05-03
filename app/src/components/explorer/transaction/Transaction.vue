@@ -90,9 +90,9 @@
       >
         <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
-      <v-row>
-        <v-col v-if="tx.inputs">
-          <p class="ml-2">
+      <v-row style="container-type: inline-size">
+        <v-col v-if="tx.inputs && getInputs.length > 0">
+          <p class="ms-2">
             {{ getLabel(tx.inputs.length, 'Input') }}
           </p>
           <template
@@ -147,9 +147,12 @@
           </v-expand-transition>
         </v-col>
         <!-- empty col if no inputs exist -->
-        <v-col v-else />
-        <v-col v-if="tx.outputs">
-          <p class="ml-2">
+        <v-col
+          v-else
+          class="emptyCol"
+        />
+        <v-col v-if="tx.outputs && getOutputs.length > 0">
+          <p class="ms-2">
             {{ getLabel(tx.outputs.length, 'Output') }}
           </p>
           <template
@@ -205,7 +208,10 @@
           </v-expand-transition>
         </v-col>
         <!-- empty col if no outputs exist -->
-        <v-col v-else />
+        <v-col
+          v-else
+          class="emptyCol"
+        />
       </v-row>
     </v-card-text>
     <v-btn
@@ -340,5 +346,11 @@ function getResidualItems(items) {
 </script>
 
 <style scoped>
+
+@container (width < 700px) {
+  .emptyCol {
+    display: none;
+  }
+}
 
 </style>
