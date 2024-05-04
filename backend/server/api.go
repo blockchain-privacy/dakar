@@ -777,7 +777,7 @@ func (s *Server) handlerAddWorkspace() http.Handler {
 //	@Success	200		{string}	string
 //	@Failure	400		{string}	string
 //	@Failure	500		{string}	string
-//	@Router		/workspaces/rename [post]
+//	@Router		/workspaces/rename/ [post]
 func (s *Server) handlerRenameWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getRenameWorkspaceReply(s.db, r)
@@ -997,6 +997,8 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(), s.authorization(), maxBody()))
 
 	// Workspace
+	s.handler.Handle(getRouteRenameWorkspace(),
+		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteWorkspaceAddNode(),
 		adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaceDeleteNode(),
@@ -1010,8 +1012,6 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllWorkspaces(),
 		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteRenameWorkspace(),
-		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteWorkspacesConnection(),
 		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 }
