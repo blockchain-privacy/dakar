@@ -101,70 +101,31 @@
         </v-icon>
       </template>
     </v-data-table>
-    <v-dialog
+    <confirm-dialog
+      v-if="showDeleteAllDialog"
       v-model="showDeleteAllDialog"
-      max-width="500px"
+      title="Delete All Workspaces"
+      confirm-label="Delete All"
+      confirm-color="red"
+      @confirm="deleteWorkspace(true)"
     >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Delete All Workspaces</span>
-        </v-card-title>
-        <v-card-text>
-          <p class="text-subtitle-1">
-            Are you sure you want to delete all of your workspaces?
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            @click="closeDeleteAllWorkspacesDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="red"
-            variant="text"
-            @click="deleteWorkspace(true)"
-          >
-            Delete
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <v-dialog
-      v-if="workspaceToDelete"
+      <p class="text-subtitle-1">
+        Are you sure you want to delete all of your workspaces?
+      </p>
+    </confirm-dialog>
+    <confirm-dialog
+      v-if="showDeleteWorkspaceDialogModel"
       v-model="showDeleteWorkspaceDialogModel"
-      max-width="500px"
+      title="Delete Workspace"
+      confirm-label="Delete"
+      confirm-color="red"
+      @confirm="deleteWorkspace(false)"
     >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Delete Workspace</span>
-        </v-card-title>
-        <v-card-text>
-          <p class="text-subtitle-1">
-            Workspace <code>{{ workspaceToDelete.name }}</code>
-            will be deleted. Continue?
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            @click="closeDeleteWorkspaceDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="red"
-            variant="text"
-            @click="deleteWorkspace(false)"
-          >
-            Delete
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+      <p class="text-subtitle-1">
+        Workspace <code>{{ workspaceToDelete.name }}</code>
+        will be deleted. Continue?
+      </p>
+    </confirm-dialog>
     <text-dialog
       v-if="showAddWorkspaceDialogModel"
       v-model="showAddWorkspaceDialogModel"
@@ -201,6 +162,7 @@ import {
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import TextDialog from '@/components/common/TextDialog.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -371,8 +333,6 @@ async function deleteWorkspace(all) {
 	}
 
 	isLoading.value = false;
-	showDeleteWorkspaceDialogModel.value = false;
-	showDeleteAllDialog.value = false;
 }
 
 function showRenameDialog(workspace) {
@@ -394,16 +354,8 @@ function showDeleteWorkspaceDialog(workspace) {
 	workspaceToDelete.value = workspace;
 }
 
-function closeDeleteWorkspaceDialog() {
-	showDeleteWorkspaceDialogModel.value = false;
-}
-
 function 	showDeleteAllWorkspacesDialog() {
 	showDeleteAllDialog.value = true;
-}
-
-function 	closeDeleteAllWorkspacesDialog() {
-	showDeleteAllDialog.value = false;
 }
 
 </script>

@@ -30,12 +30,14 @@
         <v-spacer />
         <v-btn
           variant="text"
+          :color="cancelColor"
           @click="closeDialog"
         >
           {{ cancelLabel }}
         </v-btn>
         <v-btn
           variant="text"
+          :color="submitColor"
           @click="submit"
         >
           {{ submitLabel }}
@@ -54,11 +56,11 @@ const props = defineProps({
 	cancelLabel: {type: String, required: false, default: 'Cancel'},
 	inputLabel: {type: String, required: false, default: ''},
 	inputValue: {type: String, required: false, default: ''},
+	cancelColor: {type: String, required: false, default: undefined},
+	submitColor: {type: String, required: false, default: undefined},
 	textArea: {type: Boolean, required: false, default: false},
 });
 const emit = defineEmits(['submit']);
-import {VTextarea} from 'vuetify/components';
-import {VTextField} from 'vuetify/components';
 
 const note = ref('');
 let oldNote = '';
@@ -84,7 +86,6 @@ function closeDialog() {
 }
 
 function submit() {
-	console.log('submitted');
 	emit('submit', note.value);
 	model.value = false;
 }
