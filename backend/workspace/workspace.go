@@ -14,6 +14,8 @@ import (
 	"strconv"
 )
 
+const MaxWorkspaceNameLength = 50
+
 type HeuristicWork struct {
 	executor       heuristics.Executor
 	workspaceMutex *Mutex

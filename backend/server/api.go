@@ -752,7 +752,7 @@ func (s *Server) handlerWorkspaces() http.Handler {
 
 // Add Workspace godoc
 //
-//	@Summary	Creates a new workspace for the current user
+//	@Summary	Creates a new workspace
 //	@Tags		workspace
 //	@Produce	json
 //	@Param		name	path		string	true	"Workspace name"
@@ -763,6 +763,24 @@ func (s *Server) handlerWorkspaces() http.Handler {
 func (s *Server) handlerAddWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getAddWorkspaceReply(s.db, r)
+
+		sendReply(w, "", status)
+	})
+}
+
+// Rename Workspace godoc
+//
+//	@Summary	Renames a workspace
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		workspace	body		server.getRenameWorkspaceReply.request	true	"Workspace"
+//	@Success	200		{string}	string
+//	@Failure	400		{string}	string
+//	@Failure	500		{string}	string
+//	@Router		/workspaces/rename [post]
+func (s *Server) handlerRenameWorkspace() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		status := getRenameWorkspaceReply(s.db, r)
 
 		sendReply(w, "", status)
 	})
@@ -992,6 +1010,8 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllWorkspaces(),
 		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteRenameWorkspace(),
+		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteWorkspacesConnection(),
 		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 }

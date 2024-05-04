@@ -90,6 +90,12 @@
         <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
       </template>
       <template #[`item.actions`]="{ item }">
+        <v-icon
+          class="me-2"
+          @click="showRenameDialog(item)"
+        >
+          {{ mdiRename }}
+        </v-icon>
         <v-icon @click="showDeleteWorkspaceDialog(item)">
           {{ mdiDelete }}
         </v-icon>
@@ -171,6 +177,8 @@
           <v-text-field
             v-model="newWorkspaceName"
             label="Name of the new workspace"
+            counter
+            :maxlength="maxWorkspaceNameLength"
             :autofocus="true"
             @keydown.enter="addWorkspace(newWorkspaceName)"
           />
@@ -193,18 +201,55 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-dialog
+      v-model="showRenameWorkspaceDialogModel"
+      max-width="500px"
+    >
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">Rename Workspace</span>
+        </v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="renamedWorkspace.name"
+            label="New workspace name"
+            counter
+            :maxlength="maxWorkspaceNameLength"
+            :autofocus="true"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            @click="closeRenameWorkspaceDialog"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="red"
+            variant="text"
+            @click="renameWorkspace(renamedWorkspace)"
+          >
+            Delete
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
 <script setup>
 import {
-	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus,
+	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus, mdiRename,
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {inject, onMounted, ref} from 'vue';
+import {
+	inject, onMounted, ref, toRaw,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -217,7 +262,9 @@ const workspaceList = ref([]);
 const showDeleteAllDialog = ref(false);
 const showDeleteWorkspaceDialogModel = ref(false);
 const showAddWorkspaceDialogModel = ref(false);
+const showRenameWorkspaceDialogModel = ref(false);
 const workspaceToDelete = ref(null);
+const renamedWorkspace = ref('');
 const isLoading = ref(false);
 const showSearchField = ref(false);
 const search = ref('');
@@ -234,6 +281,8 @@ const headers = [
 		title: '', key: 'actions', sortable: false, align: 'end',
 	},
 ];
+
+const maxWorkspaceNameLength = 50;
 
 // Hooks
 onMounted(() => {
@@ -272,11 +321,41 @@ async function loadWorkspaceList() {
 	isLoading.value = false;
 }
 
+function renameWorkspace(workspace) {
+	showRenameWorkspaceDialogModel.value = false;
+	const workspaceName = workspace.name.trim();
+	if (workspaceName === '') {
+		setErrorMessage('workspace name must not be empty');
+		return;
+	}
+
+	if (workspaceName.length > maxWorkspaceNameLength) {
+		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+	}
+
+	isLoading.value = true;
+
+	try {
+		console.log('sending new workspace name', workspaceName, workspace.uid);
+    msgStore.resetMessages();
+    await refreshWorkspaceList();
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
 async function addWorkspace(name) {
 	showAddWorkspaceDialogModel.value = false;
 	const workspaceName = name.trim();
 	if (workspaceName === '') {
 		setErrorMessage('workspace name must not be empty');
+		return;
+	}
+
+	if (workspaceName.length > maxWorkspaceNameLength) {
+		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
 		return;
 	}
 
@@ -340,6 +419,16 @@ async function deleteWorkspace(all) {
 	showDeleteAllDialog.value = false;
 }
 
+function showRenameDialog(workspace) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showRenameWorkspaceDialogModel.value = true;
+	// Workspace is a ref -> ned to convert and clone it
+	renamedWorkspace.value = structuredClone(toRaw(workspace));
+}
+
 function showDeleteWorkspaceDialog(workspace) {
 	if (isLoading.value) {
 		return;
@@ -351,6 +440,10 @@ function showDeleteWorkspaceDialog(workspace) {
 
 function closeDeleteWorkspaceDialog() {
 	showDeleteWorkspaceDialogModel.value = false;
+}
+
+function closeRenameWorkspaceDialog() {
+	showRenameWorkspaceDialogModel.value = false;
 }
 
 function 	showDeleteAllWorkspacesDialog() {

@@ -1846,12 +1846,48 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 	}
 
 	workspaceName := r.PathValue("name")
-	if workspaceName == "" || len(workspaceName) > 150 {
+	if workspaceName == "" || len(workspaceName) > workspace.MaxWorkspaceNameLength {
 		status = http.StatusBadRequest
 		return
 	}
 
 	err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
+func getRenameWorkspaceReply(dgraph external.Database, r *http.Request) (status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		Name         string `json:"name"`
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if req.Name == "" || len(req.Name) > workspace.MaxWorkspaceNameLength || req.WorkspaceUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	err = dbwork.RenameWorkspace(dgraph, req.Name, tUser.ID, req.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

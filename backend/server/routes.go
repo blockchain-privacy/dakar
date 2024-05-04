@@ -28,6 +28,7 @@ const (
 	routeWorkspaces           string = "workspaces"
 	routeAddWorkspaceNode     string = "workspaces/node"
 	routeWorkspacesConnection string = "workspaces/connection"
+	routeRenameWorkspace      string = "workspaces/rename"
 	routeMetrics              string = "/metrics"
 )
 
@@ -226,7 +227,9 @@ func getRouteUpdateWorkspace() string {
 func getRouteDeleteWorkspace() string {
 	return buildRoutePattern(httpDELETE, routeWorkspaces, "uid")
 }
-
+func getRouteRenameWorkspace() string {
+	return buildRoutePattern(httpPOST, routeRenameWorkspace, "")
+}
 func getRouteDeleteAllWorkspaces() string {
 	return buildRoutePattern(httpDELETE, routeWorkspaces, "")
 }
