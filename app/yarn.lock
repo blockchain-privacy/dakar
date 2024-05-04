@@ -39,10 +39,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.35":
-  version: 1.1.35
-  resolution: "@blockchain/dakar@npm:1.1.35::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.35.tgz"
-  checksum: 10c0/39fc4274655b849b46e272fda1caee7798a5eeb02bb6df2f6a7001d5e625b55bf8c2c724e72f5b006dcad781c209ee30b05e6c475279a3376cfa1b3b57ac2bc6
+"@blockchain/dakar@npm:^1.1.36":
+  version: 1.1.36
+  resolution: "@blockchain/dakar@npm:1.1.36::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.36.tgz"
+  checksum: 10c0/42010282c2320f17f0e3f19613c1f9c4a8dd854a75770c9f9349ffbdcc62c6abe4831bcaa2d73eabf166e61279f9e09fa173664c209306f9e17dd4842ac653af
   languageName: node
   linkType: hard
 
@@ -242,10 +242,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.1.1":
-  version: 9.1.1
-  resolution: "@eslint/js@npm:9.1.1"
-  checksum: 10c0/b25d11736b91d8df44dd217e88adb1f43d2bd5911ef4f4033e51faffe370f28d329731ffbf841d0b8303c8eedb60bda8c3a9efe803bb3b3737a06bb22c09ad0c
+"@eslint/js@npm:9.2.0":
+  version: 9.2.0
+  resolution: "@eslint/js@npm:9.2.0"
+  checksum: 10c0/89632466d329d9dd68c6ec24290e407f0950ca8c4b7f3750b82457daa7f6233799ccbc956cd84231f9544efbefddd69833ee82658883ca673cfca9e4b8e0713a
   languageName: node
   linkType: hard
 
@@ -1133,7 +1133,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.35"
+    "@blockchain/dakar": "npm:^1.1.36"
     "@fontsource/roboto": "npm:^5.0.13"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/wikiapi": "npm:^1.2.32"
@@ -1150,7 +1150,7 @@ __metadata:
     d3-time: "npm:^3.1.0"
     d3-transition: "npm:^3.0.1"
     d3-zoom: "npm:^3.0.0"
-    eslint: "npm:^9.1.1"
+    eslint: "npm:^9.2.0"
     eslint-config-xo: "npm:^0.44.0"
     eslint-plugin-vue: "npm:^9.25.0"
     eslint-plugin-vuetify: "npm:^2.4.0"
@@ -1436,14 +1436,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.1.1":
-  version: 9.1.1
-  resolution: "eslint@npm:9.1.1"
+"eslint@npm:^9.2.0":
+  version: 9.2.0
+  resolution: "eslint@npm:9.2.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.6.1"
     "@eslint/eslintrc": "npm:^3.0.2"
-    "@eslint/js": "npm:9.1.1"
+    "@eslint/js": "npm:9.2.0"
     "@humanwhocodes/config-array": "npm:^0.13.0"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
     "@humanwhocodes/retry": "npm:^0.2.3"
@@ -1476,7 +1476,7 @@ __metadata:
     text-table: "npm:^0.2.0"
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/0173fbc561d2272802315726283f63df0cf7197949ca1f80afd8ef92e95867677d54601ff6cad5467c44745160ba0f9cef7ac1154ccbd097d0269a4c6eb21041
+  checksum: 10c0/eab3265100a359a486e40e1d9d4d3ecff936d2f4d952f4ab107d404e0684fffbe186ecd0fb41791af5bcb13570a27032ddf9a2e628927ed33473f64255b0037b
   languageName: node
   linkType: hard
 

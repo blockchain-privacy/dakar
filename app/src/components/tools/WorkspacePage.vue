@@ -15,7 +15,7 @@
         @click="showAddWorkspaceDialogModel = true"
       >
         <v-icon :icon="mdiPlus" />
-        Add Workspace
+        New
       </v-btn>
       <v-btn
         v-model="showSearchField"
@@ -171,7 +171,7 @@
     >
       <v-card>
         <v-card-title>
-          <span class="text-h5">Add Workspace</span>
+          <span class="text-h5">New Workspace</span>
         </v-card-title>
         <v-card-text>
           <v-text-field
@@ -321,7 +321,7 @@ async function loadWorkspaceList() {
 	isLoading.value = false;
 }
 
-function renameWorkspace(workspace) {
+async function renameWorkspace(workspace) {
 	showRenameWorkspaceDialogModel.value = false;
 	const workspaceName = workspace.name.trim();
 	if (workspaceName === '') {
@@ -331,14 +331,22 @@ function renameWorkspace(workspace) {
 
 	if (workspaceName.length > maxWorkspaceNameLength) {
 		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+		return;
+	}
+
+	if (workspace.uid === '') {
+		setErrorMessage('workspace UID is not set');
+		return;
 	}
 
 	isLoading.value = true;
 
 	try {
-		console.log('sending new workspace name', workspaceName, workspace.uid);
-    msgStore.resetMessages();
-    await refreshWorkspaceList();
+		await dakar.workspace.workspacesRenamePost({
+			workspace: {name: workspaceName, workspaceUID: workspace.uid},
+		});
+		msgStore.resetMessages();
+		await refreshWorkspaceList();
 	} catch (e) {
 		handleError(context, e);
 	}
