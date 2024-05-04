@@ -227,11 +227,10 @@
             Cancel
           </v-btn>
           <v-btn
-            color="red"
             variant="text"
             @click="renameWorkspace(renamedWorkspace)"
           >
-            Delete
+            Rename
           </v-btn>
         </v-card-actions>
       </v-card>
