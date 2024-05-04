@@ -165,76 +165,25 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog
+    <text-dialog
+      v-if="showAddWorkspaceDialogModel"
       v-model="showAddWorkspaceDialogModel"
-      max-width="500px"
-    >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">New Workspace</span>
-        </v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="newWorkspaceName"
-            label="Name of the new workspace"
-            counter
-            :maxlength="maxWorkspaceNameLength"
-            :autofocus="true"
-            @keydown.enter="addWorkspace(newWorkspaceName)"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            color="red"
-            @click="closeAddWorkspaceDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            variant="text"
-            @click="addWorkspace(newWorkspaceName)"
-          >
-            Add
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <v-dialog
+      title="New Workspace"
+      submit-label="Create"
+      input-label="Name of the new workspace"
+      :maxlength="maxWorkspaceNameLength"
+      @submit="addWorkspace"
+    />
+    <text-dialog
+      v-if="showRenameWorkspaceDialogModel"
       v-model="showRenameWorkspaceDialogModel"
-      max-width="500px"
-    >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Rename Workspace</span>
-        </v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="renamedWorkspace.name"
-            label="New workspace name"
-            counter
-            :maxlength="maxWorkspaceNameLength"
-            :autofocus="true"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            @click="closeRenameWorkspaceDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            variant="text"
-            @click="renameWorkspace(renamedWorkspace)"
-          >
-            Rename
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+      title="Rename Workspace"
+      submit-label="Rename"
+      input-label="New workspace name"
+      :input-value="renamedWorkspace?.name"
+      :maxlength="maxWorkspaceNameLength"
+      @submit="renameWorkspace"
+    />
   </v-card>
 </template>
 
@@ -251,6 +200,7 @@ import {
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import TextDialog from '@/components/common/TextDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -263,12 +213,11 @@ const showDeleteWorkspaceDialogModel = ref(false);
 const showAddWorkspaceDialogModel = ref(false);
 const showRenameWorkspaceDialogModel = ref(false);
 const workspaceToDelete = ref(null);
-const renamedWorkspace = ref('');
+const renamedWorkspace = ref(null);
 const isLoading = ref(false);
 const showSearchField = ref(false);
 const search = ref('');
 const sortBy = ref([{key: 'modTimeUnix', order: 'desc'}]);
-const newWorkspaceName = ref('');
 const headers = [
 	{
 		title: 'Name', key: 'name', align: 'start', sortable: false,
@@ -321,8 +270,8 @@ async function loadWorkspaceList() {
 }
 
 async function renameWorkspace(workspace) {
-	showRenameWorkspaceDialogModel.value = false;
-	const workspaceName = workspace.name.trim();
+	const workspaceName = workspace;
+	const workspaceUID = renamedWorkspace.value.uid;
 	if (workspaceName === '') {
 		setErrorMessage('workspace name must not be empty');
 		return;
@@ -333,7 +282,7 @@ async function renameWorkspace(workspace) {
 		return;
 	}
 
-	if (workspace.uid === '') {
+	if (workspaceUID === '') {
 		setErrorMessage('workspace UID is not set');
 		return;
 	}
@@ -342,7 +291,7 @@ async function renameWorkspace(workspace) {
 
 	try {
 		await dakar.workspace.workspacesRenamePost({
-			workspace: {name: workspaceName, workspaceUID: workspace.uid},
+			workspace: {name: workspaceName, workspaceUID},
 		});
 		msgStore.resetMessages();
 		await refreshWorkspaceList();
@@ -431,9 +380,9 @@ function showRenameDialog(workspace) {
 		return;
 	}
 
-	showRenameWorkspaceDialogModel.value = true;
 	// Workspace is a ref -> ned to convert and clone it
 	renamedWorkspace.value = structuredClone(toRaw(workspace));
+	showRenameWorkspaceDialogModel.value = true;
 }
 
 function showDeleteWorkspaceDialog(workspace) {
@@ -449,20 +398,12 @@ function closeDeleteWorkspaceDialog() {
 	showDeleteWorkspaceDialogModel.value = false;
 }
 
-function closeRenameWorkspaceDialog() {
-	showRenameWorkspaceDialogModel.value = false;
-}
-
 function 	showDeleteAllWorkspacesDialog() {
 	showDeleteAllDialog.value = true;
 }
 
 function 	closeDeleteAllWorkspacesDialog() {
 	showDeleteAllDialog.value = false;
-}
-
-function closeAddWorkspaceDialog() {
-	showAddWorkspaceDialogModel.value = false;
 }
 
 </script>

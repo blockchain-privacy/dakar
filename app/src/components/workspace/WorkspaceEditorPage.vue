@@ -221,6 +221,7 @@ const heuristicTabItems = ref([]);
 const connectionData = ref({});
 const routeGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
+const noteDialogModel = ref(false);
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -274,6 +275,7 @@ const menuItems = [
 	},
 	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
 	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
+	{title: 'Show Dialog', icon: mdiOpenInNew, action: () => showAddNoteDialog()},
 ];
 
 let autoSaveTimer = null;
@@ -675,6 +677,10 @@ function showContextMenu(e, nodeData) {
 	nextTick(() => {
 		contextMenuModel.value.display = true;
 	});
+}
+
+function showAddNoteDialog() {
+	noteDialogModel.value = true;
 }
 
 async function refreshData() {
