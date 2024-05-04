@@ -104,10 +104,20 @@
           :workspace-uid="workspaceUID"
         />
         <routing-dialog
-          v-model="routeGuardDialogModel"
+          v-model="showRouteGuardDialogModel"
           :to="routeGuardTo"
           :disable-adding-nodes="isModifyingWorkspace"
           @add-node="handleGraphQuery"
+        />
+        <text-dialog
+          v-if="showAddNoteDialogModel"
+          v-model="showAddNoteDialogModel"
+          title="New Note"
+          submit-label="Create"
+          input-label="Note content"
+          :maxlength="maxNoteLength"
+          :text-area="true"
+          @submit="addNewNote"
         />
         <v-menu
           v-model="contextMenuModel.display"
@@ -151,7 +161,7 @@ import {
 	mdiDelete,
 	mdiImageFilterCenterFocus,
 	mdiMagnify,
-	mdiOpenInNew,
+	mdiOpenInNew, mdiPlus,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
@@ -177,6 +187,7 @@ import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
 import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
+import TextDialog from '@/components/common/TextDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -219,9 +230,9 @@ const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
 const connectionData = ref({});
-const routeGuardDialogModel = ref(false);
+const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
-const noteDialogModel = ref(false);
+const showAddNoteDialogModel = ref(false);
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -275,10 +286,11 @@ const menuItems = [
 	},
 	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
 	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
-	{title: 'Show Dialog', icon: mdiOpenInNew, action: () => showAddNoteDialog()},
+	{title: 'New Note', icon: mdiPlus, action: () => showAddNoteDialog()},
 ];
 
 let autoSaveTimer = null;
+const maxNoteLength = 100;
 
 // Watchers
 watch(route, () => {
@@ -313,7 +325,7 @@ watch(
 	() => workspaceStore.workspaceNode,
 	newVal => {
 		routeGuardTo.value = newVal.to;
-		routeGuardDialogModel.value = true;
+		showRouteGuardDialogModel.value = true;
 	},
 );
 
@@ -447,6 +459,11 @@ async function handleGraphQuery(query) {
 	}
 
 	releaseAutosaveLock();
+}
+
+function addNewNote(noteText) {
+	// Todo
+	console.log('adding note', noteText);
 }
 
 async function newRouting() {
@@ -680,7 +697,7 @@ function showContextMenu(e, nodeData) {
 }
 
 function showAddNoteDialog() {
-	noteDialogModel.value = true;
+	showAddNoteDialogModel.value = true;
 }
 
 async function refreshData() {

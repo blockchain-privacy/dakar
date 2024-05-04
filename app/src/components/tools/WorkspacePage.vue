@@ -354,7 +354,11 @@ function showDeleteWorkspaceDialog(workspace) {
 	workspaceToDelete.value = workspace;
 }
 
-function 	showDeleteAllWorkspacesDialog() {
+function showDeleteAllWorkspacesDialog() {
+	if (isLoading.value) {
+		return;
+	}
+
 	showDeleteAllDialog.value = true;
 }
 
