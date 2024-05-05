@@ -14,7 +14,7 @@ import {
 import forceLimit from '@/d3Documents/forceLimit';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_NOTE,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
@@ -479,6 +479,28 @@ export default class NodeGraph {
 		}
 	}
 
+	// Creates a new note with the provided text.
+	// Set draw to false, if the graph should not be redrawn.
+	addNote(text, draw) {
+		if (!text) {
+			// Skip no text was provided
+			return;
+		}
+
+		const n = {
+			uid: `note_${Math.floor(Math.random() * 100000)}`,
+			type: WORKSPACE_NODE_TYPE_NOTE,
+			text,
+			children: [[...this.nodeMap][0][1].uid],
+		};
+
+		this.nodeMap.set(n.uid, n);
+		this.changedData.set(n.uid, n);
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
 	// Returns the node specified node. If the node does not
 	// exist in the graph undefined is returned.
 	getNode(uid) {
@@ -584,19 +606,93 @@ export default class NodeGraph {
 		iconGroup.attr('transform', `translate(${-groupWidth / 2},0)`);
 	}
 
-	drawNode(groupElement) {
-		const self = this;
+	drawEntities(groupElement) {
 		// CircleGroup contains the node circle and loading circle
-
-		let circleGroup = groupElement.select('g');
-		if (circleGroup.empty()) {
-			circleGroup = groupElement.append('g');
+		let entityGroup = groupElement.select('g');
+		if (entityGroup.empty()) {
+			entityGroup = groupElement.append('g');
 		}
 
-		circleGroup.selectAll('circle').remove();
+		this.drawNodes(groupElement.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE));
+		this.drawNotes(groupElement.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE));
+	}
+
+	drawNotes(groupElement, entityGroup) {
+		entityGroup.selectAll('rect').remove();
+
+		entityGroup.append('text')
+			.attr('text-anchor', 'middle')
+			.attr('font-size', '10px')
+			.attr('fill', 'currentColor')
+			.each(function (d) {
+				const textLines = d.text.split('\n');
+				d3Select(this)
+					.selectAll('tspan')
+					.data(textLines)
+					.enter()
+					.append('tspan')
+					.attr('x', 0)
+					.attr('dy', '1.2em') // Line spacing
+					.text(d => d ? d : ' '); // Insert space for empty row so vertical spacing works
+
+				const nodeRect = this.getBBox();
+				d.bbHeight = nodeRect.height;
+				d.bbWidth = nodeRect.width;
+				d3Select(this).attr('y', -nodeRect.height / 2);
+			});
+
+		entityGroup.append('rect')
+			.attr('class', 'note')
+			.attr('fill', 'rgb(var(--v-theme-background))')
+			.style('stroke-width', 1)
+			.style('stroke', 'currentColor')
+			.attr('rx', 3)
+			.attr('ry', 3)
+			.lower()
+			.each(function (d) {
+				const rectMargin = 10;
+				const width = d.bbWidth + rectMargin;
+				const height = d.bbHeight + rectMargin;
+				d3Select(this)
+					.attr('width', width)
+					.attr('height', height)
+					.attr('x', -width / 2)
+					.attr('y', -height / 2);
+
+				// Add marker to new nodes
+				if (d.fx !== undefined) {
+					return;
+				}
+
+				const thisElement = d3Select(this.parentNode);
+
+				const marker = thisElement.append('rect')
+					.attr('width', width * 2)
+					.attr('height', height * 2)
+					.attr('x', -width)
+					.attr('y', -height)
+					.attr('rx', 3)
+					.attr('ry', 3)
+					.attr('fill', 'rgba(255, 109, 0, 0.3)')
+					.lower();
+
+				marker.transition().delay(1000).duration(500)
+					.attr('width', 0)
+					.attr('height', 0)
+					.attr('x', 0)
+					.attr('y', 0)
+					.remove();
+			});
+	}
+
+	drawNodes(groupElement, entityGroup) {
+		const self = this;
+		entityGroup.selectAll('circle').remove();
 
 		// Node circle
-		circleGroup.append('circle')
+		entityGroup.append('circle')
 			.attr('class', 'node')
 			.attr('r', this.nodeRadius)
 			.attr('fill', d => {
@@ -637,7 +733,7 @@ export default class NodeGraph {
 			});
 
 		// Set event handlers
-		circleGroup
+		entityGroup
 			.on('click', function (e, d) {
 				self.nodeClick(e, d, this);
 			})
@@ -675,7 +771,7 @@ export default class NodeGraph {
 
 		const gapString = `${gap} ${gap}`;
 
-		circleGroup.each(function (d) {
+		entityGroup.each(function (d) {
 			if (!d.loading) {
 				return;
 			}
@@ -774,9 +870,9 @@ export default class NodeGraph {
 
 		// Heuristic properties
 		// Cluster count
-		let nodeClusterCount = circleGroup.select('.clusterCount');
+		let nodeClusterCount = entityGroup.select('.clusterCount');
 		if (nodeClusterCount.empty()) {
-			nodeClusterCount = circleGroup.append('text').attr('class', 'clusterCount');
+			nodeClusterCount = entityGroup.append('text').attr('class', 'clusterCount');
 		}
 
 		nodeClusterCount.raise();
@@ -862,7 +958,13 @@ export default class NodeGraph {
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
 			.force('charge', forceManyBody().strength(-150))
-			.force('collide', forceCollide(this.nodeRadius * 4))
+			.force('collide', forceCollide(d => {
+				if (d.type === WORKSPACE_NODE_TYPE_NOTE) {
+					return 50 * 1.5;
+				}
+
+				return this.nodeRadius * 4;
+			}))
 			.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.nodeRadius)).stop();
 
 		// Do simulation
@@ -908,15 +1010,14 @@ export default class NodeGraph {
 			.data(nodes, d => d.uid)
 			.join(enter => {
 				const g = enter.append('g');
-
-				this.drawNode(g);
+				this.drawEntities(g);
 				this.newNodes = g;
 				return g;
 			},
 			update => {
 				if (this.changedData.size > 0) {
 					// Do drawing only for actually updated nodes
-					this.drawNode(update.filter(d => this.changedData.has(d.uid)));
+					this.drawEntities(update.filter(d => this.changedData.has(d.uid)));
 				}
 
 				return update;

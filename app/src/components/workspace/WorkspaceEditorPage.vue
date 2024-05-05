@@ -462,8 +462,7 @@ async function handleGraphQuery(query) {
 }
 
 function addNewNote(noteText) {
-	// Todo
-	console.log('adding note', noteText);
+	nodeGraph.addNote(noteText);
 }
 
 async function newRouting() {

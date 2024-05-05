@@ -51,3 +51,4 @@ export const CLUSTER_TYPE_CUSTOM = 'custom';
 export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
 export const WORKSPACE_NODE_TYPE_CLUSTER = 'cluster';
 export const WORKSPACE_NODE_TYPE_HEURISTIC = 'heuristic';
+export const WORKSPACE_NODE_TYPE_NOTE = 'note';
