@@ -462,7 +462,12 @@ async function handleGraphQuery(query) {
 }
 
 function addNewNote(noteText) {
-	nodeGraph.addNote(noteText);
+	const trimmed = noteText.trim();
+	if (!trimmed) {
+		return;
+	}
+
+	nodeGraph.addNote(trimmed);
 }
 
 async function newRouting() {
