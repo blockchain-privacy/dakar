@@ -136,7 +136,7 @@
           transition="fade-transition"
           :target="[contextMenuModel.x,contextMenuModel.y]"
         >
-          <v-list>
+          <v-list class="py-0">
             <template
               v-for="(item, index) in contextMenuModel.items"
               :key="index"
@@ -249,7 +249,6 @@ const routeGuardTo = ref({});
 const showAddNoteDialogModel = ref(false);
 const showEditNoteDialogModel = ref(false);
 const editNoteDialogValue = ref('');
-const showContextMenuAddHeuristic = ref(false);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -258,9 +257,9 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
-			show: () => nodeGraph.getContextNode()?.type !== WORKSPACE_NODE_TYPE_NOTE,
+			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeGraph.getContextNode().privacyType),
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
-			disabled: () => !showContextMenuAddHeuristic.value || nodeGraph.getContextNode()?.loading,
+			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Add Note',
@@ -274,7 +273,7 @@ const contextMenuModel = ref({
 			icon: mdiNoteEdit,
 			show: () => isEditEnabled(nodeGraph.getContextNode()),
 			action: () => editNote(nodeGraph.getContextNode()),
-			disabled: () => false,
+			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Delete',
@@ -287,7 +286,9 @@ const contextMenuModel = ref({
 
 const menuItems = [
 	{
-		title: 'Rearrange', icon: mdiCached, action() {
+		title: 'Rearrange',
+		icon: mdiCached,
+		action() {
 			nodeGraph.reorderNodes();
 			queueAutoSave();
 		},
@@ -746,12 +747,10 @@ function closeSideBars() {
 	isConnectionSideBarOpen.value = false;
 }
 
-function showContextMenu(e, nodeData) {
+function showContextMenu(e) {
 	contextMenuModel.value.display = false;
 
 	e.preventDefault();
-
-	showContextMenuAddHeuristic.value = Boolean(nodeData?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeData.privacyType));
 
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;

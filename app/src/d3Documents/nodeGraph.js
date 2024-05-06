@@ -678,7 +678,7 @@ export default class NodeGraph {
 				self.contextNodeSelection = this;
 
 				if (self.contextMenuCallback !== null) {
-					self.contextMenuCallback(e, d);
+					self.contextMenuCallback(e);
 				}
 			})
 			.on('mouseenter', function () {
@@ -765,7 +765,7 @@ export default class NodeGraph {
 				self.contextNodeSelection = this;
 
 				if (self.contextMenuCallback !== null) {
-					self.contextMenuCallback(e, d);
+					self.contextMenuCallback(e);
 				}
 			})
 			.on('mouseenter', function () {
