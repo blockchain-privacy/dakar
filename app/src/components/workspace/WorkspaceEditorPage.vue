@@ -171,8 +171,10 @@ import {
 	mdiCheckCircle,
 	mdiDelete,
 	mdiImageFilterCenterFocus,
-	mdiMagnify, mdiNoteEdit, mdiNotePlus,
-	mdiOpenInNew, mdiPlus,
+	mdiMagnify,
+	mdiNoteEdit,
+	mdiNotePlus,
+	mdiOpenInNew,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
@@ -256,19 +258,15 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
+			show: () => nodeGraph.getContextNode()?.type !== WORKSPACE_NODE_TYPE_NOTE,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
 			disabled: () => !showContextMenuAddHeuristic.value || nodeGraph.getContextNode()?.loading,
-		},
-		{
-			title: 'Delete',
-			icon: mdiDelete,
-			action: removeGraphNode,
-			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
 		},
 		{
 			title: 'Add Note',
 			icon: mdiNotePlus,
 			action: showAddNoteDialog,
+			show: () => nodeGraph.getContextNode()?.type !== WORKSPACE_NODE_TYPE_NOTE,
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -277,6 +275,12 @@ const contextMenuModel = ref({
 			show: () => isEditEnabled(nodeGraph.getContextNode()),
 			action: () => editNote(nodeGraph.getContextNode()),
 			disabled: () => false,
+		},
+		{
+			title: 'Delete',
+			icon: mdiDelete,
+			action: removeGraphNode,
+			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
 		},
 	],
 });
@@ -473,7 +477,7 @@ async function handleGraphQuery(query) {
 	releaseAutosaveLock();
 }
 
-function changeNote(noteText) {
+async function changeNote(noteText) {
 	const trimmed = noteText.trim();
 	if (!trimmed) {
 		return;
@@ -482,10 +486,10 @@ function changeNote(noteText) {
 	const note = nodeGraph.getContextNode();
 	note.text = trimmed;
 
-	nodeGraph.editNote(note, true);
+	await addNewNote(noteText, note.uid, note.children[0]);
 }
 
-async function addNewNote(noteText) {
+async function addNewNote(noteText, noteUID, childUID) {
 	if (isModifyingWorkspace.value) {
 		return;
 	}
@@ -495,18 +499,23 @@ async function addNewNote(noteText) {
 		return;
 	}
 
-	const child = nodeGraph.getContextNode();
-	if (!child) {
-		return;
+	if (!childUID) {
+		// Child uid not set, therefore we have to get it from the context node
+		const child = nodeGraph.getContextNode();
+		if (!child) {
+			return;
+		}
+
+		childUID = child.uid;
 	}
 
 	await lockAutosave();
 
 	try {
 		const response = await dakar.workspace.workspacesNotePost({
-			query: {
-				uid: '',
-				childUID: child.uid,
+			note: {
+				uid: noteUID ? noteUID : '',
+				childUID,
 				text: trimmed,
 				workspaceUID: workspaceUID.value,
 			},

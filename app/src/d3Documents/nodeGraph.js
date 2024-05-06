@@ -479,41 +479,6 @@ export default class NodeGraph {
 		}
 	}
 
-	editNote(n, draw) {
-		if (!n.text) {
-			// Skip no text was provided
-			return;
-		}
-
-		this.nodeMap.set(n.uid, n);
-		this.changedData.set(n.uid, n);
-		if (draw === undefined || draw === true) {
-			this.draw();
-		}
-	}
-
-	// Creates a new note with the provided text.
-	// Set draw to false, if the graph should not be redrawn.
-	addNote(text, draw) {
-		if (!text) {
-			// Skip no text was provided
-			return;
-		}
-
-		const n = {
-			uid: `note_${Math.floor(Math.random() * 100000)}`,
-			type: WORKSPACE_NODE_TYPE_NOTE,
-			text,
-			children: [[...this.nodeMap][0][1].uid],
-		};
-
-		this.nodeMap.set(n.uid, n);
-		this.changedData.set(n.uid, n);
-		if (draw === undefined || draw === true) {
-			this.draw();
-		}
-	}
-
 	// Returns the node specified node. If the node does not
 	// exist in the graph undefined is returned.
 	getNode(uid) {
@@ -635,6 +600,7 @@ export default class NodeGraph {
 
 	drawNotes(groupElement, entityGroup) {
 		entityGroup.selectAll('rect').remove();
+		entityGroup.selectAll('text').remove();
 
 		entityGroup.append('text')
 			.attr('text-anchor', 'middle')
@@ -1013,7 +979,12 @@ export default class NodeGraph {
 			.force('charge', forceManyBody().strength(-150))
 			.force('collide', forceCollide(d => {
 				if (d.type === WORKSPACE_NODE_TYPE_NOTE) {
-					return 50 * 1.5;
+					if (d.width && d.height) {
+						// With max() the distance to other nodes in non-quadratic rects is too high, therefore use min()
+						return Math.min(d.width, d.height);
+					}
+
+					return 50;
 				}
 
 				return this.nodeRadius * 4;
