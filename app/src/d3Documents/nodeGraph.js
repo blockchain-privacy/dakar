@@ -225,7 +225,7 @@ export default class NodeGraph {
 	initSvg(svgID) {
 		// Add attributes to root svg
 		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
-		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
+		this.rootGroup = this.rootSvg.append('g').classed('root-group', true);
 		this.lineGroup = this.rootGroup.append('g');
 		this.shadowLineGroup = this.rootGroup.append('g');
 		this.nodeGroup = this.rootGroup.append('g');
@@ -300,6 +300,14 @@ export default class NodeGraph {
           stroke: currentColor;
           stroke-width: 1;
           fill: rgb(var(--v-theme-surface));
+          cursor: pointer;
+        }
+
+        .note-text {
+          fill: currentColor;
+          font-size: 10px;
+          text-anchor: middle;
+          cursor: pointer;
         }
 
         .clicked {
@@ -558,7 +566,7 @@ export default class NodeGraph {
 
 		let iconGroup = groupElement.select('.iconGroup');
 		if (iconGroup.empty()) {
-			iconGroup = groupElement.append('g').attr('class', 'iconGroup');
+			iconGroup = groupElement.append('g').classed('iconGroup', true);
 		}
 
 		const textAreaMargin = 3;
@@ -605,13 +613,10 @@ export default class NodeGraph {
 	}
 
 	drawNotes(groupElement, entityGroup) {
-		entityGroup.selectAll('rect').remove();
-		entityGroup.selectAll('text').remove();
+		entityGroup.selectAll('.note,.note-text').remove();
 
 		entityGroup.append('text')
-			.attr('text-anchor', 'middle')
-			.attr('font-size', '10px')
-			.attr('fill', 'currentColor')
+			.classed('note-text', true)
 			.each(function (d) {
 				const textLines = d.text.split('\n');
 				d3Select(this)
@@ -630,7 +635,7 @@ export default class NodeGraph {
 			});
 
 		entityGroup.append('rect')
-			.attr('class', 'note')
+			.classed('note', true)
 			.attr('rx', 3)
 			.attr('ry', 3)
 			.lower()
@@ -715,7 +720,7 @@ export default class NodeGraph {
 
 		// Node circle
 		entityGroup.append('circle')
-			.attr('class', 'node')
+			.classed('node', true)
 			.attr('r', this.nodeRadius)
 			.attr('fill', d => {
 				if (this.nodeTypeColorMap) {
@@ -835,13 +840,13 @@ export default class NodeGraph {
 		// Text container
 		let textContainer = groupElement.select('.textContainer');
 		if (textContainer.empty()) {
-			textContainer = groupElement.append('g').attr('class', 'textContainer');
+			textContainer = groupElement.append('g').classed('textContainer', true);
 		}
 
 		// Node title
 		let nodeTitle = textContainer.select('.nodeTitle');
 		if (nodeTitle.empty()) {
-			nodeTitle = textContainer.append('text').attr('class', 'nodeTitle');
+			nodeTitle = textContainer.append('text').classed('nodeTitle', true);
 		}
 
 		nodeTitle
@@ -872,7 +877,7 @@ export default class NodeGraph {
 
 		let nodeSubtitle = textContainer.select('.nodeSubtitle');
 		if (nodeSubtitle.empty()) {
-			nodeSubtitle = textContainer.append('text').attr('class', 'nodeSubtitle');
+			nodeSubtitle = textContainer.append('text').classed('nodeSubtitle', true);
 		}
 
 		nodeSubtitle
@@ -894,7 +899,7 @@ export default class NodeGraph {
 		// Cluster count
 		let nodeClusterCount = entityGroup.select('.clusterCount');
 		if (nodeClusterCount.empty()) {
-			nodeClusterCount = entityGroup.append('text').attr('class', 'clusterCount');
+			nodeClusterCount = entityGroup.append('text').classed('clusterCount', true);
 		}
 
 		nodeClusterCount.raise();
@@ -1001,7 +1006,7 @@ export default class NodeGraph {
 			.selectAll('.arrow')
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
-			.attr('class', 'arrow')
+			.classed('arrow', true)
 			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed)' : undefined)
 			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
 			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
@@ -1013,7 +1018,7 @@ export default class NodeGraph {
 			.selectAll('.shadowArrow')
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
-			.attr('class', 'shadowArrow')
+			.classed('shadowArrow', true)
 			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed_shadow)' : undefined)
 			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
 			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
@@ -1049,7 +1054,7 @@ export default class NodeGraph {
 
 				return update;
 			})
-			.attr('class', 'nodeContainer')
+			.classed('nodeContainer', true)
 			.each(d => {
 				// Exclude every node from force simulation
 				d.fx = d.x;
