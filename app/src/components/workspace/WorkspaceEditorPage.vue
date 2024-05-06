@@ -75,7 +75,6 @@
                   class="mt-3"
                   :indeterminate="true"
                   rounded
-                  :color="executionStatus.processing?'primary':''"
                 />
               </div>
             </v-card-text>
@@ -97,6 +96,7 @@
           @add-heuristic="openTypeSelectionSheet"
           @add-node="handleGraphQuery"
           @delete-entity="removeGraphNode"
+          @add-note="showAddNoteDialog"
         />
         <connection-side-bar
           v-model="isConnectionSideBarOpen"
@@ -171,7 +171,7 @@ import {
 	mdiCheckCircle,
 	mdiDelete,
 	mdiImageFilterCenterFocus,
-	mdiMagnify, mdiNoteEdit,
+	mdiMagnify, mdiNoteEdit, mdiNotePlus,
 	mdiOpenInNew, mdiPlus,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
@@ -247,29 +247,6 @@ const routeGuardTo = ref({});
 const showAddNoteDialogModel = ref(false);
 const showEditNoteDialogModel = ref(false);
 const editNoteDialogValue = ref('');
-const executionStatus = ref({
-	dormantTimer: {
-		timer: null,
-		refreshRate: 20000,
-	},
-	activeTimer: {
-		timer: null,
-		refreshRate: 2000,
-	},
-	value: {
-		executing: false,
-		processing: false,
-	},
-	enum: {
-		added: 0,
-		duplicate: 1,
-		notInQueue: 2,
-		inQueue: 3,
-		processing: 4,
-		notReady: 5,
-	},
-});
-
 const showContextMenuAddHeuristic = ref(false);
 const contextMenuModel = ref({
 	display: false,
@@ -287,6 +264,12 @@ const contextMenuModel = ref({
 			icon: mdiDelete,
 			action: removeGraphNode,
 			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
+		},
+		{
+			title: 'Add Note',
+			icon: mdiNotePlus,
+			action: showAddNoteDialog,
+			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Edit',
@@ -307,7 +290,6 @@ const menuItems = [
 	},
 	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
 	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
-	{title: 'New Note', icon: mdiPlus, action: () => showAddNoteDialog()},
 ];
 
 let autoSaveTimer = null;
@@ -503,13 +485,43 @@ function changeNote(noteText) {
 	nodeGraph.editNote(note, true);
 }
 
-function addNewNote(noteText) {
+async function addNewNote(noteText) {
+	if (isModifyingWorkspace.value) {
+		return;
+	}
+
 	const trimmed = noteText.trim();
 	if (!trimmed) {
 		return;
 	}
 
-	nodeGraph.addNote(trimmed);
+	const child = nodeGraph.getContextNode();
+	if (!child) {
+		return;
+	}
+
+	await lockAutosave();
+
+	try {
+		const response = await dakar.workspace.workspacesNotePost({
+			query: {
+				uid: '',
+				childUID: child.uid,
+				text: trimmed,
+				workspaceUID: workspaceUID.value,
+			},
+		});
+		if (response.nodes) {
+			nodeGraph.removeAllNodes(false);
+			nodeGraph.addNodes(response.nodes);
+			queueAutoSave();
+			nodeGraph.centerOnNewNodes();
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	releaseAutosaveLock();
 }
 
 async function newRouting() {

@@ -739,7 +739,7 @@ func (s *Server) handlerAddWorkspaceNode() http.Handler {
 //	@Tags		workspace
 //	@Accept		json
 //	@Produce	json
-//	@Param		query	body		server.getAddWorkspaceNoteReply.request	true	"Search query"
+//	@Param		note	body		server.getAddWorkspaceNoteReply.request	true	"New note"
 //	@Success	200		{object}	server.addWorkspaceNoteReply
 //	@Failure	400		{object}	server.addWorkspaceNoteReply
 //	@Failure	500		{object}	server.addWorkspaceNoteReply
@@ -793,9 +793,9 @@ func (s *Server) handlerAddWorkspace() http.Handler {
 //	@Tags		workspace
 //	@Produce	json
 //	@Param		workspace	body		server.getRenameWorkspaceReply.request	true	"Workspace"
-//	@Success	200		{string}	string
-//	@Failure	400		{string}	string
-//	@Failure	500		{string}	string
+//	@Success	200			{string}	string
+//	@Failure	400			{string}	string
+//	@Failure	500			{string}	string
 //	@Router		/workspaces/rename/ [post]
 func (s *Server) handlerRenameWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

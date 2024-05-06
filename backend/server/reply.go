@@ -1794,10 +1794,11 @@ func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspac
 	}
 
 	type request struct {
+		UID string `json:"uid"`
 		// the note text
-		Note string `json:"query"`
+		Text string `json:"text"`
 		// the node to which the note is connected to
-		NodeUID      string `json:"nodeUID"`
+		ChildUID     string `json:"childUID"`
 		WorkspaceUID string `json:"workspaceUID"`
 	}
 
@@ -1809,12 +1810,17 @@ func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	if req.WorkspaceUID == "" || req.Note == "" || req.NodeUID == "" || len(req.Note) > 100 {
+	if req.WorkspaceUID == "" || req.Text == "" || req.ChildUID == "" || len(req.Text) > 100 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	reply.Nodes, err = workspace.AddNote(dgraph, workspaceMutex, req.WorkspaceUID, tUser.ID, req.Note, req.NodeUID)
+	reply.Nodes, err = workspace.AddNote(dgraph, workspaceMutex, req.WorkspaceUID,
+		tUser.ID, dbwork.Node{
+			UID:      req.UID,
+			Text:     req.Text,
+			Children: []string{req.ChildUID},
+		})
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

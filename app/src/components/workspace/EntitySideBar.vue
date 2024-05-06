@@ -17,6 +17,16 @@
         >
           Delete
         </v-chip>
+        <v-chip
+          :rounded="true"
+          class="me-2"
+          color="primary"
+          variant="tonal"
+          :prepend-icon="mdiNotePlus"
+          @click="emitAddNote"
+        >
+          Add Note
+        </v-chip>
         <template v-if="!isLoading && entityData">
           <template
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
@@ -109,7 +119,7 @@ import {
 	mdiCardBulletedOutline,
 	mdiChartBar,
 	mdiDelete,
-	mdiFileDownloadOutline,
+	mdiFileDownloadOutline, mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -141,7 +151,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addHeuristic', 'addNode', 'deleteEntity']);
+const emit = defineEmits(['addHeuristic', 'addNode', 'addNote', 'deleteEntity']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -315,6 +325,11 @@ async function downloadReport() {
 
 function emitDeleteEntity() {
 	emit('deleteEntity', props.identifier);
+	model.value = false;
+}
+
+function emitAddNote() {
+	emit('addNote', props.identifier);
 	model.value = false;
 }
 

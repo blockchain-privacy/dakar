@@ -12,6 +12,7 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -393,15 +394,25 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 	return frontEndNodes, nil
 }
 
+const noteUIDPrefix = "note_"
+
 // Generates a note uid using unix time. The note uid only has to be unique between the notes of a workspace.
 // Therefore it is fine to not use cryptographically secure functions.
 func generateNoteUID() string {
-	return "note_" + strconv.FormatInt(time.Now().Unix(), 10)
+	return noteUIDPrefix + strconv.FormatInt(time.Now().Unix(), 10)
 }
 
 // AddNote adds a note to a workspace
 func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
-	userUID string, noteText string, childUID string) ([]workspace.Node, error) {
+	userUID string, note workspace.Node) ([]workspace.Node, error) {
+	if len(note.Children) == 0 {
+		return nil, cliutil.NewStackErrorStr("note has no children")
+	}
+
+	if note.UID != "" && !strings.HasPrefix(note.UID, noteUIDPrefix) {
+		return nil, cliutil.NewStackErrorf("invalid note uid: %s", note.UID)
+	}
+
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -416,12 +427,19 @@ func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID strin
 		return nil, cliutil.NewStackErrorStr("trying to add note to an empty workspace")
 	}
 
-	if _, ok := nodeMap[childUID]; !ok {
+	if _, ok := nodeMap[note.Children[0]]; !ok {
 		// parent does not exist
-		return nil, cliutil.NewStackErrorf("trying to add note with non-existing parent %s", childUID)
+		return nil, cliutil.NewStackErrorf("trying to add note with non-existing parent %s", note.Children[0])
 	}
 
-	note := workspace.Node{UID: generateNoteUID(), Type: workspace.NodeTypeNote, Text: noteText, Children: []string{childUID}}
+	// if it is a new node generate a uid
+	if note.UID == "" {
+		note.UID = generateNoteUID()
+	}
+
+	note.Type = workspace.NodeTypeNote
+
+	// replace or add note
 	nodeMap[note.UID] = note
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
