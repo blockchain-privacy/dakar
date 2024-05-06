@@ -606,6 +606,7 @@ export default class NodeGraph {
 		iconGroup.attr('transform', `translate(${-groupWidth / 2},0)`);
 	}
 
+	// Draws nodes and notes
 	drawEntities(groupElement) {
 		// CircleGroup contains the node circle and loading circle
 		let entityGroup = groupElement.select('g');
@@ -640,12 +641,12 @@ export default class NodeGraph {
 				const nodeRect = this.getBBox();
 				d.bbHeight = nodeRect.height;
 				d.bbWidth = nodeRect.width;
-				d3Select(this).attr('y', -nodeRect.height / 2);
+				d3Select(this).attr('y', -nodeRect.height / 2 - 2);
 			});
 
 		entityGroup.append('rect')
 			.attr('class', 'note')
-			.attr('fill', 'rgb(var(--v-theme-background))')
+			.attr('fill', 'rgb(var(--v-theme-surface))')
 			.style('stroke-width', 1)
 			.style('stroke', 'currentColor')
 			.attr('rx', 3)
@@ -653,13 +654,13 @@ export default class NodeGraph {
 			.lower()
 			.each(function (d) {
 				const rectMargin = 10;
-				const width = d.bbWidth + rectMargin;
-				const height = d.bbHeight + rectMargin;
+				d.width = d.bbWidth + rectMargin;
+				d.height = d.bbHeight + rectMargin;
 				d3Select(this)
-					.attr('width', width)
-					.attr('height', height)
-					.attr('x', -width / 2)
-					.attr('y', -height / 2);
+					.attr('width', d.width)
+					.attr('height', d.height)
+					.attr('x', -d.width / 2)
+					.attr('y', -d.height / 2);
 
 				// Add marker to new nodes
 				if (d.fx !== undefined) {
@@ -669,10 +670,10 @@ export default class NodeGraph {
 				const thisElement = d3Select(this.parentNode);
 
 				const marker = thisElement.append('rect')
-					.attr('width', width * 2)
-					.attr('height', height * 2)
-					.attr('x', -width)
-					.attr('y', -height)
+					.attr('width', d.width * 2)
+					.attr('height', d.height * 2)
+					.attr('x', -d.width)
+					.attr('y', -d.height)
 					.attr('rx', 3)
 					.attr('ry', 3)
 					.attr('fill', 'rgba(255, 109, 0, 0.3)')
@@ -684,6 +685,45 @@ export default class NodeGraph {
 					.attr('x', 0)
 					.attr('y', 0)
 					.remove();
+			});
+
+		const self = this;
+		// Set event handlers
+		entityGroup
+			.on('contextmenu', function (e, d) {
+				if (!self.enableInteractions) {
+					return;
+				}
+
+				self.contextNodeData = d;
+				self.contextNodeSelection = this;
+
+				if (self.contextMenuCallback !== null) {
+					self.contextMenuCallback(e, d);
+				}
+			})
+			.on('mouseenter', function () {
+				if (!self.enableInteractions) {
+					return;
+				}
+
+				d3Select(this.parentNode).raise();
+				d3Select(this).select('.note').transition().duration(100)
+					.attr('width', d => d.width * 1.2)
+					.attr('height', d => d.height * 1.2)
+					.attr('x', d => -d.width * 1.2 / 2)
+					.attr('y', d => -d.height * 1.2 / 2);
+			})
+			.on('mouseleave', function () {
+				if (!self.enableInteractions) {
+					return;
+				}
+
+				d3Select(this).select('.note').transition().duration(100)
+					.attr('width', d => d.width)
+					.attr('height', d => d.height)
+					.attr('x', d => -d.width / 2)
+					.attr('y', d => -d.height / 2);
 			});
 	}
 
