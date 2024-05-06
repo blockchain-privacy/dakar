@@ -735,15 +735,16 @@ func (s *Server) handlerAddWorkspaceNode() http.Handler {
 
 // Add Note godoc
 //
-//	@Summary	Add a note to a workspace. 100 character limit.
-//	@Tags		workspace
-//	@Accept		json
-//	@Produce	json
-//	@Param		note	body		server.getAddWorkspaceNoteReply.request	true	"New note"
-//	@Success	200		{object}	server.addWorkspaceNoteReply
-//	@Failure	400		{object}	server.addWorkspaceNoteReply
-//	@Failure	500		{object}	server.addWorkspaceNoteReply
-//	@Router		/workspaces/note/ [post]
+//	@Summary		Add a note or update a note
+//	@Description	Add a new note (empty uid) to a workspace or update an existing one. 100 character limit for the note text.
+//	@Tags			workspace
+//	@Accept			json
+//	@Produce		json
+//	@Param			note	body		server.getAddWorkspaceNoteReply.request	true	"New note"
+//	@Success		200		{object}	server.addWorkspaceNoteReply
+//	@Failure		400		{object}	server.addWorkspaceNoteReply
+//	@Failure		500		{object}	server.addWorkspaceNoteReply
+//	@Router			/workspaces/note/ [post]
 func (s *Server) handlerAddWorkspaceNote() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddWorkspaceNoteReply(s.db, s.workspaceMutex, r)
