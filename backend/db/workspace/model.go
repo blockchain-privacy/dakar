@@ -12,6 +12,7 @@ const (
 	NodeTypeCluster     = "cluster"
 	NodeTypeTransaction = "transaction"
 	NodeTypeHeuristic   = "heuristic"
+	NodeTypeNote        = "note"
 )
 
 type Workspace struct {
@@ -197,6 +198,10 @@ type Node struct {
 	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
 	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
 	Timestamp           string   `json:"heuristicTs,omitempty"`
+
+	// note
+	Text string `json:"text,omitempty"`
+
 	// Loading is true if a new heuristic has been created, which is not yet finished executing
 	Loading *bool `json:"loading,omitempty"`
 }

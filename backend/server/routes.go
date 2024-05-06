@@ -27,6 +27,7 @@ const (
 	routeAttributionsSearch   string = "attributions/search"
 	routeWorkspaces           string = "workspaces"
 	routeAddWorkspaceNode     string = "workspaces/node"
+	routeAddWorkspaceNote     string = "workspaces/note"
 	routeWorkspacesConnection string = "workspaces/connection"
 	routeRenameWorkspace      string = "workspaces/rename"
 	routeMetrics              string = "/metrics"
@@ -202,6 +203,10 @@ func getRouteSpendingFingerprint() string {
 
 func getRouteWorkspaceAddNode() string {
 	return buildRoutePattern(httpPOST, routeAddWorkspaceNode, "")
+}
+
+func getRouteWorkspaceAddNote() string {
+	return buildRoutePattern(httpPOST, routeAddWorkspaceNote, "")
 }
 
 func getRouteWorkspaceDeleteNode() string {

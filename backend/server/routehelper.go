@@ -141,6 +141,9 @@ type spendingFingerprintReply struct {
 type addWorkspaceNodeReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
+type addWorkspaceNoteReply struct {
+	Nodes []workspace.Node `json:"nodes,omitempty"`
+}
 
 type deleteWorkspaceNodeReply struct {
 	DeletedNodeUIDs []string `json:"deletedNodeUIDs,omitempty"`

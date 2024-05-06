@@ -1784,6 +1784,46 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 	return
 }
 
+func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
+	r *http.Request) (reply addWorkspaceNoteReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		// the note text
+		Note string `json:"query"`
+		// the node to which the note is connected to
+		NodeUID      string `json:"nodeUID"`
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if req.WorkspaceUID == "" || req.Note == "" || req.NodeUID == "" || len(req.Note) > 100 {
+		status = http.StatusBadRequest
+		return
+	}
+
+	reply.Nodes, err = workspace.AddNote(dgraph, workspaceMutex, req.WorkspaceUID, tUser.ID, req.Note, req.NodeUID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
 func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply workspacesReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {

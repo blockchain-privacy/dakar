@@ -119,6 +119,17 @@
           :text-area="true"
           @submit="addNewNote"
         />
+        <text-dialog
+          v-if="showEditNoteDialogModel"
+          v-model="showEditNoteDialogModel"
+          title="Edit Note"
+          submit-label="OK"
+          input-label="Note content"
+          :input-value="editNoteDialogValue"
+          :maxlength="maxNoteLength"
+          :text-area="true"
+          @submit="changeNote"
+        />
         <v-menu
           v-model="contextMenuModel.display"
           :open-on-hover="false"
@@ -132,7 +143,7 @@
             >
               <v-divider v-if="item.isDivider" />
               <v-list-item
-                v-else
+                v-else-if="!item.show || item.show()"
                 :key="index"
                 :disabled="item.disabled && item.disabled()"
                 @click="item.action(item)"
@@ -160,7 +171,7 @@ import {
 	mdiCheckCircle,
 	mdiDelete,
 	mdiImageFilterCenterFocus,
-	mdiMagnify,
+	mdiMagnify, mdiNoteEdit,
 	mdiOpenInNew, mdiPlus,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
@@ -173,6 +184,7 @@ import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
+	WORKSPACE_NODE_TYPE_NOTE,
 } from '@/constants';
 import {getColorMap, handleError, isDestination} from '@/utilities';
 import {
@@ -233,6 +245,8 @@ const connectionData = ref({});
 const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
 const showAddNoteDialogModel = ref(false);
+const showEditNoteDialogModel = ref(false);
+const editNoteDialogValue = ref('');
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -273,6 +287,13 @@ const contextMenuModel = ref({
 			icon: mdiDelete,
 			action: removeGraphNode,
 			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
+		},
+		{
+			title: 'Edit',
+			icon: mdiNoteEdit,
+			show: () => isEditEnabled(nodeGraph.getContextNode()),
+			action: () => editNote(nodeGraph.getContextNode()),
+			disabled: () => false,
 		},
 	],
 });
@@ -382,6 +403,11 @@ async function removeGraphNode() {
 	}
 }
 
+function editNote(note) {
+	editNoteDialogValue.value = note.text;
+	showEditNoteDialogModel.value = true;
+}
+
 // Getlock prevents further actions causing an autosave event to occur,
 // and waits until the current autosave event is done.
 async function lockAutosave() {
@@ -393,6 +419,10 @@ async function lockAutosave() {
 		// eslint-disable-next-line no-await-in-loop
 		await sleep(200);
 	}
+}
+
+function isEditEnabled(contextNode) {
+	return contextNode?.type === WORKSPACE_NODE_TYPE_NOTE;
 }
 
 // Checks if a node can be deleted. If a heuristic or a node
@@ -459,6 +489,18 @@ async function handleGraphQuery(query) {
 	}
 
 	releaseAutosaveLock();
+}
+
+function changeNote(noteText) {
+	const trimmed = noteText.trim();
+	if (!trimmed) {
+		return;
+	}
+
+	const note = nodeGraph.getContextNode();
+	note.text = trimmed;
+
+	nodeGraph.editNote(note, true);
 }
 
 function addNewNote(noteText) {
@@ -569,8 +611,6 @@ async function checkWork(workID) {
 		if (response.nodes) {
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
-
-			// ReplaceTemporaryHeuristic(workID, response.heuristic);
 		} else {
 			addWork(workID);
 		}

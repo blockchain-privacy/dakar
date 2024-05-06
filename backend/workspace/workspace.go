@@ -12,6 +12,7 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"time"
 )
 
 const MaxWorkspaceNameLength = 50
@@ -386,6 +387,45 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
 
 	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
+		return nil, err
+	}
+
+	return frontEndNodes, nil
+}
+
+// Generates a note uid using unix time. The note uid only has to be unique between the notes of a workspace.
+// Therefore it is fine to not use cryptographically secure functions.
+func generateNoteUID() string {
+	return "note_" + strconv.FormatInt(time.Now().Unix(), 10)
+}
+
+// AddNote adds a note to a workspace
+func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+	userUID string, noteText string, childUID string) ([]workspace.Node, error) {
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
+
+	if len(nodeMap) == 0 {
+		return nil, cliutil.NewStackErrorStr("trying to add note to an empty workspace")
+	}
+
+	if _, ok := nodeMap[childUID]; !ok {
+		// parent does not exist
+		return nil, cliutil.NewStackErrorf("trying to add note with non-existing parent %s", childUID)
+	}
+
+	note := workspace.Node{UID: generateNoteUID(), Type: workspace.NodeTypeNote, Text: noteText, Children: []string{childUID}}
+	nodeMap[note.UID] = note
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
+
+	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, nil); err != nil {
 		return nil, err
 	}
 

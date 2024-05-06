@@ -479,6 +479,19 @@ export default class NodeGraph {
 		}
 	}
 
+	editNote(n, draw) {
+		if (!n.text) {
+			// Skip no text was provided
+			return;
+		}
+
+		this.nodeMap.set(n.uid, n);
+		this.changedData.set(n.uid, n);
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
 	// Creates a new note with the provided text.
 	// Set draw to false, if the graph should not be redrawn.
 	addNote(text, draw) {
