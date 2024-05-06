@@ -519,7 +519,7 @@ func isWorkspaceOutdated(dgraph external.Database,
 		return false, nil
 	}
 
-	var clusterUIDs []string
+	var clusterUIDs []string //nolint:prealloc
 	for _, n := range w.Nodes {
 		if n.Type != workspace.NodeTypeCluster {
 			continue
