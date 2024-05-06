@@ -296,6 +296,12 @@ export default class NodeGraph {
           cursor: pointer;
         }
 
+        .note {
+          stroke: currentColor;
+          stroke-width: 1;
+          fill: rgb(var(--v-theme-surface));
+        }
+
         .clicked {
           stroke: #B71C1C;
           stroke-width: 3;
@@ -625,9 +631,6 @@ export default class NodeGraph {
 
 		entityGroup.append('rect')
 			.attr('class', 'note')
-			.attr('fill', 'rgb(var(--v-theme-surface))')
-			.style('stroke-width', 1)
-			.style('stroke', 'currentColor')
 			.attr('rx', 3)
 			.attr('ry', 3)
 			.lower()
@@ -1071,7 +1074,7 @@ export default class NodeGraph {
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
 
-		this.lasso.items(node.selectAll('.node'));
+		this.lasso.items(node.selectAll('.node,.note'));
 
 		this.changedData.clear();
 	}
