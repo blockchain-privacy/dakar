@@ -27,6 +27,7 @@
         >
           Add Note
         </v-chip>
+        <add-nodes-chip @click="emitAddNodes" />
         <template v-if="!isLoading && entityData">
           <template
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
@@ -119,7 +120,8 @@ import {
 	mdiCardBulletedOutline,
 	mdiChartBar,
 	mdiDelete,
-	mdiFileDownloadOutline, mdiNotePlus,
+	mdiFileDownloadOutline,
+	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -143,6 +145,8 @@ import {
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
+import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -151,13 +155,14 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addHeuristic', 'addNode', 'addNote', 'deleteEntity']);
+const emit = defineEmits(['addHeuristic', 'addNode', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
+const workspaceStore = useWorkspaceStore();
 
 const isLoading = ref(true);
 const entityData = ref();
@@ -181,6 +186,7 @@ const title = computed(() => {
 // Hooks
 onUpdated(async () => {
 	if (props.identifier && props.identifier !== oldIdentifier) {
+		workspaceStore.workspaceNodes.clear();
 		isLoading.value = true;
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
@@ -330,6 +336,11 @@ function emitDeleteEntity() {
 
 function emitAddNote() {
 	emit('addNote', props.identifier);
+	model.value = false;
+}
+
+function emitAddNodes(nodes) {
+	emit('addNodes', nodes);
 	model.value = false;
 }
 
