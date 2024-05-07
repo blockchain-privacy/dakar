@@ -191,7 +191,7 @@ import {
 } from '@mdi/js';
 import {COIN_UNIT, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
+	convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
