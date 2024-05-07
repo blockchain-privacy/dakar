@@ -132,19 +132,23 @@
                 <template #item.input_transaction="{ item }">
                   <store-link
                     v-if="item.input_transaction"
+                    style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.input_transaction }}"
+                    class="shorten"
                   >
-                    {{ shortenHash(item.input_transaction) }}
+                    {{ item.input_transaction }}
                   </store-link>
                 </template>
                 <template #item.output_transaction="{ item }">
                   <store-link
                     v-if="item.output_transaction"
+                    style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.output_transaction }}"
+                    class="shorten"
                   >
-                    {{ shortenHash(item.output_transaction) }}
+                    {{ item.output_transaction }}
                   </store-link>
                 </template>
                 <template #item.input_ts="{ item }">

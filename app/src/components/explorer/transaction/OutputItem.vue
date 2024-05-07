@@ -26,7 +26,7 @@
           <div
             class="d-flex justify-space-between align-center"
           >
-            <div class="text-caption">
+            <div class="text-caption d-flex align-center">
               <store-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
                 <span>{{ isInput ? 'created' : 'spent' }}</span>
               </store-link>
