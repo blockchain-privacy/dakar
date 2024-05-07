@@ -138,7 +138,7 @@ type spendingFingerprintReply struct {
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores"`
 }
 
-type addWorkspaceNodeReply struct {
+type addWorkspaceNodesReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 type addWorkspaceNoteReply struct {

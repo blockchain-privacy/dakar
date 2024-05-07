@@ -714,20 +714,20 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 	})
 }
 
-// Add Node godoc
+// Add Nodes godoc
 //
-//	@Summary	Add a node to a workspace. This will also add connections between existing nodes.
+//	@Summary	Add nodes to a workspace. This will also refresh connections between existing nodes.
 //	@Tags		workspace
 //	@Accept		json
 //	@Produce	json
-//	@Param		query	body		server.getAddWorkspaceNodeReply.request	true	"Search query"
-//	@Success	200		{object}	server.addWorkspaceNodeReply
-//	@Failure	400		{object}	server.addWorkspaceNodeReply
-//	@Failure	500		{object}	server.addWorkspaceNodeReply
-//	@Router		/workspaces/node/ [post]
-func (s *Server) handlerAddWorkspaceNode() http.Handler {
+//	@Param		query	body		server.getAddWorkspaceNodesReply.request	true	"Search query"
+//	@Success	200		{object}	server.addWorkspaceNodesReply
+//	@Failure	400		{object}	server.addWorkspaceNodesReply
+//	@Failure	500		{object}	server.addWorkspaceNodesReply
+//	@Router		/workspaces/nodes/ [post]
+func (s *Server) handlerAddWorkspaceNodes() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceNodeReply(s.db, s.workspaceMutex, s.worker, r)
+		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, s.worker, r)
 
 		sendReply(w, reply, status)
 	})
@@ -1019,8 +1019,8 @@ func (s *Server) setupHandlers() {
 	// Workspace
 	s.handler.Handle(getRouteRenameWorkspace(),
 		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteWorkspaceAddNode(),
-		adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteWorkspaceAddNodes(),
+		adapt(s.handlerAddWorkspaceNodes(), getRouteWorkspaceAddNodes(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaceAddNote(),
 		adapt(s.handlerAddWorkspaceNote(), getRouteWorkspaceAddNote(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaceDeleteNode(),

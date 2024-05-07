@@ -26,6 +26,7 @@ const (
 	routeAttributionsPublic   string = "attributions/public"
 	routeAttributionsSearch   string = "attributions/search"
 	routeWorkspaces           string = "workspaces"
+	routeAddWorkspaceNodes    string = "workspaces/nodes"
 	routeAddWorkspaceNode     string = "workspaces/node"
 	routeAddWorkspaceNote     string = "workspaces/note"
 	routeWorkspacesConnection string = "workspaces/connection"
@@ -201,8 +202,8 @@ func getRouteSpendingFingerprint() string {
 	return buildRoutePattern(httpGET, routeSpendingFingerprint, "hash")
 }
 
-func getRouteWorkspaceAddNode() string {
-	return buildRoutePattern(httpPOST, routeAddWorkspaceNode, "")
+func getRouteWorkspaceAddNodes() string {
+	return buildRoutePattern(httpPOST, routeAddWorkspaceNodes, "")
 }
 
 func getRouteWorkspaceAddNote() string {

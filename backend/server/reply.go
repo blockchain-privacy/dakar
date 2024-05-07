@@ -1735,8 +1735,8 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 	return
 }
 
-func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
-	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
+func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
+	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodesReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1745,8 +1745,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 	}
 
 	type request struct {
-		Query        string `json:"query"`
-		WorkspaceUID string `json:"workspaceUID"`
+		Queries      []string `json:"queries"`
+		WorkspaceUID string   `json:"workspaceUID"`
 	}
 
 	var searchRequest request
@@ -1757,24 +1757,34 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	if searchRequest.WorkspaceUID == "" || !isValid(searchRequest.Query) {
+	if searchRequest.WorkspaceUID == "" || len(searchRequest.Queries) == 0 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	newNode, err := dbwork.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err, "query", searchRequest)
-		return
+	for _, query := range searchRequest.Queries {
+		if !isValid(query) {
+			status = http.StatusBadRequest
+			return
+		}
 	}
 
-	if newNode == nil {
-		status = http.StatusBadRequest
-		return
+	newNodes := make([]*dbwork.Node, len(searchRequest.Queries))
+	for i, query := range searchRequest.Queries {
+		newNodes[i], err = dbwork.SearchForNode(dgraph, query, tUser.ID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err, "query", searchRequest)
+			return
+		}
+
+		if newNodes[i] == nil {
+			status = http.StatusBadRequest
+			return
+		}
 	}
 
-	reply.Nodes, err = workspace.AddNode(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID, tUser.ID, newNode)
+	reply.Nodes, err = workspace.AddNodes(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID, tUser.ID, newNodes)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

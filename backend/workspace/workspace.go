@@ -347,9 +347,9 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 	return deletedNodes, nil
 }
 
-// AddNode adds a node to a workspace and refreshes the connections between all nodes.
-func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
-	userUID string, newNode *workspace.Node) ([]workspace.Node, error) {
+// AddNodes adds a node to a workspace and refreshes the connections between all nodes.
+func AddNodes(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
+	userUID string, newNodes []*workspace.Node) ([]workspace.Node, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -362,8 +362,8 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
-	if len(nodeMap) == 0 && !newNode.IsDestination() {
-		frontEndNodes := []workspace.Node{*newNode}
+	if len(nodeMap) == 0 && len(newNodes) == 1 && !newNodes[0].IsDestination() {
+		frontEndNodes := []workspace.Node{*newNodes[0]}
 		if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 			frontEndNodes, w.ClusterHeight); err != nil {
 			return nil, err
@@ -372,12 +372,24 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return frontEndNodes, nil
 	}
 
-	if _, ok := nodeMap[newNode.UID]; ok {
-		// new node is already in current state, therefore there is nothing to do
+	// check if all new nodes already exist in the workspace
+	receivedNewNode := false
+	for _, newNode := range newNodes {
+		if _, ok := nodeMap[newNode.UID]; !ok {
+			receivedNewNode = true
+			break
+		}
+	}
+
+	if !receivedNewNode {
+		// all new nodes are already in current state, therefore there is nothing to do
 		return nil, nil
 	}
 
-	nodeMap[newNode.UID] = *newNode
+	for _, newNode := range newNodes {
+		nodeMap[newNode.UID] = *newNode
+	}
+
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
 	if err != nil {
 		return nil, err
