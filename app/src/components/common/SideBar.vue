@@ -6,34 +6,40 @@
       elevation="4"
       :style="`max-width:min(${maxWidth}, 100vw); min-width:${minWidth}`"
     >
-      <v-card-title class="d-flex align-center py-0 mb-1">
-        <v-icon class="me-2">
-          {{ icon }}
-        </v-icon>
-        <span class="shorten"> {{ title }}</span>
-        <div class="ms-auto">
-          <slot
-            v-if="titleOneLine"
-            name="actions"
-          />
-          <v-btn
-            :icon="true"
-            variant="text"
-            color="grey"
-            @click="model = false"
-          >
-            <v-icon :icon="mdiCloseCircle" />
-          </v-btn>
-        </div>
-      </v-card-title>
-      <v-card-title
-        v-if="!titleOneLine"
-        class="d-flex align-center justify-start mb-1 pt-0"
-        style="margin-top: -5px"
+      <!-- need z-index so slot is not above sticky header -->
+      <div
+        class="position-sticky top-0"
+        style="z-index: 10; background-color: rgb(var(--v-theme-surface))"
       >
-        <slot name="actions" />
-      </v-card-title>
-      <v-divider />
+        <v-card-title class="d-flex align-center py-0 mb-1">
+          <v-icon class="me-2">
+            {{ icon }}
+          </v-icon>
+          <span class="shorten"> {{ title }}</span>
+          <div class="ms-auto">
+            <slot
+              v-if="titleOneLine"
+              name="actions"
+            />
+            <v-btn
+              :icon="true"
+              variant="text"
+              color="grey"
+              @click="model = false"
+            >
+              <v-icon :icon="mdiCloseCircle" />
+            </v-btn>
+          </div>
+        </v-card-title>
+        <v-card-title
+          v-if="!titleOneLine"
+          class="d-flex align-center justify-start mb-1 pt-0"
+          style="margin-top: -5px"
+        >
+          <slot name="actions" />
+        </v-card-title>
+        <v-divider />
+      </div>
       <slot name="body" />
     </v-sheet>
   </v-slide-x-reverse-transition>
