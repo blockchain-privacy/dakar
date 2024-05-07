@@ -5,6 +5,9 @@
     :icon="mdiArrowLeftRight"
     max-width="648px"
   >
+    <template #actions>
+      <add-nodes-chip @add-nodes="emitAddNodes" />
+    </template>
     <template #body>
       <v-card flat>
         <v-card-text>
@@ -108,15 +111,20 @@ import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import StoreLink from '@/components/common/StoreLink.vue';
+import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
 	workspaceUid: {type: String, required: true},
 });
 
+const emit = defineEmits(['addNodes']);
+
 const model = defineModel({type: Boolean});
 const route = useRoute();
 const msgStore = useMsgStore();
+const workspaceStore = useWorkspaceStore();
 const dakar = inject('dakar');
 
 let oldConnection = null;
@@ -147,6 +155,7 @@ const headers = [
 // eslint-disable-next-line complexity
 onUpdated(async () => {
 	if (props.connection?.target?.uid && props.connection.source?.uid) {
+		workspaceStore.workspaceNodes.clear();
 		const sourceUID = props.connection.source.uid;
 		const targetUID = props.connection.target.uid;
 
@@ -279,6 +288,11 @@ async function getTransactionData() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
+}
+
+function emitAddNodes(nodes) {
+	emit('addNodes', nodes);
+	model.value = false;
 }
 
 </script>

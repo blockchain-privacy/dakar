@@ -3,12 +3,19 @@
     v-if="querySelectionCount"
     :rounded="true"
     class="me-2"
-    color="green"
+    color="primary"
     variant="tonal"
     :prepend-icon="mdiPlus"
     @click="emitAddNodes"
   >
-    Add {{ querySelectionCount }} {{ plural('element',querySelectionCount) }}
+    <div class="d-flex align-center">
+      Add  {{ plural('element',querySelectionCount) }}
+      <v-badge
+        inline
+        color="primary"
+        :content="querySelectionCount"
+      />
+    </div>
   </v-chip>
 </template>
 <script setup>

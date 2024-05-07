@@ -95,13 +95,15 @@
           :disable-adding-nodes="isModifyingWorkspace"
           @add-heuristic="openTypeSelectionSheet"
           @add-node="handleGraphQuery"
-          @delete-entity="removeGraphNode"
           @add-note="showAddNoteDialog"
+          @add-nodes="addMultipleNodes"
+          @delete-entity="removeGraphNode"
         />
         <connection-side-bar
           v-model="isConnectionSideBarOpen"
           :connection="connectionData"
           :workspace-uid="workspaceUID"
+          @add-nodes="addMultipleNodes"
         />
         <routing-dialog
           v-model="showRouteGuardDialogModel"
@@ -476,6 +478,10 @@ async function handleGraphQuery(query) {
 	}
 
 	releaseAutosaveLock();
+}
+
+function addMultipleNodes(nodes) {
+	console.log(nodes);
 }
 
 async function changeNote(noteText) {

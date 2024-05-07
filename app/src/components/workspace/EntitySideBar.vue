@@ -27,7 +27,7 @@
         >
           Add Note
         </v-chip>
-        <add-nodes-chip @click="emitAddNodes" />
+        <add-nodes-chip @add-nodes="emitAddNodes" />
         <template v-if="!isLoading && entityData">
           <template
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
