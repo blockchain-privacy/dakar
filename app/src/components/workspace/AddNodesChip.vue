@@ -1,5 +1,6 @@
 <template>
   <v-chip
+    v-if="showSelectAllTransactions"
     :rounded="true"
     class="me-2"
     color="primary"
@@ -10,6 +11,7 @@
     {{ transactionLabel }}
   </v-chip>
   <v-chip
+    v-if="showSelectAllAddresses"
     :rounded="true"
     class="me-2"
     color="primary"
@@ -62,6 +64,8 @@ const workspaceStore = useWorkspaceStore();
 
 defineProps({
 	disabled: {type: Boolean, required: false, default: false},
+	showSelectAllTransactions: {type: Boolean, required: false, default: true},
+	showSelectAllAddresses: {type: Boolean, required: false, default: true},
 });
 
 const transactionLabel = computed(() => transactionCount.value ? 'Deselect all Transactions' : 'Select all Transactions');

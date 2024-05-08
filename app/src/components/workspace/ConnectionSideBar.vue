@@ -9,6 +9,8 @@
     <template #actions>
       <add-nodes-chip
         :disabled="disableAddingNodes"
+        :show-select-all-addresses="showSelectAddresses"
+        :show-select-all-transactions="showSelectTransactions"
         @add-nodes="emitAddNodes"
         @select-all-addresses="selectAllAddresses"
         @deselect-all-addresses="deselectAllAddresses"
@@ -148,6 +150,8 @@ const showEmptyText = ref(false);
 const identitiesSortBy = ref([{key: 'ts', order: 'desc'}]);
 const filteredHeaders = ref([]);
 const showOnlyHiglightedOutputs = ref(false);
+const showSelectAddresses = ref(true);
+const showSelectTransactions = ref(true);
 
 const headers = [
 	{
@@ -269,6 +273,9 @@ async function getConnectionData() {
 				return d;
 			});
 
+			showSelectTransactions.value = true;
+			showSelectAddresses.value = false;
+
 			if (hasPrivacyType) {
 				filteredHeaders.value = headers;
 			} else {
@@ -298,6 +305,9 @@ function addTransactionEntitiesToSet(transactions) {
 			selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
 		}
 	}
+
+	showSelectTransactions.value = true;
+	showSelectAddresses.value = true;
 }
 
 async function getTransactionData() {
