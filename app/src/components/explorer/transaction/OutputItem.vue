@@ -7,7 +7,7 @@
     <v-card-text style="min-height: 90px">
       <v-row>
         <v-col>
-          <div class="d-flex justify-space-between">
+          <div class="d-flex justify-space-between align-center">
             <store-link
               v-if="addressHash"
               :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
