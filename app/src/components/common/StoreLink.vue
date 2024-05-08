@@ -32,7 +32,7 @@ import {RouterLink} from 'vue-router';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import '@/assets/main.css';
 import {
-	computed, ref, watch,
+	computed, onMounted, ref, watch,
 } from 'vue';
 
 defineOptions({
@@ -62,6 +62,12 @@ watch(
 	},
 	{deep: true}, // Deep watch necessary for Set
 );
+
+// Hooks
+
+onMounted(() => {
+	checkBoxModel.value = workspaceStore.workspaceNodes.has(props.to.params.id);
+});
 
 // Functions
 function onLinkClick(e, navigate) {
