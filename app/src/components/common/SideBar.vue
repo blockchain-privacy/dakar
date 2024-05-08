@@ -36,14 +36,18 @@
           class="d-flex align-center justify-start mb-1 pt-0"
           style="margin-top: -5px"
         >
-          <slot name="actions" />
+          <div class="overflow-auto">
+            <slot name="actions" />
+          </div>
         </v-card-title>
         <v-card-title
           v-if="slots.secondaryActions"
           class="d-flex align-center justify-start mb-1 pt-0"
           style="margin-top: -5px"
         >
-          <slot name="secondaryActions" />
+          <div class="overflow-auto">
+            <slot name="secondaryActions" />
+          </div>
         </v-card-title>
         <v-divider />
       </div>

@@ -7,70 +7,68 @@
     :title-one-line="false"
   >
     <template #actions>
-      <div class="overflow-auto">
-        <v-chip
-          :rounded="true"
-          class="me-2"
-          variant="tonal"
-          :prepend-icon="mdiDelete"
-          @click="emitDeleteEntity"
+      <v-chip
+        :rounded="true"
+        class="me-2"
+        variant="tonal"
+        :prepend-icon="mdiDelete"
+        @click="emitDeleteEntity"
+      >
+        Delete
+      </v-chip>
+      <v-chip
+        :rounded="true"
+        class="me-2"
+        color="primary"
+        variant="tonal"
+        :prepend-icon="mdiNotePlus"
+        :disabled="disableAddingNodes || auxiliaryData?.loading"
+        @click="emitAddNote"
+      >
+        Add Note
+      </v-chip>
+      <template v-if="!isLoading && entityData">
+        <template
+          v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
+            (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
         >
-          Delete
-        </v-chip>
-        <v-chip
-          :rounded="true"
-          class="me-2"
-          color="primary"
-          variant="tonal"
-          :prepend-icon="mdiNotePlus"
-          :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @click="emitAddNote"
-        >
-          Add Note
-        </v-chip>
-        <template v-if="!isLoading && entityData">
-          <template
-            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
-              (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
-          >
-            <v-chip
-              v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
-              :rounded="true"
-              color="primary"
-              variant="tonal"
-              class="me-2"
-              :prepend-icon="mdiShapeCirclePlus"
-              :disabled="disableAddingNodes || auxiliaryData?.loading"
-              @click="handleAddHeuristicClick"
-            >
-              Add Heuristic
-            </v-chip>
-          </template>
-          <fingerprint-chip
-            v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
-            :transaction-hash="identifier"
-            class="me-2"
-          />
-          <privacy-chip
-            v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION&& entityData[0]?.privacytype >= 0"
-            :privacy-type="entityData[0].privacytype"
-          />
-          <exclusion-chip
-            v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
-            :address-hash="entityData.addresshash"
-          />
           <v-chip
-            v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
+            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
             :rounded="true"
             color="primary"
             variant="tonal"
-            :prepend-icon="mdiFileDownloadOutline"
-            @click="downloadReport"
+            class="me-2"
+            :prepend-icon="mdiShapeCirclePlus"
+            :disabled="disableAddingNodes || auxiliaryData?.loading"
+            @click="handleAddHeuristicClick"
           >
-            Download
+            Add Heuristic
           </v-chip>
         </template>
-      </div>
+        <fingerprint-chip
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
+          :transaction-hash="identifier"
+          class="me-2"
+        />
+        <privacy-chip
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION&& entityData[0]?.privacytype >= 0"
+          :privacy-type="entityData[0].privacytype"
+        />
+        <exclusion-chip
+          v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
+          :address-hash="entityData.addresshash"
+        />
+        <v-chip
+          v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
+          :rounded="true"
+          color="primary"
+          variant="tonal"
+          :prepend-icon="mdiFileDownloadOutline"
+          @click="downloadReport"
+        >
+          Download
+        </v-chip>
+      </template>
     </template>
     <template #secondaryActions>
       <add-nodes-chip
