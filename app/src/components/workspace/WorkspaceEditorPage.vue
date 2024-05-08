@@ -103,6 +103,7 @@
           v-model="isConnectionSideBarOpen"
           :connection="connectionData"
           :workspace-uid="workspaceUID"
+          :disable-adding-nodes="isModifyingWorkspace"
           @add-nodes="addMultipleNodes"
         />
         <routing-dialog
@@ -446,24 +447,18 @@ function releaseAutosaveLock() {
 	nodeGraph.setEnableInteractions(true);
 }
 
-async function handleGraphQuery(query) {
+// Receives a node array
+async function addMultipleNodes(nodes) {
 	if (isModifyingWorkspace.value) {
 		return;
 	}
 
-	const trimmedQuery = query.trim();
-	if (!trimmedQuery) {
-		return;
-	}
-
-	graphQuery.value = '';
-
 	await lockAutosave();
 
 	try {
-		const response = await dakar.workspace.workspacesNodePost({
+		const response = await dakar.workspace.workspacesNodesPost({
 			query: {
-				query: trimmedQuery,
+				queries: nodes,
 				workspaceUID: workspaceUID.value,
 			},
 		});
@@ -480,8 +475,19 @@ async function handleGraphQuery(query) {
 	releaseAutosaveLock();
 }
 
-function addMultipleNodes(nodes) {
-	console.log(nodes);
+async function handleGraphQuery(query) {
+	if (isModifyingWorkspace.value) {
+		return;
+	}
+
+	const trimmedQuery = query.trim();
+	if (!trimmedQuery) {
+		return;
+	}
+
+	graphQuery.value = '';
+
+	await addMultipleNodes([trimmedQuery]);
 }
 
 async function changeNote(noteText) {

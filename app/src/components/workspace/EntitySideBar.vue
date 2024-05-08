@@ -23,11 +23,15 @@
           color="primary"
           variant="tonal"
           :prepend-icon="mdiNotePlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="emitAddNote"
         >
           Add Note
         </v-chip>
-        <add-nodes-chip @add-nodes="emitAddNodes" />
+        <add-nodes-chip
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @add-nodes="emitAddNodes"
+        />
         <template v-if="!isLoading && entityData">
           <template
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||

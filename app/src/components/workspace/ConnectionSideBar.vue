@@ -6,7 +6,10 @@
     max-width="648px"
   >
     <template #actions>
-      <add-nodes-chip @add-nodes="emitAddNodes" />
+      <add-nodes-chip
+        :disabled="disableAddingNodes"
+        @add-nodes="emitAddNodes"
+      />
     </template>
     <template #body>
       <v-card flat>
@@ -117,6 +120,7 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 const props = defineProps({
 	connection: {type: Object, required: true},
 	workspaceUid: {type: String, required: true},
+	disableAddingNodes: {type: Boolean, required: true},
 });
 
 const emit = defineEmits(['addNodes']);
@@ -155,7 +159,6 @@ const headers = [
 // eslint-disable-next-line complexity
 onUpdated(async () => {
 	if (props.connection?.target?.uid && props.connection.source?.uid) {
-		workspaceStore.workspaceNodes.clear();
 		const sourceUID = props.connection.source.uid;
 		const targetUID = props.connection.target.uid;
 
@@ -163,6 +166,7 @@ onUpdated(async () => {
 			return;
 		}
 
+		workspaceStore.workspaceNodes.clear();
 		showOnlyHiglightedOutputs.value = false;
 		showEmptyText.value = false;
 		oldConnection = props.connection;

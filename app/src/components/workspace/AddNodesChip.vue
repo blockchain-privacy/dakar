@@ -6,6 +6,7 @@
     color="primary"
     variant="tonal"
     :prepend-icon="mdiPlus"
+    :disabled="disabled"
     @click="emitAddNodes"
   >
     <div class="d-flex align-center">
@@ -27,6 +28,10 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 const querySelectionCount = ref(0);
 const emit = defineEmits(['addNodes']);
 const workspaceStore = useWorkspaceStore();
+
+defineProps({
+	disabled: {type: Boolean, required: false, default: false},
+});
 
 watch(
 	() => workspaceStore.workspaceNodes,
