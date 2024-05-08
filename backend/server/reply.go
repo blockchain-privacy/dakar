@@ -1769,22 +1769,25 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 		}
 	}
 
-	newNodes := make([]*dbwork.Node, len(searchRequest.Queries))
-	for i, query := range searchRequest.Queries {
-		newNodes[i], err = dbwork.SearchForNode(dgraph, query, tUser.ID)
+	newNodes := map[string]*dbwork.Node{}
+	for _, query := range searchRequest.Queries {
+		newNode, err := dbwork.SearchForNode(dgraph, query, tUser.ID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err, "query", searchRequest)
 			return
 		}
 
-		if newNodes[i] == nil {
+		if newNode == nil {
 			status = http.StatusBadRequest
 			return
 		}
+
+		newNodes[newNode.UID] = newNode
 	}
 
-	reply.Nodes, err = workspace.AddNodes(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID, tUser.ID, newNodes)
+	reply.Nodes, err = workspace.AddNodes(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID,
+		tUser.ID, cliutil.GetMapValues(newNodes))
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
