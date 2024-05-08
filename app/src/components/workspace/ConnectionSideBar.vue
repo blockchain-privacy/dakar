@@ -37,10 +37,11 @@
               >
                 <template #item.txhash="{ item }">
                   <store-link
+                    style="max-width:200px"
+                    class="shorten"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
-                    target="_blank"
                   >
-                    <span class="shorten">{{ item.txhash }}</span>
+                    {{ item.txhash }}
                   </store-link>
                 </template>
                 <template #item.privacytype="{ item }">

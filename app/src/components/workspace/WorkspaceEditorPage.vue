@@ -106,12 +106,6 @@
           :disable-adding-nodes="isModifyingWorkspace"
           @add-nodes="addMultipleNodes"
         />
-        <routing-dialog
-          v-model="showRouteGuardDialogModel"
-          :to="routeGuardTo"
-          :disable-adding-nodes="isModifyingWorkspace"
-          @add-node="handleGraphQuery"
-        />
         <text-dialog
           v-if="showAddNoteDialogModel"
           v-model="showAddNoteDialogModel"
@@ -203,7 +197,6 @@ import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
 import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
-import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 
 const dakar = inject('dakar');
@@ -247,8 +240,6 @@ const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
 const connectionData = ref({});
-const showRouteGuardDialogModel = ref(false);
-const routeGuardTo = ref({});
 const showAddNoteDialogModel = ref(false);
 const showEditNoteDialogModel = ref(false);
 const editNoteDialogValue = ref('');
@@ -331,14 +322,6 @@ watch(isConnectionSideBarOpen, newVal => {
 		nodeGraph.resetLasso();
 	}
 });
-
-watch(
-	() => workspaceStore.workspaceNode,
-	newVal => {
-		routeGuardTo.value = newVal.to;
-		showRouteGuardDialogModel.value = true;
-	},
-);
 
 // Hooks
 function onDocumentClose() {

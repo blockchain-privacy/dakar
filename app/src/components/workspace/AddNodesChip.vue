@@ -28,6 +28,8 @@
       variant="tonal"
       :prepend-icon="mdiPlus"
       :disabled="disabled"
+      closable
+      @click:close="deselectAllNodes"
       @click="emitAddNodes"
     >
       <div class="d-flex align-center">
@@ -62,7 +64,7 @@ defineProps({
 	disabled: {type: Boolean, required: false, default: false},
 });
 
-const transactionLabel = computed(() => transactionCount.value ? 'Deselect all Transactions' : 'Select all Transctions');
+const transactionLabel = computed(() => transactionCount.value ? 'Deselect all Transactions' : 'Select all Transactions');
 const addressLabel = computed(() => addressCount.value ? 'Deselect all Addresses' : 'Select all Addresses');
 
 watch(
@@ -105,6 +107,11 @@ function emitSelectAllAddresses() {
 	} else {
 		emit('selectAllAddresses');
 	}
+}
+
+function deselectAllNodes(e) {
+	e.stopPropagation();
+	workspaceStore.workspaceNodes.clear();
 }
 
 </script>

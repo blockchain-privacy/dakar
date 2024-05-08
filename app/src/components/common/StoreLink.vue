@@ -9,19 +9,12 @@
       @update:model-value="checkBoxChanged"
     />
     <router-link
-      v-slot="{href, navigate}"
-      custom
-      v-bind="$props"
       :class="$attrs.class"
       :style="$attrs.style"
+      :to="to"
+      :target="isWorkspaceMode?'_blank':undefined"
     >
-      <a
-        :href="href"
-        v-bind="$attrs"
-        @click="onLinkClick($event, navigate)"
-      >
-        <slot />
-      </a>
+      <slot />
     </router-link>
   </div>
 </template>
@@ -72,16 +65,6 @@ onMounted(() => {
 });
 
 // Functions
-function onLinkClick(e, navigate) {
-	if (isWorkspaceMode.value) {
-		e.preventDefault();
-		workspaceStore.setWorkspaceNode({to: props.to, id: props.to.params.id});
-		return;
-	}
-
-	navigate(e);
-}
-
 function checkBoxChanged(val) {
 	if (isWorkspaceMode.value) {
 		if (val) {
