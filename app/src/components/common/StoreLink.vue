@@ -27,7 +27,9 @@
 </template>
 
 <script setup>
-import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {
+	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION, WORKSPACE_NODE_TYPE_CLUSTER,
+} from '@/constants/index.js';
 import {RouterLink} from 'vue-router';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import '@/assets/main.css';
@@ -83,9 +85,14 @@ function onLinkClick(e, navigate) {
 function checkBoxChanged(val) {
 	if (isWorkspaceMode.value) {
 		if (val) {
-			workspaceStore.addNodeToSet(props.to.params.id);
+			let type = WORKSPACE_NODE_TYPE_TRANSACTION;
+			if (props.to.name === ROUTE_NAME_ADDRESS_PAGE) {
+				type = WORKSPACE_NODE_TYPE_CLUSTER;
+			}
+
+			workspaceStore.addNodeToMap({id: props.to.params.id, type});
 		} else {
-			workspaceStore.removeNodeFromSet(props.to.params.id);
+			workspaceStore.removeNodeFromMap(props.to.params.id);
 		}
 	}
 }

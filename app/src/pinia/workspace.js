@@ -5,7 +5,7 @@ export const useWorkspaceStore = defineStore('workspace', {
 		// If the workspace is loaded, this variable is being watched. When the value changes the item is loaded into the workspace.
 		workspaceNode: null,
 		// If the workspace is loaded, this variable is being watched. Holds all node IDs which can be loaded into the workspace.
-		workspaceNodes: new Set(),
+		workspaceNodes: new Map(),
 		// Is set to true as soon as the workspace component is mounted and set to false when it is unmounted
 		isWorkspaceActive: false,
 	}),
@@ -19,11 +19,19 @@ export const useWorkspaceStore = defineStore('workspace', {
 		setWorkspaceActive(active) {
 			this.isWorkspaceActive = active;
 		},
-		addNodeToSet(payload) {
-			this.workspaceNodes.add(payload);
+		addNodeToMap(payload) {
+			this.workspaceNodes.set(payload.id, payload);
 		},
-		removeNodeFromSet(payload) {
+		// Expects an array
+		setWorkspaceNodes(payload) {
+			payload.forEach(d => this.workspaceNodes.set(d.id, d));
+		},
+		removeNodeFromMap(payload) {
 			this.workspaceNodes.delete(payload);
+		},
+		// Expects an array
+		removeNodesFromSet(payload) {
+			payload.forEach(d => this.workspaceNodes.delete(d));
 		},
 	},
 });

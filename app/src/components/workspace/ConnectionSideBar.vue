@@ -4,11 +4,16 @@
     :title="title"
     :icon="mdiArrowLeftRight"
     max-width="648px"
+    :title-one-line="false"
   >
     <template #actions>
       <add-nodes-chip
         :disabled="disableAddingNodes"
         @add-nodes="emitAddNodes"
+        @select-all-addresses="selectAllAddresses"
+        @deselect-all-addresses="deselectAllAddresses"
+        @select-all-transactions="selectAllTransactions"
+        @deselect-all-transactions="deselectAllTransactions"
       />
     </template>
     <template #body>
@@ -154,6 +159,9 @@ const headers = [
 	{title: 'Output Amount', key: 'outputAmount'},
 ];
 
+// Holds all transactions which can be selected and added to the workspace
+const selectableEntities = new Map();
+
 // Hooks
 
 // eslint-disable-next-line complexity
@@ -167,6 +175,7 @@ onUpdated(async () => {
 		}
 
 		workspaceStore.workspaceNodes.clear();
+		selectableEntities.clear();
 		showOnlyHiglightedOutputs.value = false;
 		showEmptyText.value = false;
 		oldConnection = props.connection;
@@ -250,6 +259,7 @@ async function getConnectionData() {
 		if (response.amountTransactions) {
 			let hasPrivacyType = false;
 			transactionList.value = response.amountTransactions.map(d => {
+				selectableEntities.set(d.txhash, {id: d.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
 				if (d.privacytype !== undefined) {
 					hasPrivacyType = true;
 				}
@@ -266,11 +276,26 @@ async function getConnectionData() {
 			}
 		} else if (response.frontendTransactions) {
 			transactions.value = response.frontendTransactions;
+			addTransactionEntitiesToSet(response.frontendTransactions);
 		} else {
 			transactionList.value = [];
 		}
 	} catch (e) {
 		setErrorMessage(e);
+	}
+}
+
+function addTransactionEntitiesToSet(transactions) {
+	for (const t of transactions) {
+		for (const input of t.inputs) {
+			selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+		}
+
+		for (const output of t.outputs) {
+			selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+		}
 	}
 }
 
@@ -288,10 +313,33 @@ async function getTransactionData() {
 
 		if (response.transactions) {
 			transactions.value = response.transactions;
+			addTransactionEntitiesToSet(response.transactions);
 		}
 	} catch (e) {
 		setErrorMessage(e);
 	}
+}
+
+function selectAllTransactions() {
+	workspaceStore.setWorkspaceNodes([...selectableEntities.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION));
+}
+
+function selectAllAddresses() {
+	workspaceStore.setWorkspaceNodes([...selectableEntities.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER));
+}
+
+function deselectAllTransactions() {
+	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+		.map(d => d.id));
+}
+
+function deselectAllAddresses() {
+	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
+		.map(d => d.id));
 }
 
 function emitAddNodes(nodes) {
@@ -306,13 +354,5 @@ function emitAddNodes(nodes) {
   border-style: solid;
   border-radius: 5px;
   border-width: 1px;
-}
-
-.shorten {
-  display: block;
-  max-width: 125px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
 }
 </style>

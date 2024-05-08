@@ -1,49 +1,110 @@
 <template>
   <v-chip
-    v-if="querySelectionCount"
     :rounded="true"
     class="me-2"
     color="primary"
     variant="tonal"
-    :prepend-icon="mdiPlus"
-    :disabled="disabled"
-    @click="emitAddNodes"
+    :prepend-icon="mdiCheckboxMultipleOutline"
+    @click="emitSelectAllTransactions"
   >
-    <div class="d-flex align-center">
-      Add  {{ plural('element',querySelectionCount) }}
-      <v-badge
-        inline
-        color="primary"
-        :content="querySelectionCount"
-      />
-    </div>
+    {{ transactionLabel }}
   </v-chip>
+  <v-chip
+    :rounded="true"
+    class="me-2"
+    color="primary"
+    variant="tonal"
+    :prepend-icon="mdiCheckboxMultipleOutline"
+    @click="emitSelectAllAddresses"
+  >
+    {{ addressLabel }}
+  </v-chip>
+  <fade-transition>
+    <v-chip
+      v-if="selectionCount"
+      :rounded="true"
+      class="me-2"
+      color="primary"
+      variant="tonal"
+      :prepend-icon="mdiPlus"
+      :disabled="disabled"
+      @click="emitAddNodes"
+    >
+      <div class="d-flex align-center">
+        Add entities
+        <v-badge
+          inline
+          color="primary"
+          :content="selectionCount"
+        />
+      </div>
+    </v-chip>
+  </fade-transition>
 </template>
 <script setup>
-import {mdiPlus} from '@mdi/js';
-import {plural} from '@/utilities/index.js';
-import {ref, watch} from 'vue';
+import {mdiCheckboxMultipleOutline, mdiPlus} from '@mdi/js';
+import {computed, ref, watch} from 'vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
+import FadeTransition from '@/components/common/FadeTransition.vue';
+import {WORKSPACE_NODE_TYPE_CLUSTER, WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants';
 
-const querySelectionCount = ref(0);
-const emit = defineEmits(['addNodes']);
+const selectionCount = ref(0);
+const addressCount = ref(0);
+const transactionCount = ref(0);
+const emit = defineEmits(['addNodes',
+	'selectAllTransactions',
+	'deselectAllTransactions',
+	'selectAllAddresses',
+	'deselectAllAddresses']);
 const workspaceStore = useWorkspaceStore();
 
 defineProps({
 	disabled: {type: Boolean, required: false, default: false},
 });
 
+const transactionLabel = computed(() => transactionCount.value ? 'Deselect all Transactions' : 'Select all Transctions');
+const addressLabel = computed(() => addressCount.value ? 'Deselect all Addresses' : 'Select all Addresses');
+
 watch(
 	() => workspaceStore.workspaceNodes,
 	_ => {
-		querySelectionCount.value = workspaceStore.workspaceNodes.size;
+		selectionCount.value = workspaceStore.workspaceNodes.size;
+
+		let numAddresses = 0;
+		let numTransactions = 0;
+		workspaceStore.workspaceNodes.forEach(d => {
+			if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
+				numAddresses += 1;
+			} else if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+				numTransactions += 1;
+			}
+		});
+
+		addressCount.value = numAddresses;
+		transactionCount.value = numTransactions;
 	},
 	{deep: true}, // Deep watch necessary for Set
 );
 
 function emitAddNodes() {
-	emit('addNodes', [...workspaceStore.workspaceNodes]);
+	emit('addNodes', [...workspaceStore.workspaceNodes.values()].map(d => d.id));
 	workspaceStore.workspaceNodes.clear();
+}
+
+function emitSelectAllTransactions() {
+	if (transactionCount.value) {
+		emit('deselectAllTransactions');
+	} else {
+		emit('selectAllTransactions');
+	}
+}
+
+function emitSelectAllAddresses() {
+	if (addressCount.value) {
+		emit('deselectAllAddresses');
+	} else {
+		emit('selectAllAddresses');
+	}
 }
 
 </script>
