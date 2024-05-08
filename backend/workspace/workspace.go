@@ -306,8 +306,6 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 			return nil, err
 		}
 
-		// remove heuristics from nodes
-		w.Nodes = workspace.DeleteNodes(w.Nodes, uids)
 		deletedNodes = uids
 	} else if deletedNode.IsDestination() {
 		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
@@ -333,11 +331,14 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 		}
 
 		deletedNodes = append(children, deletedNode.UID)
-		w.Nodes = workspace.DeleteNodes(w.Nodes, deletedNodes)
 	} else {
-		w.Nodes = workspace.DeleteNodes(w.Nodes, []string{deletedNode.UID})
 		deletedNodes = []string{deletedNode.UID}
 	}
+
+	// check if any notes need to be deleted
+	deletedNodes = append(deletedNodes, findDisconnectedNotes(w.Nodes, deletedNodes)...)
+
+	w.Nodes = workspace.DeleteNodes(w.Nodes, deletedNodes)
 
 	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 		w.Nodes, w.ClusterHeight); err != nil {
@@ -345,6 +346,19 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 	}
 
 	return deletedNodes, nil
+}
+
+// findDisconnectedNotes finds all notes which would be unconnected if the nodes in deletedNodes where deleted.
+func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []string {
+	var orphanNotes []string
+	for _, n := range nodes {
+		// note can only have one child
+		if n.Type == workspace.NodeTypeNote && len(n.Children) > 0 && slices.Contains(deletedNodes, n.Children[0]) {
+			orphanNotes = append(orphanNotes, n.UID)
+		}
+	}
+
+	return orphanNotes
 }
 
 // AddNodes adds a node to a workspace and refreshes the connections between all nodes.
