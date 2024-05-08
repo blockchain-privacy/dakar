@@ -38,6 +38,13 @@
         >
           <slot name="actions" />
         </v-card-title>
+        <v-card-title
+          v-if="slots.secondaryActions"
+          class="d-flex align-center justify-start mb-1 pt-0"
+          style="margin-top: -5px"
+        >
+          <slot name="secondaryActions" />
+        </v-card-title>
         <v-divider />
       </div>
       <slot name="body" />
@@ -47,7 +54,7 @@
 
 <script setup>
 import {mdiCloseCircle} from '@mdi/js';
-import {onMounted, onUnmounted} from 'vue';
+import {onMounted, onUnmounted, useSlots} from 'vue';
 
 defineProps({
 	title: {type: String, required: true},
@@ -58,6 +65,7 @@ defineProps({
 });
 
 const model = defineModel({type: Boolean});
+const slots = useSlots();
 
 // Hooks
 onMounted(() => {

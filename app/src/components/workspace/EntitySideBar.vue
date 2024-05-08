@@ -28,10 +28,6 @@
         >
           Add Note
         </v-chip>
-        <add-nodes-chip
-          :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @add-nodes="emitAddNodes"
-        />
         <template v-if="!isLoading && entityData">
           <template
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
@@ -75,6 +71,12 @@
           </v-chip>
         </template>
       </div>
+    </template>
+    <template #secondaryActions>
+      <add-nodes-chip
+        :disabled="disableAddingNodes || auxiliaryData?.loading"
+        @add-nodes="emitAddNodes"
+      />
     </template>
     <template #body>
       <fade-transition>
