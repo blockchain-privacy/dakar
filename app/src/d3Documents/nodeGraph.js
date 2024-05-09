@@ -782,14 +782,14 @@ export default class NodeGraph {
 				}
 
 				d3Select(this.parentNode).raise();
-				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius * 1.2);
+				self.setMouseOverAnimation(self, this, true);
 			})
 			.on('mouseleave', function () {
 				if (!self.enableInteractions) {
 					return;
 				}
 
-				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius);
+				self.setMouseOverAnimation(self, this, false);
 			});
 
 		// Add loading circle
@@ -944,6 +944,20 @@ export default class NodeGraph {
 				}
 
 				self.drawIcons(d3Select(this), icons, d.heuristicParameter);
+			});
+	}
+
+	setMouseOverAnimation(context, nodeContext, isEnter) {
+		const thisNode = d3Select(nodeContext).select('.node');
+		const nodeRadius = isEnter ? context.nodeRadius * 1.2 : context.nodeRadius;
+		const opacity = isEnter ? 0.3 : 1.0;
+		thisNode.transition().duration(100).attr('r', nodeRadius);
+
+		const thisNodeUID = thisNode.data()[0].uid;
+		context.lineGroup.selectAll('.arrow')
+			.filter(d => d.source.uid !== thisNodeUID && d.target.uid !== thisNodeUID)
+			.each(function () {
+				d3Select(this).transition().duration(100).attr('opacity', opacity);
 			});
 	}
 
