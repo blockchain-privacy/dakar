@@ -94,9 +94,8 @@
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
           @add-heuristic="openTypeSelectionSheet"
-          @add-node="handleGraphQuery"
           @add-note="showAddNoteDialog"
-          @add-nodes="addMultipleNodes"
+          @add-nodes="checkNodeCount"
           @delete-entity="removeGraphNode"
         />
         <connection-side-bar
@@ -104,7 +103,7 @@
           :connection="connectionData"
           :workspace-uid="workspaceUID"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-nodes="addMultipleNodes"
+          @add-nodes="checkNodeCount"
         />
         <text-dialog
           v-if="showAddNoteDialogModel"
@@ -127,6 +126,18 @@
           :text-area="true"
           @submit="changeNote"
         />
+        <confirm-dialog
+          v-if="showWarningDialogModel"
+          v-model="showWarningDialogModel"
+          title="Adding Entities"
+          confirm-label="Add"
+          @confirm="handleWarningDialogConfirm"
+        >
+          <p class="text-subtitle-1">
+            You are about to add <strong>{{ warningDialogNodes.length }}</strong> entities to your workspace.
+            Depending on their connections this might take several minutes.
+          </p>
+        </confirm-dialog>
         <v-menu
           v-model="contextMenuModel.display"
           :open-on-hover="false"
@@ -198,6 +209,7 @@ import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
 import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -242,7 +254,9 @@ const heuristicTabItems = ref([]);
 const connectionData = ref({});
 const showAddNoteDialogModel = ref(false);
 const showEditNoteDialogModel = ref(false);
+const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
+const warningDialogNodes = ref([]);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -428,6 +442,21 @@ function isDeleteEnabled(contextNode) {
 function releaseAutosaveLock() {
 	isModifyingWorkspace.value = false;
 	nodeGraph.setEnableInteractions(true);
+}
+
+async function handleWarningDialogConfirm() {
+	await addMultipleNodes(warningDialogNodes.value);
+}
+
+// Checks if the node count warning dialog needs to be shown
+async function checkNodeCount(nodes) {
+	if (nodes.length > 10) {
+		showWarningDialogModel.value = true;
+		warningDialogNodes.value = nodes;
+		return;
+	}
+
+	await addMultipleNodes(nodes);
 }
 
 // Receives a node array

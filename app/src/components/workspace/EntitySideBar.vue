@@ -165,7 +165,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addHeuristic', 'addNode', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
