@@ -19,13 +19,14 @@
           </p>
           <v-text-field
             v-model="graphQuery"
+            class="noOutline"
             style="min-width:220px; max-width:300px"
             :hide-details="true"
             variant="outlined"
             density="compact"
             color="primary"
             :single-line="true"
-            label="Add transactions or clusters"
+            label="Search"
             :disabled="isModifyingWorkspace"
             :append-inner-icon="mdiMagnify"
             @click:append-inner="handleGraphQuery(graphQuery)"
@@ -999,4 +1000,16 @@ async function whenMounted() {
   z-index: 1004;
   background-color: rgb(var(--v-theme-surface))
 }
+
+/* remove outline from text-field variant 'outlined'.
+ This can also be achieved by using variant 'plain',
+ but then the label text is not centered */
+.noOutline :deep(.v-field__outline__start) {
+  border-width: 0 0 0 0 !important;
+}
+
+.noOutline :deep(.v-field__outline__end) {
+  border-width: 0 0 0 0 !important;
+}
+
 </style>
