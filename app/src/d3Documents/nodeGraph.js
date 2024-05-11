@@ -19,6 +19,11 @@ import {
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
 
+// In ms
+const animationDuration = 175;
+const longAnimationDuration = 500;
+const animationDelay = 2000;
+
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
 	if (node.x !== undefined) {
@@ -329,7 +334,7 @@ export default class NodeGraph {
           stroke-width: 4;
           opacity: 0;
           marker-end: url(#nodegraph_arrowhead_shadow);
-          transition: all 0.1s linear;
+          transition: all 0.175s ease;
         }
 
         .lineHovered {
@@ -438,8 +443,10 @@ export default class NodeGraph {
 
 	reorderNodes() {
 		for (const [key, value] of this.nodeMap) {
-			delete value.x;
-			delete value.y;
+			// Randomize position, reorderNodes creates different arrangements for each call
+			const random = Math.random() * 30;
+			value.x = random;
+			value.y = random;
 			delete value.fx;
 			delete value.fy;
 			this.nodeMap[key] = value;
@@ -666,7 +673,7 @@ export default class NodeGraph {
 					.attr('fill', 'rgba(255, 109, 0, 0.3)')
 					.lower();
 
-				marker.transition().delay(1000).duration(500)
+				marker.transition().delay(animationDelay).duration(longAnimationDuration)
 					.attr('width', 0)
 					.attr('height', 0)
 					.attr('x', 0)
@@ -695,7 +702,7 @@ export default class NodeGraph {
 				}
 
 				d3Select(this.parentNode).raise();
-				d3Select(this).select('.note').transition().duration(100)
+				d3Select(this).select('.note').transition().duration(animationDuration)
 					.attr('width', d => d.width * 1.2)
 					.attr('height', d => d.height * 1.2)
 					.attr('x', d => -d.width * 1.2 / 2)
@@ -706,7 +713,7 @@ export default class NodeGraph {
 					return;
 				}
 
-				d3Select(this).select('.note').transition().duration(100)
+				d3Select(this).select('.note').transition().duration(animationDuration)
 					.attr('width', d => d.width)
 					.attr('height', d => d.height)
 					.attr('x', d => -d.width / 2)
@@ -756,7 +763,7 @@ export default class NodeGraph {
 					.attr('fill', 'rgba(255, 109, 0, 0.3)')
 					.lower();
 
-				marker.transition().delay(1000).duration(500).attr('r', 0).remove();
+				marker.transition().delay(animationDelay).duration(longAnimationDuration).attr('r', 0).remove();
 			});
 
 		// Set event handlers
@@ -951,13 +958,13 @@ export default class NodeGraph {
 		const thisNode = d3Select(nodeContext).select('.node');
 		const nodeRadius = isEnter ? context.nodeRadius * 1.2 : context.nodeRadius;
 		const opacity = isEnter ? 0.3 : 1.0;
-		thisNode.transition().duration(100).attr('r', nodeRadius);
+		thisNode.transition().duration(animationDuration).attr('r', nodeRadius);
 
 		const thisNodeUID = thisNode.data()[0].uid;
 		context.lineGroup.selectAll('.arrow')
 			.filter(d => d.source.uid !== thisNodeUID && d.target.uid !== thisNodeUID)
 			.each(function () {
-				d3Select(this).transition().duration(100).attr('opacity', opacity);
+				d3Select(this).transition().duration(animationDuration).attr('opacity', opacity);
 			});
 	}
 
