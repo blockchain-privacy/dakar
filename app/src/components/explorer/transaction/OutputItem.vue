@@ -15,6 +15,12 @@
             >
               {{ addressHash }}
             </store-link>
+            <div
+              v-else
+              style="min-width: 200px"
+            >
+              No Address available
+            </div>
             <div class="text-no-wrap ms-2">
               {{ convertAmount(amount) }} {{ COIN_UNIT }}
             </div>
