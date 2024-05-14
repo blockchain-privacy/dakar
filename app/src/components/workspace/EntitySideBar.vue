@@ -243,14 +243,18 @@ function setSelectableEntities() {
 	switch (props.type) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			for (const t of entityData.value) {
-				for (const input of t.inputs) {
-					selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-					selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+				if (t.inputs) {
+					for (const input of t.inputs) {
+						selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+						selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+					}
 				}
 
-				for (const output of t.outputs) {
-					selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-					selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+				if (t.outputs) {
+					for (const output of t.outputs) {
+						selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+						selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+					}
 				}
 			}
 
