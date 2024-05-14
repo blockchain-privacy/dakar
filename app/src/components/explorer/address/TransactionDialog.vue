@@ -3,17 +3,17 @@
     v-model="model"
     max-width="700px"
   >
-    <v-card class="pb-2">
-      <v-card-title>
-        <div class="text-h5 text-wrap">
-          Transaction
-          <router-link
-            class="ml-1"
-            :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}"
-          >
-            {{ txHash }}
-          </router-link>
-        </div>
+    <v-card>
+      <v-card-title class="text-h5">
+        Transaction
+        <store-link
+          class="shorten"
+          disable-select
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}"
+          @clicked="model = false"
+        >
+          {{ txHash }}
+        </store-link>
       </v-card-title>
       <v-card-text>
         <p class="text-subtitle-1">
@@ -33,9 +33,15 @@
             <v-list-item
               v-for="(t) in inputTxs"
               :key="t.txhash"
-              :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash }}"
             >
-              <v-list-item-title>{{ t.txhash }}</v-list-item-title>
+              <store-link
+                class="shorten"
+                disable-select
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash }}"
+                @clicked="model = false"
+              >
+                {{ t.txhash }}
+              </store-link>
             </v-list-item>
           </v-list>
         </v-expand-transition>
@@ -46,6 +52,7 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 defineProps({
 	txHash: {type: String, required: true},

@@ -1,7 +1,10 @@
 <template>
-  <div class="d-flex float-left me-1 align-center">
+  <div
+    class="d-flex float-left me-1 align-center"
+    style="max-width: 100%"
+  >
     <v-checkbox
-      v-if="isWorkspaceMode"
+      v-if="!disableSelect && isWorkspaceMode"
       v-model="checkBoxModel"
       hide-details
       density="compact"
@@ -43,7 +46,9 @@ defineOptions({
 
 const props = defineProps({
 	...RouterLink.props,
+	disableSelect: {type: Boolean, required: false, default: false},
 });
+const emit = defineEmits(['clicked']);
 
 const workspaceStore = useWorkspaceStore();
 const checkBoxModel = ref(false);
@@ -55,6 +60,7 @@ const isWorkspaceMode = computed(() => workspaceStore.getIsWorkspaceActive
 
 // Watchers
 // keep state of checkbox in sync with store
+
 watch(
 	() => workspaceStore.workspaceNodes,
 	_ => {
@@ -76,6 +82,7 @@ function onLinkClick(e, navigate) {
 	if (isWorkspaceMode.value) {
 		e.preventDefault();
 		workspaceStore.setWorkspaceNode({to: props.to, id: props.to.params.id});
+		emit('clicked');
 		return;
 	}
 
@@ -83,17 +90,15 @@ function onLinkClick(e, navigate) {
 }
 
 function checkBoxChanged(val) {
-	if (isWorkspaceMode.value) {
-		if (val) {
-			let type = WORKSPACE_NODE_TYPE_TRANSACTION;
-			if (props.to.name === ROUTE_NAME_ADDRESS_PAGE) {
-				type = WORKSPACE_NODE_TYPE_CLUSTER;
-			}
-
-			workspaceStore.addNodeToMap({id: props.to.params.id, type});
-		} else {
-			workspaceStore.removeNodeFromMap(props.to.params.id);
+	if (val) {
+		let type = WORKSPACE_NODE_TYPE_TRANSACTION;
+		if (props.to.name === ROUTE_NAME_ADDRESS_PAGE) {
+			type = WORKSPACE_NODE_TYPE_CLUSTER;
 		}
+
+		workspaceStore.addNodeToMap({id: props.to.params.id, type});
+	} else {
+		workspaceStore.removeNodeFromMap(props.to.params.id);
 	}
 }
 
