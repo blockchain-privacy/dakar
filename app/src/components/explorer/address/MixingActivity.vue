@@ -296,7 +296,7 @@ const barTable = ref({
 		title: 'Transaction', align: 'start', key: 'txhash',
 	},
 	{title: 'Timestamp', key: 'dateTime'},
-	{title: 'Transaction Type', key: 'privacytype'}],
+	{title: 'Privacy Type', key: 'privacytype'}],
 	transactions: [],
 	startDate: '',
 	endDate: '',
