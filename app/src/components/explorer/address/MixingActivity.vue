@@ -120,60 +120,55 @@
         </v-card-text>
       </v-card>
     </template>
-    <v-card
-      v-show="activities && activities.length > 0"
-      class="my-3"
-      variant="text"
-    >
-      <v-card-text>
-        <v-tabs
-          v-model="graphTabs"
-          :grow="true"
-          @update:model-value="onTabChange"
+    <div v-show="activities && activities.length > 0">
+      <v-tabs
+        v-model="graphTabs"
+        :grow="true"
+        @update:model-value="onTabChange"
+      >
+        <v-tab key="histogram">
+          Histogram
+        </v-tab>
+        <v-tab key="graph">
+          Force Graph
+        </v-tab>
+      </v-tabs>
+      <v-window
+        v-model="graphTabs"
+        :touch="false"
+        style="line-height: 0"
+      >
+        <v-window-item
+          key="histogram"
+          :eager="true"
         >
-          <v-tab key="histogram">
-            Histogram
-          </v-tab>
-          <v-tab key="graph">
-            Force Graph
-          </v-tab>
-        </v-tabs>
-        <v-window
-          v-model="graphTabs"
-          :touch="false"
-        >
-          <v-window-item
-            key="histogram"
-            :eager="true"
-          >
-            <v-card variant="text">
-              <v-card-text>
-                <p
-                  v-if="showNotEnoughDataMsg && !isLoading"
-                  class="text-h6"
-                  style="text-align: center"
-                >
-                  Not enough data available to draw chart
-                </p>
-                <div
-                  v-if="showHistogram"
-                  class="text-subtitle-1"
-                  style="text-align: center"
-                >
-                  {{
-                    selectedPrivacyLabel.length === 5 ? 'All Privacy'
-                    : selectedPrivacyLabel.map(capitalize).join(', ')
-                  }}
-                  Transactions
-                </div>
-                <transaction-table-dialog
-                  v-model="barTable.show"
-                  :headers="barTable.headers"
-                  :transactions="barTable.transactions"
-                  :start-date="barTable.startDate"
-                  :end-date="barTable.endDate"
-                />
-              </v-card-text>
+          <v-card variant="text">
+            <v-card-text>
+              <p
+                v-if="showNotEnoughDataMsg && !isLoading"
+                class="text-h6"
+                style="text-align: center"
+              >
+                Not enough data available to draw chart
+              </p>
+              <div
+                v-if="showHistogram"
+                class="text-subtitle-1"
+                style="text-align: center"
+              >
+                {{
+                  selectedPrivacyLabel.length === 5 ? 'All Privacy'
+                  : selectedPrivacyLabel.map(capitalize).join(', ')
+                }}
+                Transactions
+              </div>
+              <transaction-table-dialog
+                v-model="barTable.show"
+                :headers="barTable.headers"
+                :transactions="barTable.transactions"
+                :start-date="barTable.startDate"
+                :end-date="barTable.endDate"
+              />
               <div style="overflow: auto">
                 <svg
                   v-show="showHistogram"
@@ -181,63 +176,68 @@
                   style="min-width: 1100px"
                 />
               </div>
-            </v-card>
-          </v-window-item>
-          <v-window-item
-            key="graph"
-            :eager="true"
+            </v-card-text>
+          </v-card>
+        </v-window-item>
+        <v-window-item
+          key="graph"
+          :eager="true"
+        >
+          <v-card
+            v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
+            variant="text"
           >
-            <v-card variant="text">
-              <v-card-text>
-                <div
-                  v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
-                  style="text-align:center"
+            <v-card-text>
+              <div style="text-align:center">
+                <v-alert
+                  variant="text"
+                  :prominent="true"
+                  type="warning"
                 >
-                  <v-alert
-                    variant="text"
-                    :prominent="true"
-                    type="warning"
-                  >
-                    The mixing activity results have more than
-                    {{ tooManyTransactionsThreshold }} transactions.
-                    Displaying a large number of items in a force graph may severely degrade
-                    the performance of your browser.
-                    Consider filtering the results by time or privacy type.
-                  </v-alert>
-                  <v-btn
-                    color="primary"
-                    @click="showForceGraphDespiteWarning"
-                  >
-                    Display force graph anyway
-                  </v-btn>
-                </div>
-
-                <p
-                  v-if="!showGraph && !isLoading && !showTooManyTransactionsMsg"
-                  class="text-h6"
-                  style="text-align: center"
+                  The mixing activity results have more than
+                  {{ tooManyTransactionsThreshold }} transactions.
+                  Displaying a large number of items in a force graph may severely degrade
+                  the performance of your browser.
+                  Consider filtering the results by time or privacy type.
+                </v-alert>
+                <v-btn
+                  color="primary"
+                  @click="showForceGraphDespiteWarning"
                 >
-                  No data available
-                </p>
-                <transaction-dialog
-                  v-if="clickedNode"
-                  v-model="showNodeDialog"
-                  :input-txs="clickedNode.input_txs?clickedNode.input_txs:[]"
-                  :date-time="clickedNode.dateTime"
-                  :privacy-type="clickedNode.privacyTypeLabel"
-                  :tx-hash="clickedNode.txhash"
-                />
-              </v-card-text>
-              <svg
-                v-show="showGraph"
-                id="mixing_activity_force_graph"
-                style="width:100%; height:500px"
-              />
-            </v-card>
-          </v-window-item>
-        </v-window>
-      </v-card-text>
-    </v-card>
+                  Display force graph anyway
+                </v-btn>
+              </div>
+            </v-card-text>
+          </v-card>
+          <v-card
+            v-if="!showGraph && !isLoading && !showTooManyTransactionsMsg"
+            variant="text"
+          >
+            <v-card-text>
+              <p
+                class="text-h6"
+                style="text-align: center"
+              >
+                No data available
+              </p>
+            </v-card-text>
+          </v-card>
+          <transaction-dialog
+            v-if="clickedNode"
+            v-model="showNodeDialog"
+            :input-txs="clickedNode.input_txs?clickedNode.input_txs:[]"
+            :date-time="clickedNode.dateTime"
+            :privacy-type="clickedNode.privacyTypeLabel"
+            :tx-hash="clickedNode.txhash"
+          />
+          <svg
+            v-show="showGraph"
+            id="mixing_activity_force_graph"
+            style="width:100%; height:500px"
+          />
+        </v-window-item>
+      </v-window>
+    </div>
     <v-progress-linear
       v-if="isLoading"
       class="mt-10"
