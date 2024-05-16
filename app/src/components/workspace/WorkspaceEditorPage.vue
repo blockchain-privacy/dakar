@@ -202,8 +202,11 @@ import {
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	WORKSPACE_NODE_TYPE_NOTE,
+	PRIVACY_TYPE_DESTINATION,
 } from '@/constants';
-import {getColorMap, handleError, isDestination} from '@/utilities';
+import {
+	getColorMap, handleError, getPrivacyTypeLabel,
+} from '@/utilities';
 import {
 	inject, nextTick, onMounted, onUnmounted, ref, watch,
 } from 'vue';
@@ -275,7 +278,8 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
-			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeGraph.getContextNode().privacyType),
+			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC
+        || nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
@@ -437,7 +441,7 @@ function isDeleteEnabled(contextNode) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && !isDestination(contextNode.privacyType)) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
 		return true;
 	}
 
@@ -817,6 +821,11 @@ async function refreshData() {
 
 		if (response.workspace) {
 			data = response.workspace;
+			data.nodes = data.nodes.map(d => {
+				d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
+				return d;
+			});
+
 			workspaceName.value = data.name;
 		} else {
 			data = null;

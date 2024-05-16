@@ -28,6 +28,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import {drag} from 'd3-drag';
+import {pointer as d3Pointer} from 'd3-selection';
 
 function isPointInside(vs, point) {
 	// Ray-casting algorithm based on
@@ -135,6 +136,7 @@ export default function lasso() {
 			// Get mouse position within body, used for calculations
 			let x;
 			let y;
+
 			if (e.sourceEvent.type === 'touchmove') {
 				x = e.sourceEvent.touches[0].clientX;
 				y = e.sourceEvent.touches[0].clientY;
@@ -143,12 +145,10 @@ export default function lasso() {
 				y = e.sourceEvent.clientY;
 			}
 
-			// Get mouse position within drawing area, used for rendering
-			// before refactor:
-			// let tx = selection.pointer(event, this)[0];
-			// let ty = selection.pointer(event, this)[1];
-			const tx = e.x;
-			const ty = e.y;
+			// Get mouse position within drawing area
+			const pointerEvent = d3Pointer(e, targetArea.node());
+			const tx = pointerEvent[0];
+			const ty = pointerEvent[1];
 
 			// Initialize the path or add the latest point to it
 			if (tPath === '') {

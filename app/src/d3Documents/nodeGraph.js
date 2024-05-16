@@ -1,4 +1,4 @@
-import {getPrivacyTypeLabel, isFunction} from '@/utilities';
+import {isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
@@ -122,6 +122,7 @@ export default class NodeGraph {
 		this.contextNodeSelection = null;
 
 		// Svg
+		this.svgID = '';
 		this.simulation = null;
 		this.nodeRadius = 14;
 		this.rootSvg = null;
@@ -227,13 +228,17 @@ export default class NodeGraph {
 		return this.isLassoEnabled;
 	}
 
-	initSvg(svgID) {
+	initSvg(svgID, width, height) {
 		// Add attributes to root svg
+		this.svgID = svgID;
 		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
 		this.rootGroup = this.rootSvg.append('g').classed('root-group', true);
 		this.lineGroup = this.rootGroup.append('g');
 		this.shadowLineGroup = this.rootGroup.append('g');
 		this.nodeGroup = this.rootGroup.append('g');
+
+		this.virtualWidth = width;
+		this.virutalHeight = height;
 
 		// Add zoom and drag
 		this.zoom = zoom()
@@ -271,24 +276,16 @@ export default class NodeGraph {
 		// Arrow is unused for now. In case it is used later on, use reduceY and
 		// reduceX to reduce the length of the links (modify d.target.x and d.target.y)
 		defs.node().innerHTML
-      = `<pattern id="striped" viewBox="0,0,4,4" width="40%" height="40%">
-          <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
-          <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style="stroke:black; stroke-width:1.5 "/>
-        </pattern>
-        <pattern id="checkers" viewBox="0,0,8,8" width="60%" height="60%" patternTransform="translate(0, -4)">
-          <rect width="8" height="8" fill="rgb(var(--v-theme-primary))" />
-          <path id="a" data-color="fill" fill="#000" d="M4 4h4v4H4zM0 0h4v4H0z"></path>
-        </pattern>
-        <marker id="nodegraph_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+      = `<marker id="${this.svgID}_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="currentColor"/>
         </marker>
-        <marker id="nodegraph_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+        <marker id="${this.svgID}_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="rgb(var(--v-theme-primary))" />
         </marker>
-        <marker id="nodegraph_arrowhead_reversed" viewBox="-10 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+        <marker id="${this.svgID}_arrowhead_reversed" viewBox="-10 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L-10,0L0,5" fill="currentColor" />
         </marker>
-        <marker id="nodegraph_arrowhead_reversed_shadow" viewBox="-10 -5 10 10" refX="-1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+        <marker id="${this.svgID}_arrowhead_reversed_shadow" viewBox="-10 -5 10 10" refX="-1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
             <path d="M0,-5L-10,0L0,5" fill="rgb(var(--v-theme-primary))" />
         </marker>`;
 
@@ -324,7 +321,7 @@ export default class NodeGraph {
           stroke: currentColor;
           stroke-opacity: 1;
           stroke-width: 1;
-          marker-end: url(#nodegraph_arrowhead);
+          marker-end: url(#${this.svgID}_arrowhead);
         }
 
         .shadowArrow {
@@ -333,7 +330,7 @@ export default class NodeGraph {
           stroke-opacity: 1;
           stroke-width: 4;
           opacity: 0;
-          marker-end: url(#nodegraph_arrowhead_shadow);
+          marker-end: url(#${this.svgID}_arrowhead_shadow);
           transition: all 0.175s ease;
         }
 
@@ -733,8 +730,8 @@ export default class NodeGraph {
 				if (this.nodeTypeColorMap) {
 					let nodeColor;
 
-					if (d.privacyType) {
-						nodeColor = this.nodeTypeColorMap.get(getPrivacyTypeLabel(d.privacyType));
+					if (d.privacyTypeLabel) {
+						nodeColor = this.nodeTypeColorMap.get(d.privacyTypeLabel);
 					} else {
 						nodeColor = this.nodeTypeColorMap.get(d.type);
 					}
@@ -894,8 +891,8 @@ export default class NodeGraph {
 			.attr('fill', 'currentColor')
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
-				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyType) {
-					return getPrivacyTypeLabel(d.privacyType);
+				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyTypeLabel) {
+					return d.privacyTypeLabel;
 				}
 
 				return '';
@@ -1002,6 +999,10 @@ export default class NodeGraph {
 		const links = this.getLinks(nodes);
 
 		const svgRect = this.rootSvg.node().getBoundingClientRect();
+		if (this.virtualWidth && this.virutalHeight) {
+			svgRect.width = this.virtualWidth;
+			svgRect.height = this.virutalHeight;
+		}
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
@@ -1028,7 +1029,7 @@ export default class NodeGraph {
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
 			.classed('arrow', true)
-			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed)' : undefined)
+			.attr('marker-start', d => d.isDual ? `url(#${this.svgID}_arrowhead_reversed)` : undefined)
 			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
 			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
 			.attr('x2', d => reduceX(d, this.nodeRadius))
@@ -1040,7 +1041,7 @@ export default class NodeGraph {
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
 			.classed('shadowArrow', true)
-			.attr('marker-start', d => d.isDual ? 'url(#nodegraph_arrowhead_reversed_shadow)' : undefined)
+			.attr('marker-start', d => d.isDual ? `url(#${this.svgID}_arrowhead_reversed_shadow)` : undefined)
 			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
 			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
 			.attr('x2', d => reduceX(d, this.nodeRadius))

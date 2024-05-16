@@ -3,7 +3,7 @@ import {
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
-	ROUTE_NAME_LOGIN_PAGE,
+	ROUTE_NAME_LOGIN_PAGE, WORKSPACE_NODE_TYPE_CLUSTER, WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants';
 
 export function setLocalSession(sessionData) {
@@ -320,5 +320,6 @@ export function getColorMap() {
 	colorMap.set('collateral payment', '#009E73');
 	colorMap.set('origin', '#D55E00');
 	colorMap.set('mixing', '#56B4E9');
+
 	return colorMap;
 }
