@@ -101,11 +101,14 @@ function dragEnded(event, context) {
 
 export default class NodeGraph {
 	constructor(nodeTypeColorMap) {
+		// Callbacks
 		this.nodeClickCallBack = null;
 		this.lineClickCallBack = null;
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
 		this.contextMenuCallback = null;
+		this.lassoSelectionCallback = null;
+		this.lassoResetCallback = null;
 
 		// Drag
 		this.dragEndCallback = null;
@@ -170,6 +173,10 @@ export default class NodeGraph {
 	resetLasso() {
 		this.nodeGroup.selectAll('.lasso-selected').classed('lasso-selected', false);
 		this.lassoSelectedNodes = null;
+
+		if (this.lassoResetCallback !== null) {
+			this.lassoResetCallback();
+		}
 	}
 
 	setContextObjectClicked() {
@@ -228,6 +235,14 @@ export default class NodeGraph {
 		return this.isLassoEnabled;
 	}
 
+	getLassoSelectedNodesData() {
+		if (this.lassoSelectedNodes === null) {
+			return [];
+		}
+
+		return this.lassoSelectedNodes.data();
+	}
+
 	initSvg(svgID, width, height) {
 		// Add attributes to root svg
 		this.svgID = svgID;
@@ -266,6 +281,9 @@ export default class NodeGraph {
 			})
 			.on('end', () => {
 				self.lassoSelectedNodes = self.lasso.selectedItems();
+				if (this.lassoSelectionCallback !== null) {
+					this.lassoSelectionCallback();
+				}
 			});
 
 		this.rootSvg.call(this.lasso);
@@ -1201,6 +1219,17 @@ export default class NodeGraph {
 		return true;
 	}
 
+	// SetLassoSelectionCallback receives a function as an argument.
+	// The function is going to be called each time nodes are selected via the lasso
+	setLassoSelectionCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.lassoSelectionCallback = callback;
+		return true;
+	}
+
 	// Returns the node which triggered the context menu event or click event
 	getContextNode() {
 		return this.contextNodeData;
@@ -1214,6 +1243,17 @@ export default class NodeGraph {
 		}
 
 		this.dragEndCallback = callback;
+		return true;
+	}
+
+	// SetLassoResetCallback receives a function as an argument.
+	// The function is going to be called when the lasso is reset.
+	setLassoResetCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.lassoResetCallback = callback;
 		return true;
 	}
 

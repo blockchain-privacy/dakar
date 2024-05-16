@@ -205,7 +205,7 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 } from '@/constants';
 import {
-	getColorMap, handleError, getPrivacyTypeLabel,
+	getColorMap, handleError, getPrivacyTypeLabel, plural,
 } from '@/utilities';
 import {
 	inject, nextTick, onMounted, onUnmounted, ref, watch,
@@ -270,6 +270,7 @@ const showEditNoteDialogModel = ref(false);
 const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
+const lassoSelectedNodes = ref([]);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -306,7 +307,7 @@ const contextMenuModel = ref({
 	],
 });
 
-const menuItems = [
+const menuItems = ref([
 	{
 		title: 'Rearrange',
 		icon: mdiCached,
@@ -317,7 +318,15 @@ const menuItems = [
 	},
 	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
 	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
-];
+	{
+		title: () => `Delete ${lassoSelectedNodes.value.length} ${plural('node', lassoSelectedNodes.value.length)}`,
+		icon: mdiDelete,
+		action: () => nodeGraph.centerGraph(),
+		show: () => lassoSelectedNodes.value.length > 0,
+		disabled: () => lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)),
+		fill: true,
+	},
+]);
 
 let autoSaveTimer = null;
 const maxNoteLength = 100;
@@ -806,6 +815,14 @@ function showContextMenu(e) {
 	});
 }
 
+function handleLassoSelection() {
+	lassoSelectedNodes.value = nodeGraph.getLassoSelectedNodesData();
+}
+
+function handleLassoReset() {
+	lassoSelectedNodes.value = [];
+}
+
 function showAddNoteDialog() {
 	showAddNoteDialogModel.value = true;
 }
@@ -961,6 +978,16 @@ async function whenMounted() {
 
 	if (!nodeGraph.setDragEndCallback(queueAutoSave)) {
 		setErrorMessage('error setting drag end handler');
+		return false;
+	}
+
+	if (!nodeGraph.setLassoSelectionCallback(handleLassoSelection)) {
+		setErrorMessage('error setting lasso selection handler');
+		return false;
+	}
+
+	if (!nodeGraph.setLassoResetCallback(handleLassoReset)) {
+		setErrorMessage('error setting lasso reset handler');
 		return false;
 	}
 

@@ -1,20 +1,27 @@
 <template>
   <template v-if="$vuetify.display.lgAndUp">
-    <v-btn
+    <template
       v-for="(item, i) in items"
       :key="i"
-      variant="text"
-      :to="item.to?item.to:undefined"
-      class="my-1"
-      @click="item.action?item.action():undefined"
     >
-      <v-icon
-        v-if="item.icon"
-        :icon="item.icon"
-        class="me-1"
-      />
-      {{ item.title }}
-    </v-btn>
+      <v-scroll-x-reverse-transition>
+        <v-btn
+          v-if="!item.show || item.show()"
+          :disabled="item.disabled && item.disabled()"
+          :variant="item.fill?'flat':'text'"
+          :to="item.to?item.to:undefined"
+          class="my-1"
+          @click="item.action?item.action():undefined"
+        >
+          <v-icon
+            v-if="item.icon"
+            :icon="item.icon"
+            class="me-1"
+          />
+          {{ isFunction(item.title)?item.title():item.title }}
+        </v-btn>
+      </v-scroll-x-reverse-transition>
+    </template>
     <v-btn-toggle
       v-model="selectionToggle"
       color="primary"
@@ -46,6 +53,8 @@
         :key="i"
       >
         <v-list-item
+          v-if="!item.show || item.show()"
+          :disabled="item.disabled && item.disabled()"
           :to="item.to?item.to:undefined"
           @click="item.action?item.action():undefined"
         >
@@ -56,7 +65,7 @@
             <v-icon :icon="item.icon" />
           </template>
           <v-list-item-title>
-            {{ item.title }}
+            {{ isFunction(item.title)?item.title():item.title }}
           </v-list-item-title>
         </v-list-item>
       </template>
@@ -84,6 +93,7 @@
 <script setup>
 import {mdiDotsVertical, mdiSelect, mdiCursorPointer} from '@mdi/js';
 import {ref} from 'vue';
+import {isFunction} from '../../utilities/index.js';
 
 const emit = defineEmits(['isSelectionEnabled']);
 defineProps({
