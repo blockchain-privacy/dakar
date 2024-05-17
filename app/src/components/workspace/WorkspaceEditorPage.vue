@@ -97,7 +97,7 @@
           @add-heuristic="openTypeSelectionSheet"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
-          @delete-entity="removeGraphNode"
+          @delete-entity="removeContextNode"
         />
         <connection-side-bar
           v-model="isConnectionSideBarOpen"
@@ -301,7 +301,7 @@ const contextMenuModel = ref({
 		{
 			title: 'Delete',
 			icon: mdiDelete,
-			action: removeGraphNode,
+			action: removeContextNode,
 			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
 		},
 	],
@@ -321,7 +321,7 @@ const menuItems = ref([
 	{
 		title: () => `Delete ${lassoSelectedNodes.value.length} ${plural('node', lassoSelectedNodes.value.length)}`,
 		icon: mdiDelete,
-		action: () => nodeGraph.centerGraph(),
+		action: () => removeGraphNodes(lassoSelectedNodes.value.map(d => d.uid)),
 		show: () => lassoSelectedNodes.value.length > 0,
 		disabled: () => lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)),
 		fill: true,
@@ -401,16 +401,19 @@ onUnmounted(() => {
 });
 
 // Functions
-async function removeGraphNode() {
-	const node = nodeGraph.getContextNode();
-	if (!node || node.loading) {
+async function removeGraphNodes(nodes) {
+	if (!nodes.length) {
+		return;
+	}
+
+	if (nodes.some(d => d.loading)) {
 		return;
 	}
 
 	try {
 		const response = await dakar.workspace.workspacesNodeDelete({
 			state: {
-				nodeUID: node.uid,
+				nodeUIDs: nodes,
 				workspaceUID: workspaceUID.value,
 			},
 		});
@@ -419,6 +422,15 @@ async function removeGraphNode() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
+}
+
+async function removeContextNode() {
+	const node = nodeGraph.getContextNode();
+	if (!node || node.loading) {
+		return;
+	}
+
+	await removeGraphNodes([node.uid]);
 }
 
 function editNote(note) {
@@ -506,6 +518,7 @@ async function addMultipleNodes(nodes) {
 			},
 		});
 		if (response.nodes) {
+			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -516,6 +529,13 @@ async function addMultipleNodes(nodes) {
 	}
 
 	releaseAutosaveLock();
+}
+
+function setPrivacyLabels(nodes) {
+	return nodes.map(d => {
+		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
+		return d;
+	});
 }
 
 async function handleGraphQuery(query) {
@@ -577,6 +597,7 @@ async function addNewNote(noteText, noteUID, childUID) {
 			},
 		});
 		if (response.nodes) {
+			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -686,6 +707,7 @@ async function checkWork(workID) {
 			},
 		});
 		if (response.nodes) {
+			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
@@ -838,11 +860,7 @@ async function refreshData() {
 
 		if (response.workspace) {
 			data = response.workspace;
-			data.nodes = data.nodes.map(d => {
-				d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
-				return d;
-			});
-
+			data.nodes = setPrivacyLabels(data.nodes);
 			workspaceName.value = data.name;
 		} else {
 			data = null;
