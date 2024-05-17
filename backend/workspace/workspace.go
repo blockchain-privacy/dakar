@@ -257,45 +257,16 @@ func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, work
 		w.Nodes, w.ClusterHeight)
 }
 
-// DeleteNode removes a node and all its dependent node from a workspace.
-// Returns all node UIDs which have been deleted.
-func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
-	userUID string, nodeUID string) ([]string, error) {
-	workspaceLock := workspaceMutex.Lock(workspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(w.Nodes) == 0 {
-		return nil, cliutil.NewStackErrorf(
-			"node deletion request for empty workspace. workspace: %s, node: %s", workspaceUID, nodeUID)
-	}
-
-	var deletedNode *workspace.Node
-	for _, n := range w.Nodes {
-		if n.UID == nodeUID {
-			deletedNode = &n // #nosec G601, false positive as of go1.22
-			break
-		}
-	}
-
-	if deletedNode == nil {
-		return nil, cliutil.NewStackErrorf(
-			"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, nodeUID)
-	}
-
+func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes []workspace.Node,
+	userUID string, workspaceUID string) ([]string, error) {
 	var deletedNodes []string
-
-	if deletedNode.Type == workspace.NodeTypeHeuristic {
-		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
-		for _, n := range w.Nodes {
+	if node.Type == workspace.NodeTypeHeuristic {
+		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
+		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
 		}
 
-		uids := workspace.FindDescendantHeuristicUIDs(nodeMap, deletedNode.UID)
+		uids := workspace.FindDescendantHeuristicUIDs(nodeMap, node.UID)
 
 		// delete the actual heuristics
 		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, userUID, workspaceUID); err != nil {
@@ -307,15 +278,15 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 		}
 
 		deletedNodes = uids
-	} else if deletedNode.IsDestination() {
-		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
-		for _, n := range w.Nodes {
+	} else if node.IsDestination() {
+		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
+		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
 		}
 
 		// collect all heuristic UIDs
 		var children []string
-		for _, child := range deletedNode.Children {
+		for _, child := range node.Children {
 			children = append(children, workspace.FindDescendantHeuristicUIDs(nodeMap, child)...)
 		}
 
@@ -330,10 +301,64 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 			}
 		}
 
-		deletedNodes = append(children, deletedNode.UID)
+		deletedNodes = append(children, node.UID)
 	} else {
-		deletedNodes = []string{deletedNode.UID}
+		deletedNodes = []string{node.UID}
 	}
+
+	return deletedNodes, nil
+}
+
+// DeleteNodes removes nodes and all their dependent nodes from a workspace.
+// Returns all node UIDs which have been deleted.
+func DeleteNodes(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+	userUID string, nodeUIDs []string) ([]string, error) {
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(w.Nodes) == 0 {
+		return nil, cliutil.NewStackErrorf(
+			"node deletion request for empty workspace. workspace: %s", workspaceUID)
+	}
+
+	nodesToDelete := make(map[string]*workspace.Node, len(nodeUIDs))
+	for _, clientNode := range nodeUIDs {
+		found := false
+		for _, n := range w.Nodes {
+			if n.UID == clientNode {
+				nodesToDelete[n.UID] = &n // #nosec G601, false positive as of go1.22
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return nil, cliutil.NewStackErrorf(
+				"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, clientNode)
+		}
+	}
+
+	deleteNodesMap := map[string]bool{}
+	for _, n := range nodesToDelete {
+		nodes, err := deleteNode(dgraph, n, w.Nodes, userUID, workspaceUID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, delNode := range nodes {
+			deleteNodesMap[delNode] = true
+			// while deleting the current node, other connected nodes might also be deleted.
+			// Therefore, remove all these nodes from future iteration as they have been handled already
+			delete(nodesToDelete, delNode)
+		}
+	}
+
+	deletedNodes := cliutil.GetMapKeys(deleteNodesMap)
 
 	// check if any notes need to be deleted
 	deletedNodes = append(deletedNodes, findDisconnectedNotes(w.Nodes, deletedNodes)...)

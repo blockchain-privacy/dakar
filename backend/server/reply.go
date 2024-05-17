@@ -2002,8 +2002,8 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 	}
 
 	type request struct {
-		NodeUID      string `json:"nodeUID"`
-		WorkspaceUID string `json:"workspaceUID"`
+		NodeUIDs     []string `json:"nodeUIDs,omitempty"`
+		WorkspaceUID string   `json:"workspaceUID"`
 	}
 
 	var searchRequest request
@@ -2014,12 +2014,12 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 		return
 	}
 
-	if searchRequest.WorkspaceUID == "" || searchRequest.NodeUID == "" {
+	if searchRequest.WorkspaceUID == "" || len(searchRequest.NodeUIDs) == 0 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	reply.DeletedNodeUIDs, err = workspace.DeleteNode(dgraph, workspaceMutex, searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUID)
+	reply.DeletedNodeUIDs, err = workspace.DeleteNodes(dgraph, workspaceMutex, searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUIDs)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
