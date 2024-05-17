@@ -206,7 +206,7 @@ import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},

@@ -46,7 +46,7 @@ import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {mdiChevronDown, mdiChevronUp} from '@mdi/js';
 import {plural} from '@/utilities';
 import {computed, ref} from 'vue';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 const props = defineProps({
 	items: {type: Array, required: true},

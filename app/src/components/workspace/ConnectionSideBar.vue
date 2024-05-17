@@ -121,7 +121,7 @@ import {
 import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 

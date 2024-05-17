@@ -127,7 +127,7 @@ import {convertAmount} from '@/utilities';
 import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ref} from 'vue';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	isInput: {type: Boolean, required: true},
