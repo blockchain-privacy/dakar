@@ -1168,7 +1168,7 @@ export default class NodeGraph {
 		return this.nodeMap.size === 0;
 	}
 
-	setNodeClickHandler(callback) {
+	setNodeClickCallback(callback) {
 		if (!isFunction(callback)) {
 			return false;
 		}
@@ -1177,7 +1177,7 @@ export default class NodeGraph {
 		return true;
 	}
 
-	setLineClickHandler(callback) {
+	setLineClickCallback(callback) {
 		if (!isFunction(callback)) {
 			return false;
 		}

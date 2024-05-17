@@ -259,10 +259,12 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
+const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 
 const allPrivacyLabels = ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'];
@@ -329,6 +331,8 @@ const privacyLabels = computed(() => {
 	return labels;
 });
 
+// Computed
+
 // Returns truer if min and max or on the same calendar day
 const isSameDay = computed(() => {
 	const day1 = new Date(rangePicker.value.min);
@@ -365,7 +369,22 @@ onBeforeMount(() => {
 
 onMounted(() => {
 	nodeGraph.initSvg('mixing_activity_force_graph', 1200, 500);
-	nodeGraph.setNodeClickHandler(onNodeClick);
+
+	if (!nodeGraph.setNodeClickCallback(onNodeClick)) {
+		setErrorMessage('error setting node click handler');
+		return;
+	}
+
+	if (workspaceStore.getIsWorkspaceActive) {
+		if (!nodeGraph.setLassoSelectionCallback(handleLassoSelection)) {
+			setErrorMessage('error setting lasso selection handler');
+			return;
+		}
+
+		if (!nodeGraph.setLassoResetCallback(handleLassoReset)) {
+			setErrorMessage('error setting lasso reset handler');
+		}
+	}
 });
 
 // Functions
@@ -514,6 +533,14 @@ function getCategories(filtered) {
 function showForceGraphDespiteWarning() {
 	overrideTooManyTransactionsWarning.value = true;
 	onTabChange(1);
+}
+
+function handleLassoSelection() {
+	workspaceStore.setWorkspaceNodes(nodeGraph.getLassoSelectedNodesData().map(d => ({id: d.uid, type: WORKSPACE_NODE_TYPE_TRANSACTION})));
+}
+
+function handleLassoReset() {
+	workspaceStore.workspaceNodes.clear();
 }
 
 function onTabChange(tab) {

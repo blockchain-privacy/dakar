@@ -967,12 +967,12 @@ async function whenMounted() {
 	// Set page title
 	document.title = `Workspace - ${APPLICATION_NAME}`;
 
-	if (!nodeGraph.setNodeClickHandler(openEntitySideBar)) {
+	if (!nodeGraph.setNodeClickCallback(openEntitySideBar)) {
 		setErrorMessage('error setting node click handler');
 		return false;
 	}
 
-	if (!nodeGraph.setLineClickHandler(openConnectionSheet)) {
+	if (!nodeGraph.setLineClickCallback(openConnectionSheet)) {
 		setErrorMessage('error setting line click handler');
 		return false;
 	}

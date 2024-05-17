@@ -56,7 +56,7 @@ const checkBoxModel = ref(false);
 // Computed
 const isWorkspaceMode = computed(() => workspaceStore.getIsWorkspaceActive
   && (props.to.name === ROUTE_NAME_TRANSACTION_PAGE || props.to.name === ROUTE_NAME_ADDRESS_PAGE)
-  && props.to.params?.id);
+  && Boolean(props.to.params?.id));
 
 // Watchers
 // keep state of checkbox in sync with store
@@ -79,6 +79,7 @@ onMounted(() => {
 
 // Functions
 function onLinkClick(e, navigate) {
+	console.log('onlinkclick', isWorkspaceMode.value);
 	if (isWorkspaceMode.value) {
 		e.preventDefault();
 		workspaceStore.setWorkspaceNode({to: props.to, id: props.to.params.id});

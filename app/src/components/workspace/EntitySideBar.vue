@@ -422,13 +422,13 @@ function selectAllAddresses() {
 }
 
 function deselectAllTransactions() {
-	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		.map(d => d.id));
 }
 
 function deselectAllAddresses() {
-	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
 		.map(d => d.id));
 }
