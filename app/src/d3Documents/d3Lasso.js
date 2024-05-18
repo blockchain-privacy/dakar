@@ -28,7 +28,42 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import {drag} from 'd3-drag';
-import {pointer as d3Pointer} from 'd3-selection';
+
+// From d3-select pointer.js, fixed touch handling
+function d3Pointer(event, node) {
+	if (event.sourceEvent) {
+		event = event.sourceEvent;
+	}
+
+	if (node === undefined) {
+		node = event.currentTarget;
+	}
+
+	if (node) {
+		const svg = node.ownerSVGElement || node;
+		if (svg.createSVGPoint) {
+			let point = svg.createSVGPoint();
+
+			if (event.type === 'touchmove') {
+				point.x = event.touches[0].clientX;
+				point.y = event.touches[0].clientY;
+			} else {
+				point.x = event.clientX;
+				point.y = event.clientY;
+			}
+
+			point = point.matrixTransform(node.getScreenCTM().inverse());
+			return [point.x, point.y];
+		}
+
+		if (node.getBoundingClientRect) {
+			const rect = node.getBoundingClientRect();
+			return [event.clientX - rect.left - node.clientLeft, event.clientY - rect.top - node.clientTop];
+		}
+	}
+
+	return [event.pageX, event.pageY];
+}
 
 function isPointInside(vs, point) {
 	// Ray-casting algorithm based on
