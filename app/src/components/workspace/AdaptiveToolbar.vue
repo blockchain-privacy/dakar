@@ -11,7 +11,7 @@
     <v-text-field
       v-model="graphQuery"
       class="noOutline flex-grow-1"
-      style="min-width:220px; max-width:400px"
+      :style="$vuetify.display.xs?'min-width:100px':'min-width:200px'"
       :hide-details="true"
       variant="outlined"
       density="compact"
@@ -27,7 +27,7 @@
       <v-btn
         variant="text"
         class="my-1"
-        @click="onRearrange"
+        @click="emit('rearrange')"
       >
         <v-icon
           :icon="mdiCached"
@@ -38,7 +38,7 @@
       <v-btn
         variant="text"
         class="my-1"
-        @click="onCenter"
+        @click="emit('center')"
       >
         <v-icon
           :icon="mdiImageFilterCenterFocus"
@@ -63,7 +63,7 @@
           variant="flat"
           class="my-1"
           :disabled="!deleteEnabled"
-          @click="onDeleteSelected"
+          @click="emit('deleteSelected')"
         >
           <v-icon
             :icon="mdiDelete"
@@ -73,7 +73,6 @@
         </v-btn>
       </v-scroll-x-reverse-transition>
     </div>
-    <v-spacer />
     <v-btn-toggle
       v-model="selectionToggle"
       color="primary"
@@ -91,28 +90,24 @@
       <v-btn
         variant="text"
         class="my-1"
-        @click="onRearrange"
+        @click="emit('rearrange')"
       >
         <v-icon
           :icon="mdiCached"
           class="me-1"
         />
-        <template v-if="$vuetify.display.smAndUp">
-          Rearrange
-        </template>
+        Rearrange
       </v-btn>
       <v-btn
         variant="text"
         class="my-1"
-        @click="onCenter"
+        @click="emit('center')"
       >
         <v-icon
           :icon="mdiImageFilterCenterFocus"
           class="me-1"
         />
-        <template v-if="$vuetify.display.smAndUp">
-          Center
-        </template>
+        Center
       </v-btn>
       <v-btn
         variant="text"
@@ -123,17 +118,15 @@
           :icon="mdiOpenInNew"
           class="me-1"
         />
-        <template v-if="$vuetify.display.smAndUp">
-          Workspaces
-        </template>
+        Workspaces
       </v-btn>
       <v-scroll-x-reverse-transition>
         <v-btn
           v-if="selectedItemCount > 0"
           variant="flat"
-          class="my-1"
+          class="my-1 me-1"
           :disabled="!deleteEnabled"
-          @click="onDeleteSelected"
+          @click="emit('deleteSelected')"
         >
           <v-icon
             :icon="mdiDelete"
@@ -170,18 +163,6 @@ const graphQuery = ref('');
 
 function selectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
-}
-
-function onRearrange() {
-	emit('rearrange');
-}
-
-function onCenter() {
-	emit('center');
-}
-
-function onDeleteSelected() {
-	emit('deleteSelected');
 }
 
 function onAddEntity() {
