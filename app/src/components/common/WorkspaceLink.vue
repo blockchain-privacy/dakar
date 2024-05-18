@@ -79,7 +79,6 @@ onMounted(() => {
 
 // Functions
 function onLinkClick(e, navigate) {
-	console.log('onlinkclick', isWorkspaceMode.value);
 	if (isWorkspaceMode.value) {
 		e.preventDefault();
 		workspaceStore.setWorkspaceNode({to: props.to, id: props.to.params.id});

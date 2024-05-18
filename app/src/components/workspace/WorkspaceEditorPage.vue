@@ -6,37 +6,20 @@
     <div style="height: 100%; width:100%; position: relative">
       <v-card
         v-if="workspaceName"
-        class="workspace-toolbar"
+        :rounded="$vuetify.display.xs?'0':undefined"
+        :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
       >
-        <v-card-text class="d-flex align-center pa-0">
-          <v-icon
-            class="mx-3"
-            icon="$graphIcon"
-            size="32"
-          />
-          <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
-            {{ workspaceName }}
-          </p>
-          <v-text-field
-            v-model="graphQuery"
-            class="noOutline"
-            style="min-width:220px; max-width:300px"
-            :hide-details="true"
-            variant="outlined"
-            density="compact"
-            color="primary"
-            :single-line="true"
-            label="Search"
-            :disabled="isModifyingWorkspace"
-            :append-inner-icon="mdiMagnify"
-            @click:append-inner="handleGraphQuery(graphQuery)"
-            @keydown.enter="handleGraphQuery(graphQuery)"
-          />
-          <adaptive-menu
-            :items="menuItems"
-            @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
-          />
-        </v-card-text>
+        <adaptive-toolbar
+          :name="workspaceName"
+          :selected-item-count="lassoSelectedNodes.length"
+          :delete-enabled="isLassoDeletionEnabled"
+          :add-entity-enabled="!isModifyingWorkspace"
+          @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
+          @rearrange="handleMenuRearrange"
+          @center="handleMenuCenter"
+          @delete-selected="handleMenuDeleteSelected"
+          @add-entity="handleGraphQuery"
+        />
         <v-progress-linear
           v-if="isModifyingWorkspace"
           :indeterminate="true"
@@ -47,7 +30,7 @@
       <div
         v-if="workspaceName && wasAutoSaved"
         style=""
-        :class="{'text-caption':true, 'auto-save-small-screen': $vuetify.display.smAndDown, 'auto-save-large-screen': $vuetify.display.mdAndUp }"
+        :class="{'text-caption':true, 'auto-save-sm': $vuetify.display.smAndDown, 'auto-save': $vuetify.display.mdAndUp }"
       >
         <template v-if="isAutoSaving">
           Saving ...
@@ -182,14 +165,10 @@
 
 <script setup>
 import {
-	mdiCached,
 	mdiCheckCircle,
 	mdiDelete,
-	mdiImageFilterCenterFocus,
-	mdiMagnify,
 	mdiNoteEdit,
 	mdiNotePlus,
-	mdiOpenInNew,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
@@ -197,7 +176,6 @@ import {
 	APPLICATION_NAME,
 	CLUSTER_TYPE_CUSTOM,
 	ROUTE_NAME_WORKSPACE_PAGE,
-	ROUTE_NAME_WORKSPACES_PAGE,
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
@@ -205,9 +183,10 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 } from '@/constants';
 import {
-	getColorMap, handleError, getPrivacyTypeLabel, plural,
+	getColorMap, handleError, getPrivacyTypeLabel,
 } from '@/utilities';
 import {
+	computed,
 	inject, nextTick, onMounted, onUnmounted, ref, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
@@ -216,7 +195,7 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
-import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
+import AdaptiveToolbar from '@/components/workspace/AdaptiveToolbar.vue';
 import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
@@ -251,7 +230,6 @@ const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
 const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
-const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
 const isAddHeuristicSheetOpen = ref(false);
@@ -307,27 +285,6 @@ const contextMenuModel = ref({
 	],
 });
 
-const menuItems = ref([
-	{
-		title: 'Rearrange',
-		icon: mdiCached,
-		action() {
-			nodeGraph.reorderNodes();
-			queueAutoSave();
-		},
-	},
-	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
-	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
-	{
-		title: () => `Delete ${lassoSelectedNodes.value.length} ${plural('node', lassoSelectedNodes.value.length)}`,
-		icon: mdiDelete,
-		action: () => removeGraphNodes(lassoSelectedNodes.value.map(d => d.uid)),
-		show: () => lassoSelectedNodes.value.length > 0,
-		disabled: () => lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)),
-		fill: true,
-	},
-]);
-
 let autoSaveTimer = null;
 const maxNoteLength = 100;
 
@@ -367,6 +324,10 @@ watch(
 		showRouteGuardDialogModel.value = true;
 	},
 );
+
+// Computed
+
+const isLassoDeletionEnabled = computed(() => !lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)));
 
 // Hooks
 function onDocumentClose() {
@@ -502,6 +463,19 @@ async function checkNodeCount(nodes) {
 	await addMultipleNodes(nodes);
 }
 
+function handleMenuRearrange() {
+	nodeGraph.reorderNodes();
+	queueAutoSave();
+}
+
+function handleMenuCenter() {
+	nodeGraph.centerGraph();
+}
+
+function handleMenuDeleteSelected() {
+	removeGraphNodes(lassoSelectedNodes.value.map(d => d.uid));
+}
+
 // Receives a node array
 async function addMultipleNodes(nodes) {
 	if (isModifyingWorkspace.value) {
@@ -547,8 +521,6 @@ async function handleGraphQuery(query) {
 	if (!trimmedQuery) {
 		return;
 	}
-
-	graphQuery.value = '';
 
 	await addMultipleNodes([trimmedQuery]);
 }
@@ -1050,21 +1022,21 @@ async function whenMounted() {
   white-space: nowrap;
 }
 
-.auto-save-large-screen {
+.auto-save {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 1004;
 }
 
-.auto-save-small-screen {
+.auto-save-sm {
   position: absolute;
-  top: 65px;
+  bottom: 10px;
   left: 10px;
   z-index: 1004;
 }
 
-.workspace-toolbar {
+.toolbar {
   position: absolute;
   left: 10px;
   top: 10px;
@@ -1072,15 +1044,13 @@ async function whenMounted() {
   background-color: rgb(var(--v-theme-surface))
 }
 
-/* remove outline from text-field variant 'outlined'.
- This can also be achieved by using variant 'plain',
- but then the label text is not centered */
-.noOutline :deep(.v-field__outline__start) {
-  border-width: 0 0 0 0 !important;
-}
-
-.noOutline :deep(.v-field__outline__end) {
-  border-width: 0 0 0 0 !important;
+.toolbar-sm {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right:0;
+  z-index: 1004;
+  background-color: rgb(var(--v-theme-surface))
 }
 
 </style>
