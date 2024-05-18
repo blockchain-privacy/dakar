@@ -28,42 +28,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import {drag} from 'd3-drag';
-
-// From d3-select pointer.js, fixed touch handling
-function d3Pointer(event, node) {
-	if (event.sourceEvent) {
-		event = event.sourceEvent;
-	}
-
-	if (node === undefined) {
-		node = event.currentTarget;
-	}
-
-	if (node) {
-		const svg = node.ownerSVGElement || node;
-		if (svg.createSVGPoint) {
-			let point = svg.createSVGPoint();
-
-			if (event.touches) {
-				point.x = event.touches[0].clientX;
-				point.y = event.touches[0].clientY;
-			} else {
-				point.x = event.clientX;
-				point.y = event.clientY;
-			}
-
-			point = point.matrixTransform(node.getScreenCTM().inverse());
-			return [point.x, point.y];
-		}
-
-		if (node.getBoundingClientRect) {
-			const rect = node.getBoundingClientRect();
-			return [event.clientX - rect.left - node.clientLeft, event.clientY - rect.top - node.clientTop];
-		}
-	}
-
-	return [event.pageX, event.pageY];
-}
+import {pointers} from 'd3-selection';
 
 function isPointInside(vs, point) {
 	// Ray-casting algorithm based on
@@ -181,7 +146,7 @@ export default function lasso() {
 			}
 
 			// Get mouse position within drawing area
-			const pointerEvent = d3Pointer(e, targetArea.node());
+			const pointerEvent = pointers(e, targetArea.node())[0];
 			const tx = pointerEvent[0];
 			const ty = pointerEvent[1];
 
