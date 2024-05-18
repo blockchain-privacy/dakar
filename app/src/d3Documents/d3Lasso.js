@@ -44,7 +44,7 @@ function d3Pointer(event, node) {
 		if (svg.createSVGPoint) {
 			let point = svg.createSVGPoint();
 
-			if (event.type === 'touchmove') {
+			if (event.touches) {
 				point.x = event.touches[0].clientX;
 				point.y = event.touches[0].clientY;
 			} else {
