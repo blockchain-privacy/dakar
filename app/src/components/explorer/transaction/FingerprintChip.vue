@@ -1,11 +1,11 @@
 <template>
   <v-chip
     :id="`btn_find_similar_transactions_${transactionHash}`"
-    :rounded="true"
+    v-bind="$attrs"
+    rounded
     color="primary"
     :size="size"
     style="cursor: pointer"
-    v-bind="$attrs"
     @click="showFingerprintDialog = true"
   >
     <v-icon

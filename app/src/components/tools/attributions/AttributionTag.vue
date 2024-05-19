@@ -6,11 +6,11 @@
     >
       <template #activator="item">
         <v-chip
-          :label="true"
+          v-bind="item.props"
+          label
           class="overflow-x-auto"
           :color="attribution.isPublic?'primary':null"
-          v-bind="item.props"
-          :rounded="true"
+          rounded
         >
           {{ attribution.tag }}
         </v-chip>

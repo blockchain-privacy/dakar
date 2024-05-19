@@ -25,8 +25,8 @@
         >
           <template #activator="{ props }">
             <v-icon
-              size="x-small"
               v-bind="props"
+              size="x-small"
               :icon="mdiHelpCircleOutline"
             />
           </template>

@@ -22,9 +22,8 @@
       :style="$attrs.style"
     >
       <a
-        class="asdf123"
-        :href="href"
         v-bind="$attrs"
+        :href="href"
         @click="onLinkClick($event, navigate)"
       >
         <slot />

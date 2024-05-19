@@ -2,8 +2,8 @@
   <v-dialog
     v-model="model"
     max-width="300px"
-    :contained="true"
-    :no-click-animation="true"
+    contained
+    no-click-animation
   >
     <v-card>
       <v-card-text class="d-flex align-center flex-column">

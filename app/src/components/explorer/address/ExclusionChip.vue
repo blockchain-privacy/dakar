@@ -1,7 +1,7 @@
 <template>
   <template v-if="showExclusionChip">
     <v-chip
-      :rounded="true"
+      rounded
       color="primary"
     >
       <template #append>

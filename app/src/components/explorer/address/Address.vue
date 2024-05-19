@@ -83,7 +83,7 @@
     <v-tabs
       v-model="tab"
       class="mt-4"
-      :fixed-tabs="true"
+      fixed-tabs
     >
       <v-tab>
         Outputs
@@ -109,7 +109,7 @@
               :output-count="data.output_count"
               :input-count="data.input_count"
               :coinbase-count="data.coinbase_count"
-              :data-available="true"
+              data-available
               @change="handleFilterOrSortChange"
             />
             <v-sheet

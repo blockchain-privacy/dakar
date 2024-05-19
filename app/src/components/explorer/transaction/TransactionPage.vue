@@ -1,5 +1,5 @@
 <template>
-  <v-container :fluid="true">
+  <v-container fluid>
     <v-row
       v-if="tx"
       align="center"

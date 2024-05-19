@@ -1,5 +1,5 @@
 <template>
-  <v-container :fluid="true">
+  <v-container fluid>
     <v-row
       align="center"
       justify="center"
@@ -12,7 +12,7 @@
         xl="8"
       >
         <v-card>
-          <v-toolbar :flat="true">
+          <v-toolbar flat>
             <v-toolbar-title>{{ pageTitle }}</v-toolbar-title>
           </v-toolbar>
           <v-card-text>

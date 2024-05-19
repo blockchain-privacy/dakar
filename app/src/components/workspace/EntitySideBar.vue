@@ -8,7 +8,7 @@
   >
     <template #actions>
       <v-chip
-        :rounded="true"
+        rounded
         class="me-2"
         variant="tonal"
         :prepend-icon="mdiDelete"
@@ -17,7 +17,7 @@
         Delete
       </v-chip>
       <v-chip
-        :rounded="true"
+        rounded
         class="me-2"
         color="primary"
         variant="tonal"
@@ -34,7 +34,7 @@
         >
           <v-chip
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
-            :rounded="true"
+            rounded
             color="primary"
             variant="tonal"
             class="me-2"
@@ -60,7 +60,7 @@
         />
         <v-chip
           v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
-          :rounded="true"
+          rounded
           color="primary"
           variant="tonal"
           :prepend-icon="mdiFileDownloadOutline"
@@ -100,7 +100,7 @@
               <transaction
                 :tx="t"
                 :show-heuristic-editor-link="false"
-                :show-fingerprint-link="true"
+                show-fingerprint-link
                 show-details
                 :embed="false"
                 :show-title-bar="false"

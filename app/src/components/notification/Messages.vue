@@ -19,7 +19,7 @@
       style="bottom:0;top:unset"
       :model-value="progressValue"
       :color="type"
-      :absolute="true"
+      absolute
     />
   </v-alert>
 </template>

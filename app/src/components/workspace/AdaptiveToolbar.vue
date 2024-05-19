@@ -12,11 +12,11 @@
       v-model="graphQuery"
       class="noOutline flex-grow-1"
       :style="$vuetify.display.xs?'min-width:100px':'min-width:200px'"
-      :hide-details="true"
+      hide-details
       variant="outlined"
       density="compact"
       color="primary"
-      :single-line="true"
+      single-line
       label="Add entities"
       :disabled="!addEntityEnabled"
       :append-inner-icon="mdiMagnify"

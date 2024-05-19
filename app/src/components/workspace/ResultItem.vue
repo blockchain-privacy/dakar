@@ -31,7 +31,7 @@
     v-if="areItemsLimited"
     variant="text"
     :rounded="false"
-    :block="true"
+    block
     size="small"
     @click="showAllOutputs = !showAllOutputs"
   >

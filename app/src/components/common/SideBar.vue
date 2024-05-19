@@ -22,7 +22,7 @@
               name="actions"
             />
             <v-btn
-              :icon="true"
+              icon
               variant="text"
               color="grey"
               @click="model = false"

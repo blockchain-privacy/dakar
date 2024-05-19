@@ -20,7 +20,7 @@
               v-model="fromTransaction"
               label="Start transaction"
               :disabled="isLoading"
-              :autofocus="true"
+              autofocus
               @keydown.enter="handleSearch"
             />
           </v-col>
@@ -102,7 +102,7 @@
                 <div class="mr-2">
                   <v-radio
                     label="Forward"
-                    :value="true"
+                    value
                   />
                 </div>
                 <div>

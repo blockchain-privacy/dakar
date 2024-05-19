@@ -6,7 +6,7 @@
       max-width="350px"
     >
       <div v-if="showTools">
-        <v-row :no-gutters="true">
+        <v-row no-gutters>
           <v-col>
             <link-card
               title="Workspaces"
@@ -32,7 +32,7 @@
             />
           </v-col>
         </v-row>
-        <v-row :no-gutters="true">
+        <v-row no-gutters>
           <v-col>
             <link-card
               title="Address Exclusions"
@@ -60,7 +60,7 @@
         </v-row>
       </div>
       <v-divider class="my-2" />
-      <v-row :no-gutters="true">
+      <v-row no-gutters>
         <v-col>
           <link-card
             title="Server Status"

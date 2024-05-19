@@ -17,10 +17,10 @@
             <!-- selected-class="" is intentionally left blank to avoid a shadow over the chip elements -->
             <v-chip-group
               v-model="selectedPrivacyID"
-              :column="true"
-              :multiple="true"
-              :filter="true"
-              :mandatory="true"
+              column
+              multiple
+              filter
+              mandatory
               :disabled="!activities || activities.length === 0"
               selected-class=""
               color="primary"
@@ -123,7 +123,7 @@
     <div v-show="activities && activities.length > 0">
       <v-tabs
         v-model="graphTabs"
-        :grow="true"
+        grow
         @update:model-value="onTabChange"
       >
         <v-tab key="histogram">
@@ -140,7 +140,7 @@
       >
         <v-window-item
           key="histogram"
-          :eager="true"
+          eager
         >
           <v-card variant="text">
             <v-card-text>
@@ -181,7 +181,7 @@
         </v-window-item>
         <v-window-item
           key="graph"
-          :eager="true"
+          eager
         >
           <v-card
             v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
@@ -191,7 +191,7 @@
               <div style="text-align:center">
                 <v-alert
                   variant="text"
-                  :prominent="true"
+                  prominent
                   type="warning"
                 >
                   The mixing activity results have more than
@@ -241,7 +241,7 @@
     <v-progress-linear
       v-if="isLoading"
       class="mt-10"
-      :indeterminate="true"
+      indeterminate
     />
   </div>
 </template>

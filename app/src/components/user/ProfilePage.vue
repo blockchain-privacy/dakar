@@ -8,9 +8,9 @@
       <v-menu>
         <template #activator="{ props }">
           <v-btn
-            :icon="mdiDotsVertical"
-            variant="text"
             v-bind="props"
+            variant="text"
+            :icon="mdiDotsVertical"
           />
         </template>
         <v-list>

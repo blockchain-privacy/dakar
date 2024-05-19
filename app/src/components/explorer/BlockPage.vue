@@ -1,5 +1,5 @@
 <template>
-  <v-container :fluid="true">
+  <v-container fluid>
     <v-row
       align="center"
       justify="center"
@@ -104,7 +104,7 @@
                           show-title-link
                           :show-heuristic-editor-link="isPrivilegedOrHigher"
                           :show-fingerprint-link="isPrivilegedOrHigher"
-                          :embed="true"
+                          embed
                         />
                       </v-col>
                     </template>

@@ -21,7 +21,7 @@
           style="min-width: 200px"
           label="From"
           :disabled="isLoading"
-          :autofocus="true"
+          autofocus
         />
         <v-text-field
           v-model="toTransaction"
@@ -33,7 +33,7 @@
       <div class="d-flex align-center flex-wrap">
         <v-radio-group
           v-model="anyDirection"
-          :inline="true"
+          inline
           label="Search direction:"
           :disabled="isLoading"
         >
@@ -43,7 +43,7 @@
           />
           <v-radio
             label="Any"
-            :value="true"
+            value
           />
         </v-radio-group>
         <v-switch

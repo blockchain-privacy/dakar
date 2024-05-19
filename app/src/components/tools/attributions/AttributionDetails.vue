@@ -13,8 +13,8 @@
       >
         <template #activator="{ props }">
           <v-btn
-            icon
             v-bind="props"
+            icon
             variant="plain"
           >
             <v-icon>{{ mdiDotsVertical }}</v-icon>

@@ -6,7 +6,7 @@
         title="Tools"
       />
       <v-divider />
-      <v-list :nav="true">
+      <v-list nav>
         <v-list-item
           :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}"
           prepend-icon="$graphIcon"

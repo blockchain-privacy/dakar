@@ -7,7 +7,7 @@
     <icon-title
       title="Workspaces"
       icon="$graphIcon"
-      :one-line="true"
+      one-line
     >
       <v-btn
         v-model="showSearchField"
@@ -20,7 +20,7 @@
       <v-btn
         v-model="showSearchField"
         variant="text"
-        :icon="true"
+        icon
         @click="showSearchField = !showSearchField"
       >
         <v-icon>{{ mdiMagnify }}</v-icon>
@@ -28,9 +28,9 @@
       <v-menu location="bottom">
         <template #activator="{ props }">
           <v-btn
-            variant="text"
-            :icon="true"
             v-bind="props"
+            variant="text"
+            icon
           >
             <v-icon>{{ mdiDotsVertical }}</v-icon>
           </v-btn>
@@ -63,9 +63,9 @@
           v-model="search"
           :append-inner-icon="mdiMagnify"
           label="Filter items"
-          :single-line="true"
+          single-line
           hide-details
-          :autofocus="true"
+          autofocus
           style="max-width:800px"
           @keydown.esc="showSearchField = false"
         />

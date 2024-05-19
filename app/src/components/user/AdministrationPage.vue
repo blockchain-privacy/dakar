@@ -20,13 +20,13 @@
         >
           <template #top>
             <v-toolbar
-              :flat="true"
+              flat
               class="hidden-sm-and-up"
             >
               <v-toolbar-title>Identities</v-toolbar-title>
             </v-toolbar>
             <v-toolbar
-              :flat="true"
+              flat
               class="hidden-sm-and-up"
             >
               <v-text-field
@@ -57,7 +57,7 @@
               </v-btn>
             </v-toolbar>
             <v-toolbar
-              :flat="true"
+              flat
               class="d-none d-sm-flex"
             >
               <v-toolbar-title>Identities</v-toolbar-title>
@@ -144,13 +144,13 @@
         >
           <template #top>
             <v-toolbar
-              :flat="true"
+              flat
               class="hidden-sm-and-up"
             >
               <v-toolbar-title>Sessions</v-toolbar-title>
             </v-toolbar>
             <v-toolbar
-              :flat="true"
+              flat
               class="hidden-sm-and-up"
             >
               <v-text-field
@@ -163,7 +163,7 @@
               />
             </v-toolbar>
             <v-toolbar
-              :flat="true"
+              flat
               class="d-none d-sm-flex"
             >
               <v-toolbar-title>Sessions</v-toolbar-title>
@@ -235,7 +235,7 @@
             <v-textarea
               :model-value="identityPropertyDialogData"
               auto-grow
-              :readonly="true"
+              readonly
               hide-details
             />
           </v-card>

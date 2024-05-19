@@ -21,14 +21,14 @@
                 type="email"
                 :rules="rules.emailRules"
                 style="min-width: 250px"
-                :autofocus="true"
+                autofocus
               />
               <v-select
                 v-model="shadowIdentity.roles"
                 :rules="rules.roleRules"
                 :items="roles"
                 label="Roles"
-                :multiple="true"
+                multiple
               />
               <v-select
                 v-model="shadowIdentity.state"

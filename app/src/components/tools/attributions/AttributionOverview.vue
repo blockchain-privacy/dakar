@@ -4,7 +4,7 @@
       <v-card-text>
         <v-progress-linear
           v-if="isLoading"
-          :indeterminate="true"
+          indeterminate
         />
         <div v-else>
           <v-row>
@@ -21,9 +21,9 @@
               <v-menu location="bottom">
                 <template #activator="{ props }">
                   <v-btn
+                    v-bind="props"
                     icon
                     variant="text"
-                    v-bind="props"
                   >
                     <v-icon>{{ mdiDotsVertical }}</v-icon>
                   </v-btn>

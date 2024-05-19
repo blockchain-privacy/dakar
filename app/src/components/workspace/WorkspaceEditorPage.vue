@@ -22,8 +22,8 @@
         />
         <v-progress-linear
           v-if="isModifyingWorkspace"
-          :indeterminate="true"
-          :rounded="true"
+          indeterminate
+          rounded
           location="bottom"
         />
       </v-card>
@@ -44,10 +44,10 @@
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
         <v-dialog
           :model-value="isLoadingWorkspace"
-          :persistent="true"
+          persistent
           max-width="350px"
-          :contained="true"
-          :no-click-animation="true"
+          contained
+          no-click-animation
         >
           <v-card>
             <v-card-text class="text-subtitle-1 d-flex align-center">
@@ -57,7 +57,7 @@
                 </p>
                 <v-progress-linear
                   class="mt-3"
-                  :indeterminate="true"
+                  indeterminate
                   rounded
                 />
               </div>
@@ -102,7 +102,7 @@
           submit-label="Create"
           input-label="Note content"
           :maxlength="maxNoteLength"
-          :text-area="true"
+          text-area
           @submit="addNewNote"
         />
         <text-dialog
@@ -113,7 +113,7 @@
           input-label="Note content"
           :input-value="editNoteDialogValue"
           :maxlength="maxNoteLength"
-          :text-area="true"
+          text-area
           @submit="changeNote"
         />
         <confirm-dialog

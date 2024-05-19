@@ -1,7 +1,7 @@
 <template>
   <v-chip
     v-if="showSelectAllTransactions"
-    :rounded="true"
+    rounded
     class="me-2"
     color="primary"
     variant="tonal"
@@ -12,7 +12,7 @@
   </v-chip>
   <v-chip
     v-if="showSelectAllAddresses"
-    :rounded="true"
+    rounded
     class="me-2"
     color="primary"
     variant="tonal"
@@ -24,7 +24,7 @@
   <fade-transition>
     <v-chip
       v-if="selectionCount"
-      :rounded="true"
+      rounded
       class="me-2"
       color="primary"
       variant="tonal"

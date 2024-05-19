@@ -27,7 +27,7 @@
     <v-otp-input
       :key="Math.random()"
       :model-value="attributes.value?attributes.value:''"
-      :autofocus="true"
+      autofocus
       :name="attributes.name"
       @finish="emitSubmitEvent(null, 'otp-input')"
     />
@@ -73,7 +73,7 @@
       :name="name"
       :loading="!submitEnabled"
       variant="flat"
-      :block="true"
+      block
       class="font-weight-bold mt-2"
       color="primary-darken-1"
       type="submit"

@@ -88,7 +88,7 @@
                 :key="t.txhash+t.bid"
               >
                 <transaction
-                  :show-fingerprint-link="true"
+                  show-fingerprint-link
                   :show-heuristic-editor-link="false"
                   :tx="t"
                   show-details
