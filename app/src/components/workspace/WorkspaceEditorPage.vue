@@ -832,8 +832,8 @@ async function refreshData() {
 
 		if (response.workspace) {
 			data = response.workspace;
-			data.nodes = setPrivacyLabels(data.nodes);
 			workspaceName.value = data.name;
+			data.nodes &&= setPrivacyLabels(data.nodes);
 		} else {
 			data = null;
 		}
