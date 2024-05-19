@@ -398,6 +398,11 @@ func (c *Classifier) Iterate() (bool, error) {
 	return true, nil
 }
 
+// ProcessedBlockCount returns the number of blocks processed by a Iterate call
+func (c *Classifier) ProcessedBlockCount() uint64 {
+	return 1
+}
+
 // PostExecution sets the classifier status activity flag to false
 func (c *Classifier) PostExecution() error {
 	return dbstat.SetClassifying(c.db, false)

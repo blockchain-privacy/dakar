@@ -277,6 +277,11 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	return true, nil
 }
 
+// ProcessedBlockCount returns the number of blocks processed by a Iterate call
+func (m *HierarchicalMultiInput) ProcessedBlockCount() uint64 {
+	return 1
+}
+
 // NextBlock tries to increase the internal state to the next block
 func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)

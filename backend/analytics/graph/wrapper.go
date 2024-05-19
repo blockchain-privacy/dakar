@@ -298,3 +298,8 @@ func (w *Wrapper) Iterate() (bool, error) {
 
 	return true, nil
 }
+
+// ProcessedBlockCount returns the number of blocks processed by a Iterate call
+func (w *Wrapper) ProcessedBlockCount() uint64 {
+	return 1
+}

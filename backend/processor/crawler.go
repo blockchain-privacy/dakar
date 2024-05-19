@@ -188,3 +188,8 @@ func (c *Crawler) Iterate() (bool, error) {
 
 	return true, nil
 }
+
+// ProcessedBlockCount returns the number of blocks processed by a Iterate call
+func (c *Crawler) ProcessedBlockCount() uint64 {
+	return 1
+}

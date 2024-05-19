@@ -96,10 +96,10 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 }
 
 // GetAddressesByBlock gets all addresses per transaction by block id.
-func GetAddressesByBlock(c external.Database, blockID uint64,
+func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint64,
 	clusterType ClusterType) (transactions []TransactionWithInputOutputAddressCluster, err error) {
-	const query = `query Q($block:string,$ctype:string) {
-				var(func: eq(id, $block)){
+	const query = `query Q($from:string,$to:string,$ctype:string) {
+				var(func: between(id, $from, $to)){
 					txs as transactions
 				}
 
@@ -128,7 +128,8 @@ func GetAddressesByBlock(c external.Database, blockID uint64,
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$block": strconv.FormatUint(blockID, 10), "$ctype": string(clusterType)})
+		map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
+			"$to": strconv.FormatUint(toBlockID, 10), "$ctype": string(clusterType)})
 	if err != nil {
 		return
 	}

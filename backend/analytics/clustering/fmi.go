@@ -20,6 +20,12 @@ type FlatMultiInput struct {
 	ctx   context.Context
 	state blockiterator.State
 
+	// how many blocks are processed in one interation at maximum
+	maxBlocks uint64
+
+	// number of blocks which have been processed by the last Iterate call
+	blocksProcessed uint64
+
 	blocks         prometheus.Counter
 	transactions   prometheus.Counter
 	mergedClusters prometheus.Counter
@@ -30,8 +36,9 @@ type FlatMultiInput struct {
 // NewFlatMultiInput creates a new flat multi-input clustering object
 func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
 	return &FlatMultiInput{
-		db:  dgraph,
-		ctx: ctx,
+		db:        dgraph,
+		ctx:       ctx,
+		maxBlocks: 100,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_clustering_fmi_blocks_processed_total",
 			Help: "The total number of blocks processed by the FMI clustering process",
@@ -161,8 +168,10 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		return false, cliutil.NewStackErrorStr("got empty state")
 	}
 
+	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
+	toBlockID := min(m.state.Top, m.state.ID+m.maxBlocks-1)
 	// get the transaction of the current block height
-	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, clustering.TypeFMI)
+	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, toBlockID, clustering.TypeFMI)
 	if err != nil {
 		return false, err
 	}
@@ -225,14 +234,20 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	}
 
 	// set the last clustered block
-	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, m.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
-	m.blocks.Inc()
-	m.blockHeight.Set(float64(m.state.ID))
+	m.blocksProcessed = toBlockID - m.state.ID + 1
+	m.blocks.Add(float64(m.blocksProcessed))
+	m.blockHeight.Set(float64(toBlockID))
 
 	return true, nil
+}
+
+// ProcessedBlockCount returns the number of blocks processed by a Iterate call
+func (m *FlatMultiInput) ProcessedBlockCount() uint64 {
+	return m.blocksProcessed
 }
 
 // NextBlock tries to increase the internal state to the next block
@@ -257,7 +272,7 @@ func (m *FlatMultiInput) PostExecution() error {
 }
 
 func (m *FlatMultiInput) IncrementState() error {
-	m.state.ID++
+	m.state.ID += m.blocksProcessed
 	return nil
 }
 

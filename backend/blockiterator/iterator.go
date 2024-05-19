@@ -24,6 +24,8 @@ type BlockIterator interface {
 	// This will be called periodically when Empty returns true. Should return true if the state
 	// transition was successful.
 	NextBlock() (bool, error)
+	// ProcessedBlockCount is the number of blocks which have been processed by the last Iterate call
+	ProcessedBlockCount() uint64
 	// PostExecution is always executed, even if PreLoop or Loop fail.
 	// This function should do operations like the setting the database status
 	PostExecution() error
@@ -33,7 +35,6 @@ type BlockIterator interface {
 	Empty() bool
 	// CurrentBlock returns the height of the block which is currently processed
 	CurrentBlock() uint64
-
 	Logger() *slog.Logger
 	Context() context.Context
 	Name() string
@@ -79,7 +80,8 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 	info(iterator, fmt.Sprintf("starting at: %d", iterator.CurrentBlock()))
 
-	numIteratedBlocks := 0
+	lastMetricPrintBlockID := uint64(0)
+	numIteratedBlocks := uint64(0)
 	timerGlobal := time.Now()
 	ctx := iterator.Context()
 
@@ -122,10 +124,13 @@ func StartIteration(iterator BlockIterator) (err error) {
 		}
 
 		// metrics
-		numIteratedBlocks++
-		if numIteratedBlocks%1000 == 0 {
-			info(iterator, fmt.Sprintf("avg 1000 blocks: %v ms/block", time.Since(timerGlobal).Milliseconds()/1000))
+		numIteratedBlocks += iterator.ProcessedBlockCount()
+		blocksSinceLastPrint := int64(numIteratedBlocks - lastMetricPrintBlockID)
+		if blocksSinceLastPrint >= 1000 {
+			info(iterator, fmt.Sprintf("avg %d blocks: %v ms/block", blocksSinceLastPrint,
+				time.Since(timerGlobal).Milliseconds()/blocksSinceLastPrint))
 			timerGlobal = time.Now()
+			lastMetricPrintBlockID = numIteratedBlocks
 		}
 	}
 }
