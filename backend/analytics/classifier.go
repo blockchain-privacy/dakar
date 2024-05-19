@@ -9,6 +9,7 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"log/slog"
+	"slices"
 
 	"context"
 	"log"
@@ -307,7 +308,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// step 2.2.1: set the privacy type of destination transactions by analyzing the connected transactions.
 	// Origins are only returned in this step and not set directly, if the number of potentialCollateralTransactions
-	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
+	// is bigger than zero. This is so the classification is resilient against sudden shutdowns. If the origins were
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
@@ -326,14 +327,12 @@ func (c *Classifier) Iterate() (bool, error) {
 			return false, err
 		}
 
-		var updatedTransactions []db.Transaction
-
-		for _, o := range foundOrigins {
-			updatedTransactions = append(updatedTransactions, newOriginTransaction(o.UID))
+		updatedTransactions := make([]db.Transaction, len(foundOrigins))
+		for i, o := range foundOrigins {
+			updatedTransactions[i] = newOriginTransaction(o.UID)
 		}
 
-		updatedTransactions = append(updatedTransactions, originCC...)
-		updatedTransactions = append(updatedTransactions, originCP...)
+		updatedTransactions = slices.Concat(updatedTransactions, originCC, originCP)
 
 		if len(updatedTransactions) > 0 {
 			if updateErr := db.UpdateTransactions(c.db, updatedTransactions); updateErr != nil {
