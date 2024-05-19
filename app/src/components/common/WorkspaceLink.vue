@@ -11,14 +11,18 @@
       class="flex-shrink-0"
       @update:model-value="checkBoxChanged"
     />
+    <!-- The order of props is important. v-bind has to come before 'custom',
+    because 'custom' needs to overwrite 'custom' the props passed in v-bind.
+    See more here: https://www.vueframework.com/guide/migration/v-bind.html -->
     <router-link
       v-slot="{href, navigate}"
-      custom
       v-bind="$props"
+      custom
       :class="$attrs.class"
       :style="$attrs.style"
     >
       <a
+        class="asdf123"
         :href="href"
         v-bind="$attrs"
         @click="onLinkClick($event, navigate)"
