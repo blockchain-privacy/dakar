@@ -66,7 +66,7 @@
             <!-- eslint-disable vuetify/no-deprecated-props vuetify/no-deprecated-events -->
             <v-range-slider
               v-model="rangePicker.model"
-              :disabled="!activities || activities.length === 0"
+              :disabled="!activities || activities.length < 2"
               :ticks="rangePicker.events"
               class="mr-8"
               :min="rangePicker.min"
