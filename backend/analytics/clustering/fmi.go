@@ -19,7 +19,7 @@ type FlatMultiInput struct {
 	state blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
-	maxBlocks uint64
+	maxBlocks uint
 
 	// number of blocks which have been processed by the last Iterate call
 	blocksProcessed uint64
@@ -32,11 +32,11 @@ type FlatMultiInput struct {
 }
 
 // NewFlatMultiInput creates a new flat multi-input clustering object
-func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
+func NewFlatMultiInput(ctx context.Context, dgraph external.Database, maxBlocks uint) *FlatMultiInput {
 	return &FlatMultiInput{
 		db:        dgraph,
 		ctx:       ctx,
-		maxBlocks: 100,
+		maxBlocks: maxBlocks,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_clustering_fmi_blocks_processed_total",
 			Help: "The total number of blocks processed by the FMI clustering process",
@@ -162,12 +162,16 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate() (bool, error) {
+	if m.maxBlocks == 0 {
+		return false, cliutil.NewStackErrorStr("max blocks must be higher than zero")
+	}
+
 	if m.Empty() {
-		return false, cliutil.NewStackErrorStr("got empty state")
+		return false, cliutil.NewStackErrorStr("received empty state")
 	}
 
 	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
-	toBlockID := min(m.state.Top, m.state.ID+m.maxBlocks-1)
+	toBlockID := min(m.state.Top, m.state.ID+uint64(m.maxBlocks)-1)
 	// get the transaction of the current block height
 	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, toBlockID, clustering.TypeFMI)
 	if err != nil {
