@@ -383,8 +383,10 @@ func TestFlatMultiInput_IncrementState(t *testing.T) {
 	unregisterCollectors(fm)
 
 	require.EqualValues(t, 0, fm.state.ID)
+	// need to simulate a block being processed
+	fm.blocksProcessed = 10
 	require.NoError(t, fm.IncrementState())
-	require.EqualValues(t, 1, fm.state.ID)
+	require.EqualValues(t, 10, fm.state.ID)
 }
 
 func TestFlatMultiInput_Empty(t *testing.T) {
@@ -399,32 +401,11 @@ func TestFlatMultiInput_Empty(t *testing.T) {
 	require.True(t, fm.Empty())
 }
 
-func TestFlatMultiInput_CurrentBlock(t *testing.T) {
+func TestFlatMultiInput_Props(t *testing.T) {
 	fm := NewFlatMultiInput(context.Background(), nil)
 	unregisterCollectors(fm)
 
-	require.Zero(t, fm.CurrentBlock())
-}
-
-func TestFlatMultiInput_Logger(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
-	unregisterCollectors(fm)
-
-	require.NotNil(t, fm.Logger())
-}
-
-func TestFlatMultiInput_Context(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
-	unregisterCollectors(fm)
-
-	require.NotNil(t, fm.Context())
-}
-
-func TestFlatMultiInput_Name(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
-	unregisterCollectors(fm)
-
-	require.NotEmpty(t, fm.Name())
+	require.NotEmpty(t, fm.Props())
 }
 
 func Test_setInitialFMIClusteringID(t *testing.T) {

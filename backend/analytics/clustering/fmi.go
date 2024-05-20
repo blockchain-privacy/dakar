@@ -7,8 +7,6 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
-	"log/slog"
-
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -245,9 +243,14 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	return true, nil
 }
 
-// ProcessedBlockCount returns the number of blocks processed by a Iterate call
-func (m *FlatMultiInput) ProcessedBlockCount() uint64 {
-	return m.blocksProcessed
+func (m *FlatMultiInput) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "flat multi-input clustering",
+		Context:             m.ctx,
+		Logger:              clusteringLogger,
+		CurrentBlock:        m.state.ID,
+		ProcessedBlockCount: m.blocksProcessed,
+	}
 }
 
 // NextBlock tries to increase the internal state to the next block
@@ -279,26 +282,6 @@ func (m *FlatMultiInput) IncrementState() error {
 // Empty checks if there are more blocks above the current one
 func (m *FlatMultiInput) Empty() bool {
 	return m.state.ID > m.state.Top
-}
-
-// CurrentBlock returns the height of the block which is getting clustered
-func (m *FlatMultiInput) CurrentBlock() uint64 {
-	return m.state.ID
-}
-
-// Logger returns the Logger
-func (m *FlatMultiInput) Logger() *slog.Logger {
-	return clusteringLogger
-}
-
-// Context returns the context
-func (m *FlatMultiInput) Context() context.Context {
-	return m.ctx
-}
-
-// Name returns the name
-func (m *FlatMultiInput) Name() string {
-	return "Flat Multi-Input Clustering"
 }
 
 // setInitialFMIClusteringID sets the starting FMI clustering block id to 0 if no value has been set yet

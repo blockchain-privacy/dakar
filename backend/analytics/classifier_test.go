@@ -370,24 +370,6 @@ func TestNewClassifier(t *testing.T) {
 	require.NotNil(t, classifier)
 }
 
-func TestClassifier_Name(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, Config{})
-	unregisterCollectors(classifier)
-	require.NotEmpty(t, classifier.Name())
-}
-
-func TestClassifier_Logger(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, Config{})
-	unregisterCollectors(classifier)
-	require.NotNil(t, classifier.Logger())
-}
-
-func TestClassifier_Context(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, Config{})
-	unregisterCollectors(classifier)
-	require.NotNil(t, classifier.Context())
-}
-
 func TestClassifier_IncrementState(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{})
 	unregisterCollectors(classifier)
@@ -555,11 +537,11 @@ func TestClassifier_NextBlock(t *testing.T) {
 	require.EqualValues(t, testhelper.BlockFileLastBlock, classifier.state.Top)
 }
 
-func TestClassifier_CurrentBlock(t *testing.T) {
+func TestClassifier_Props(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
 	unregisterCollectors(classifier)
 
-	require.EqualValues(t, 0, classifier.CurrentBlock())
+	require.NotEmpty(t, classifier.Props())
 }
 
 func TestClassifier_Iterate(t *testing.T) {

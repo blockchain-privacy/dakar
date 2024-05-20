@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"log/slog"
 	"strconv"
 )
 
@@ -277,9 +276,14 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	return true, nil
 }
 
-// ProcessedBlockCount returns the number of blocks processed by a Iterate call
-func (m *HierarchicalMultiInput) ProcessedBlockCount() uint64 {
-	return 1
+func (m *HierarchicalMultiInput) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "hierarchical multi-input clustering",
+		Context:             m.ctx,
+		Logger:              clusteringLogger,
+		CurrentBlock:        m.state.ID,
+		ProcessedBlockCount: 1,
+	}
 }
 
 // NextBlock tries to increase the internal state to the next block
@@ -311,26 +315,6 @@ func (m *HierarchicalMultiInput) IncrementState() error {
 // Empty checks if there are more blocks above the current one
 func (m *HierarchicalMultiInput) Empty() bool {
 	return m.state.ID > m.state.Top
-}
-
-// CurrentBlock returns the height of the block which is getting clustered
-func (m *HierarchicalMultiInput) CurrentBlock() uint64 {
-	return m.state.ID
-}
-
-// Logger returns the Logger
-func (m *HierarchicalMultiInput) Logger() *slog.Logger {
-	return clusteringLogger
-}
-
-// Context returns the context
-func (m *HierarchicalMultiInput) Context() context.Context {
-	return m.ctx
-}
-
-// Name returns the name
-func (m *HierarchicalMultiInput) Name() string {
-	return "Hierarchical Multi-Input Clustering"
 }
 
 // setInitialHMIClusteringID sets the starting HMI clustering block id to 0 if no value has been set yet

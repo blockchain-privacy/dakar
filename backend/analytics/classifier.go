@@ -8,7 +8,6 @@ import (
 	"backend/db/analytics"
 	dbstat "backend/db/status"
 	"backend/external"
-	"log/slog"
 	"slices"
 
 	"context"
@@ -129,19 +128,14 @@ func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *C
 	}
 }
 
-// Name returns the name
-func (c *Classifier) Name() string {
-	return "classifier"
-}
-
-// Logger returns the Logger
-func (c *Classifier) Logger() *slog.Logger {
-	return analyticsLogger
-}
-
-// Context returns the context
-func (c *Classifier) Context() context.Context {
-	return c.ctx
+func (c *Classifier) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "classifier",
+		Context:             c.ctx,
+		Logger:              analyticsLogger,
+		CurrentBlock:        c.state.ID,
+		ProcessedBlockCount: 1,
+	}
 }
 
 // IncrementState increments the state one block
@@ -270,11 +264,6 @@ func (c *Classifier) NextBlock() (bool, error) {
 	return false, nil
 }
 
-// CurrentBlock returns the height of the block which is currently classified
-func (c *Classifier) CurrentBlock() uint64 {
-	return c.state.ID
-}
-
 // Iterate classifies all transactions of the current block based
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
@@ -395,11 +384,6 @@ func (c *Classifier) Iterate() (bool, error) {
 	c.blockHeight.Set(float64(c.state.ID))
 
 	return true, nil
-}
-
-// ProcessedBlockCount returns the number of blocks processed by a Iterate call
-func (c *Classifier) ProcessedBlockCount() uint64 {
-	return 1
 }
 
 // PostExecution sets the classifier status activity flag to false

@@ -201,19 +201,14 @@ func (w *Wrapper) LoadGraphs() error {
 
 // ------------ Block Iterator interface methods ------------
 
-// Logger returns the Logger
-func (w *Wrapper) Logger() *slog.Logger {
-	return graphLogger
-}
-
-// Context returns the context
-func (w *Wrapper) Context() context.Context {
-	return w.context
-}
-
-// Name returns the name
-func (w *Wrapper) Name() string {
-	return "graph wrapper"
+func (w *Wrapper) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "graph wrapper",
+		Context:             w.context,
+		Logger:              graphLogger,
+		CurrentBlock:        w.state.ID,
+		ProcessedBlockCount: 1,
+	}
 }
 
 // CalculateInitialState is a dummy which only checks if LoadGraphs
@@ -239,11 +234,6 @@ func (w *Wrapper) NextBlock() (bool, error) {
 	}
 
 	return w.state.ID <= *classifierStatus.LastClassifiedBlockID, nil
-}
-
-// CurrentBlock returns the height of the block which is currently being loaded
-func (w *Wrapper) CurrentBlock() uint64 {
-	return w.state.ID
 }
 
 // PostExecution does nothing
@@ -297,9 +287,4 @@ func (w *Wrapper) Iterate() (bool, error) {
 	w.blockHeight.Set(float64(w.state.ID))
 
 	return true, nil
-}
-
-// ProcessedBlockCount returns the number of blocks processed by a Iterate call
-func (w *Wrapper) ProcessedBlockCount() uint64 {
-	return 1
 }
