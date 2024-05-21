@@ -301,7 +301,7 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 		}
 		index := d.N
 
-		address, outputErr := getOutputAddress(&d.ScriptPubKey, config.PubKeyHashAddrID) //nolint:gosec
+		address, outputErr := getOutputAddress(&d.ScriptPubKey, config.PubKeyHashAddrID)
 		if outputErr != nil {
 			err = outputErr
 			return

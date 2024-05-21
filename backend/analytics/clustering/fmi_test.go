@@ -288,7 +288,7 @@ func unregisterCollectors(fm *FlatMultiInput) {
 }
 
 func TestNewFlatMultiInput(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, 1)
 	unregisterCollectors(fm)
 	require.NotNil(t, fm)
 }
@@ -296,7 +296,7 @@ func TestNewFlatMultiInput(t *testing.T) {
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, 1)
 	unregisterCollectors(fm)
 
 	// panics because db is not set
@@ -322,7 +322,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
 	unregisterCollectors(fm)
 
 	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
@@ -348,7 +348,7 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
 	unregisterCollectors(fm)
 
 	// error because no status is set
@@ -372,14 +372,14 @@ func TestFlatMultiInput_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
 	unregisterCollectors(fm)
 
 	require.NoError(t, fm.PostExecution())
 }
 
 func TestFlatMultiInput_IncrementState(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, 1)
 	unregisterCollectors(fm)
 
 	require.EqualValues(t, 0, fm.state.ID)
@@ -390,7 +390,7 @@ func TestFlatMultiInput_IncrementState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Empty(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, 1)
 	unregisterCollectors(fm)
 
 	// initially top and id are 0, so not empty
@@ -402,7 +402,7 @@ func TestFlatMultiInput_Empty(t *testing.T) {
 }
 
 func TestFlatMultiInput_Props(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, 1)
 	unregisterCollectors(fm)
 
 	require.NotEmpty(t, fm.Props())

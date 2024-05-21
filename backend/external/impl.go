@@ -41,7 +41,7 @@ func (g *GraphDB) NewTxn() *dgo.Txn {
 
 // CreateClient create a new dgraph client connecting to the specified host and port
 func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
+	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 	if err != nil {
 		err = cliutil.NewStackError(err)
