@@ -238,23 +238,27 @@ const sideBarIcon = computed(() => {
 
 // Functions
 
+function addOutputToSelectableEntities(output) {
+	if (output.txhash) {
+		selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+	}
+
+	if (output.addresshash) {
+		selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+	}
+}
+
 function setSelectableEntities() {
 	selectableEntities.clear();
 	switch (props.type) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			for (const t of entityData.value) {
 				if (t.inputs) {
-					for (const input of t.inputs) {
-						selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-						selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
-					}
+					t.inputs.forEach(addOutputToSelectableEntities);
 				}
 
 				if (t.outputs) {
-					for (const output of t.outputs) {
-						selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-						selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
-					}
+					t.outputs.forEach(addOutputToSelectableEntities);
 				}
 			}
 
@@ -264,8 +268,13 @@ function setSelectableEntities() {
 			break;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			for (const output of entityData.value.addr_outputs) {
-				selectableEntities.set(output.input_transaction, {id: output.input_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-				selectableEntities.set(output.output_transaction, {id: output.output_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				if (output.input_transaction) {
+					selectableEntities.set(output.input_transaction, {id: output.input_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				}
+
+				if (output.output_transaction) {
+					selectableEntities.set(output.output_transaction, {id: output.output_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				}
 			}
 
 			showSelectTransactions.value = true;
@@ -275,7 +284,9 @@ function setSelectableEntities() {
 		case WORKSPACE_NODE_TYPE_HEURISTIC:
 			for (const cluster of entityData.value.clusters) {
 				for (const tx of cluster.txs) {
-					selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+					if (tx.txhash) {
+						selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+					}
 				}
 			}
 
