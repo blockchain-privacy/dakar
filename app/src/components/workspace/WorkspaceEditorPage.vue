@@ -195,7 +195,7 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
-import AdaptiveToolbar from '@/components/workspace/AdaptiveToolbar.vue';
+import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
 import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';

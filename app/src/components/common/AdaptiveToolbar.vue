@@ -1,17 +1,20 @@
 <template>
   <div class="d-flex align-center">
-    <v-icon
-      class="mx-3"
-      icon="$graphIcon"
-      size="32"
-    />
-    <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
-      {{ name }}
-    </p>
+    <template v-if="name">
+      <v-icon
+        class="mx-3"
+        icon="$graphIcon"
+        size="32"
+      />
+      <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
+        {{ name }}
+      </p>
+    </template>
     <v-text-field
+      v-if="showSearchField"
       v-model="graphQuery"
       class="noOutline flex-grow-1"
-      :style="$vuetify.display.xs?'min-width:100px':'min-width:200px'"
+      :style="adaptive && $vuetify.display.xs?'min-width:100px':'min-width:200px'"
       hide-details
       variant="outlined"
       density="compact"
@@ -23,7 +26,7 @@
       @click:append-inner="onAddEntity"
       @keydown.enter="onAddEntity"
     />
-    <div class="hidden-md-and-down">
+    <div :class="{'hidden-md-and-down':adaptive}">
       <v-btn
         variant="text"
         class="my-1"
@@ -47,6 +50,7 @@
         Center
       </v-btn>
       <v-btn
+        v-if="showWorkspacesButton"
         variant="text"
         class="my-1"
         :to="{name: ROUTE_NAME_WORKSPACES_PAGE}"
@@ -59,7 +63,7 @@
       </v-btn>
       <v-scroll-x-reverse-transition>
         <v-btn
-          v-if="selectedItemCount > 0"
+          v-if="showDeleteButton && selectedItemCount > 0"
           variant="flat"
           class="my-1"
           :disabled="!deleteEnabled"
@@ -85,7 +89,10 @@
       <v-btn :icon="mdiCursorPointer" />
     </v-btn-toggle>
   </div>
-  <div class="hidden-lg-and-up">
+  <div
+    v-if="adaptive"
+    class="hidden-lg-and-up"
+  >
     <div class="d-flex justify-center flex-wrap">
       <v-btn
         variant="text"
@@ -110,6 +117,7 @@
         Center
       </v-btn>
       <v-btn
+        v-if="showWorkspacesButton"
         variant="text"
         class="my-1"
         :to="{name: ROUTE_NAME_WORKSPACES_PAGE}"
@@ -122,7 +130,7 @@
       </v-btn>
       <v-scroll-x-reverse-transition>
         <v-btn
-          v-if="selectedItemCount > 0"
+          v-if="showDeleteButton && selectedItemCount > 0"
           variant="flat"
           class="my-1 me-1"
           :disabled="!deleteEnabled"
@@ -145,22 +153,25 @@ import {
 	mdiImageFilterCenterFocus, mdiOpenInNew, mdiMagnify,
 } from '@mdi/js';
 import {ref} from 'vue';
-import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants';
+import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
 import {plural} from '@/utilities/index.js';
 
 const emit = defineEmits(['isSelectionEnabled', 'rearrange', 'center', 'deleteSelected', 'addEntity']);
 defineProps({
-	name: {type: String, required: true},
-	selectedItemCount: {type: Number, required: true},
-	deleteEnabled: {type: Boolean, required: true},
-	addEntityEnabled: {type: Boolean, required: true},
+	name: {type: String, required: false, default: ''},
+	showSearchField: {type: Boolean, required: false, default: true},
+	selectedItemCount: {type: Number, required: false, default: 0},
+	deleteEnabled: {type: Boolean, required: false, default: true},
+	addEntityEnabled: {type: Boolean, required: false, default: true},
+	adaptive: {type: Boolean, required: false, default: true},
+	showDeleteButton: {type: Boolean, required: false, default: true},
+	showWorkspacesButton: {type: Boolean, required: false, default: true},
 });
 
 const selectionToggle = ref(1);
 const graphQuery = ref('');
 
 // Functions
-
 function selectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
 }

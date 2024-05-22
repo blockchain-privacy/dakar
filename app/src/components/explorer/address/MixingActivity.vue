@@ -130,7 +130,7 @@
           Histogram
         </v-tab>
         <v-tab key="graph">
-          Force Graph
+          Graph
         </v-tab>
       </v-tabs>
       <v-window
@@ -230,10 +230,26 @@
             :privacy-type="clickedNode.privacyTypeLabel"
             :tx-hash="clickedNode.txhash"
           />
+          <div
+            v-if="showGraph"
+            class="d-flex align-center justify-center my-2"
+          >
+            <v-card variant="flat">
+              <adaptive-toolbar
+                :show-search-field="false"
+                :adaptive="false"
+                :show-delete-button="false"
+                :show-workspaces-button="false"
+                @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
+                @center="nodeGraph.centerGraph()"
+                @rearrange="nodeGraph.reorderNodes()"
+              />
+            </v-card>
+          </div>
           <svg
             v-show="showGraph"
             id="mixing_activity_force_graph"
-            style="width:100%; height:500px"
+            style="width:100%; height:500px;"
           />
         </v-window-item>
       </v-window>
@@ -260,6 +276,7 @@ import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
+import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
