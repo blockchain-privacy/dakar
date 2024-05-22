@@ -100,57 +100,112 @@ function dragEnded(event, context) {
 }
 
 export default class NodeGraph {
+	// Callbacks
+	#nodeClickCallBack = null;
+	#lineClickCallBack = null;
+	#svgZoomCallback = null;
+	#svgClickCallback = null;
+	#contextMenuCallback = null;
+	#lassoSelectionCallback = null;
+	#lassoResetCallback = null;
+	// Drag
+	dragEndCallback = null;
+	dragStartX = 0;
+	dragStartY = 0;
+	// Lasso
+	#isLassoEnabled = false;
+	#lasso = null;
+	lassoSelectedNodes = null;
+	// Context node, set when a node is clicked or the contextmenu is shown
+	#contextNodeData = null;
+	#contextNodeSelection = null;
+	// Svg
+	#svgID = '';
+	simulation = null;
+	#nodeRadius = 14;
+	#rootSvg = null;
+	#rootGroup = null;
+	#lineGroup = null;
+	#shadowLineGroup = null;
+	#nodeGroup = null;
+	#zoom = null;
+	#newNodes = null;
+	// Data
+	#nodeMap = new Map();
+	#filteredNodeMap = new Map();
+	#filterNodeTypes = [];
+	#filterPrivacyTypes = [];
+	#changedData = new Map();
+	// Heuristic type map
+	#heuristicTypeMap = new Map();
+	// Node type
+	#nodeTypeColorMap = null;
+	enableInteractions = true;
+
 	constructor(nodeTypeColorMap) {
-		// Callbacks
-		this.nodeClickCallBack = null;
-		this.lineClickCallBack = null;
-		this.svgZoomCallback = null;
-		this.svgClickCallback = null;
-		this.contextMenuCallback = null;
-		this.lassoSelectionCallback = null;
-		this.lassoResetCallback = null;
-
-		// Drag
-		this.dragEndCallback = null;
-		this.dragStartX = 0;
-		this.dragStartY = 0;
-
-		// Lasso
-		this.isLassoEnabled = false;
-		this.lasso = null;
-		this.lassoSelectedNodes = null;
-
-		// Context node, set when a node is clicked or the contextmenu is shown
-		this.contextNodeData = null;
-		this.contextNodeSelection = null;
-
-		// Svg
-		this.svgID = '';
-		this.simulation = null;
-		this.nodeRadius = 14;
-		this.rootSvg = null;
-		this.rootGroup = null;
-		this.lineGroup = null;
-		this.shadowLineGroup = null;
-		this.nodeGroup = null;
-		this.zoom = null;
-		this.newNodes = null;
-
-		// Data
-		this.nodeMap = new Map();
-		this.changedData = new Map();
-
-		// Heuristic type map
-		this.heuristicTypeMap = new Map();
-
-		// Node type
-		this.nodeTypeColorMap = nodeTypeColorMap;
-
-		this.enableInteractions = true;
+		this.#nodeTypeColorMap = nodeTypeColorMap;
 	}
 
 	setEnableInteractions(flag) {
 		this.enableInteractions = flag;
+	}
+
+	getFilteredMap() {
+		if (this.#filterNodeTypes.length > 0) {
+			return this.#filteredNodeMap;
+		}
+
+		return this.#nodeMap;
+	}
+
+	resetNodeFilter() {
+		this.#filterNodeTypes = [];
+		this.#filteredNodeMap.clear();
+	}
+
+	isAllowedByFilter(node) {
+		let allowed = false;
+		if (this.#filterNodeTypes.length > 0) {
+			allowed = this.#filterNodeTypes.includes(node.type);
+		} else {
+			allowed = true;
+		}
+
+		if (!allowed) {
+			return false;
+		}
+
+		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION && this.#filterPrivacyTypes.length > 0) {
+			return this.#filterPrivacyTypes.includes(node.privacyTypeLabel);
+		}
+
+		return true;
+	}
+
+	filterNodes(nodeTypes, privacyTypes) {
+		if (nodeTypes) {
+			this.#filterNodeTypes = nodeTypes;
+		} else {
+			this.#filterNodeTypes = [];
+		}
+
+		if (privacyTypes) {
+			this.#filterPrivacyTypes = privacyTypes;
+		} else {
+			this.#filterPrivacyTypes = [];
+		}
+
+		this.#filteredNodeMap.clear();
+		if (!nodeTypes) {
+			return;
+		}
+
+		const entries = this.#nodeMap.entries();
+		for (const entry of entries) {
+			if (this.isAllowedByFilter(entry[1])) {
+				this.#filteredNodeMap.set(entry[0], entry[1]);
+			}
+		}
 	}
 
 	getEnableInteractions() {
@@ -160,22 +215,22 @@ export default class NodeGraph {
 	svgClick() {
 		this.resetClick();
 		this.resetLasso();
-		if (this.svgClickCallback !== null) {
-			this.svgClickCallback();
+		if (this.#svgClickCallback !== null) {
+			this.#svgClickCallback();
 		}
 	}
 
 	resetClick() {
-		this.nodeGroup.selectAll('.clicked').classed('clicked', false);
-		this.shadowLineGroup.selectAll('.lineClicked').classed('lineClicked', false);
+		this.#nodeGroup.selectAll('.clicked').classed('clicked', false);
+		this.#shadowLineGroup.selectAll('.lineClicked').classed('lineClicked', false);
 	}
 
 	resetLasso() {
-		this.nodeGroup.selectAll('.lasso-selected').classed('lasso-selected', false);
+		this.#nodeGroup.selectAll('.lasso-selected').classed('lasso-selected', false);
 		this.lassoSelectedNodes = null;
 
-		if (this.lassoResetCallback !== null) {
-			this.lassoResetCallback();
+		if (this.#lassoResetCallback !== null) {
+			this.#lassoResetCallback();
 		}
 	}
 
@@ -183,7 +238,7 @@ export default class NodeGraph {
 		this.resetClick();
 		this.resetLasso();
 
-		const contextNode = d3Select(this.contextNodeSelection);
+		const contextNode = d3Select(this.#contextNodeSelection);
 
 		// Try selecting the active object, can be a node or a line
 		if (contextNode.classed('shadowArrow')) {
@@ -202,11 +257,11 @@ export default class NodeGraph {
 			return;
 		}
 
-		this.contextNodeData = d;
-		this.contextNodeSelection = d3This;
+		this.#contextNodeData = d;
+		this.#contextNodeSelection = d3This;
 
-		if (this.nodeClickCallBack !== null) {
-			this.nodeClickCallBack(d);
+		if (this.#nodeClickCallBack !== null) {
+			this.#nodeClickCallBack(d);
 		}
 	}
 
@@ -219,20 +274,20 @@ export default class NodeGraph {
 			return;
 		}
 
-		this.contextNodeData = d;
-		this.contextNodeSelection = d3This;
+		this.#contextNodeData = d;
+		this.#contextNodeSelection = d3This;
 
-		if (this.lineClickCallBack !== null) {
-			this.lineClickCallBack(d);
+		if (this.#lineClickCallBack !== null) {
+			this.#lineClickCallBack(d);
 		}
 	}
 
 	setLassoEnabled(flag) {
-		this.isLassoEnabled = flag;
+		this.#isLassoEnabled = flag;
 	}
 
 	getLassoEnabled() {
-		return this.isLassoEnabled;
+		return this.#isLassoEnabled;
 	}
 
 	getLassoSelectedNodesData() {
@@ -245,69 +300,69 @@ export default class NodeGraph {
 
 	initSvg(svgID, width, height) {
 		// Add attributes to root svg
-		this.svgID = svgID;
-		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
-		this.rootGroup = this.rootSvg.append('g').classed('root-group', true);
-		this.lineGroup = this.rootGroup.append('g');
-		this.shadowLineGroup = this.rootGroup.append('g');
-		this.nodeGroup = this.rootGroup.append('g');
+		this.#svgID = svgID;
+		this.#rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
+		this.#rootGroup = this.#rootSvg.append('g').classed('root-group', true);
+		this.#lineGroup = this.#rootGroup.append('g');
+		this.#shadowLineGroup = this.#rootGroup.append('g');
+		this.#nodeGroup = this.#rootGroup.append('g');
 
 		this.virtualWidth = width;
 		this.virutalHeight = height;
 
 		// Add zoom and drag
-		this.zoom = zoom()
+		this.#zoom = zoom()
 			.on('zoom', event => {
-				if (this.svgZoomCallback !== null) {
-					this.svgZoomCallback();
+				if (this.#svgZoomCallback !== null) {
+					this.#svgZoomCallback();
 				}
 
-				this.rootGroup.attr('transform', event.transform);
+				this.#rootGroup.attr('transform', event.transform);
 			})
 			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e.type === 'wheel') && !e.button)
 			.scaleExtent([0.5, 3]);
-		this.rootSvg.call(this.zoom);
+		this.#rootSvg.call(this.#zoom);
 
 		// Add lasso
 		const self = this;
-		this.lasso = d3lasso()
+		this.#lasso = d3lasso()
 			.closePathDistance(2000)
 			.closePathSelect(true)
 			.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
-			.targetArea(this.rootSvg)
+			.targetArea(this.#rootSvg)
 			.on('draw', () => {
-				self.lasso.possibleItems().classed('lasso-selected', true);
-				self.lasso.notPossibleItems().classed('lasso-selected', false);
+				self.#lasso.possibleItems().classed('lasso-selected', true);
+				self.#lasso.notPossibleItems().classed('lasso-selected', false);
 			})
 			.on('end', () => {
-				self.lassoSelectedNodes = self.lasso.selectedItems();
-				if (this.lassoSelectionCallback !== null) {
-					this.lassoSelectionCallback();
+				self.lassoSelectedNodes = self.#lasso.selectedItems();
+				if (this.#lassoSelectionCallback !== null) {
+					this.#lassoSelectionCallback();
 				}
 			});
 
-		this.rootSvg.call(this.lasso);
+		this.#rootSvg.call(this.#lasso);
 
-		const defs = this.rootSvg.append('svg:defs');
+		const defs = this.#rootSvg.append('svg:defs');
 
 		// Set pattern and arrowhead.
 		// Arrow is unused for now. In case it is used later on, use reduceY and
 		// reduceX to reduce the length of the links (modify d.target.x and d.target.y)
 		defs.node().innerHTML
-      = `<marker id="${this.svgID}_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+      = `<marker id="${this.#svgID}_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="currentColor"/>
         </marker>
-        <marker id="${this.svgID}_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+        <marker id="${this.#svgID}_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="rgb(var(--v-theme-primary))" />
         </marker>
-        <marker id="${this.svgID}_arrowhead_reversed" viewBox="-10 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+        <marker id="${this.#svgID}_arrowhead_reversed" viewBox="-10 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L-10,0L0,5" fill="currentColor" />
         </marker>
-        <marker id="${this.svgID}_arrowhead_reversed_shadow" viewBox="-10 -5 10 10" refX="-1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+        <marker id="${this.#svgID}_arrowhead_reversed_shadow" viewBox="-10 -5 10 10" refX="-1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
             <path d="M0,-5L-10,0L0,5" fill="rgb(var(--v-theme-primary))" />
         </marker>`;
 
-		const style = this.rootSvg.append('svg:style');
+		const style = this.#rootSvg.append('svg:style');
 		style.node().innerHTML
       = `
         .node {
@@ -339,7 +394,7 @@ export default class NodeGraph {
           stroke: currentColor;
           stroke-opacity: 1;
           stroke-width: 1;
-          marker-end: url(#${this.svgID}_arrowhead);
+          marker-end: url(#${this.#svgID}_arrowhead);
         }
 
         .shadowArrow {
@@ -348,7 +403,7 @@ export default class NodeGraph {
           stroke-opacity: 1;
           stroke-width: 4;
           opacity: 0;
-          marker-end: url(#${this.svgID}_arrowhead_shadow);
+          marker-end: url(#${this.#svgID}_arrowhead_shadow);
           transition: all 0.175s ease;
         }
 
@@ -400,7 +455,7 @@ export default class NodeGraph {
 			}
 
 			d.children.forEach(child => {
-				if (!this.nodeMap.has(child)) {
+				if (!this.getFilteredMap().has(child)) {
 					return;
 				}
 
@@ -429,17 +484,17 @@ export default class NodeGraph {
 	}
 
 	removeContextMenuNode() {
-		if (this.contextNodeData?.uid && this.enableInteractions) {
-			this.removeNode(this.contextNodeData.uid);
-			this.contextNodeData = null;
-			this.contextNodeSelection = null;
+		if (this.#contextNodeData?.uid && this.enableInteractions) {
+			this.removeNode(this.#contextNodeData.uid);
+			this.#contextNodeData = null;
+			this.#contextNodeSelection = null;
 		}
 	}
 
 	// Removes the node with the provided UID.
 	// Set draw to false, if the graph should not be redrawn.
 	removeNode(uid, draw) {
-		this.nodeMap.delete(uid);
+		this.#nodeMap.delete(uid);
 
 		if (draw === undefined || draw === true) {
 			this.draw();
@@ -449,7 +504,7 @@ export default class NodeGraph {
 	// Removes the nodes with the provided UIDs.
 	// Set draw to false, if the graph should not be redrawn.
 	removeNodes(uids, draw) {
-		uids.forEach(u => this.nodeMap.delete(u));
+		uids.forEach(u => this.#nodeMap.delete(u));
 
 		if (draw === undefined || draw === true) {
 			this.draw();
@@ -457,14 +512,14 @@ export default class NodeGraph {
 	}
 
 	reorderNodes() {
-		for (const [key, value] of this.nodeMap) {
+		for (const [key, value] of this.getFilteredMap()) {
 			// Randomize position, reorderNodes creates different arrangements for each call
 			const random = Math.random() * 30;
 			value.x = random;
 			value.y = random;
 			delete value.fx;
 			delete value.fy;
-			this.nodeMap[key] = value;
+			this.#nodeMap[key] = value;
 		}
 
 		this.draw();
@@ -481,15 +536,20 @@ export default class NodeGraph {
 		}
 
 		// Check if properties have to be copied
-		const mapNode = this.nodeMap.get(node.uid);
+		const mapNode = this.#nodeMap.get(node.uid);
 		if (mapNode !== undefined) {
 			node.x = mapNode.x;
 			node.y = mapNode.y;
 		}
 
 		const n = setFxFy(node);
-		this.nodeMap.set(n.uid, n);
-		this.changedData.set(n.uid, n);
+		this.#nodeMap.set(n.uid, n);
+		this.#changedData.set(n.uid, n);
+
+		if (this.isAllowedByFilter(n)) {
+			this.#filteredNodeMap.set(n.uid, n);
+		}
+
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
@@ -497,7 +557,7 @@ export default class NodeGraph {
 
 	// Remove all nodes. Optionally redraw the graph.
 	removeAllNodes(draw) {
-		this.nodeMap.clear();
+		this.#nodeMap.clear();
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
@@ -518,27 +578,15 @@ export default class NodeGraph {
 	// Returns the node specified node. If the node does not
 	// exist in the graph undefined is returned.
 	getNode(uid) {
-		return this.nodeMap.get(uid);
-	}
-
-	// Returns the node's parent. If the node does not
-	// exist in the graph undefined is returned.
-	getParent(uid) {
-		const node = this.nodeMap.get(uid);
-		if (!node) {
-			return undefined;
-		}
-
-		const nodes = this.getNodes();
-		return nodes.find(v => v.children?.includes(uid));
+		return this.#nodeMap.get(uid);
 	}
 
 	getNodes() {
-		return Array.from(this.nodeMap.values());
+		return Array.from(this.#nodeMap.values());
 	}
 
 	centerOnNewNodes() {
-		this.centerOnSelection(this.newNodes);
+		this.centerOnSelection(this.#newNodes);
 	}
 
 	centerOnSelection(selection) {
@@ -578,7 +626,7 @@ export default class NodeGraph {
 		const centerX = minX + width / 2;
 		const centerY = minY + height / 2;
 
-		this.rootSvg.transition().duration(250).call(this.zoom.translateTo, centerX, centerY);
+		this.#rootSvg.transition().duration(250).call(this.#zoom.translateTo, centerX, centerY);
 	}
 
 	drawIcons(groupElement, icons, parameter) {
@@ -595,7 +643,7 @@ export default class NodeGraph {
 		const textHeight = 12;
 		const iconWidth = 12;
 		const iconMargin = 1;
-		const iconY = this.nodeRadius + textHeight + textAreaMargin * 2;
+		const iconY = this.#nodeRadius + textHeight + textAreaMargin * 2;
 
 		// Remove all children
 		iconGroup.selectAll('*').remove();
@@ -704,11 +752,11 @@ export default class NodeGraph {
 					return;
 				}
 
-				self.contextNodeData = d;
-				self.contextNodeSelection = this;
+				self.#contextNodeData = d;
+				self.#contextNodeSelection = this;
 
-				if (self.contextMenuCallback !== null) {
-					self.contextMenuCallback(e);
+				if (self.#contextMenuCallback !== null) {
+					self.#contextMenuCallback(e);
 				}
 			})
 			.on('mouseenter', function () {
@@ -743,15 +791,15 @@ export default class NodeGraph {
 		// Node circle
 		entityGroup.append('circle')
 			.classed('node', true)
-			.attr('r', this.nodeRadius)
+			.attr('r', this.#nodeRadius)
 			.attr('fill', d => {
-				if (this.nodeTypeColorMap) {
+				if (this.#nodeTypeColorMap) {
 					let nodeColor;
 
 					if (d.privacyTypeLabel) {
-						nodeColor = this.nodeTypeColorMap.get(d.privacyTypeLabel);
+						nodeColor = this.#nodeTypeColorMap.get(d.privacyTypeLabel);
 					} else {
-						nodeColor = this.nodeTypeColorMap.get(d.type);
+						nodeColor = this.#nodeTypeColorMap.get(d.type);
 					}
 
 					if (nodeColor) {
@@ -774,7 +822,7 @@ export default class NodeGraph {
 				const thisElement = d3Select(this.parentNode);
 
 				const marker = thisElement.append('circle')
-					.attr('r', self.nodeRadius * 2)
+					.attr('r', self.#nodeRadius * 2)
 					.attr('fill', 'rgba(255, 109, 0, 0.3)')
 					.lower();
 
@@ -791,11 +839,11 @@ export default class NodeGraph {
 					return;
 				}
 
-				self.contextNodeData = d;
-				self.contextNodeSelection = this;
+				self.#contextNodeData = d;
+				self.#contextNodeSelection = this;
 
-				if (self.contextMenuCallback !== null) {
-					self.contextMenuCallback(e);
+				if (self.#contextMenuCallback !== null) {
+					self.#contextMenuCallback(e);
 				}
 			})
 			.on('mouseenter', function () {
@@ -815,7 +863,7 @@ export default class NodeGraph {
 			});
 
 		// Add loading circle
-		const loadingRadius = this.nodeRadius - 6;
+		const loadingRadius = this.#nodeRadius - 6;
 		const gap = 2 * Math.PI * loadingRadius / 4;
 
 		const gapString = `${gap} ${gap}`;
@@ -876,7 +924,7 @@ export default class NodeGraph {
 			.attr('text-anchor', 'middle')
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
-			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
+			.attr('y', this.#nodeRadius + textHeight + textAreaMargin)
 			.text(d => {
 				if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
 					return d.addressHash;
@@ -887,7 +935,7 @@ export default class NodeGraph {
 				}
 
 				if (d.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
-					const title = this.heuristicTypeMap.get(d.heuristicType);
+					const title = this.#heuristicTypeMap.get(d.heuristicType);
 					if (title !== undefined) {
 						return title;
 					}
@@ -907,7 +955,7 @@ export default class NodeGraph {
 			.attr('text-anchor', 'middle')
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
-			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
+			.attr('y', this.#nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
 				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyTypeLabel) {
 					return d.privacyTypeLabel;
@@ -971,12 +1019,12 @@ export default class NodeGraph {
 
 	setMouseOverAnimation(context, nodeContext, isEnter) {
 		const thisNode = d3Select(nodeContext).select('.node');
-		const nodeRadius = isEnter ? context.nodeRadius * 1.2 : context.nodeRadius;
+		const nodeRadius = isEnter ? context.#nodeRadius * 1.2 : context.#nodeRadius;
 		const opacity = isEnter ? 0.3 : 1.0;
 		thisNode.transition().duration(animationDuration).attr('r', nodeRadius);
 
 		const thisNodeUID = thisNode.data()[0].uid;
-		context.lineGroup.selectAll('.arrow')
+		context.#lineGroup.selectAll('.arrow')
 			.filter(d => d.source.uid !== thisNodeUID && d.target.uid !== thisNodeUID)
 			.each(function () {
 				d3Select(this).transition().duration(animationDuration).attr('opacity', opacity);
@@ -1013,10 +1061,10 @@ export default class NodeGraph {
 			this.simulation.stop();
 		}
 
-		const nodes = [...this.nodeMap.values()];
+		const nodes = [...this.getFilteredMap().values()];
 		const links = this.getLinks(nodes);
 
-		const svgRect = this.rootSvg.node().getBoundingClientRect();
+		const svgRect = this.#rootSvg.node().getBoundingClientRect();
 		if (this.virtualWidth && this.virutalHeight) {
 			svgRect.width = this.virtualWidth;
 			svgRect.height = this.virutalHeight;
@@ -1035,35 +1083,35 @@ export default class NodeGraph {
 					return 50;
 				}
 
-				return this.nodeRadius * 4;
+				return this.#nodeRadius * 4;
 			}))
-			.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.nodeRadius)).stop();
+			.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.#nodeRadius)).stop();
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));
 
-		const link = this.lineGroup
+		const link = this.#lineGroup
 			.selectAll('.arrow')
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
 			.classed('arrow', true)
-			.attr('marker-start', d => d.isDual ? `url(#${this.svgID}_arrowhead_reversed)` : undefined)
-			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
-			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
-			.attr('x2', d => reduceX(d, this.nodeRadius))
-			.attr('y2', d => reduceY(d, this.nodeRadius));
+			.attr('marker-start', d => d.isDual ? `url(#${this.#svgID}_arrowhead_reversed)` : undefined)
+			.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d, this.#nodeRadius))
+			.attr('y2', d => reduceY(d, this.#nodeRadius));
 
 		// For mouseover events
-		const shadowLinks = this.shadowLineGroup
+		const shadowLinks = this.#shadowLineGroup
 			.selectAll('.shadowArrow')
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
 			.classed('shadowArrow', true)
-			.attr('marker-start', d => d.isDual ? `url(#${this.svgID}_arrowhead_reversed_shadow)` : undefined)
-			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
-			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
-			.attr('x2', d => reduceX(d, this.nodeRadius))
-			.attr('y2', d => reduceY(d, this.nodeRadius));
+			.attr('marker-start', d => d.isDual ? `url(#${this.#svgID}_arrowhead_reversed_shadow)` : undefined)
+			.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d, this.#nodeRadius))
+			.attr('y2', d => reduceY(d, this.#nodeRadius));
 
 		const self = this;
 		shadowLinks
@@ -1077,19 +1125,19 @@ export default class NodeGraph {
 				d3Select(this).classed('lineHovered', false);
 			});
 
-		const node = this.nodeGroup
+		const node = this.#nodeGroup
 			.selectAll('.nodeContainer')
 			.data(nodes, d => d.uid)
 			.join(enter => {
 				const g = enter.append('g');
 				this.drawEntities(g);
-				this.newNodes = g;
+				this.#newNodes = g;
 				return g;
 			},
 			update => {
-				if (this.changedData.size > 0) {
+				if (this.#changedData.size > 0) {
 					// Do drawing only for actually updated nodes
-					this.drawEntities(update.filter(d => this.changedData.has(d.uid)));
+					this.drawEntities(update.filter(d => this.#changedData.has(d.uid)));
 				}
 
 				return update;
@@ -1106,35 +1154,35 @@ export default class NodeGraph {
 
 		this.simulation.on('tick', () => {
 			link
-				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
-				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
-				.attr('x2', d => reduceX(d, this.nodeRadius))
-				.attr('y2', d => reduceY(d, this.nodeRadius));
+				.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d, this.#nodeRadius))
+				.attr('y2', d => reduceY(d, this.#nodeRadius));
 			shadowLinks
-				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
-				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
-				.attr('x2', d => reduceX(d, this.nodeRadius))
-				.attr('y2', d => reduceY(d, this.nodeRadius));
+				.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d, this.#nodeRadius))
+				.attr('y2', d => reduceY(d, this.#nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
 
-		this.lasso.items(node.selectAll('.node,.note'));
+		this.#lasso.items(node.selectAll('.node,.note'));
 
-		this.changedData.clear();
+		this.#changedData.clear();
 	}
 
 	// CenterGraph centers the graph in the center of the svg
 	centerGraph() {
-		const svgBoundingRect = this.rootSvg.node().getBoundingClientRect();
-		const rgBoundingBox = this.rootGroup.node().getBBox();
-		const rgBoundingRect = this.rootGroup.node().getBoundingClientRect();
+		const svgBoundingRect = this.#rootSvg.node().getBoundingClientRect();
+		const rgBoundingBox = this.#rootGroup.node().getBBox();
+		const rgBoundingRect = this.#rootGroup.node().getBoundingClientRect();
 
 		// Calculate scaling, reduce the svg size so the root group is scaled slightly smaller than the svg size
 		const scaleHeight = (svgBoundingRect.height - 120) / rgBoundingRect.height;
 		const scaleWidth = (svgBoundingRect.width - 100) / rgBoundingRect.width;
 
-		this.rootSvg.call(this.zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
+		this.#rootSvg.call(this.#zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
 
 		const scaleBy = Math.min(scaleHeight, scaleWidth);
 
@@ -1143,12 +1191,12 @@ export default class NodeGraph {
 			return;
 		}
 
-		this.rootSvg.call(this.zoom.scaleBy, scaleBy);
+		this.#rootSvg.call(this.#zoom.scaleBy, scaleBy);
 	}
 
 	// Returns all nodes with their attached attributes from the force simulation performed in draw()
 	exportNodes() {
-		const nodes = structuredClone([...this.nodeMap.values()]);
+		const nodes = structuredClone([...this.#nodeMap.values()]);
 		return nodes.map(d => {
 			// Remove redundant attributes
 			delete d.vx;
@@ -1165,7 +1213,7 @@ export default class NodeGraph {
 	}
 
 	isEmpty() {
-		return this.nodeMap.size === 0;
+		return this.#nodeMap.size === 0;
 	}
 
 	setNodeClickCallback(callback) {
@@ -1173,7 +1221,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.nodeClickCallBack = callback;
+		this.#nodeClickCallBack = callback;
 		return true;
 	}
 
@@ -1182,7 +1230,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.lineClickCallBack = callback;
+		this.#lineClickCallBack = callback;
 		return true;
 	}
 
@@ -1193,7 +1241,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.svgZoomCallback = callback;
+		this.#svgZoomCallback = callback;
 		return true;
 	}
 
@@ -1204,7 +1252,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.svgClickCallback = callback;
+		this.#svgClickCallback = callback;
 		return true;
 	}
 
@@ -1215,7 +1263,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.contextMenuCallback = callback;
+		this.#contextMenuCallback = callback;
 		return true;
 	}
 
@@ -1226,13 +1274,13 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.lassoSelectionCallback = callback;
+		this.#lassoSelectionCallback = callback;
 		return true;
 	}
 
 	// Returns the node which triggered the context menu event or click event
 	getContextNode() {
-		return this.contextNodeData;
+		return this.#contextNodeData;
 	}
 
 	// SetDragCallback receives a function as an argument.
@@ -1253,12 +1301,12 @@ export default class NodeGraph {
 			return false;
 		}
 
-		this.lassoResetCallback = callback;
+		this.#lassoResetCallback = callback;
 		return true;
 	}
 
 	populateHeuristicMap(heuristicDescriptions) {
 		// Titles to map
-		heuristicDescriptions.forEach(e => this.heuristicTypeMap.set(e.type, e.title));
+		heuristicDescriptions.forEach(e => this.#heuristicTypeMap.set(e.type, e.title));
 	}
 }
