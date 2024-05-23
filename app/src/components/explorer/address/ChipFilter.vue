@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import {onMounted, ref, toRaw} from 'vue';
+import {onMounted, ref} from 'vue';
 
 const props = defineProps({
 	disabled: {type: Boolean, required: false, default: false},
