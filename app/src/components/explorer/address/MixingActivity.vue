@@ -14,33 +14,11 @@
             <p class="v-label me-2">
               Filter by Privacy Type
             </p>
-            <!-- selected-class="" is intentionally left blank to avoid a shadow over the chip elements -->
-            <v-chip-group
-              v-model="selectedPrivacyID"
-              column
-              multiple
-              filter
-              mandatory
+            <chip-filter
+              :items="privacyLabels"
               :disabled="!activities || activities.length === 0"
-              selected-class=""
-              color="primary"
-              @update:model-value="updateSvgData(false)"
-            >
-              <v-chip
-                v-for="label in privacyLabels"
-                :key="label.id"
-              >
-                <template #prepend>
-                  <v-sheet
-                    style="width:25px; height:15px"
-                    rounded
-                    :color="label.color?label.color:'black'"
-                    class="me-2"
-                  />
-                </template>
-                {{ label.text }}
-              </v-chip>
-            </v-chip-group>
+              @changed="handleChipFilterChanged"
+            />
           </v-col>
         </v-row>
         <v-row class="mt-2">
@@ -277,6 +255,7 @@ import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
+import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -293,7 +272,6 @@ let initialLoadDone = false;
 let graphMode = false;
 
 // Select all labels by default
-const selectedPrivacyID = ref([0, 1, 2, 3, 4]);
 const showHistogram = ref(false);
 const showGraph = ref(false);
 const isLoading = ref(false);
@@ -331,6 +309,7 @@ const clickedNode = ref({
 });
 const showNodeDialog = ref(false);
 const hasLoaded = ref(false);
+const selectedPrivacyLabel = ref([...allPrivacyLabels]);
 
 watch(() => props.addressHash, () => {
 	// Prop was changed -> pull new data
@@ -359,16 +338,6 @@ const isSameDay = computed(() => {
 	day2.setHours(0, 0, 0, 0);
 	// Compare numbers
 	return day1.getTime() === day2.getTime();
-});
-
-const selectedPrivacyLabel = computed(() => {
-	const selectedLabels = [];
-
-	selectedPrivacyID.value.forEach(i => {
-		selectedLabels.push(allPrivacyLabels[i]);
-	});
-
-	return selectedLabels;
 });
 
 // Hooks
@@ -550,6 +519,12 @@ function getCategories(filtered) {
 function showForceGraphDespiteWarning() {
 	overrideTooManyTransactionsWarning.value = true;
 	onTabChange(1);
+}
+
+function handleChipFilterChanged(labels) {
+	selectedPrivacyLabel.value = labels.map(d => allPrivacyLabels[d]);
+
+	updateSvgData(false);
 }
 
 function handleLassoSelection() {
