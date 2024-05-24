@@ -15,6 +15,7 @@
               Filter by Privacy Type
             </p>
             <chip-filter
+              v-model="chipFilterModel"
               :items="privacyLabels"
               :disabled="!activities || activities.length === 0"
               @changed="handleChipFilterChanged"
@@ -309,7 +310,8 @@ const clickedNode = ref({
 });
 const showNodeDialog = ref(false);
 const hasLoaded = ref(false);
-const selectedPrivacyLabel = ref([...colorMap.keys()]);
+const privacyLabels = [...colorMap.entries()].map(d => ({text: d[0], color: d[1]}));
+const chipFilterModel = ref([...privacyLabels.keys()]);
 
 watch(() => props.addressHash, () => {
 	// Prop was changed -> pull new data
@@ -317,17 +319,8 @@ watch(() => props.addressHash, () => {
 });
 
 // Computed
-const privacyLabels = computed(() => {
-	const labels = [];
 
-	colorMap.forEach((v, k) => {
-		labels.push({text: k, color: v});
-	});
-
-	return labels;
-});
-
-// Computed
+const selectedPrivacyLabel = computed(() => chipFilterModel.value.map(d => privacyLabels[d].text));
 
 // Returns truer if min and max or on the same calendar day
 const isSameDay = computed(() => {
@@ -517,9 +510,7 @@ function showForceGraphDespiteWarning() {
 	onTabChange(1);
 }
 
-function handleChipFilterChanged(labels) {
-	selectedPrivacyLabel.value = labels;
-
+function handleChipFilterChanged() {
 	updateSvgData(false);
 }
 

@@ -95,7 +95,7 @@
       class="ms-2"
       rounded="0"
       mandatory
-      @update:model-value="selectionModeChanged"
+      @update:model-value="onSelectionModeChanged"
     >
       <v-btn :icon="mdiSelect" />
       <v-btn :icon="mdiCursorPointer" />
@@ -169,22 +169,24 @@
       </v-scroll-x-reverse-transition>
     </div>
   </div>
-  <div v-show="!disableFilter && showFilter">
+  <template v-if="!disableFilter && showFilter">
     <div class="d-flex justify-center">
       <chip-filter
-        label="Node types:"
+        v-model="nodeFilters"
+        label="Node Types"
         :items="nodeTypeItems"
-        @changed="handleNodeTypeFilterChanged"
+        @changed="onFilterChanged"
       />
     </div>
     <div class="d-flex justify-center">
       <chip-filter
-        label="Privacy types:"
+        v-model="privacyFilters"
+        label="Transaction Types"
         :items="privacyTypeItems"
-        @changed="handlePrivacyTypeFilterChanged"
+        @changed="onFilterChanged"
       />
     </div>
-  </div>
+  </template>
 </template>
 
 <script setup>
@@ -197,14 +199,7 @@ import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
 import {plural} from '@/utilities/index.js';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
-const emit = defineEmits([
-	'isSelectionEnabled',
-	'rearrange',
-	'center',
-	'deleteSelected',
-	'addEntity',
-	'filterChanged',
-]);
+const emit = defineEmits(['isSelectionEnabled', 'rearrange', 'center', 'deleteSelected', 'addEntity', 'filterChanged']);
 
 const props = defineProps({
 	name: {type: String, required: false, default: ''},
@@ -223,12 +218,11 @@ const props = defineProps({
 const selectionToggle = ref(1);
 const graphQuery = ref('');
 const showFilter = ref(false);
-
-let privacyFilters = props.privacyTypeItems.map(d => d.text);
-let nodeFilters = props.nodeTypeItems.map(d => d.text);
+const privacyFilters = ref(props.privacyTypeItems.map((_, i) => i));
+const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 
 // Functions
-function selectionModeChanged(mode) {
+function onSelectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
 }
 
@@ -237,14 +231,10 @@ function onAddEntity() {
 	graphQuery.value = '';
 }
 
-function handleNodeTypeFilterChanged(labels) {
-	nodeFilters = labels;
-	emit('filterChanged', nodeFilters, privacyFilters);
-}
-
-function handlePrivacyTypeFilterChanged(labels) {
-	privacyFilters = labels;
-	emit('filterChanged', nodeFilters, privacyFilters);
+function onFilterChanged() {
+	emit('filterChanged',
+		nodeFilters.value.map(d => props.nodeTypeItems[d].text),
+		privacyFilters.value.map(d => props.privacyTypeItems[d].text));
 }
 
 </script>

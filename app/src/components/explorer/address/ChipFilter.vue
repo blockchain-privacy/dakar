@@ -1,14 +1,14 @@
 <template>
-  <div class="d-flex align-center">
+  <div class="d-flex align-center flex-wrap justify-center">
     <span
       v-if="label"
-      class="ms-2"
+      class="ms-2 text-subtitle-2"
     >
       {{ label }}
     </span>
     <!-- selected-class="" is intentionally left blank to avoid a shadow over the chip elements -->
     <v-chip-group
-      v-model="selectedChips"
+      v-model="model"
       column
       multiple
       filter
@@ -39,10 +39,11 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
 import {capitalize} from '@/utilities';
 
-const props = defineProps({
+const model = defineModel({type: Array});
+
+defineProps({
 	disabled: {type: Boolean, required: false, default: false},
 	// Example: [{color: red: text: 'some text'}, ...]
 	items: {type: Array, required: true},
@@ -51,16 +52,9 @@ const props = defineProps({
 
 const emit = defineEmits(['changed']);
 
-const selectedChips = ref([]);
-
-// Hooks
-onMounted(() => {
-	selectedChips.value = props.items.map((_, i) => i);
-});
-
 // Functions
 function handleModelChange() {
-	emit('changed', selectedChips.value.map(d => props.items[d].text));
+	emit('changed');
 }
 
 </script>
