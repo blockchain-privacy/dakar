@@ -15,7 +15,6 @@
       mandatory
       :disabled="disabled"
       selected-class=""
-      color="primary"
       class="ms-2"
       @update:model-value="handleModelChange"
     >

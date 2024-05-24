@@ -1,20 +1,19 @@
 <template>
   <div class="d-flex align-center">
-    <template v-if="name">
+    <template v-if="name && !$vuetify.display.xs">
       <v-icon
         class="mx-3"
         icon="$graphIcon"
         size="32"
       />
-      <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
+      <p class="me-3 text-h6 workspace-name">
         {{ name }}
       </p>
     </template>
     <v-text-field
       v-if="showSearchField"
       v-model="graphQuery"
-      class="noOutline flex-grow-1"
-      :style="adaptive && $vuetify.display.xs?'min-width:100px':'min-width:200px'"
+      class="noOutline"
       hide-details
       variant="outlined"
       density="compact"
@@ -26,70 +25,14 @@
       @click:append-inner="onAddEntity"
       @keydown.enter="onAddEntity"
     />
-    <div :class="{'hidden-md-and-down':adaptive}">
-      <v-btn
-        variant="text"
-        class="my-1"
-        @click="emit('rearrange')"
-      >
-        <v-icon
-          :icon="mdiCached"
-          class="me-1"
-        />
-        Rearrange
-      </v-btn>
-      <v-btn
-        variant="text"
-        class="my-1"
-        @click="emit('center')"
-      >
-        <v-icon
-          :icon="mdiImageFilterCenterFocus"
-          class="me-1"
-        />
-        Center
-      </v-btn>
-      <v-btn
-        v-if="showWorkspacesButton"
-        variant="text"
-        class="my-1"
-        :to="{name: ROUTE_NAME_WORKSPACES_PAGE}"
-      >
-        <v-icon
-          :icon="mdiOpenInNew"
-          class="me-1"
-        />
-        Workspaces
-      </v-btn>
-      <v-btn
-        v-if="!disableFilter"
-        variant="text"
-        class="my-1"
-        @click="showFilter = !showFilter"
-      >
-        <v-icon
-          :icon="mdiFilterCog"
-          size="x-large"
-          class="me-1"
-        />
-      </v-btn>
-      <v-scroll-x-reverse-transition>
-        <v-btn
-          v-if="showDeleteButton && selectedItemCount > 0"
-          variant="flat"
-          class="my-1"
-          :disabled="!deleteEnabled"
-          @click="emit('deleteSelected')"
-        >
-          <v-icon
-            :icon="mdiDelete"
-            class="me-1"
-          />
-          {{ `Delete ${selectedItemCount} ${plural('node', selectedItemCount)}` }}
-        </v-btn>
-      </v-scroll-x-reverse-transition>
-    </div>
+    <v-btn
+      v-if="!disableFilter"
+      variant="text"
+      :icon="mdiFilterCog"
+      @click="showFilter = !showFilter"
+    />
     <v-btn-toggle
+      v-if="!oneLine"
       v-model="selectionToggle"
       color="primary"
       class="ms-2"
@@ -101,76 +44,74 @@
       <v-btn :icon="mdiCursorPointer" />
     </v-btn-toggle>
   </div>
-  <div
-    v-if="adaptive"
-    class="hidden-lg-and-up"
-  >
-    <div class="d-flex justify-center flex-wrap">
+  <div class="d-flex justify-center flex-wrap">
+    <v-btn
+      variant="text"
+      class="my-1"
+      @click="emit('rearrange')"
+    >
+      <v-icon
+        :icon="mdiCached"
+        class="me-1"
+      />
+      Rearrange
+    </v-btn>
+    <v-btn
+      variant="text"
+      class="my-1"
+      @click="emit('center')"
+    >
+      <v-icon
+        :icon="mdiImageFilterCenterFocus"
+        class="me-1"
+      />
+      Center
+    </v-btn>
+    <v-btn
+      v-if="showWorkspacesButton"
+      variant="text"
+      class="my-1"
+      :to="{name: ROUTE_NAME_WORKSPACES_PAGE}"
+    >
+      <v-icon
+        :icon="mdiOpenInNew"
+        class="me-1"
+      />
+      Workspaces
+    </v-btn>
+    <v-scroll-x-reverse-transition>
       <v-btn
-        variant="text"
-        class="my-1"
-        @click="emit('rearrange')"
+        v-if="showDeleteButton && selectedItemCount > 0"
+        variant="flat"
+        class="my-1 me-1"
+        :disabled="!deleteEnabled"
+        @click="emit('deleteSelected')"
       >
         <v-icon
-          :icon="mdiCached"
+          :icon="mdiDelete"
           class="me-1"
         />
-        Rearrange
+        {{ selectedItemCount }}
       </v-btn>
-      <v-btn
-        variant="text"
-        class="my-1"
-        @click="emit('center')"
-      >
-        <v-icon
-          :icon="mdiImageFilterCenterFocus"
-          class="me-1"
-        />
-        Center
-      </v-btn>
-      <v-btn
-        v-if="showWorkspacesButton"
-        variant="text"
-        class="my-1"
-        :to="{name: ROUTE_NAME_WORKSPACES_PAGE}"
-      >
-        <v-icon
-          :icon="mdiOpenInNew"
-          class="me-1"
-        />
-        Workspaces
-      </v-btn>
-      <v-btn
-        v-if="!disableFilter"
-        variant="text"
-        class="my-1"
-        @click="showFilter = !showFilter"
-      >
-        <v-icon
-          :icon="mdiFilterCog"
-          size="x-large"
-          class="me-1"
-        />
-      </v-btn>
-      <v-scroll-x-reverse-transition>
-        <v-btn
-          v-if="showDeleteButton && selectedItemCount > 0"
-          variant="flat"
-          class="my-1 me-1"
-          :disabled="!deleteEnabled"
-          @click="emit('deleteSelected')"
-        >
-          <v-icon
-            :icon="mdiDelete"
-            class="me-1"
-          />
-          {{ selectedItemCount }}
-        </v-btn>
-      </v-scroll-x-reverse-transition>
-    </div>
+    </v-scroll-x-reverse-transition>
+    <v-btn-toggle
+      v-if="oneLine"
+      v-model="selectionToggle"
+      color="primary"
+      class="ms-2"
+      rounded="0"
+      mandatory
+      @update:model-value="onSelectionModeChanged"
+    >
+      <v-btn :icon="mdiSelect" />
+      <v-btn :icon="mdiCursorPointer" />
+    </v-btn-toggle>
   </div>
   <template v-if="!disableFilter && showFilter">
-    <div class="d-flex justify-center">
+    <div
+      class="d-flex justify-center"
+      style="max-width: 500px"
+    >
       <chip-filter
         v-model="nodeFilters"
         label="Node Types"
@@ -178,7 +119,10 @@
         @changed="onFilterChanged"
       />
     </div>
-    <div class="d-flex justify-center">
+    <div
+      class="d-flex justify-center"
+      style="max-width: 500px"
+    >
       <chip-filter
         v-model="privacyFilters"
         label="Transaction Types"
@@ -196,7 +140,6 @@ import {
 } from '@mdi/js';
 import {ref} from 'vue';
 import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
-import {plural} from '@/utilities/index.js';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
 const emit = defineEmits(['isSelectionEnabled', 'rearrange', 'center', 'deleteSelected', 'addEntity', 'filterChanged']);
@@ -207,7 +150,7 @@ const props = defineProps({
 	selectedItemCount: {type: Number, required: false, default: 0},
 	deleteEnabled: {type: Boolean, required: false, default: true},
 	addEntityEnabled: {type: Boolean, required: false, default: true},
-	adaptive: {type: Boolean, required: false, default: true},
+	oneLine: {type: Boolean, required: false, default: false},
 	showDeleteButton: {type: Boolean, required: false, default: true},
 	showWorkspacesButton: {type: Boolean, required: false, default: true},
 	nodeTypeItems: {type: Array, required: false, default: () => []},

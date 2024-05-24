@@ -216,7 +216,7 @@
             <v-card variant="flat">
               <adaptive-toolbar
                 :show-search-field="false"
-                :adaptive="false"
+                one-line
                 :show-delete-button="false"
                 :show-workspaces-button="false"
                 disable-filter
