@@ -61,6 +61,18 @@
         />
         Workspaces
       </v-btn>
+      <v-btn
+        v-if="!disableFilter"
+        variant="text"
+        class="my-1"
+        @click="showFilter = !showFilter"
+      >
+        <v-icon
+          :icon="mdiFilterCog"
+          size="x-large"
+          class="me-1"
+        />
+      </v-btn>
       <v-scroll-x-reverse-transition>
         <v-btn
           v-if="showDeleteButton && selectedItemCount > 0"
@@ -128,6 +140,18 @@
         />
         Workspaces
       </v-btn>
+      <v-btn
+        v-if="!disableFilter"
+        variant="text"
+        class="my-1"
+        @click="showFilter = !showFilter"
+      >
+        <v-icon
+          :icon="mdiFilterCog"
+          size="x-large"
+          class="me-1"
+        />
+      </v-btn>
       <v-scroll-x-reverse-transition>
         <v-btn
           v-if="showDeleteButton && selectedItemCount > 0"
@@ -145,19 +169,44 @@
       </v-scroll-x-reverse-transition>
     </div>
   </div>
+  <div v-show="!disableFilter && showFilter">
+    <div class="d-flex justify-center">
+      <chip-filter
+        label="Node types:"
+        :items="nodeTypeItems"
+        @changed="handleNodeTypeFilterChanged"
+      />
+    </div>
+    <div class="d-flex justify-center">
+      <chip-filter
+        label="Privacy types:"
+        :items="privacyTypeItems"
+        @changed="handlePrivacyTypeFilterChanged"
+      />
+    </div>
+  </div>
 </template>
 
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached,
-	mdiImageFilterCenterFocus, mdiOpenInNew, mdiMagnify,
+	mdiImageFilterCenterFocus, mdiOpenInNew, mdiMagnify, mdiFilterCog,
 } from '@mdi/js';
 import {ref} from 'vue';
 import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
 import {plural} from '@/utilities/index.js';
+import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
-const emit = defineEmits(['isSelectionEnabled', 'rearrange', 'center', 'deleteSelected', 'addEntity']);
-defineProps({
+const emit = defineEmits([
+	'isSelectionEnabled',
+	'rearrange',
+	'center',
+	'deleteSelected',
+	'addEntity',
+	'filterChanged',
+]);
+
+const props = defineProps({
 	name: {type: String, required: false, default: ''},
 	showSearchField: {type: Boolean, required: false, default: true},
 	selectedItemCount: {type: Number, required: false, default: 0},
@@ -166,10 +215,17 @@ defineProps({
 	adaptive: {type: Boolean, required: false, default: true},
 	showDeleteButton: {type: Boolean, required: false, default: true},
 	showWorkspacesButton: {type: Boolean, required: false, default: true},
+	nodeTypeItems: {type: Array, required: false, default: () => []},
+	privacyTypeItems: {type: Array, required: false, default: () => []},
+	disableFilter: {type: Boolean, required: false, default: false},
 });
 
 const selectionToggle = ref(1);
 const graphQuery = ref('');
+const showFilter = ref(false);
+
+let privacyFilters = props.privacyTypeItems.map(d => d.text);
+let nodeFilters = props.nodeTypeItems.map(d => d.text);
 
 // Functions
 function selectionModeChanged(mode) {
@@ -181,10 +237,19 @@ function onAddEntity() {
 	graphQuery.value = '';
 }
 
+function handleNodeTypeFilterChanged(labels) {
+	nodeFilters = labels;
+	emit('filterChanged', nodeFilters, privacyFilters);
+}
+
+function handlePrivacyTypeFilterChanged(labels) {
+	privacyFilters = labels;
+	emit('filterChanged', nodeFilters, privacyFilters);
+}
+
 </script>
 
 <style scoped>
-
 /* remove outline from text-field variant 'outlined'.
  This can also be achieved by using variant 'plain',
  but then the label text is not centered */
@@ -195,5 +260,4 @@ function onAddEntity() {
 .noOutline :deep(.v-field__outline__end) {
   border-width: 0 0 0 0 !important;
 }
-
 </style>

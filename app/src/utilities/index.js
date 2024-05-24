@@ -323,3 +323,8 @@ export function getColorMap() {
 
 	return colorMap;
 }
+
+// Capitalize returns the first letter of each word (separated by a space) in str capitalized
+export function capitalize(str) {
+	return str.split(' ').map(d => d[0].toUpperCase() + d.slice(1)).join(' ');
+}

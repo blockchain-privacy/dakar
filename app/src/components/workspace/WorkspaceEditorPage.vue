@@ -14,11 +14,14 @@
           :selected-item-count="lassoSelectedNodes.length"
           :delete-enabled="isLassoDeletionEnabled"
           :add-entity-enabled="!isModifyingWorkspace"
+          :node-type-items="nodeTypeLabels"
+          :privacy-type-items="privacyTypeLabels"
           @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
           @rearrange="handleMenuRearrange"
           @center="handleMenuCenter"
           @delete-selected="handleMenuDeleteSelected"
           @add-entity="handleGraphQuery"
+          @filter-changed="handleMenuFilterChanged"
         />
         <v-progress-linear
           v-if="isModifyingWorkspace"
@@ -215,6 +218,12 @@ colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
 
+const nodeTypeLabels = [
+	{text: WORKSPACE_NODE_TYPE_HEURISTIC, color: '#4CAF50'},
+	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#CDDC39'},
+	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
+];
+
 const nodeGraph = new NodeGraph(colorMap);
 
 let uidCounter = 1;
@@ -326,6 +335,15 @@ watch(
 );
 
 // Computed
+const privacyTypeLabels = computed(() => {
+	const labels = [];
+
+	getColorMap().forEach((v, k) => {
+		labels.push({text: k, color: v});
+	});
+
+	return labels;
+});
 
 const isLassoDeletionEnabled = computed(() => !lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)));
 
@@ -470,6 +488,11 @@ function handleMenuRearrange() {
 
 function handleMenuCenter() {
 	nodeGraph.centerGraph();
+}
+
+function handleMenuFilterChanged(nodeFilter, privacyFilter) {
+	nodeGraph.filterNodes(nodeFilter, privacyFilter);
+	nodeGraph.draw();
 }
 
 function handleMenuDeleteSelected() {

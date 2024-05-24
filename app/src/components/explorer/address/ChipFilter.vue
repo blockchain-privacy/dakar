@@ -1,45 +1,57 @@
 <template>
-  <!-- selected-class="" is intentionally left blank to avoid a shadow over the chip elements -->
-  <v-chip-group
-    v-model="selectedChips"
-    column
-    multiple
-    filter
-    mandatory
-    :disabled="disabled"
-    selected-class=""
-    color="primary"
-    @update:model-value="handleModelChange"
-  >
-    <v-chip
-      v-for="item in items"
-      :key="item.id"
+  <div class="d-flex align-center">
+    <span
+      v-if="label"
+      class="ms-2"
     >
-      <template #prepend>
-        <v-sheet
-          style="width:25px; height:15px"
-          rounded
-          :color="item.color?item.color:'black'"
-          class="me-2"
-        />
-      </template>
-      {{ item.text }}
-    </v-chip>
-  </v-chip-group>
+      {{ label }}
+    </span>
+    <!-- selected-class="" is intentionally left blank to avoid a shadow over the chip elements -->
+    <v-chip-group
+      v-model="selectedChips"
+      column
+      multiple
+      filter
+      mandatory
+      :disabled="disabled"
+      selected-class=""
+      color="primary"
+      class="ms-2"
+      @update:model-value="handleModelChange"
+    >
+      <v-chip
+        v-for="item in items"
+        :key="item.text"
+        rounded
+      >
+        <template #prepend>
+          <v-sheet
+            style="width:25px; height:15px"
+            rounded
+            :color="item.color?item.color:'black'"
+            class="me-2"
+          />
+        </template>
+        {{ capitalize( item.text) }}
+      </v-chip>
+    </v-chip-group>
+  </div>
 </template>
 
 <script setup>
 import {onMounted, ref} from 'vue';
+import {capitalize} from '@/utilities';
 
 const props = defineProps({
 	disabled: {type: Boolean, required: false, default: false},
-	// Example: [{id: 0x123, color: red: text: 'some text'}, ...]
+	// Example: [{color: red: text: 'some text'}, ...]
 	items: {type: Array, required: true},
+	label: {type: String, required: false, default: ''},
 });
 
 const emit = defineEmits(['changed']);
 
-const selectedChips = ref([0, 1, 2, 3, 4]);
+const selectedChips = ref([]);
 
 // Hooks
 onMounted(() => {
@@ -48,8 +60,7 @@ onMounted(() => {
 
 // Functions
 function handleModelChange() {
-	// Send raw array not ref
-	emit('changed', [...selectedChips.value]);
+	emit('changed', selectedChips.value.map(d => props.items[d].text));
 }
 
 </script>

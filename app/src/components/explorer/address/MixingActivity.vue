@@ -218,6 +218,7 @@
                 :adaptive="false"
                 :show-delete-button="false"
                 :show-workspaces-button="false"
+                disable-filter
                 @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
                 @center="nodeGraph.centerGraph()"
                 @rearrange="nodeGraph.reorderNodes()"
@@ -242,7 +243,7 @@
 
 <script setup>
 import Histogram from '@/d3Documents/histogram';
-import {getColorMap, getPrivacyTypeLabel} from '@/utilities';
+import {getColorMap, getPrivacyTypeLabel, capitalize} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
@@ -263,7 +264,6 @@ const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 
-const allPrivacyLabels = ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'];
 const colorMap = getColorMap();
 let svgHistogram = null;
 const nodeGraph = new NodeGraph(colorMap);
@@ -309,7 +309,7 @@ const clickedNode = ref({
 });
 const showNodeDialog = ref(false);
 const hasLoaded = ref(false);
-const selectedPrivacyLabel = ref([...allPrivacyLabels]);
+const selectedPrivacyLabel = ref([...colorMap.keys()]);
 
 watch(() => props.addressHash, () => {
 	// Prop was changed -> pull new data
@@ -321,7 +321,7 @@ const privacyLabels = computed(() => {
 	const labels = [];
 
 	colorMap.forEach((v, k) => {
-		labels.push({text: capitalize(k), color: v, id: k});
+		labels.push({text: k, color: v});
 	});
 
 	return labels;
@@ -374,10 +374,6 @@ onMounted(() => {
 });
 
 // Functions
-// Capitalize returns the first letter of each word (separated by a space) in str capitalized
-function capitalize(str) {
-	return str.split(' ').map(d => d[0].toUpperCase() + d.slice(1)).join(' ');
-}
 
 function setErrorMessage(msg) {
 	msgStore.addMessage({
@@ -522,7 +518,7 @@ function showForceGraphDespiteWarning() {
 }
 
 function handleChipFilterChanged(labels) {
-	selectedPrivacyLabel.value = labels.map(d => allPrivacyLabels[d]);
+	selectedPrivacyLabel.value = labels;
 
 	updateSvgData(false);
 }
