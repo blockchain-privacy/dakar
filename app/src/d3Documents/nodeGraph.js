@@ -495,6 +495,7 @@ export default class NodeGraph {
 	// Set draw to false, if the graph should not be redrawn.
 	removeNode(uid, draw) {
 		this.#nodeMap.delete(uid);
+		this.#filteredNodeMap.delete(uid);
 
 		if (draw === undefined || draw === true) {
 			this.draw();
@@ -504,7 +505,7 @@ export default class NodeGraph {
 	// Removes the nodes with the provided UIDs.
 	// Set draw to false, if the graph should not be redrawn.
 	removeNodes(uids, draw) {
-		uids.forEach(u => this.#nodeMap.delete(u));
+		uids.forEach(u => this.removeNode(u, false));
 
 		if (draw === undefined || draw === true) {
 			this.draw();
@@ -520,6 +521,9 @@ export default class NodeGraph {
 			delete value.fx;
 			delete value.fy;
 			this.#nodeMap[key] = value;
+			if (this.#filteredNodeMap[key] !== undefined) {
+				this.#filteredNodeMap[key] = value;
+			}
 		}
 
 		this.draw();
@@ -558,6 +562,7 @@ export default class NodeGraph {
 	// Remove all nodes. Optionally redraw the graph.
 	removeAllNodes(draw) {
 		this.#nodeMap.clear();
+		this.#filteredNodeMap.clear();
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
