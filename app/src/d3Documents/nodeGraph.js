@@ -175,7 +175,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION && this.#filterPrivacyTypes.length > 0) {
+		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 			return this.#filterPrivacyTypes.includes(node.privacyTypeLabel);
 		}
 

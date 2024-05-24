@@ -16,6 +16,7 @@
             </p>
             <chip-filter
               v-model="chipFilterModel"
+              mandatory
               :items="privacyLabels"
               :disabled="!activities || activities.length === 0"
               @changed="handleChipFilterChanged"

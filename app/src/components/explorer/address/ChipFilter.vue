@@ -12,7 +12,7 @@
       column
       multiple
       filter
-      mandatory
+      :mandatory="mandatory"
       :disabled="disabled"
       selected-class=""
       class="ms-2"
@@ -47,6 +47,7 @@ defineProps({
 	// Example: [{color: red: text: 'some text'}, ...]
 	items: {type: Array, required: true},
 	label: {type: String, required: false, default: ''},
+	mandatory: {type: Boolean, required: false, default: false},
 });
 
 const emit = defineEmits(['changed']);

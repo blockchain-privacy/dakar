@@ -107,30 +107,33 @@
       <v-btn :icon="mdiCursorPointer" />
     </v-btn-toggle>
   </div>
-  <template v-if="!disableFilter && showFilter">
-    <div
-      class="d-flex justify-center"
-      style="max-width: 500px"
-    >
-      <chip-filter
-        v-model="nodeFilters"
-        label="Node Types"
-        :items="nodeTypeItems"
-        @changed="onFilterChanged"
-      />
+  <v-expand-transition>
+    <div v-if="!disableFilter && showFilter">
+      <div
+        class="d-flex justify-center"
+        style="max-width: 500px"
+      >
+        <chip-filter
+          v-model="nodeFilters"
+          mandatory
+          label="Node Types"
+          :items="nodeTypeItems"
+          @changed="onFilterChanged"
+        />
+      </div>
+      <div
+        class="d-flex justify-center"
+        style="max-width: 500px"
+      >
+        <chip-filter
+          v-model="privacyFilters"
+          label="Transaction Types"
+          :items="privacyTypeItems"
+          @changed="onFilterChanged"
+        />
+      </div>
     </div>
-    <div
-      class="d-flex justify-center"
-      style="max-width: 500px"
-    >
-      <chip-filter
-        v-model="privacyFilters"
-        label="Transaction Types"
-        :items="privacyTypeItems"
-        @changed="onFilterChanged"
-      />
-    </div>
-  </template>
+  </v-expand-transition>
 </template>
 
 <script setup>
