@@ -257,6 +257,24 @@ export default class NodeGraph {
 			return;
 		}
 
+		if (e.ctrlKey || e.shiftKey) {
+			const n = d3Select(d3This).select('.node');
+			if (n.classed('lasso-selected')) {
+				console.log('is already selected');
+				n.classed('lasso-selected', false);
+			} else {
+				console.log('is not selected');
+				n.classed('lasso-selected', true);
+			}
+
+			this.lassoSelectedNodes = this.#nodeGroup.selectAll('.lasso-selected');
+			if (this.#lassoSelectionCallback !== null) {
+				this.#lassoSelectionCallback();
+			}
+
+			return;
+		}
+
 		this.#contextNodeData = d;
 		this.#contextNodeSelection = d3This;
 
@@ -1052,6 +1070,7 @@ export default class NodeGraph {
 			.on('end', e => {
 				dragEnded(e, self);
 			})
+			.filter(e => !e.ctrlKey && !e.shiftKey && !e.button)
 			.clickDistance(3),
 		);
 	}
