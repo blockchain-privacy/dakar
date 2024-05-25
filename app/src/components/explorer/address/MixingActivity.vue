@@ -250,7 +250,7 @@ import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
 import {
-	computed, inject, nextTick, onBeforeMount, onMounted, ref, watch,
+	computed, inject, nextTick, onBeforeMount, onMounted, ref, toRaw, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -427,7 +427,8 @@ function getFilteredData(withGraphData) {
 
 	const events = new Set();
 	const numActivities = activities.value.length;
-	const items = activities.value.filter(d => {
+
+	const items = activities.value.map(d => toRaw(d)).filter(d => {
 		if (selectedPrivacyLabel.value.length < 5
         && !selectedPrivacyLabel.value.includes(d.privacyTypeLabel)) {
 			return false;
