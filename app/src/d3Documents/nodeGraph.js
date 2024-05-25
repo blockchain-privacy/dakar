@@ -319,7 +319,7 @@ export default class NodeGraph {
 
 				this.#rootGroup.attr('transform', event.transform);
 			})
-			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e.type === 'wheel') && !e.button)
+			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e instanceof WheelEvent) && !e.button)
 			.scaleExtent([0.5, 3]);
 		this.#rootSvg.call(this.#zoom);
 
