@@ -25,7 +25,7 @@
       >
         <template #prepend>
           <v-sheet
-            style="width:25px; height:15px"
+            style="width:15px; height:15px"
             rounded
             :color="item.color?item.color:'black'"
             class="me-2"

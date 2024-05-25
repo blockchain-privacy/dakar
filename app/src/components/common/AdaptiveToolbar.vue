@@ -109,24 +109,20 @@
   </div>
   <v-expand-transition>
     <div v-if="!disableFilter && showFilter">
-      <div
-        class="d-flex justify-center"
-        style="max-width: 500px"
-      >
+      <div class="d-flex justify-center">
         <chip-filter
           v-model="nodeFilters"
+          style="max-width: 420px"
           mandatory
           label="Node Types"
           :items="nodeTypeItems"
           @changed="onFilterChanged"
         />
       </div>
-      <div
-        class="d-flex justify-center"
-        style="max-width: 500px"
-      >
+      <div class="d-flex justify-center">
         <chip-filter
           v-model="privacyFilters"
+          style="max-width: 420px"
           label="Transaction Types"
           :items="privacyTypeItems"
           @changed="onFilterChanged"
