@@ -79,21 +79,19 @@
       />
       Workspaces
     </v-btn>
-    <v-scroll-x-reverse-transition>
-      <v-btn
-        v-if="showDeleteButton && selectedItemCount > 0"
-        variant="flat"
-        class="my-1 me-1"
-        :disabled="!deleteEnabled"
-        @click="emit('deleteSelected')"
-      >
-        <v-icon
-          :icon="mdiDelete"
-          class="me-1"
-        />
-        {{ selectedItemCount }}
-      </v-btn>
-    </v-scroll-x-reverse-transition>
+    <v-btn
+      v-if="showDeleteButton && selectedItemCount > 0"
+      variant="flat"
+      class="my-1 me-1"
+      :disabled="!deleteEnabled"
+      @click="emit('deleteSelected')"
+    >
+      <v-icon
+        :icon="mdiDelete"
+        class="me-1"
+      />
+      {{ selectedItemCount }}
+    </v-btn>
     <v-btn-toggle
       v-if="oneLine"
       v-model="selectionToggle"

@@ -272,10 +272,8 @@ export default class NodeGraph {
 		if (e.ctrlKey || e.shiftKey) {
 			const n = d3Select(d3This).select('.node');
 			if (n.classed('lasso-selected')) {
-				console.log('is already selected');
 				n.classed('lasso-selected', false);
 			} else {
-				console.log('is not selected');
 				n.classed('lasso-selected', true);
 			}
 
@@ -292,6 +290,28 @@ export default class NodeGraph {
 
 		if (this.#nodeClickCallBack !== null) {
 			this.#nodeClickCallBack(d);
+		}
+	}
+
+	noteClick(e, _, d3This) {
+		if (e) {
+			e.stopPropagation();
+		}
+
+		if (!this.enableInteractions || (!e.ctrlKey && !e.shiftKey)) {
+			return;
+		}
+
+		const n = d3Select(d3This).select('.note');
+		if (n.classed('lasso-selected')) {
+			n.classed('lasso-selected', false);
+		} else {
+			n.classed('lasso-selected', true);
+		}
+
+		this.lassoSelectedNodes = this.#nodeGroup.selectAll('.lasso-selected');
+		if (this.#lassoSelectionCallback !== null) {
+			this.#lassoSelectionCallback();
 		}
 	}
 
@@ -782,6 +802,9 @@ export default class NodeGraph {
 		const self = this;
 		// Set event handlers
 		entityGroup
+			.on('click', function (e, d) {
+				self.noteClick(e, d, this);
+			})
 			.on('contextmenu', function (e, d) {
 				if (!self.enableInteractions) {
 					return;
