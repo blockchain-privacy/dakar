@@ -29,6 +29,7 @@
       v-if="!disableFilter"
       variant="text"
       :icon="mdiFilterCog"
+      :active="showFilter"
       @click="showFilter = !showFilter"
     />
     <v-btn-toggle
