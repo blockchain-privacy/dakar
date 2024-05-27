@@ -164,6 +164,18 @@ export default class NodeGraph {
 	}
 
 	isAllowedByFilter(node) {
+		if (!node) {
+			return false;
+		}
+
+		if (node.type === WORKSPACE_NODE_TYPE_NOTE) {
+			if (!node.children) {
+				return false;
+			}
+
+			return node.children.some(child => this.isAllowedByFilter(this.#nodeMap.get(child)));
+		}
+
 		let allowed = false;
 		if (this.#filterNodeTypes.length > 0) {
 			allowed = this.#filterNodeTypes.includes(node.type);
