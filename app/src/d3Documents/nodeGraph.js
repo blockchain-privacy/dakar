@@ -954,17 +954,6 @@ export default class NodeGraph {
 		const textHeight = 12;
 		const fontSize = textHeight - 2;
 
-		function wrap() {
-			const self = d3Select(this);
-			let textLength = self.node().getComputedTextLength();
-			let text = self.text();
-			while (textLength > (textAreaWidth) && text.length > 0) {
-				text = text.slice(0, -1);
-				self.text(text + '...');
-				textLength = self.node().getComputedTextLength();
-			}
-		}
-
 		// Text container
 		let textContainer = groupElement.select('.textContainer');
 		if (textContainer.empty()) {
@@ -975,6 +964,21 @@ export default class NodeGraph {
 		let nodeTitle = textContainer.select('.nodeTitle');
 		if (nodeTitle.empty()) {
 			nodeTitle = textContainer.append('text').classed('nodeTitle', true);
+		}
+
+		function elide() {
+			const self = d3Select(this);
+			const selfNode = self.node();
+			let textLength = selfNode.getComputedTextLength();
+			let text = self.text();
+			// Reduce text by 10% each time and at minimum by 1
+			const cutLength = Math.max(Math.floor(text.length / 10), 1);
+
+			while (textLength > textAreaWidth && text.length > 0) {
+				text = text.slice(0, -cutLength);
+				self.text(text + '\u2026');
+				textLength = selfNode.getComputedTextLength();
+			}
 		}
 
 		nodeTitle
@@ -1001,7 +1005,7 @@ export default class NodeGraph {
 
 				return d.uid;
 			})
-			.each(wrap);
+			.each(elide);
 
 		let nodeSubtitle = textContainer.select('.nodeSubtitle');
 		if (nodeSubtitle.empty()) {
@@ -1021,7 +1025,7 @@ export default class NodeGraph {
 
 				return '';
 			})
-			.each(wrap);
+			.each(elide);
 
 		// Heuristic properties
 		// Cluster count
