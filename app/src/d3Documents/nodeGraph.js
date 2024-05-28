@@ -2,9 +2,7 @@ import {isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
-import {
-	forceCollide, forceLink, forceManyBody, forceSimulation,
-} from 'd3-force';
+import {forceCollide, forceLink, forceSimulation} from 'd3-force';
 import {
 	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
 } from '@/d3Documents/util';
