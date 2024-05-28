@@ -21,6 +21,7 @@ import d3lasso from './d3Lasso.js';
 const animationDuration = 175;
 const longAnimationDuration = 500;
 const animationDelay = 2000;
+const markerColor = 'rgba(255, 109, 0, 0.3)';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -231,8 +232,8 @@ export default class NodeGraph {
 	}
 
 	resetClick() {
-		this.#nodeGroup.selectAll('.clicked').classed('clicked', false);
-		this.#shadowLineGroup.selectAll('.lineClicked').classed('lineClicked', false);
+		this.#nodeGroup.selectAll('.nodeClicked').classed('nodeClicked', false);
+		this.#shadowLineGroup.selectAll('.arrowClicked').classed('arrowClicked', false);
 	}
 
 	resetLasso() {
@@ -252,9 +253,9 @@ export default class NodeGraph {
 
 		// Try selecting the active object, can be a node or a line
 		if (contextNode.classed('shadowArrow')) {
-			contextNode.classed('lineClicked', true);
+			contextNode.classed('arrowClicked', true);
 		} else {
-			contextNode.select('.node').classed('clicked', true);
+			contextNode.select('.shadowNode').classed('nodeClicked', true);
 		}
 	}
 
@@ -413,12 +414,6 @@ export default class NodeGraph {
 		const style = this.#rootSvg.append('svg:style');
 		style.node().innerHTML
       = `
-        .node {
-          stroke: currentColor;
-          stroke-width: 1;
-          cursor: pointer;
-        }
-
         .note {
           stroke: currentColor;
           stroke-width: 1;
@@ -433,10 +428,21 @@ export default class NodeGraph {
           cursor: pointer;
         }
 
-        .clicked {
-          stroke: #B71C1C;
-          stroke-width: 3;
-         }
+        .node {
+          stroke: currentColor;
+          stroke-width: 1;
+          cursor: pointer;
+        }
+
+        .shadowNode {
+          fill: rgb(var(--v-theme-primary));
+          opacity: 0;
+          transition: all 0.175s ease;
+        }
+
+        .nodeClicked {
+          opacity: 0.3;
+        }
 
         .arrow {
           stroke: currentColor;
@@ -448,19 +454,13 @@ export default class NodeGraph {
         .shadowArrow {
           cursor: pointer;
           stroke: rgb(var(--v-theme-primary));
-          stroke-opacity: 1;
           stroke-width: 4;
           opacity: 0;
           marker-end: url(#${this.#svgID}_arrowhead_shadow);
           transition: all 0.175s ease;
         }
 
-        .lineHovered {
-          stroke-width: 5;
-          opacity: 0.3;
-        }
-
-        .lineClicked {
+        .arrowHovered, .arrowClicked {
           stroke-width: 5;
           opacity: 0.3;
         }
@@ -777,19 +777,16 @@ export default class NodeGraph {
 					return;
 				}
 
-				const thisElement = d3Select(this.parentNode);
-
-				const marker = thisElement.append('rect')
+				d3Select(this.parentNode).append('rect')
 					.attr('width', d.width * 2)
 					.attr('height', d.height * 2)
 					.attr('x', -d.width)
 					.attr('y', -d.height)
 					.attr('rx', 3)
 					.attr('ry', 3)
-					.attr('fill', 'rgba(255, 109, 0, 0.3)')
-					.lower();
-
-				marker.transition().delay(animationDelay).duration(longAnimationDuration)
+					.attr('fill', markerColor)
+					.lower()
+					.transition().delay(animationDelay).duration(longAnimationDuration)
 					.attr('width', 0)
 					.attr('height', 0)
 					.attr('x', 0)
@@ -870,19 +867,25 @@ export default class NodeGraph {
 				return 'rgb(var(--v-theme-primary))';
 			})
 			.each(function (d) {
+				const parent = d3Select(this.parentNode);
+
+				parent
+					.append('circle')
+					.classed('shadowNode', true)
+					.attr('r', self.#nodeRadius * 1.5)
+					.lower();
+
 				// Add marker to new nodes
 				if (d.fx !== undefined) {
 					return;
 				}
 
-				const thisElement = d3Select(this.parentNode);
-
-				const marker = thisElement.append('circle')
+				parent
+					.append('circle')
 					.attr('r', self.#nodeRadius * 2)
-					.attr('fill', 'rgba(255, 109, 0, 0.3)')
-					.lower();
-
-				marker.transition().delay(animationDelay).duration(longAnimationDuration).attr('r', 0).remove();
+					.attr('fill', markerColor)
+					.lower()
+					.transition().delay(animationDelay).duration(longAnimationDuration).attr('r', 0).remove();
 			});
 
 		// Set event handlers
@@ -1169,7 +1172,7 @@ export default class NodeGraph {
 			.attr('x2', d => reduceX(d, this.#nodeRadius))
 			.attr('y2', d => reduceY(d, this.#nodeRadius));
 
-		// For mouseover events
+		// For mouseover and click events
 		const shadowLinks = this.#shadowLineGroup
 			.selectAll('.shadowArrow')
 			.data(links, d => `${d.source}${d.target}`)
@@ -1187,10 +1190,10 @@ export default class NodeGraph {
 				self.lineClick(e, d, this);
 			})
 			.on('mouseenter', function () {
-				d3Select(this).classed('lineHovered', true);
+				d3Select(this).classed('arrowHovered', true);
 			})
 			.on('mouseleave', function () {
-				d3Select(this).classed('lineHovered', false);
+				d3Select(this).classed('arrowHovered', false);
 			});
 
 		const node = this.#nodeGroup
