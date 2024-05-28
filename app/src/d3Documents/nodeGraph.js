@@ -968,14 +968,22 @@ export default class NodeGraph {
 
 		function elide() {
 			const self = d3Select(this);
+			let text = self.text();
+
+			// Don't elide text which is 5 characters or smaller
+			if (text.length <= 5) {
+				return;
+			}
+
 			const selfNode = self.node();
 			let textLength = selfNode.getComputedTextLength();
-			let text = self.text();
+
 			// Reduce text by 10% each time and at minimum by 1
 			const cutLength = Math.max(Math.floor(text.length / 10), 1);
 
 			while (textLength > textAreaWidth && text.length > 0) {
 				text = text.slice(0, -cutLength);
+				// \u2026 = ...
 				self.text(text + '\u2026');
 				textLength = selfNode.getComputedTextLength();
 			}
@@ -1135,7 +1143,6 @@ export default class NodeGraph {
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
-			.force('charge', forceManyBody().strength(-150))
 			.force('collide', forceCollide(d => {
 				if (d.type === WORKSPACE_NODE_TYPE_NOTE) {
 					if (d.width && d.height) {
