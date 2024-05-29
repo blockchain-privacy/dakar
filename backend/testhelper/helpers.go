@@ -27,9 +27,15 @@ const (
 	BlockFileLastBlock      = 60020
 )
 
+// BlockFile contains Dash blocks from height 60000 to 60020.
+// This file includes block, transaction, address and cluster data.
+//
 //go:embed blocks_60000_60020.json
 var BlockFile []byte
 
+// ClassifierFile contains Dash blocks from height 1557775 to 1557780.
+// This file includes block, transaction, and address data.
+//
 //go:embed blocks_1557775_1557780.json
 var ClassifierFile []byte
 

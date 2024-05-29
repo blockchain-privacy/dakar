@@ -21,6 +21,7 @@ func getPointer[number any](n number) *number {
 }
 
 func TestMain(m *testing.M) {
+	InitLogger()
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 

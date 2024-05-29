@@ -852,3 +852,66 @@ func deleteTenThousandFMIClusters(c external.Database) error {
 
 	return err
 }
+
+// GetClustersByBlockRange returns all cluster-address mappings of the given block range
+func GetClustersByBlockRange(c external.Database, blockHeightStart int, blockHeightEnd int,
+	convertUIDs bool) (clusters []Cluster, err error) {
+	const query = `query Q($start: string,$end: string) {
+				var(func: between(id,$start,$end)) {
+					transactions {
+						o as tx_outputs
+						i as tx_inputs
+					}
+				}
+				
+				var(func: uid(o,i)){
+					a as ~addr_outputs{
+						c as ~Cluster.addresses
+					}
+				}
+				
+				q(func: uid(c)){
+					uid 
+					Cluster.type
+					Cluster.addressCount
+					Cluster.transaction {
+						uid
+					}
+					dgraph.type
+					Cluster.addresses@filter(uid(a)){
+						uid
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
+		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		Clusters []Cluster `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if convertUIDs {
+		for i := range r.Clusters {
+			r.Clusters[i].UID = "_:" + r.Clusters[i].UID
+
+			for y := range r.Clusters[i].Addresses {
+				r.Clusters[i].Addresses[y].UID = "_:" + r.Clusters[i].Addresses[y].UID
+			}
+
+			r.Clusters[i].Transaction.UID = "_:" + r.Clusters[i].Transaction.UID
+		}
+	}
+
+	clusters = r.Clusters
+
+	return
+}

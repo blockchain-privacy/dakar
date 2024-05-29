@@ -5,6 +5,7 @@ import (
 	"backend/analytics/graph"
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/analytics/clustering"
 	"backend/external"
 	"backend/processor"
 	"backend/server"
@@ -332,4 +333,13 @@ func getAddressRange(dgraph external.Database, firstBlock int, lastBlock int) ([
 	}
 
 	return db.GetAddressesByBlockRange(dgraph, firstBlock, lastBlock, true)
+}
+
+func getClusterRange(dgraph external.Database, firstBlock int, lastBlock int) ([]clustering.Cluster, error) {
+	numBlocks := lastBlock - firstBlock
+	if numBlocks <= 0 {
+		return nil, nil
+	}
+
+	return clustering.GetClustersByBlockRange(dgraph, firstBlock, lastBlock, true)
 }
