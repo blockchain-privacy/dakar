@@ -1,6 +1,6 @@
 <template>
   <div
-    class="d-flex float-left me-1 align-center"
+    class="me-1 align-center d-inline-flex"
     style="max-width: 100%"
   >
     <v-checkbox
