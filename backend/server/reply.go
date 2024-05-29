@@ -1902,7 +1902,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 		return
 	}
 
-	err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	_, err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

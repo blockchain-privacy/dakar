@@ -17,9 +17,10 @@ var (
 )
 
 // AddWorkspace creates a new workspace
-func AddWorkspace(c external.Database, name string, userUID string) (err error) {
+func AddWorkspace(c external.Database, name string, userUID string) (workspaceUID string, err error) {
 	if name == "" || userUID == "" {
-		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
+		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
+		return
 	}
 	const newWorkspaceDummyUID = "new_w"
 	w := Workspace{
@@ -49,7 +50,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 		return
 	}
 
-	_, ok := resp.GetUids()[newWorkspaceDummyUID]
+	workspaceUID, ok := resp.GetUids()[newWorkspaceDummyUID]
 	if !ok {
 		err = cliutil.NewStackErrorStr("new workspace was not created")
 		return
