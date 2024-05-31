@@ -94,6 +94,11 @@
           :disable-adding-nodes="isModifyingWorkspace"
           @add-nodes="checkNodeCount"
         />
+        <shortest-path-side-bar
+          v-model="isShortestPathSideBarOpen"
+          :from="shortestPathTransactions[0]"
+          :to="shortestPathTransactions[1]"
+        />
         <routing-dialog
           v-model="showRouteGuardDialogModel"
           :to="routeGuardTo"
@@ -205,6 +210,7 @@ import ConnectionSideBar from '@/components/workspace/sidebars/ConnectionSideBar
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
+import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -246,6 +252,7 @@ const workspaceName = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
+const isShortestPathSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
@@ -260,6 +267,7 @@ const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
 const lassoSelectedNodes = ref([]);
+const shortestPathTransactions = ref(['', '']);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -495,7 +503,7 @@ function handleMenuCenter() {
 }
 
 function handleShortestPathLookup() {
-	console.log('doing shortest path', lassoSelectedNodes.value.map(d => d.transactionHash));
+	openShortestPathSidebar();
 }
 
 function handleMenuFilterChanged(nodeFilter, privacyFilter) {
@@ -764,6 +772,7 @@ function openConnectionSheet(d) {
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = false;
 	isConnectionSideBarOpen.value = true;
+	isShortestPathSideBarOpen.value = false;
 
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
@@ -773,6 +782,7 @@ function openTypeSelectionSheet() {
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
+	isShortestPathSideBarOpen.value = false;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
@@ -795,7 +805,7 @@ function openEntitySideBar(nodeData) {
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
 		case WORKSPACE_NODE_TYPE_HEURISTIC:
-			// Brackets so local variables stay local (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
+			// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
 				let displayType = '';
 				for (const descriptor of heuristicDescriptors.value) {
@@ -816,15 +826,26 @@ function openEntitySideBar(nodeData) {
 
 	isAddHeuristicSheetOpen.value = false;
 	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = false;
 	isEntitySideBarOpen.value = true;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
+}
+
+function openShortestPathSidebar() {
+	shortestPathTransactions.value = lassoSelectedNodes.value.map(d => d.transactionHash);
+
+	isEntitySideBarOpen.value = false;
+	isAddHeuristicSheetOpen.value = false;
+	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = true;
 }
 
 function closeSideBars() {
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = false;
 }
 
 function showContextMenu(e) {

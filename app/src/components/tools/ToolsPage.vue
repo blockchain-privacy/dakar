@@ -27,16 +27,6 @@
           :prepend-icon="mdiPlaylistRemove"
           title="Address Exclusions"
         />
-        <v-list-item
-          :to="{ name: ROUTE_NAME_SHORTEST_PATH_PAGE}"
-          :prepend-icon="mdiChartTimelineVariant"
-          title="Shortest Path"
-        />
-        <v-list-item
-          :to="{ name: ROUTE_NAME_CONNECTION_LOOKUP_PAGE}"
-          :prepend-icon="mdiTextBoxSearch"
-          title="Connection Lookup"
-        />
       </v-list>
     </v-navigation-drawer>
     <v-main>
@@ -58,14 +48,12 @@
 
 <script setup>
 import {
-	mdiChartTimelineVariant, mdiMerge, mdiPlaylistRemove, mdiTag, mdiTextBoxSearch, mdiToolbox,
+	mdiMerge, mdiPlaylistRemove, mdiTag, mdiToolbox,
 } from '@mdi/js';
 import {
 	ROUTE_NAME_ADDRESS_EXCLUSIONS,
 	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_CLUSTER_OVERVIEW,
-	ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-	ROUTE_NAME_SHORTEST_PATH_PAGE,
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
