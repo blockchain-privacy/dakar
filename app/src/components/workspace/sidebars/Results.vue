@@ -106,8 +106,8 @@
 import {
 	mdiArrowDown, mdiArrowUp, mdiChevronLeft, mdiChevronRight, mdiMagnify,
 } from '@mdi/js';
-import AttributionTag from '../tools/attributions/AttributionTag.vue';
-import ResultItem from '@/components/workspace/ResultItem.vue';
+import AttributionTag from '../../tools/attributions/AttributionTag.vue';
+import ResultItem from '@/components/workspace/sidebars/ResultItem.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';

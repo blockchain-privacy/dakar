@@ -118,11 +118,11 @@ import {
 	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
+import {convertAmount, getPrivacyTypeLabel} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import StoreLink from '@/components/common/WorkspaceLink.vue';
-import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
+import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 
 const props = defineProps({

@@ -13,6 +13,7 @@
           :name="workspaceName"
           :selected-item-count="lassoSelectedNodes.length"
           :delete-enabled="isLassoDeletionEnabled"
+          :shortest-path-enabled="isShortestPathLookupEnabled"
           :add-entity-enabled="!isModifyingWorkspace"
           :node-type-items="nodeTypeLabels"
           :privacy-type-items="privacyTypeLabels"
@@ -22,6 +23,7 @@
           @delete-selected="handleMenuDeleteSelected"
           @add-entity="handleGraphQuery"
           @filter-changed="handleMenuFilterChanged"
+          @shortest-path-lookup="handleShortestPathLookup"
         />
         <v-progress-linear
           v-if="isModifyingWorkspace"
@@ -174,7 +176,7 @@ import {
 	mdiNotePlus,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
-import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
+import HeuristicTypeSelectionSideBar from './sidebars/HeuristicTypeSelectionSideBar.vue';
 import {
 	APPLICATION_NAME,
 	CLUSTER_TYPE_CUSTOM,
@@ -197,9 +199,9 @@ import {useMsgStore} from '@/pinia/msg';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
-import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
+import EntitySideBar from '@/components/workspace/sidebars/EntitySideBar.vue';
 import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
-import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
+import ConnectionSideBar from '@/components/workspace/sidebars/ConnectionSideBar.vue';
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
@@ -346,6 +348,8 @@ const privacyTypeLabels = computed(() => {
 });
 
 const isLassoDeletionEnabled = computed(() => !lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)));
+const isShortestPathLookupEnabled = computed(() =>
+	lassoSelectedNodes.value.length === 2 && !lassoSelectedNodes.value.some(d => !d.transactionHash));
 
 // Hooks
 function onDocumentClose() {
@@ -488,6 +492,10 @@ function handleMenuRearrange() {
 
 function handleMenuCenter() {
 	nodeGraph.centerGraph();
+}
+
+function handleShortestPathLookup() {
+	console.log('doing shortest path', lassoSelectedNodes.value.map(d => d.transactionHash));
 }
 
 function handleMenuFilterChanged(nodeFilter, privacyFilter) {

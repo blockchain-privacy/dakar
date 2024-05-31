@@ -50,7 +50,7 @@ import {mdiCheckboxMultipleOutline, mdiPlus} from '@mdi/js';
 import {computed, ref, watch} from 'vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {WORKSPACE_NODE_TYPE_CLUSTER, WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants';
+import {WORKSPACE_NODE_TYPE_CLUSTER, WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 
 const selectionCount = ref(0);
 const addressCount = ref(0);

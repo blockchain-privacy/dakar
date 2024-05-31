@@ -42,9 +42,9 @@
 </template>
 
 <script setup>
-import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
 import {mdiChevronDown, mdiChevronUp} from '@mdi/js';
-import {plural} from '@/utilities';
+import {plural} from '@/utilities/index.js';
 import {computed, ref} from 'vue';
 import StoreLink from '@/components/common/WorkspaceLink.vue';
 

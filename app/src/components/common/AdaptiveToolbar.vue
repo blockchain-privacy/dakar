@@ -80,6 +80,7 @@
       />
       Workspaces
     </v-btn>
+
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
       variant="flat"
@@ -92,6 +93,18 @@
         class="me-1"
       />
       {{ selectedItemCount }}
+    </v-btn>
+    <v-btn
+      v-if="shortestPathEnabled"
+      variant="flat"
+      class="my-1 me-1"
+      @click="emit('shortestPathLookup')"
+    >
+      <v-icon
+        :icon="mdiDelete"
+        class="me-1"
+      />
+      Find shortest path
     </v-btn>
     <v-btn-toggle
       v-if="oneLine"
@@ -140,13 +153,22 @@ import {ref} from 'vue';
 import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
-const emit = defineEmits(['isSelectionEnabled', 'rearrange', 'center', 'deleteSelected', 'addEntity', 'filterChanged']);
+const emit = defineEmits([
+	'isSelectionEnabled',
+	'rearrange',
+	'center',
+	'deleteSelected',
+	'addEntity',
+	'filterChanged',
+	'shortestPathLookup',
+]);
 
 const props = defineProps({
 	name: {type: String, required: false, default: ''},
 	showSearchField: {type: Boolean, required: false, default: true},
 	selectedItemCount: {type: Number, required: false, default: 0},
 	deleteEnabled: {type: Boolean, required: false, default: true},
+	shortestPathEnabled: {type: Boolean, required: false, default: true},
 	addEntityEnabled: {type: Boolean, required: false, default: true},
 	oneLine: {type: Boolean, required: false, default: false},
 	showDeleteButton: {type: Boolean, required: false, default: true},

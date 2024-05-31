@@ -142,21 +142,21 @@ import {
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {useMsgStore} from '@/pinia/msg.js';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
-import {useCacheStore} from '@/pinia/cache';
-import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
-import {getCurrentDate, isDestination} from '@/utilities';
+import {useCacheStore} from '@/pinia/cache.js';
+import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
+import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
-} from '@/constants';
+} from '@/constants/index.js';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
-import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
+import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
