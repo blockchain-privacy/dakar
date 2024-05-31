@@ -101,10 +101,10 @@
       @click="emit('shortestPathLookup')"
     >
       <v-icon
-        :icon="mdiDelete"
+        :icon="mdiChartTimelineVariant"
         class="me-1"
       />
-      Find shortest path
+      Shortest path
     </v-btn>
     <v-btn-toggle
       v-if="oneLine"
@@ -147,7 +147,7 @@
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached,
-	mdiImageFilterCenterFocus, mdiOpenInNew, mdiMagnify, mdiFilterCog,
+	mdiImageFilterCenterFocus, mdiOpenInNew, mdiMagnify, mdiFilterCog, mdiChartTimelineVariant,
 } from '@mdi/js';
 import {ref} from 'vue';
 import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
