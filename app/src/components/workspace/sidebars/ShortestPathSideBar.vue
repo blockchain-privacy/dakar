@@ -58,7 +58,6 @@
             <v-btn
               class="ms-auto"
               color="primary"
-              :disabled="!isSearchable"
               :loading="isLoading"
               @click="handleSearch"
             >
@@ -100,9 +99,7 @@ import SideBar from '@/components/common/SideBar.vue';
 import {mdiChartTimelineVariant} from '@mdi/js';
 import {handleError} from '@/utilities';
 import TransactionItem from '@/components/common/TransactionItem.vue';
-import {
-	computed, inject, onUpdated, ref,
-} from 'vue';
+import {inject, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -126,12 +123,7 @@ const resultTransactions = ref([]);
 let oldFrom = '';
 let oldTo = '';
 
-// Computed
-const isSearchable = computed(() => props.to && props.from && props.to.trim().length > 0
-  && props.from.trim().length > 0 && props.to !== props.from);
-
 // Hooks
-
 onUpdated(() => {
 	if (oldFrom === props.from && oldTo === props.to) {
 		return;
@@ -150,7 +142,7 @@ function setInfoMessage(msg) {
 }
 
 async function handleSearch() {
-	if (isLoading.value || !isSearchable.value) {
+	if (isLoading.value) {
 		return;
 	}
 
