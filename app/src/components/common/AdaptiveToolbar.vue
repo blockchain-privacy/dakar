@@ -168,7 +168,7 @@ const props = defineProps({
 	showSearchField: {type: Boolean, required: false, default: true},
 	selectedItemCount: {type: Number, required: false, default: 0},
 	deleteEnabled: {type: Boolean, required: false, default: true},
-	shortestPathEnabled: {type: Boolean, required: false, default: true},
+	shortestPathEnabled: {type: Boolean, required: false, default: false},
 	addEntityEnabled: {type: Boolean, required: false, default: true},
 	oneLine: {type: Boolean, required: false, default: false},
 	showDeleteButton: {type: Boolean, required: false, default: true},
