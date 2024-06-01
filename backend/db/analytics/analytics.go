@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"strconv"
 	"time"
 )
@@ -661,7 +663,7 @@ func GetAllFMIClusters(c external.Database) (uids []string, err error) {
 // False: Only inputs are traversed
 // withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
 func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, txTo string,
-	withPrivacyTransactions bool, anyDirection bool) (txs []db.FrontendTransaction, err error) {
+	withPrivacyTransactions bool, anyDirection bool) ([]db.FrontendTransaction, error) {
 	/* Full query
 	query Q($txFrom:string, $txTo:string){
 					f as var(func: eq(txhash,$txFrom))
@@ -715,12 +717,11 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
 	if err != nil {
-		if !errors.Is(err, context.DeadlineExceeded) {
-			err = cliutil.NewStackError(err)
-			return
+		if isDeadlineExceeded(err) {
+			return nil, nil
 		}
-		err = nil
-		return
+
+		return nil, cliutil.NewStackError(err)
 	}
 
 	// json struct
@@ -729,11 +730,17 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
+		return nil, cliutil.NewStackError(err)
 	}
 
-	txs = r.Transactions
+	return r.Transactions, nil
+}
 
-	return
+// check if deadline was execeded natively or via grpc
+func isDeadlineExceeded(err error) bool {
+	if !errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	code := status.Code(err)
+	return code == codes.DeadlineExceeded
 }
