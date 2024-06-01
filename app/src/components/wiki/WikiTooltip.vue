@@ -37,7 +37,7 @@
           class="ml-auto"
         >
           <v-icon>{{ mdiOpenInNew }}</v-icon>
-          Show full Page
+          Show Page
         </v-btn>
       </v-card-actions>
     </v-card>
