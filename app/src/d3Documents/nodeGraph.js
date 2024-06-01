@@ -1016,25 +1016,26 @@ export default class NodeGraph {
 			})
 			.each(elide);
 
-		let nodeSubtitle = textContainer.select('.nodeSubtitle');
-		if (nodeSubtitle.empty()) {
-			nodeSubtitle = textContainer.append('text').classed('nodeSubtitle', true);
-		}
-
-		nodeSubtitle
-			.attr('font-size', fontSize)
-			.attr('text-anchor', 'middle')
-			.style('cursor', 'default')
-			.attr('fill', 'currentColor')
-			.attr('y', this.#nodeRadius + textHeight * 2 + textAreaMargin)
-			.text(d => {
-				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyTypeLabel) {
-					return d.privacyTypeLabel;
-				}
-
-				return '';
-			})
-			.each(elide);
+		// Privacy type subtitle
+		// let nodeSubtitle = textContainer.select('.nodeSubtitle');
+		// if (nodeSubtitle.empty()) {
+		// 	nodeSubtitle = textContainer.append('text').classed('nodeSubtitle', true);
+		// }
+		//
+		// nodeSubtitle
+		// 	.attr('font-size', fontSize)
+		// 	.attr('text-anchor', 'middle')
+		// 	.style('cursor', 'default')
+		// 	.attr('fill', 'currentColor')
+		// 	.attr('y', this.#nodeRadius + textHeight * 2 + textAreaMargin)
+		// 	.text(d => {
+		// 		if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyTypeLabel) {
+		// 			return d.privacyTypeLabel;
+		// 		}
+		//
+		// 		return '';
+		// 	})
+		// 	.each(elide);
 
 		// Heuristic properties
 		// Cluster count
