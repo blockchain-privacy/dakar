@@ -1,0 +1,20 @@
+[
+  {
+    "namespace": "Service",
+    "object": "dakar_identity",
+    "relation": "callers",
+    "subject_id": "admin"
+  },
+  {
+    "namespace": "Service",
+    "object": "dakar_protected",
+    "relation": "callers",
+    "subject_id": "admin"
+  },
+  {
+    "namespace": "Service",
+    "object": "dakar_protected",
+    "relation": "callers",
+    "subject_id": "privileged"
+  }
+]
