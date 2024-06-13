@@ -1433,7 +1433,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 
 	// check if all roles have valid values
 	for _, ur := range frontEndUser.Roles {
-		if _, err := getRoleByName(ur); err != nil {
+		if !isRoleValid(ur) {
 			status = http.StatusBadRequest
 			return
 		}
@@ -1447,6 +1447,26 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	}
 
 	return
+}
+
+// extractDgraphUID tries to extract dgraph UID from the given metadata
+func extractDgraphUID(metadataPublic any) (string, error) {
+	metadata, ok := metadataPublic.(map[string]any)
+	if !ok {
+		return "", cliutil.NewStackErrorStr("identity has no admin metadata")
+	}
+
+	dgraphUIDInterface, ok := metadata["dgraph_uid"]
+	if !ok {
+		return "", cliutil.NewStackErrorStr("identity has no field 'dgraph_uid'")
+	}
+
+	dgraphUID, ok := dgraphUIDInterface.(string)
+	if !ok {
+		return "", cliutil.NewStackErrorStr("dgraph UID could not be cast from interface")
+	}
+
+	return dgraphUID, nil
 }
 
 // getDeleteIdentityReply deletes the given user
@@ -1608,10 +1628,10 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	if len(modRequest.Roles) > 0 {
 		// check if all roles exists
 		for _, role := range modRequest.Roles {
-			if _, err := getRoleByName(role); err != nil {
+			if !isRoleValid(role) {
 				reply.Msg = msgInvalidRole
 				status = http.StatusBadRequest
-				warn(err, "modification_request", modRequest)
+				warn(cliutil.NewStackErrorStr(msgInvalidRole), "modification_request", modRequest)
 				return
 			}
 		}

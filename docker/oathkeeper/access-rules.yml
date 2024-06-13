@@ -2,8 +2,9 @@
   upstream:
     preserve_host: true
     url: "http://wikiapi:4567"
+    strip_path: "/wiki"
   match:
-    url: "http://localhost:4455/<**>"
+    url: "http://localhost:4455/wiki/<.*>"
     methods:
       - GET
   authenticators:
@@ -11,7 +12,94 @@
   authorizer:
     handler: allow
   mutators:
-    - handler: id_token
+    - handler: noop
+  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+    - handler: json
+      config:
+        verbose: false
+- id: "ory:public_dakar"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8081"
+  match:
+    url: "http://localhost:4455/api/v1/blockchain/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PATCH
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+    - handler: json
+      config:
+        verbose: true
+- id: "ory:kratos_protected_identities"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8081"
+  match:
+    url: "http://localhost:4455/api/v1/identities/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PATCH
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_identity"
+        }
+  mutators:
+    - handler: header
+  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+    - handler: json
+      config:
+        verbose: false
+- id: "ory:kratos_protected_dakar"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8081"
+  match:
+    url: "http://localhost:4455/api/v1/<(?!blockchain|identities).*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PATCH
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_protected"
+        }
+  mutators:
+    - handler: header
   errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
     - handler: json
       config:
