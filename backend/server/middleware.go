@@ -33,14 +33,14 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 func (s *Server) authorization() adapter {
 	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var kratosID = r.Header.Get("x-user")
+			kratosID := r.Header.Get("x-user")
 			if kratosID == "" {
 				sendUnauthorizedMessage(w)
 				warn(cliutil.NewStackErrorStr("kratos ID not set"))
 				return
 			}
 
-			var dgraphUID = r.Header.Get("x-dgraph_uid")
+			dgraphUID := r.Header.Get("x-dgraph_uid")
 			if dgraphUID == "" {
 				sendUnauthorizedMessage(w)
 				warn(cliutil.NewStackErrorStr("dgraph UID not set"))
