@@ -33,6 +33,9 @@ import (
 	"strconv"
 )
 
+// roleMap holds all possible role values
+var roleMap = map[string]bool{"admin": true, "privileged": true}
+
 // getSearchReply searches for the given query in the database
 func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	reply := searchReply{
@@ -1433,7 +1436,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 
 	// check if all roles have valid values
 	for _, ur := range frontEndUser.Roles {
-		if !isRoleValid(ur) {
+		if !roleMap[ur] {
 			status = http.StatusBadRequest
 			return
 		}
@@ -1628,7 +1631,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	if len(modRequest.Roles) > 0 {
 		// check if all roles exists
 		for _, role := range modRequest.Roles {
-			if !isRoleValid(role) {
+			if !roleMap[role] {
 				reply.Msg = msgInvalidRole
 				status = http.StatusBadRequest
 				warn(cliutil.NewStackErrorStr(msgInvalidRole), "modification_request", modRequest)
