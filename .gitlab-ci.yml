@@ -89,8 +89,8 @@ swaggo:
   script:
     - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download/v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_amd64.tar.gz
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_amd64.tar.gz
-    - make swagger-fmt
-    - make swagger-create
+    - make openapi-fmt
+    - make openapi-spec
   artifacts:
     paths:
       - backend/openapi
