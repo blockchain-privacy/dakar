@@ -27,7 +27,6 @@
       - GET
       - POST
       - DELETE
-      - PATCH
       - PUT
       - HEAD
   authenticators:
@@ -50,7 +49,6 @@
       - GET
       - POST
       - DELETE
-      - PATCH
       - PUT
       - HEAD
   authenticators:
@@ -82,7 +80,6 @@
       - GET
       - POST
       - DELETE
-      - PATCH
       - PUT
       - HEAD
   authenticators:
