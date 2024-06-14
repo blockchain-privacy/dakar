@@ -79,5 +79,5 @@ mutators:
     enabled: true
     config:
       headers:
-        X-User: "{{ print .Subject }}"
-        X-Dgraph_UID: "{{ print .Extra.identity.metadata_public.dgraph_uid }}"
+        X-user: "{{ print .Subject }}"
+        X-dakar-user: "{{ print .Extra.identity.metadata_public.dgraph_uid }}"

@@ -40,8 +40,8 @@ func (s *Server) authorization() adapter {
 				return
 			}
 
-			dgraphUID := r.Header.Get("x-dgraph_uid")
-			if dgraphUID == "" {
+			dakarUser := r.Header.Get("x-dakar-user")
+			if dakarUser == "" {
 				sendUnauthorizedMessage(w)
 				warn(cliutil.NewStackErrorStr("dgraph UID not set"))
 				return
@@ -50,7 +50,7 @@ func (s *Server) authorization() adapter {
 			// call next handler and add to the request context the identity information
 			h.ServeHTTP(w,
 				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{
-					ID:       dgraphUID,
+					ID:       dakarUser,
 					KratosID: kratosID,
 				})))
 		})
