@@ -494,11 +494,11 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Tags			heuristic
 //	@Produce		json
 //	@Accept			json
-//	@Param			heuristic		body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
-//	@Success		200				{object}	server.heuristicExecutionReply
-//	@Failure		400				{object}	server.heuristicExecutionReply
-//	@Failure		401				{object}	server.heuristicExecutionReply
-//	@Failure		500				{object}	server.heuristicExecutionReply
+//	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
+//	@Success		200			{object}	server.heuristicExecutionReply
+//	@Failure		400			{object}	server.heuristicExecutionReply
+//	@Failure		401			{object}	server.heuristicExecutionReply
+//	@Failure		500			{object}	server.heuristicExecutionReply
 //	@Router			/executeHeuristics/ [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
