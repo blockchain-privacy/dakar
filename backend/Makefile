@@ -35,7 +35,7 @@ swagger-create: ## Creates openapi docs
 	mkdir -p openapi
 	./swag init --pd -d cmd/crawler,server -o openapi
 ifndef CI
-	(cd ../docker && sudo docker-compose -f docker-compose-openapi.yml up && sudo docker-compose -f docker-compose-openapi.yml rm -fsv)
+	(cd ../docker && sudo docker compose -f docker-compose-openapi.yml up && sudo docker compose -f docker-compose-openapi.yml rm -fsv)
 	(cd openapi/client/typescript-fetch && yarn npm publish)
 endif
 
