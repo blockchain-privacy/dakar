@@ -241,7 +241,7 @@ function setErrorMessage(msg) {
 
 async function deleteIdentity() {
 	try {
-		await dakar.identity.identitiesDelete();
+		await dakar.identity.selfDelete();
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;

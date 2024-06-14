@@ -494,11 +494,11 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Tags			heuristic
 //	@Produce		json
 //	@Accept			json
-//	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
-//	@Success		200			{object}	server.heuristicExecutionReply
-//	@Failure		400			{object}	server.heuristicExecutionReply
-//	@Failure		401			{object}	server.heuristicExecutionReply
-//	@Failure		500			{object}	server.heuristicExecutionReply
+//	@Param			heuristic		body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
+//	@Success		200				{object}	server.heuristicExecutionReply
+//	@Failure		400				{object}	server.heuristicExecutionReply
+//	@Failure		401				{object}	server.heuristicExecutionReply
+//	@Failure		500				{object}	server.heuristicExecutionReply
 //	@Router			/executeHeuristics/ [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -510,7 +510,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 
 // Create Identity godoc
 //
-//	@Summary	Create a new identity. This is an admin endpoint.
+//	@Summary	Create a new identity.
 //	@Tags		identity
 //	@Produce	json
 //	@Accept		json
@@ -527,9 +527,9 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 	})
 }
 
-// Admin Delete Identity godoc
+// Delete Arbitrary Identity godoc
 //
-//	@Summary	Delete an identity. This is an admin endpoint.
+//	@Summary	Delete an arbitrary kratos identity and dgraph user.
 //	@Tags		identity
 //	@Produce	json
 //	@Param		uid	path		string	true	"Identity UID"
@@ -548,14 +548,14 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 
 // Delete Identity godoc
 //
-//	@Summary	Delete the identity of the calling user
+//	@Summary	Delete the kratos identity and dgraph user of the caller
 //	@Tags		identity
 //	@Produce	json
 //	@Success	200	{object}	server.msgReply
 //	@Failure	400	{object}	server.msgReply
 //	@Failure	401	{object}	server.msgReply
 //	@Failure	500	{object}	server.msgReply
-//	@Router		/identities/ [delete]
+//	@Router		/self/ [delete]
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, false)
@@ -566,7 +566,7 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 
 // Modify Identity godoc
 //
-//	@Summary	Modify an arbitrary identity. This is an admin endpoint.
+//	@Summary	Modify an arbitrary identity.
 //	@Tags		identity
 //	@Produce	json
 //	@Accept		json
@@ -585,7 +585,7 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 
 // Get Identities godoc
 //
-//	@Summary	Get all identities. This is an admin endpoint.
+//	@Summary	Get all identities.
 //	@Tags		identity
 //	@Produce	json
 //	@Success	200	{object}	server.identitiesReply

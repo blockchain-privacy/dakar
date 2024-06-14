@@ -1524,7 +1524,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	}
 
 	if err := dbwork.DeleteAllWorkspaces(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + " heuristics"
+		reply.Msg = "could not delete users " + uid + " workspaces"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
