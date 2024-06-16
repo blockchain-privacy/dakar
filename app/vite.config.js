@@ -47,9 +47,11 @@ export default defineConfig({
 				target: 'http://localhost:4455',
 				changeOrigin: true,
 			},
-			'/wiki': {
+			'/wikiapi': {
 				target: 'http://localhost:4455',
 				changeOrigin: true,
+				// Replace '/wikiapi' prefix with '/wiki'
+				rewrite: path => path.replace(/^\/wikiapi/, '/wiki'),
 			},
 			'/auth': {
 				target: 'http://localhost:4433',
