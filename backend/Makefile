@@ -35,8 +35,7 @@ openapi-fmt: ## Formats swagger annotations
 	./swag fmt -d cmd/crawler,server
 
 openapi-spec: ## Creates openapi spec
-	mkdir -p openapi
-	./swag init --pd -d cmd/crawler,server -o openapi
+	mkdir -p openapi && ./swag init --pd -d cmd/crawler,server -o openapi
 
 openapi-client: ## Creates a javascript client based on the openapi spec
 	(cd ../docker && sudo docker compose -f docker-compose-openapi.yml up && sudo docker compose -f docker-compose-openapi.yml rm -fsv)
