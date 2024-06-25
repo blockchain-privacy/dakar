@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
+	"github.com/qrest/gomisc/config"
 	"github.com/qrest/gomisc/serror"
 	"io"
 	"log"
@@ -206,14 +207,14 @@ func main() {
 	const defaultConfigName = "config.yml"
 	var filePath string
 	var createConfigFile bool
-	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
+	config.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
 
 	////// CONFIGURATION FILE HANDLING //////
 
 	if createConfigFile {
 		fmt.Println("Generating configuration file ...")
-		err := cli.WriteConfig(defaultConfigName, defaultConfig)
+		err := config.WriteConfig(defaultConfigName, defaultConfig)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -223,13 +224,13 @@ func main() {
 		return
 	}
 
-	var config Config
-	if err := cli.ReadConfig(filePath, &config); err != nil {
+	var newConfig Config
+	if err := config.ReadConfig(filePath, &newConfig); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	if moduleErr := config.Modules.HTTP.check(); moduleErr != nil {
+	if moduleErr := newConfig.Modules.HTTP.check(); moduleErr != nil {
 		fmt.Println(moduleErr)
 		return
 	}
@@ -237,40 +238,40 @@ func main() {
 	////// PRINT VERSION //////
 
 	if commands.ShowVersion {
-		printVersion(config.BlockchainMode)
+		printVersion(newConfig.BlockchainMode)
 		return
 	}
 
 	////// SETUP //////
 
 	// setup Logging
-	f, err := cli.GetLogfile(config.Logfile)
+	f, err := config.GetLogfile(newConfig.Logfile)
 	if err == nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-	} else if len(config.Logfile) > 0 {
-		fmt.Println("Could not create logfile", config.Logfile)
+	} else if len(newConfig.Logfile) > 0 {
+		fmt.Println("Could not create logfile", newConfig.Logfile)
 		return
 	}
 
 	initAllLoggers(f)
 
-	processorConfig, analyserConfig, err := selectConfig(config.BlockchainMode)
+	processorConfig, analyserConfig, err := selectConfig(newConfig.BlockchainMode)
 	if err != nil {
-		fmt.Printf("invalid blockchain mode: '%s', valid values are 'Dash' and 'Bitcoin'\n", config.BlockchainMode)
+		fmt.Printf("invalid blockchain mode: '%s', valid values are 'Dash' and 'Bitcoin'\n", newConfig.BlockchainMode)
 		return
 	}
 
-	disableModules(analyserConfig, &config)
+	disableModules(analyserConfig, &newConfig)
 
 	info("Blockchain mode: " + processorConfig.BlockchainName)
 
 	////// CONNECT TO DATABASE //////
 
-	endpoint, err := cli.BuildEndpoint(config.Database.Host, config.Database.Port)
+	endpoint, err := cli.BuildEndpoint(newConfig.Database.Host, newConfig.Database.Port)
 	if err != nil {
 		warn(err)
 		return
@@ -295,15 +296,15 @@ func main() {
 	}
 
 	if commands.ResetDB {
-		if !resetDatabaseDialog(graphDB, config.BlockchainMode) {
+		if !resetDatabaseDialog(graphDB, newConfig.BlockchainMode) {
 			return
 		}
 	}
 
 	// exit if no module is active (excluding the metrics module)
-	if !config.Modules.Classifier && !config.Modules.Crawler.Active &&
-		!config.Modules.HMI && !config.Modules.FMI.Active &&
-		!config.Modules.HTTP.Active {
+	if !newConfig.Modules.Classifier && !newConfig.Modules.Crawler.Active &&
+		!newConfig.Modules.HMI && !newConfig.Modules.FMI.Active &&
+		!newConfig.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
 	}
@@ -317,7 +318,7 @@ func main() {
 		return
 	}
 
-	if !checkMeta(graphDB, config.BlockchainMode) {
+	if !checkMeta(graphDB, newConfig.BlockchainMode) {
 		return
 	}
 
@@ -336,9 +337,9 @@ func main() {
 	var auth *ory.APIClient
 	var adminAuth *ory.APIClient
 
-	if config.Modules.HTTP.Active {
-		auth, adminAuth, err = getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
-			config.Modules.HTTP.KratosAdminEndpoint)
+	if newConfig.Modules.HTTP.Active {
+		auth, adminAuth, err = getKratosClient(newConfig.Modules.HTTP.KratosPublicEndpoint,
+			newConfig.Modules.HTTP.KratosAdminEndpoint)
 		if err != nil {
 			warn(err)
 			return
@@ -354,8 +355,8 @@ func main() {
 
 	// Set up the RPC connection, only if needed
 	var client external.RPCClient
-	if config.Modules.HTTP.Active || config.Modules.Crawler.Active {
-		client, err = connectBlockchainRPCClient(config.RPC)
+	if newConfig.Modules.HTTP.Active || newConfig.Modules.Crawler.Active {
+		client, err = connectBlockchainRPCClient(newConfig.RPC)
 		if err != nil {
 			warn(err)
 			return
@@ -380,7 +381,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// activate crawler
-	if config.Modules.Crawler.Active {
+	if newConfig.Modules.Crawler.Active {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -389,7 +390,7 @@ func main() {
 			}()
 
 			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
-				appContext, graphDB, client, config.Modules.Crawler.InitialCacheSize,
+				appContext, graphDB, client, newConfig.Modules.Crawler.InitialCacheSize,
 				processorConfig)); processorErr != nil {
 				warn(processorErr)
 			}
@@ -404,7 +405,7 @@ func main() {
 	}
 	var classifierStarted bool
 
-	if config.Modules.HTTP.Active && config.Modules.Heuristics {
+	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
@@ -413,7 +414,7 @@ func main() {
 				return
 			}
 
-			if config.Modules.Classifier {
+			if newConfig.Modules.Classifier {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
@@ -443,7 +444,7 @@ func main() {
 	}
 
 	// activate classifier
-	if config.Modules.Classifier && !classifierStarted {
+	if newConfig.Modules.Classifier && !classifierStarted {
 		// in-memory graphs are not loaded -> start classifier
 		wg.Add(1)
 		go func() {
@@ -460,7 +461,7 @@ func main() {
 	}
 
 	// activate HMI clustering
-	if config.Modules.HMI {
+	if newConfig.Modules.HMI {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -476,7 +477,7 @@ func main() {
 	}
 
 	// activate FMI clustering
-	if config.Modules.FMI.Active {
+	if newConfig.Modules.FMI.Active {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -485,7 +486,7 @@ func main() {
 			}()
 
 			if clusteringErr := blockiterator.StartIteration(clustering.NewFlatMultiInput(
-				appContext, graphDB, config.Modules.FMI.MaxBlocks)); clusteringErr != nil {
+				appContext, graphDB, newConfig.Modules.FMI.MaxBlocks)); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -493,7 +494,7 @@ func main() {
 
 	// start api endpoint
 	var apiHTTPServer *http.Server
-	if config.Modules.HTTP.Active {
+	if newConfig.Modules.HTTP.Active {
 		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, w, graphWrapper)
 		if serverErr != nil {
 			warn(serverErr)
@@ -501,22 +502,22 @@ func main() {
 
 		wg.Add(1)
 
-		apiHTTPServer = apiServer.StartServer(&wg, config.Modules.HTTP.Port)
+		apiHTTPServer = apiServer.StartServer(&wg, newConfig.Modules.HTTP.Port)
 	}
 
 	// start metrics endpoint
 	var metricsHTTPServer *http.Server
-	if config.Modules.Metrics.Active {
+	if newConfig.Modules.Metrics.Active {
 		wg.Add(1)
-		metricsHTTPServer = server.StartMetrics(&wg, config.Modules.Metrics.Port)
+		metricsHTTPServer = server.StartMetrics(&wg, newConfig.Modules.Metrics.Port)
 	}
 
 	////// HANDLE SHUTDOWN //////
 
-	var crawlerStopped = !config.Modules.Crawler.Active
-	var classifierStopped = !config.Modules.Classifier
-	var clusteringHMIStopped = !config.Modules.HMI
-	var clusteringFMIStopped = !config.Modules.FMI.Active
+	var crawlerStopped = !newConfig.Modules.Crawler.Active
+	var classifierStopped = !newConfig.Modules.Classifier
+	var clusteringHMIStopped = !newConfig.Modules.HMI
+	var clusteringFMIStopped = !newConfig.Modules.FMI.Active
 	var interrupted bool
 
 	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped)) {
@@ -541,7 +542,7 @@ func main() {
 		}
 	}
 
-	if config.Modules.HTTP.Active && crawlerStopped && classifierStopped &&
+	if newConfig.Modules.HTTP.Active && crawlerStopped && classifierStopped &&
 		clusteringHMIStopped && clusteringFMIStopped {
 		// if the crawler, the classifier and clustering stopped working on their own accord,
 		// the server is still active at this point

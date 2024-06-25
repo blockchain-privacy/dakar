@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
+	"github.com/qrest/gomisc/config"
 	"io"
 	"log"
 	"net/http"
@@ -61,7 +62,7 @@ func main() {
 	defaultConfigName := "config.yml"
 	var filePath string
 	var createConfigFile bool
-	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
+	config.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
 
 	////// CONFIGURATION FILE HANDLING //////
@@ -69,7 +70,7 @@ func main() {
 	if createConfigFile {
 		fmt.Println("Generating configuration file ...")
 
-		err := cli.WriteConfig(defaultConfigName, defaultConfig)
+		err := config.WriteConfig(defaultConfigName, defaultConfig)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -79,15 +80,15 @@ func main() {
 		return
 	}
 
-	var config Config
-	if err := cli.ReadConfig(filePath, &config); err != nil {
+	var newConfig Config
+	if err := config.ReadConfig(filePath, &newConfig); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// setup Logging
-	if len(config.Logfile) > 0 {
-		if f, err := cli.GetLogfile(config.Logfile); err == nil {
+	if len(newConfig.Logfile) > 0 {
+		if f, err := config.GetLogfile(newConfig.Logfile); err == nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.SetOutput(io.MultiWriter(os.Stdout, f))
 			defer func() {
@@ -100,7 +101,7 @@ func main() {
 
 	initLogger()
 
-	endpoint, err := cli.BuildEndpoint(config.Host, config.Port)
+	endpoint, err := cli.BuildEndpoint(newConfig.Host, newConfig.Port)
 	if err != nil {
 		info(err)
 		return
@@ -134,7 +135,7 @@ func main() {
 		return
 	}
 
-	if config.CreateMassUsers {
+	if newConfig.CreateMassUsers {
 		for i := range 4 {
 			email := "workshop" + strconv.Itoa(i) + "@example.null"
 			pw := "cryptoworkshop" + strconv.Itoa(i)
