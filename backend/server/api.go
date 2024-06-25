@@ -927,13 +927,12 @@ func (s *Server) setupHandlers() {
 
 	// Common data
 	s.handler.Handle(buildPattern(http.MethodGet, routeTransaction, "hash"),
-		mw.Adapt(s.handlerTransaction(), s.useCache(time.Second*0), mw.MaxBody5MiB()))
-	// setting block cache time to 10 Minutes because blocks at
-	// the tip get updated via adding the 'next block' reference
+		// transaction data never changes so set cache time to infinte
+		mw.Adapt(s.handlerTransaction(), s.useCache(time.Duration(0)), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodGet, routeBlock, "hash"),
-		mw.Adapt(s.handlerBlock(), s.useCache(time.Second*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerBlock(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodGet, routeAddress, "hash"),
-		mw.Adapt(s.handlerAddress(), s.useCache(time.Second*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerAddress(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
 		mw.Adapt(s.handlerAddressOutputRange(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
 
