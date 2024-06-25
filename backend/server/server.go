@@ -119,7 +119,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 // StartMetrics creates a metrics server on the given port
 func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	handler := http.NewServeMux()
-	handler.Handle(getRouteMetrics(), mw.Adapt(promhttp.Handler(), mw.MaxBody5MiB()))
+	handler.Handle(http.MethodGet+" "+routeMetrics, mw.Adapt(promhttp.Handler(), mw.MaxBody5MiB()))
 
 	// create server
 	srv := &http.Server{
