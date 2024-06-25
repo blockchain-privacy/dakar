@@ -921,119 +921,94 @@ func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
-	s.handler.Handle(getRouteSearch(),
-		adapt(s.handlerSearch(), getRouteSearch(), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(getRouteSearch(), adapt(s.handlerSearch(), s.useCache(time.Minute*10), maxBody()))
 
 	// Common data
-	s.handler.Handle(getRouteTransaction(),
-		adapt(s.handlerTransaction(), getRouteTransaction(), s.useCache(time.Second*0), maxBody()))
+	s.handler.Handle(getRouteTransaction(), adapt(s.handlerTransaction(), s.useCache(time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
-	s.handler.Handle(getRouteBlock(),
-		adapt(s.handlerBlock(), getRouteBlock(), s.useCache(time.Second*10), maxBody()))
-	s.handler.Handle(getRouteAddress(),
-		adapt(s.handlerAddress(), getRouteAddress(), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(getRouteBlock(), adapt(s.handlerBlock(), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(getRouteAddress(), adapt(s.handlerAddress(), s.useCache(time.Second*10), maxBody()))
 	s.handler.Handle(getRouteAddressOutputRange(),
-		adapt(s.handlerAddressOutputRange(), getRouteAddressOutputRange(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerAddressOutputRange(), s.useCache(time.Minute*10), maxBody()))
 
 	// Meta
-	s.handler.Handle(getRouteMeta(),
-		adapt(s.handlerMeta(), getRouteMeta(), s.authorization(), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(getRouteMeta(), adapt(s.handlerMeta(), s.authorization(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
-	s.handler.Handle(getRouteHeuristicByWorkID(),
-		adapt(s.handlerHeuristicByWorkID(), getRouteHeuristicByWorkID(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicDetails(),
-		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicsExecution(),
-		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicReport(),
-		adapt(s.handlerHeuristicsReport(), getRouteHeuristicReport(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteHeuristicByWorkID(), adapt(s.handlerHeuristicByWorkID(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteHeuristicDetails(), adapt(s.handlerHeuristicsDetails(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteHeuristicsExecution(), adapt(s.handlerHeuristicsExecution(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteHeuristicReport(), adapt(s.handlerHeuristicsReport(), s.authorization(), maxBody()))
 
 	// Analytics
 	s.handler.Handle(getRouteShortestTransactionPath(),
-		adapt(s.handlerShortestTransactionPath(), getRouteShortestTransactionPath(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerShortestTransactionPath(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(getRouteConnectionLookup(),
-		adapt(s.handlerConnectionLookup(), getRouteConnectionLookup(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerConnectionLookup(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(getRouteMixingActivity(),
-		adapt(s.handlerMixingActivity(), getRouteMixingActivity(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerMixingActivity(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(getRouteSpendingFingerprint(),
-		adapt(s.handlerSpendingFingerprint(), getRouteSpendingFingerprint(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerSpendingFingerprint(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
-	s.handler.Handle(getRouteClusterLookup(),
-		adapt(s.handlerClusterLookup(), getRouteClusterLookup(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHMILookup(),
-		adapt(s.handlerHMILookup(), getRouteHMILookup(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteClusterReport(),
-		adapt(s.handlerClusterReport(), getRouteClusterReport(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAddCluster(),
-		adapt(s.handlerAddCluster(), getRouteAddCluster(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteCluster(),
-		adapt(s.handlerDeleteCluster(), getRouteDeleteCluster(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteAllClusters(),
-		adapt(s.handlerDeleteAllClusters(), getRouteDeleteAllClusters(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteClusterOverview(),
-		adapt(s.handlerClusterOverview(), getRouteClusterOverview(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteClusterLookup(), adapt(s.handlerClusterLookup(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteHMILookup(), adapt(s.handlerHMILookup(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteClusterReport(), adapt(s.handlerClusterReport(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteAddCluster(), adapt(s.handlerAddCluster(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteDeleteCluster(), adapt(s.handlerDeleteCluster(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteDeleteAllClusters(), adapt(s.handlerDeleteAllClusters(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteClusterOverview(), adapt(s.handlerClusterOverview(), s.authorization(), maxBody()))
 
 	// Attributions
 	s.handler.Handle(getRouteAddPrivateAttribution(),
-		adapt(s.handlerAddPrivateAttribution(), getRouteAddPrivateAttribution(), s.authorization(), maxBody()))
+		adapt(s.handlerAddPrivateAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddPublicAttribution(),
-		adapt(s.handlerAddPublicAttribution(), getRouteAddPublicAttribution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAttributionList(),
-		adapt(s.handlerAttributionList(), getRouteAttributionList(), s.authorization(), maxBody()))
+		adapt(s.handlerAddPublicAttribution(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteAttributionList(), adapt(s.handlerAttributionList(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeletePrivateAttribution(),
-		adapt(s.handlerDeletePrivateAttribution(), getRouteDeletePrivateAttribution(), s.authorization(), maxBody()))
+		adapt(s.handlerDeletePrivateAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeletePublicAttribution(),
-		adapt(s.handlerDeletePublicAttribution(), getRouteDeletePublicAttribution(), s.authorization(), maxBody()))
+		adapt(s.handlerDeletePublicAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllPrivateAttributions(),
-		adapt(s.handlerDeleteAllPrivateAttributions(), getRouteDeleteAllPrivateAttributions(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteSearchAttributions(),
-		adapt(s.handlerSearchAttributions(), getRouteSearchAttributions(), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAllPrivateAttributions(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteSearchAttributions(), adapt(s.handlerSearchAttributions(), s.authorization(), maxBody()))
 
 	// Address Exclusions
 	s.handler.Handle(getRouteAddAddressExclusions(),
-		adapt(s.handlerAddAddressExclusions(), getRouteAddAddressExclusions(), s.authorization(), maxBody()))
+		adapt(s.handlerAddAddressExclusions(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAddressExclusion(),
-		adapt(s.handlerDeleteAddressExclusion(), getRouteDeleteAddressExclusion(), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAddressExclusion(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllAddressExclusions(),
-		adapt(s.handlerDeleteAllAddressExclusions(), getRouteDeleteAllAddressExclusions(), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAllAddressExclusions(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddressExclusionList(),
-		adapt(s.handlerAddressExclusionList(), getRouteAddressExclusionList(), s.authorization(), maxBody()))
+		adapt(s.handlerAddressExclusionList(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddressExclusionStatus(),
-		adapt(s.handlerGetAddressExclusionStatus(), getRouteAddressExclusionStatus(), s.authorization(), maxBody()))
+		adapt(s.handlerGetAddressExclusionStatus(), s.authorization(), maxBody()))
 
 	// User
-	s.handler.Handle(getRouteGetIdentities(),
-		adapt(s.handlerGetIdentities(), getRouteGetIdentities(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteCreateIdentity(),
-		adapt(s.handlerCreateIdentity(), getRouteCreateIdentity(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAdminDeleteIdentity(),
-		adapt(s.handlerAdminDeleteIdentity(), getRouteAdminDeleteIdentity(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteIdentity(),
-		adapt(s.handlerDeleteIdentity(), getRouteDeleteIdentity(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteModifyIdentity(),
-		adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteGetIdentities(), adapt(s.handlerGetIdentities(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteAdminDeleteIdentity(), adapt(s.handlerAdminDeleteIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteModifyIdentity(), adapt(s.handlerModifyIdentity(), s.authorization(), maxBody()))
 
 	// Workspace
-	s.handler.Handle(getRouteRenameWorkspace(),
-		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteRenameWorkspace(), adapt(s.handlerRenameWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteWorkspaceAddNodes(),
-		adapt(s.handlerAddWorkspaceNodes(), getRouteWorkspaceAddNodes(), s.authorization(), maxBodyConfig(50)))
+		adapt(s.handlerAddWorkspaceNodes(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaceAddNote(),
-		adapt(s.handlerAddWorkspaceNote(), getRouteWorkspaceAddNote(), s.authorization(), maxBodyConfig(50)))
+		adapt(s.handlerAddWorkspaceNote(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaceDeleteNode(),
-		adapt(s.handlerDeleteWorkspaceNode(), getRouteWorkspaceDeleteNode(), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(), s.authorization()))
-	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(), s.authorization()))
-	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(), s.authorization()))
+		adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), s.authorization()))
+	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), s.authorization()))
+	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), s.authorization()))
 	s.handler.Handle(getRouteUpdateWorkspace(),
-		adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteDeleteWorkspace(),
-		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
+		adapt(s.handlerUpdateWorkspace(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteDeleteWorkspace(), adapt(s.handlerDeleteWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllWorkspaces(),
-		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteWorkspacesConnection(),
-		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerWorkspaceConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 }

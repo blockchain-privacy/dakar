@@ -1,9 +1,9 @@
 package server
 
 import (
-	"backend/cmd/cliutil"
 	"bytes"
 	"context"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,11 +14,11 @@ type contextKeyUser int
 
 const middlewareContextUser contextKeyUser = iota
 
-type adapter func(http.Handler, string) http.Handler
+type adapter func(http.Handler) http.Handler
 
-func adapt(h http.Handler, route string, adapters ...adapter) http.Handler {
+func adapt(h http.Handler, adapters ...adapter) http.Handler {
 	for i := len(adapters) - 1; i >= 0; i-- {
-		h = adapters[i](h, route)
+		h = adapters[i](h)
 	}
 	return h
 }
@@ -31,19 +31,19 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 }
 
 func (s *Server) authorization() adapter {
-	return func(h http.Handler, _ string) http.Handler {
+	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			kratosID := r.Header.Get("x-user")
 			if kratosID == "" {
 				sendUnauthorizedMessage(w)
-				warn(cliutil.NewStackErrorStr("kratos ID not set"))
+				warn(serror.NewStackErrorStr("kratos ID not set"))
 				return
 			}
 
 			dakarUser := r.Header.Get("x-dakar-user")
 			if dakarUser == "" {
 				sendUnauthorizedMessage(w)
-				warn(cliutil.NewStackErrorStr("dgraph UID not set"))
+				warn(serror.NewStackErrorStr("dgraph UID not set"))
 				return
 			}
 
@@ -63,13 +63,13 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 		header     http.Header
 		statusCode int
 	}
-	return func(h http.Handler, _ string) http.Handler {
+	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// extract body
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "an error occurred", http.StatusInternalServerError)
-				warn(cliutil.NewStackError(err))
+				warn(serror.NewStackError(err))
 				return
 			}
 			// reset body, so it can be read by the next handler
@@ -115,7 +115,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			w.WriteHeader(response.statusCode)
 
 			if _, err = w.Write(response.buffer); err != nil {
-				warn(cliutil.NewStackError(err))
+				warn(serror.NewStackError(err))
 			}
 		})
 	}
@@ -123,7 +123,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 
 // maxBody limits the amount of bytes which can be read from the request body to maxBodySize.
 func maxBody() adapter {
-	return func(h http.Handler, _ string) http.Handler {
+	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 			h.ServeHTTP(w, r)
@@ -133,7 +133,7 @@ func maxBody() adapter {
 
 // maxBodyConfig limits the amount of bytes which can be read from the request body to size (in number of MiB).
 func maxBodyConfig(size int64) adapter {
-	return func(h http.Handler, _ string) http.Handler {
+	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*size)
 			h.ServeHTTP(w, r)

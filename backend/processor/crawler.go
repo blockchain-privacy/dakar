@@ -2,7 +2,6 @@ package processor
 
 import (
 	"backend/blockiterator"
-	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
 	"backend/external"
 	"backend/jsonrpc"
@@ -10,6 +9,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/qrest/gomisc/serror"
 )
 
 // Crawler implements BlockIterator which processes the transactions of each traversed block
@@ -66,7 +66,7 @@ func (c *Crawler) Props() blockiterator.Properties {
 // IncrementState increments the state one block
 func (c *Crawler) IncrementState() error {
 	if c.currentBlock == nil {
-		return cliutil.NewStackErrorStr("currentBlock is nil")
+		return serror.NewStackErrorStr("currentBlock is nil")
 	}
 
 	return c.state.increment(c.currentBlock.NextHash)
@@ -117,7 +117,7 @@ func (c *Crawler) NextBlock() (bool, error) {
 		// state is on next block
 		block, err := c.rpc.GetBlockVerbose(c.state.hash)
 		if err != nil {
-			return false, cliutil.NewStackError(err)
+			return false, serror.NewStackError(err)
 		}
 
 		if block.NextHash == "" {
@@ -137,7 +137,7 @@ func (c *Crawler) NextBlock() (bool, error) {
 	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
 		currentBlock, getErr := c.rpc.GetBlockVerbose(c.state.hash)
 		if getErr != nil {
-			return false, cliutil.NewStackError(getErr)
+			return false, serror.NewStackError(getErr)
 		}
 		c.currentBlock = currentBlock
 		c.state.top = numBlocks
@@ -151,14 +151,14 @@ func (c *Crawler) NextBlock() (bool, error) {
 // its outputs/inputs and all associated addresses are written to the database.
 func (c *Crawler) Iterate() (bool, error) {
 	if c.Empty() {
-		return false, cliutil.NewStackErrorStr("got empty state")
+		return false, serror.NewStackErrorStr("got empty state")
 	}
 
 	var err error
 	// get block from RPC-Client
 	c.currentBlock, err = c.rpc.GetBlockVerbose(c.state.hash)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, serror.NewStackError(err)
 	}
 
 	// do the actual processing and aggregate the resulting metrics

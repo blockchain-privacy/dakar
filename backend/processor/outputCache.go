@@ -1,9 +1,9 @@
 package processor
 
 import (
-	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 )
 
 type outputCache struct {
@@ -79,11 +79,11 @@ func (u *outputCache) getOutputCounts() int {
 // setOutputs sets the outputs for the specified transaction hash.
 func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 	if len(outputs) == 0 {
-		return cliutil.NewStackErrorf("tried to set zero outputs for transaction %s", txHash)
+		return serror.NewStackErrorf("tried to set zero outputs for transaction %s", txHash)
 	}
 
 	if txHash == "" {
-		return cliutil.NewStackErrorStr("transaction hash is empty")
+		return serror.NewStackErrorStr("transaction hash is empty")
 	}
 
 	if _, ok := u.c[txHash]; ok {
@@ -92,7 +92,7 @@ func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 	outputMap := make(map[uint32]db.Output)
 	for _, o := range outputs {
 		if o.OutputIndex == nil {
-			return cliutil.NewStackErrorf("output index is not set for tx %s", txHash)
+			return serror.NewStackErrorf("output index is not set for tx %s", txHash)
 		}
 		outputMap[*o.OutputIndex] = o
 	}

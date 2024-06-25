@@ -12,6 +12,7 @@ import (
 	"backend/worker"
 	"flag"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"log"
 	"log/slog"
@@ -46,7 +47,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cli.LogError(thisLogger, err, v...)
+	serror.LogError(thisLogger, err, v...)
 }
 
 type UniqueAddressesModule struct {

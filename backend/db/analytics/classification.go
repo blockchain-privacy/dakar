@@ -1,10 +1,10 @@
 package analytics
 
 import (
-	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
 	"strconv"
@@ -114,7 +114,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -166,12 +166,12 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = cliutil.NewStackErrorStr("wrong number of returned query counts")
+		err = serror.NewStackErrorStr("wrong number of returned query counts")
 		return
 	}
 
@@ -223,12 +223,12 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = cliutil.NewStackErrorStr("wrong number of returned query counts")
+		err = serror.NewStackErrorStr("wrong number of returned query counts")
 		return
 	}
 
@@ -284,7 +284,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 

@@ -2,12 +2,12 @@ package analytics
 
 import (
 	"backend/blockiterator"
-	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics"
 	dbstat "backend/db/status"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 	"slices"
 
 	"context"
@@ -152,7 +152,7 @@ func (c *Classifier) Empty() bool {
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (c *Classifier) CalculateInitialState() error {
 	if !c.config.IsClassifyingEnabled {
-		return cliutil.NewStackErrorStr("classifying is disabled per configuration")
+		return serror.NewStackErrorStr("classifying is disabled per configuration")
 	}
 
 	if err := dbstat.SetClassifying(c.db, true); err != nil {
@@ -174,7 +174,7 @@ func (c *Classifier) CalculateInitialState() error {
 	}
 
 	if classifierStatus.LastClassifiedBlockID == nil {
-		return cliutil.NewStackErrorStr("error last classified block is not set")
+		return serror.NewStackErrorStr("error last classified block is not set")
 	}
 
 	var state blockiterator.State
@@ -219,7 +219,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 
 		// no mixing transaction should be recognized in this step
 		if len(mixing) > 0 {
-			err = cliutil.NewStackErrorStr("error mixing transaction after secondary classification loop")
+			err = serror.NewStackErrorStr("error mixing transaction after secondary classification loop")
 			return
 		}
 
@@ -253,7 +253,7 @@ func (c *Classifier) NextBlock() (bool, error) {
 	if err != nil {
 		return false, err
 	} else if status.LastBlockID == nil {
-		return false, cliutil.NewStackErrorStr("last crawled block is not set")
+		return false, serror.NewStackErrorStr("last crawled block is not set")
 	}
 
 	if c.state.ID <= *status.LastBlockID {
@@ -269,7 +269,7 @@ func (c *Classifier) NextBlock() (bool, error) {
 // and how they are connected to other transactions.
 func (c *Classifier) Iterate() (bool, error) {
 	if c.Empty() {
-		return false, cliutil.NewStackErrorStr("got empty state")
+		return false, serror.NewStackErrorStr("got empty state")
 	}
 
 	// get the transaction of the current block height

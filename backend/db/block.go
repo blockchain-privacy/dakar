@@ -1,8 +1,8 @@
 package db
 
 import (
-	"backend/cmd/cliutil"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
 	"fmt"
@@ -82,11 +82,11 @@ func (bq blockQuery) payload() (blk Block, err error) {
 	lenQ := len(bq.Q)
 
 	if lenQ == 0 {
-		err = cliutil.NewStackErrorStr("no blocks found")
+		err = serror.NewStackErrorStr("no blocks found")
 		return
 	} else if lenQ > 1 {
 		// found more than one block, which should not be possible
-		err = cliutil.NewStackErrorStr("found more than one block")
+		err = serror.NewStackErrorStr("found more than one block")
 		return
 	}
 	blk = bq.Q[0]
@@ -96,7 +96,7 @@ func (bq blockQuery) payload() (blk Block, err error) {
 // GetBlock gets block information from the database
 func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 	if blockHash == "" {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -125,7 +125,7 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 
 	var r blockQuery
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 	var r blockQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 // GetFrontendBlock gets verbose block information from the database
 func GetFrontendBlock(c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
 	if blockHash == "" {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -267,7 +267,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$ident": blockHash})
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -288,10 +288,10 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	}
 
 	if len(r.Blocks) == 0 {
-		err = cliutil.NewStackError(ErrBlockNotFound)
+		err = serror.NewStackError(ErrBlockNotFound)
 		return
 	} else if len(r.Blocks) != 1 {
-		err = cliutil.NewStackError(errInvalidResult)
+		err = serror.NewStackError(errInvalidResult)
 		return
 	}
 
@@ -328,7 +328,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 // UpsertBlock upserts a block and the prevBlock relation
 func UpsertBlock(c external.Database, block Block) error {
 	if block.PrevBlock == nil {
-		return cliutil.NewStackErrorf("previous block reference is nil: %v", block)
+		return serror.NewStackErrorf("previous block reference is nil: %v", block)
 	}
 	block.UID = "uid(v)"
 	block.PrevBlock.UID = "uid(x)"
@@ -347,7 +347,7 @@ func UpsertBlock(c external.Database, block Block) error {
 
 	pb, err := json.Marshal(block)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.NewStackError(err)
 	}
 
 	query := `query Q($currentHash:string,$prevHash:string){
@@ -372,7 +372,7 @@ func UpsertBlock(c external.Database, block Block) error {
 // InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
 func InsertArbitraryJSON(c external.Database, data []byte) error {
 	if len(data) == 0 {
-		return cliutil.NewStackError(ErrEmptyRequestArgument)
+		return serror.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	return TxWithRetry(c, time.Minute*15, &api.Request{

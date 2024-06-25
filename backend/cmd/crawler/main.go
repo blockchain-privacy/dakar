@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"log"
 	"log/slog"
@@ -62,7 +63,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cli.LogError(thisLogger, err, v...)
+	serror.LogError(thisLogger, err, v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -79,7 +80,7 @@ func selectConfig(blockchainMode string) (processor.Config, analytics.Config, er
 	case "Bitcoin":
 		return processor.NewBitcoinConfig(), analytics.NewBitcoinConfig(), nil
 	default:
-		return processor.Config{}, analytics.Config{}, cli.NewStackErrorStr("invalid blockchain mode")
+		return processor.Config{}, analytics.Config{}, serror.NewStackErrorStr("invalid blockchain mode")
 	}
 }
 

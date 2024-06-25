@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/external"
 	"errors"
+	"github.com/qrest/gomisc/serror"
 	"time"
 )
 
@@ -23,7 +24,7 @@ var (
 // ImportCluster writes the given address relations into the database
 func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, userID string) error {
 	if userID == "" {
-		return cliutil.NewStackErrorStr("user ID is not set")
+		return serror.NewStackErrorStr("user ID is not set")
 	}
 
 	addrToUID, err := validateAddresses(dgraph, clusters)
@@ -97,14 +98,14 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 
 	// check maximum number of addresses
 	if len(uniqueAddresses) > 1000 {
-		return nil, cliutil.NewStackError(ErrTooManyAddresses)
+		return nil, serror.NewStackError(ErrTooManyAddresses)
 	}
 
 	// check if clusters contain at least two addresses
 	clusterSet := buildClusterSet(clusters)
 	for _, v := range clusterSet {
 		if v == nil || len(v) < 2 {
-			return nil, cliutil.NewStackError(ErrShallowCluster)
+			return nil, serror.NewStackError(ErrShallowCluster)
 		}
 	}
 
@@ -120,14 +121,14 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			delete(addresses, a.Hash)
 		}
 
-		return nil, cliutil.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping
 	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, cliutil.NewStackErrorf("address invalid: %v", dbAddress)
+			return nil, serror.NewStackErrorf("address invalid: %v", dbAddress)
 		}
 		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}

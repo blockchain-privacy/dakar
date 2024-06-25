@@ -2,7 +2,6 @@ package server
 
 import (
 	"backend/analytics/heuristics"
-	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
@@ -12,6 +11,7 @@ import (
 	"backend/db/workspace"
 	"backend/external"
 	"encoding/json"
+	"github.com/qrest/gomisc/serror"
 	"time"
 
 	"context"
@@ -68,7 +68,7 @@ func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 	replyBuffer, err := json.Marshal(reply)
 	if err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -85,7 +85,7 @@ func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 
 	if _, err := w.Write(replyBuffer); err != nil {
 		// not possible to send response to client, so just log error
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 	}
 }
 
@@ -252,13 +252,13 @@ type tokenUser struct {
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
-		err = cliutil.NewStackErrorStr("could not extract token user from context")
+		err = serror.NewStackErrorStr("could not extract token user from context")
 		return
 	}
 
 	tUser, ok := userInfo.(tokenUser)
 	if !ok || len(tUser.ID) == 0 {
-		err = cliutil.NewStackErrorStr("invalid user extracted from context")
+		err = serror.NewStackErrorStr("invalid user extracted from context")
 		return
 	}
 

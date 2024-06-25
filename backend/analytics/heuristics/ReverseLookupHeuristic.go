@@ -2,11 +2,11 @@ package heuristics
 
 import (
 	"backend/analytics/graph"
-	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 
 	"fmt"
 	"strconv"
@@ -51,7 +51,7 @@ func (h reverseLookupHeuristic) hasParameter() bool {
 func (h *reverseLookupHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.NewStackError(err)
 	}
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
@@ -65,7 +65,7 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return cliutil.NewStackError(errInvalidClusterTypes)
+		return serror.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -148,7 +148,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if parentHeuristicResults == nil {
-			return nil, cliutil.NewStackError(errNoOriginsAtStart)
+			return nil, serror.NewStackError(errNoOriginsAtStart)
 		}
 
 		parentAttributionMap = attrMap

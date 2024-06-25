@@ -18,6 +18,7 @@ import (
 	"backend/external"
 	"backend/worker"
 	"backend/workspace"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"strings"
 	"time"
@@ -218,7 +219,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaR
 	// get block info
 	blocks, err := rpcClient.GetBlockCount()
 	if err != nil {
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return reply, http.StatusInternalServerError
 	}
 
@@ -241,7 +242,7 @@ func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identi
 	identities, response, err := adminAuth.IdentityAPI.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -252,7 +253,7 @@ func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identi
 		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -348,7 +349,7 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 
 	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -387,7 +388,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 
 	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -663,7 +664,7 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 	var heuristicRequest request
 	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 		http.Error(w, errReport, http.StatusBadRequest)
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -697,7 +698,7 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -721,7 +722,7 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 			if err = csvWriter.Write(row); err != nil {
 				// communication with client is not possible, can only log error
 				// this is because as soon as we write the CSV header, the HTTP response status is also sent
-				warn(cliutil.NewStackError(err))
+				warn(serror.NewStackError(err))
 				return
 			}
 		}
@@ -777,7 +778,7 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "error writing to file", http.StatusInternalServerError)
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -787,7 +788,7 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 				a.AddressHash, strconv.Itoa(a.OutputCount), strconv.Itoa(a.OutputCount - a.SpentOutputCount)}); err != nil {
 				// communication with client is not possible, can only log error
 				// this is because as soon as we write the CSV header, the HTTP response status is also sent
-				warn(cliutil.NewStackError(err))
+				warn(serror.NewStackError(err))
 				return
 			}
 		}
@@ -806,7 +807,7 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 	const maxAddressCount = 2000
@@ -893,7 +894,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 
 	defer func(file multipart.File) {
 		if err := file.Close(); err != nil {
-			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
+			warn(serror.NewStackErrorf("error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -1011,7 +1012,7 @@ func getAddAttributionReply(r *http.Request, dgraph external.Database, isPublic 
 
 	defer func(file multipart.File) {
 		if err := file.Close(); err != nil {
-			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
+			warn(serror.NewStackErrorf("error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -1267,7 +1268,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 
 	defer func(file multipart.File) {
 		if err := file.Close(); err != nil {
-			warn(cliutil.NewStackErrorf("closing CSV-file: %w", err))
+			warn(serror.NewStackErrorf("closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -1456,17 +1457,17 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 func extractDgraphUID(metadataPublic any) (string, error) {
 	metadata, ok := metadataPublic.(map[string]any)
 	if !ok {
-		return "", cliutil.NewStackErrorStr("identity has no admin metadata")
+		return "", serror.NewStackErrorStr("identity has no admin metadata")
 	}
 
 	dgraphUIDInterface, ok := metadata["dgraph_uid"]
 	if !ok {
-		return "", cliutil.NewStackErrorStr("identity has no field 'dgraph_uid'")
+		return "", serror.NewStackErrorStr("identity has no field 'dgraph_uid'")
 	}
 
 	dgraphUID, ok := dgraphUIDInterface.(string)
 	if !ok {
-		return "", cliutil.NewStackErrorStr("dgraph UID could not be cast from interface")
+		return "", serror.NewStackErrorStr("dgraph UID could not be cast from interface")
 	}
 
 	return dgraphUID, nil
@@ -1498,7 +1499,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	identity, response, err := adminAuth.IdentityAPI.GetIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1544,7 +1545,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1558,7 +1559,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 func setRoles(metaDataPublic any, roles []string) error {
 	metadata, ok := metaDataPublic.(map[string]any)
 	if !ok {
-		return cliutil.NewStackErrorStr("identity has no public metadata")
+		return serror.NewStackErrorStr("identity has no public metadata")
 	}
 
 	metadata["roles"] = roles
@@ -1570,7 +1571,7 @@ func setRoles(metaDataPublic any, roles []string) error {
 func setEmail(traits any, email string) error {
 	metadata, ok := traits.(map[string]any)
 	if !ok {
-		return cliutil.NewStackErrorStr("identity has no traits")
+		return serror.NewStackErrorStr("identity has no traits")
 	}
 
 	metadata["email"] = email
@@ -1603,7 +1604,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err), "modification_request", modRequest)
+		warn(serror.NewStackError(err), "modification_request", modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1634,7 +1635,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 			if !roleMap[role] {
 				reply.Msg = msgInvalidRole
 				status = http.StatusBadRequest
-				warn(cliutil.NewStackErrorStr(msgInvalidRole), "modification_request", modRequest)
+				warn(serror.NewStackErrorStr(msgInvalidRole), "modification_request", modRequest)
 				return
 			}
 		}
@@ -1651,7 +1652,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	if len(modRequest.State) > 0 {
 		if !dbus.IsStateValid(modRequest.State) {
 			status = http.StatusBadRequest
-			warn(cliutil.NewStackErrorStr("invalid identity state: "+modRequest.State), "modification_request", modRequest)
+			warn(serror.NewStackErrorStr("invalid identity state: "+modRequest.State), "modification_request", modRequest)
 			return
 		}
 		initialIdentity.SetState(modRequest.State)
@@ -1666,7 +1667,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	}).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackError(err), "modification_request", modRequest)
+		warn(serror.NewStackError(err), "modification_request", modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1729,7 +1730,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 
 	if len(transactions) != len(uids) {
 		status = http.StatusInternalServerError
-		warn(cliutil.NewStackErrorf("length of uids and hashes is not equal for %s", txhash))
+		warn(serror.NewStackErrorf("length of uids and hashes is not equal for %s", txhash))
 		return
 	}
 
@@ -1737,7 +1738,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 		fingerprint, ok := uidToFingerprint[tx.UID]
 		if !ok {
 			status = http.StatusInternalServerError
-			warn(cliutil.NewStackErrorf("could not find uid to tx hash mapping for %s in request for %s", txhash, tx.UID))
+			warn(serror.NewStackErrorf("could not find uid to tx hash mapping for %s in request for %s", txhash, tx.UID))
 			return
 		}
 
@@ -1768,7 +1769,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 
 	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -1834,7 +1835,7 @@ func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspac
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -1952,7 +1953,7 @@ func getRenameWorkspaceReply(dgraph external.Database, r *http.Request) (status 
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -1988,7 +1989,7 @@ func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mute
 
 	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -2025,7 +2026,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 
 	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 
@@ -2120,7 +2121,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
+		warn(serror.NewStackError(err))
 		return
 	}
 

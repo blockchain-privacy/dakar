@@ -2,7 +2,6 @@ package server
 
 import (
 	"backend/analytics/graph"
-	"backend/cmd/cliutil"
 	"backend/external"
 	"backend/worker"
 	"backend/workspace"
@@ -10,6 +9,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -33,7 +33,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cliutil.LogError(thisLogger, err, v...)
+	serror.LogError(thisLogger, err, v...)
 }
 
 type Server struct {
@@ -60,11 +60,11 @@ type Server struct {
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
 	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if adminAuth == nil || auth == nil {
-		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
+		return nil, serror.NewStackErrorStr("authentication handles are not set")
 	}
 
 	if worker == nil {
-		return nil, cliutil.NewStackErrorStr("worker pointer is nil")
+		return nil, serror.NewStackErrorStr("worker pointer is nil")
 	}
 
 	// init cache
@@ -74,7 +74,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.NewStackError(err)
 	}
 
 	return &Server{
@@ -105,7 +105,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			warn(cliutil.NewStackError(err))
+			warn(serror.NewStackError(err))
 		}
 		wg.Done()
 	}()
@@ -118,7 +118,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 // StartMetrics creates a metrics server on the given port
 func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	handler := http.NewServeMux()
-	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), getRouteMetrics(), maxBody()))
+	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), maxBody()))
 
 	// create server
 	srv := &http.Server{
@@ -130,7 +130,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			warn(cliutil.NewStackError(err))
+			warn(serror.NewStackError(err))
 		}
 		wg.Done()
 	}()

@@ -6,6 +6,7 @@ import (
 	"backend/external"
 	"fmt"
 	"github.com/dgraph-io/ristretto"
+	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"math/rand/v2"
 
@@ -29,7 +30,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cliutil.LogError(thisLogger, err, v...)
+	serror.LogError(thisLogger, err, v...)
 }
 
 type workKey struct {
@@ -83,7 +84,7 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		BufferItems: 64,   // number of keys per Get buffer
 	})
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.NewStackError(err)
 	}
 	workLog, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 5000, // number of keys to track frequency of
@@ -91,7 +92,7 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		BufferItems: 64,   // number of keys per Get buffer
 	})
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.NewStackError(err)
 	}
 
 	return &Worker{
@@ -170,7 +171,7 @@ func (w *Worker) GetFinishedDatabaseUID(workID int, userUID string) (string, err
 
 	databaseUID, ok := databaseUIDInterface.(string)
 	if !ok {
-		return "", cliutil.NewStackErrorStr("not able to convert cache item to string")
+		return "", serror.NewStackErrorStr("not able to convert cache item to string")
 	}
 
 	return databaseUID, nil

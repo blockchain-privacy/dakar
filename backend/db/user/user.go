@@ -1,7 +1,6 @@
 package user
 
 import (
-	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
 	"context"
@@ -10,6 +9,7 @@ import (
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	ory "github.com/ory/kratos-client-go"
+	"github.com/qrest/gomisc/serror"
 	"time"
 )
 
@@ -22,7 +22,7 @@ func CreateNewUser(c external.Database) (string, error) {
 
 	pb, err := json.Marshal(usr)
 	if err != nil {
-		return "", cliutil.NewStackError(err)
+		return "", serror.NewStackError(err)
 	}
 
 	req := &api.Request{
@@ -39,7 +39,7 @@ func CreateNewUser(c external.Database) (string, error) {
 
 	// check if insert was successful
 	if len(resp.Uids) != 1 {
-		return "", cliutil.NewStackErrorf("invalid number of uids returned: %s", resp.Uids)
+		return "", serror.NewStackErrorf("invalid number of uids returned: %s", resp.Uids)
 	}
 
 	var userUID string
@@ -71,7 +71,7 @@ func GetUserCount(c external.Database) (userCount int, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 	// no retry
 	resp, txErr := c.Query(ctx, query, map[string]string{"$uid": uid})
 	if txErr != nil {
-		err = cliutil.NewStackError(txErr)
+		err = serror.NewStackError(txErr)
 		return
 	}
 
@@ -100,7 +100,7 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -119,7 +119,7 @@ func DeleteUser(c external.Database, uid string) (err error) {
 		err = existsErr
 		return
 	} else if !found {
-		err = cliutil.NewStackErrorStr("error user does not exist")
+		err = serror.NewStackErrorStr("error user does not exist")
 		return
 	}
 
@@ -143,7 +143,7 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	email string, credentials *ory.IdentityWithCredentials, roles []string, state string) error {
 	// check state
 	if !IsStateValid(state) {
-		return cliutil.NewStackErrorStr("invalid identity state: " + state)
+		return serror.NewStackErrorStr("invalid identity state: " + state)
 	}
 
 	// create dgraph user
@@ -161,7 +161,7 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 		State:          &state,
 	}).Execute()
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.NewStackError(err)
 	}
 
 	return nil
@@ -172,7 +172,7 @@ func generateRandomPassword() (string, error) {
 	// Generate a Salt
 	pwByte := make([]byte, 16)
 	if _, err := rand.Read(pwByte); err != nil {
-		return "", cliutil.NewStackError(err)
+		return "", serror.NewStackError(err)
 	}
 
 	return base64.RawStdEncoding.EncodeToString(pwByte), nil

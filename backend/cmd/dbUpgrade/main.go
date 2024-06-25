@@ -4,7 +4,6 @@ import (
 	"backend/analytics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
-	"backend/db/analytics/clustering"
 	"backend/db/status"
 	"backend/external"
 	"backend/processor"
@@ -12,6 +11,7 @@ import (
 	"backend/worker"
 	"flag"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"log/slog"
 	"os"
@@ -44,7 +44,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cli.LogError(thisLogger, err, v...)
+	serror.LogError(thisLogger, err, v...)
 }
 
 type Config struct {
@@ -150,24 +150,24 @@ func main() {
 	}
 	info("increased schema version")
 
-	info("deleting all FMI clusters ...")
-	err = clustering.DeleteAllFMIClusters(dgraph)
-	if err != nil {
-		warn(err)
-		return
-	}
-	info("deleted all FMI clusters")
-
-	info("resetting FMI cluster status ...")
-	zero := uint64(0)
-	err = status.SetClusteringFMIStatus(dgraph, status.ClusteringFlatMultiInputStatus{
-		LastClusteredBlockID: &zero,
-	})
-	if err != nil {
-		warn(err)
-		return
-	}
-	info("reset FMI cluster status")
+	//info("deleting all FMI clusters ...")
+	//err = clustering.DeleteAllFMIClusters(dgraph)
+	//if err != nil {
+	//	warn(err)
+	//	return
+	//}
+	//info("deleted all FMI clusters")
+	//
+	//info("resetting FMI cluster status ...")
+	//zero := uint64(0)
+	//err = status.SetClusteringFMIStatus(dgraph, status.ClusteringFlatMultiInputStatus{
+	//	LastClusteredBlockID: &zero,
+	//})
+	//if err != nil {
+	//	warn(err)
+	//	return
+	//}
+	//info("reset FMI cluster status")
 
 	info("dropping hex starting ...")
 	err = db.DropPredicateHex(dgraph)

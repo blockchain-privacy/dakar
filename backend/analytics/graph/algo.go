@@ -1,17 +1,15 @@
 package graph
 
 import (
-	"backend/cmd/cliutil"
-	"strconv"
-
-	"time"
-
+	"github.com/qrest/gomisc/serror"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
+	"strconv"
+	"time"
 )
 
 func ErrNodeNotFound(nodeID int64) error {
-	return cliutil.NewStackErrorf("node %s does not exist in graph", ToHex(nodeID))
+	return serror.NewStackErrorf("node %s does not exist in graph", ToHex(nodeID))
 }
 
 // ToHex returns a hexadecimal string representation of the given integer with the '0x' prefix.
@@ -23,11 +21,11 @@ func ToHex(i int64) string {
 // ToInteger a hex string in the form of "0x123" to an integer. For performance reasons, there is no strong input validation.
 func ToInteger(hexString string) (int64, error) {
 	if len(hexString) < 3 {
-		return 0, cliutil.NewStackErrorf("string to short: %s", hexString)
+		return 0, serror.NewStackErrorf("string to short: %s", hexString)
 	}
 	integer, err := strconv.ParseInt(hexString[2:], 16, 64)
 	if err != nil {
-		return 0, cliutil.NewStackError(err)
+		return 0, serror.NewStackError(err)
 	}
 	return integer, nil
 }

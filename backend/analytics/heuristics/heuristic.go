@@ -12,6 +12,7 @@ import (
 	"backend/external"
 	"errors"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"time"
 )
 
@@ -90,7 +91,7 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 	for i, nd := range numDenominations {
 		if nd > 0 {
 			if found {
-				err = cliutil.NewStackErrorf("found more than one denomination type in input transaction %s for destination tx %s",
+				err = serror.NewStackErrorf("found more than one denomination type in input transaction %s for destination tx %s",
 					it, destinationTransaction)
 				return
 			}
@@ -305,7 +306,7 @@ type Executor struct {
 // ConstructExecutors creates executors based on heuristics
 func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
 	if newHeuristic.TransactionHash == "" {
-		err = cliutil.NewStackErrorf("transaction of heuristic request is empty: %v", newHeuristic)
+		err = serror.NewStackErrorf("transaction of heuristic request is empty: %v", newHeuristic)
 		return
 	}
 
@@ -318,7 +319,7 @@ func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUI
 
 	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
 		(modelHeuristic.hasParameter() && len(newHeuristic.Parameter) == 0) {
-		err = cliutil.NewStackError(errHeuristicNotValid)
+		err = serror.NewStackError(errHeuristicNotValid)
 		return
 	}
 

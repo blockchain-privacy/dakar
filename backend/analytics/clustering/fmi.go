@@ -10,6 +10,7 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/qrest/gomisc/serror"
 )
 
 // FlatMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
@@ -81,7 +82,7 @@ func (m *FlatMultiInput) CalculateInitialState() error {
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return cliutil.NewStackErrorStr("last FMI clustered block is not set")
+		return serror.NewStackErrorStr("last FMI clustered block is not set")
 	}
 
 	var state blockiterator.State
@@ -163,11 +164,11 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate() (bool, error) {
 	if m.maxBlocks == 0 {
-		return false, cliutil.NewStackErrorStr("max blocks must be higher than zero")
+		return false, serror.NewStackErrorStr("max blocks must be higher than zero")
 	}
 
 	if m.Empty() {
-		return false, cliutil.NewStackErrorStr("received empty state")
+		return false, serror.NewStackErrorStr("received empty state")
 	}
 
 	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
@@ -263,7 +264,7 @@ func (m *FlatMultiInput) NextBlock() (bool, error) {
 	if err != nil {
 		return false, err
 	} else if status.LastClassifiedBlockID == nil {
-		return false, cliutil.NewStackErrorStr("last classified block is not set")
+		return false, serror.NewStackErrorStr("last classified block is not set")
 	}
 
 	if m.state.ID <= *status.LastClassifiedBlockID {
@@ -427,7 +428,7 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 		processedClusters[i] = true
 
 		if len(i.mergeList) == 0 && len(i.addresses) == 0 {
-			return nil, cliutil.NewStackErrorStr("no clusters and addresses")
+			return nil, serror.NewStackErrorStr("no clusters and addresses")
 		}
 
 		clusterIndex++
@@ -441,7 +442,7 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 			var largestAddressesCount int
 			for _, c := range i.mergeList {
 				if c.AddressCount == nil {
-					return nil, cliutil.NewStackErrorf("address count is not set for cluster %s", c.UID)
+					return nil, serror.NewStackErrorf("address count is not set for cluster %s", c.UID)
 				}
 				addressCount += *c.AddressCount
 				if *c.AddressCount > largestAddressesCount {

@@ -2,7 +2,6 @@ package clustering
 
 import (
 	"backend/blockiterator"
-	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
@@ -10,6 +9,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/qrest/gomisc/serror"
 	"strconv"
 )
 
@@ -75,7 +75,7 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return cliutil.NewStackErrorStr("error last HMI clustered block is not set")
+		return serror.NewStackErrorStr("error last HMI clustered block is not set")
 	}
 
 	var state blockiterator.State
@@ -103,7 +103,7 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 //nolint:gocyclo
 func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
-		return false, cliutil.NewStackErrorStr("got empty state")
+		return false, serror.NewStackErrorStr("got empty state")
 	}
 
 	// get the transaction of the current block height
@@ -137,7 +137,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 			for _, addr := range tx.Addresses {
 				if len(addr.Clusters) > 0 {
 					if len(addr.Clusters) != 1 {
-						return false, cliutil.NewStackErrorf("found more than one multi-input cluster attached to address %v", addr)
+						return false, serror.NewStackErrorf("found more than one multi-input cluster attached to address %v", addr)
 					}
 
 					transactionCluster := addr.Clusters[0]
@@ -190,7 +190,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
 				// this should never happen
-				return false, cliutil.NewStackErrorStr("Transaction " + tx.UID +
+				return false, serror.NewStackErrorStr("Transaction " + tx.UID +
 					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
 			}
 
@@ -292,7 +292,7 @@ func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 	if err != nil {
 		return false, err
 	} else if status.LastClassifiedBlockID == nil {
-		return false, cliutil.NewStackErrorStr("last classified block is not set")
+		return false, serror.NewStackErrorStr("last classified block is not set")
 	}
 
 	if m.state.ID <= *status.LastClassifiedBlockID {
@@ -365,19 +365,19 @@ func validateClusters(clusters []clustering.Cluster) error {
 	addressUIDs := make(map[string]bool)
 	for _, cluster := range clusters {
 		if len(cluster.Children) == 0 && len(cluster.Addresses) == 0 {
-			return cliutil.NewStackErrorf("cluster %s has no addresses and no children", cluster.UID)
+			return serror.NewStackErrorf("cluster %s has no addresses and no children", cluster.UID)
 		}
 
 		for _, child := range cluster.Children {
 			if clusterUIDs[child.UID] {
-				return cliutil.NewStackErrorf("cluster %s has multiple parents", child.UID)
+				return serror.NewStackErrorf("cluster %s has multiple parents", child.UID)
 			}
 			clusterUIDs[child.UID] = true
 		}
 
 		for _, addr := range cluster.Addresses {
 			if addressUIDs[addr.UID] {
-				return cliutil.NewStackErrorf("address %s has multiple parents", addr.UID)
+				return serror.NewStackErrorf("address %s has multiple parents", addr.UID)
 			}
 			addressUIDs[addr.UID] = true
 		}

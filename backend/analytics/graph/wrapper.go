@@ -2,13 +2,13 @@ package graph
 
 import (
 	"backend/blockiterator"
-	"backend/cmd/cliutil"
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"os"
 	"strconv"
@@ -81,7 +81,7 @@ func (w *Wrapper) IsTransactionGraphLoaded() bool {
 func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
+		return nil, serror.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -93,7 +93,7 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
 func (w *Wrapper) ForwardLookup(uid string, targetUID string,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
+		return nil, serror.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -105,7 +105,7 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string,
 func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
+		return nil, serror.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -118,7 +118,7 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 // and the number of mixing sessions of this transactions
 func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, 0, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
+		return nil, 0, serror.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -129,7 +129,7 @@ func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
 func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
+		return nil, serror.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -140,11 +140,11 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 // LoadGraphs loads the transaction graph into the wrapper
 func (w *Wrapper) LoadGraphs() error {
 	if w.isLoading {
-		return cliutil.NewStackErrorStr("can not load graph as it is already loaded or still loading")
+		return serror.NewStackErrorStr("can not load graph as it is already loaded or still loading")
 	}
 
 	if w.db == nil {
-		return cliutil.NewStackErrorStr("database is not set")
+		return serror.NewStackErrorStr("database is not set")
 	}
 
 	w.isLoading = true
@@ -174,11 +174,11 @@ func (w *Wrapper) LoadGraphs() error {
 	if graphLimit, ok := os.LookupEnv("DEV_GRAPH_LIMIT"); ok {
 		numGraphLimit, err := strconv.Atoi(graphLimit)
 		if err != nil {
-			return cliutil.NewStackErrorf("DEV_GRAPH_LIMIT is not a number: %w", err)
+			return serror.NewStackErrorf("DEV_GRAPH_LIMIT is not a number: %w", err)
 		}
 		if numGraphLimit < 0 {
 			info("DEV_GRAPH_LIMIT environment variable is negative. Exiting ...")
-			return cliutil.NewStackErrorStr("negative DEV_GRAPH_LIMIT environment variable")
+			return serror.NewStackErrorStr("negative DEV_GRAPH_LIMIT environment variable")
 		} else if numGraphLimit == 0 {
 			info("DEV_GRAPH_LIMIT environment variable is set to zero. Ignoring ...")
 		} else {
@@ -216,7 +216,7 @@ func (w *Wrapper) Props() blockiterator.Properties {
 func (w *Wrapper) CalculateInitialState() error {
 	// check if state was set by LoadGraphs
 	if !w.isLoading {
-		return cliutil.NewStackErrorStr("graphs were not loaded before iteration started")
+		return serror.NewStackErrorStr("graphs were not loaded before iteration started")
 	}
 
 	return nil
@@ -225,7 +225,7 @@ func (w *Wrapper) CalculateInitialState() error {
 // NextBlock tries to increase the internal state to the next block
 func (w *Wrapper) NextBlock() (bool, error) {
 	if w.db == nil {
-		return false, cliutil.NewStackErrorStr("database handle is not set")
+		return false, serror.NewStackErrorStr("database handle is not set")
 	}
 
 	classifierStatus, err := status.GetClassifierStatus(w.db)
@@ -268,7 +268,7 @@ func (w *Wrapper) Iterate() (bool, error) {
 
 	if len(connectedNodes) == 0 || len(singleNodes) == 0 {
 		// something is wrong
-		return false, cliutil.NewStackErrorStr("count of single or connected nodes is zero")
+		return false, serror.NewStackErrorStr("count of single or connected nodes is zero")
 	}
 
 	w.transactionGraphMutex.Lock()

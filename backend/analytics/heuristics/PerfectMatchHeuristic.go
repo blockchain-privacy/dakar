@@ -3,10 +3,10 @@ package heuristics
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
-	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 )
 
 // perfectMatchHeuristic - see exec for description
@@ -49,7 +49,7 @@ func (h perfectMatchHeuristic) setParameter(_ string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *perfectMatchHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return cliutil.NewStackError(errInvalidClusterTypes)
+		return serror.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -148,7 +148,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 	}
 
 	if len(origins) == 0 {
-		return nil, cliutil.NewStackError(errNoOriginsAtStart)
+		return nil, serror.NewStackError(errNoOriginsAtStart)
 	}
 
 	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)

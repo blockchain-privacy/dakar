@@ -1,13 +1,13 @@
 package attribution
 
 import (
-	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/external"
 	"encoding/json"
 	"fmt"
 	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/qrest/gomisc/serror"
 	"regexp"
 	"time"
 )
@@ -18,13 +18,13 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 	for _, a := range attributions {
 		if a.Address.UID == "" || a.Tag == "" || a.Timestamp == "" ||
 			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
-			return cliutil.NewStackErrorf("attribution invalid: %v", a)
+			return serror.NewStackErrorf("attribution invalid: %v", a)
 		}
 	}
 
 	pb, err := json.Marshal(attributions)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.NewStackError(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*5, &api.Request{
@@ -65,7 +65,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func DeletePrivateAttribution(c external.Database, userID string, attributionUID
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return cliutil.NewStackErrorStr("nothing was deleted")
+		return serror.NewStackErrorStr("nothing was deleted")
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func DeletePublicAttribution(c external.Database, attributionUID string) error {
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return cliutil.NewStackErrorStr("nothing was deleted")
+		return serror.NewStackErrorStr("nothing was deleted")
 	}
 
 	return nil
@@ -181,7 +181,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
@@ -246,7 +246,7 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.NewStackError(err)
 		return
 	}
 
