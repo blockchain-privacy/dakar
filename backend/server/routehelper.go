@@ -68,7 +68,7 @@ func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 	replyBuffer, err := json.Marshal(reply)
 	if err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(serror.NewStackError(err))
+		warn(serror.New(err))
 		return
 	}
 
@@ -85,7 +85,7 @@ func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 
 	if _, err := w.Write(replyBuffer); err != nil {
 		// not possible to send response to client, so just log error
-		warn(serror.NewStackError(err))
+		warn(serror.New(err))
 	}
 }
 
@@ -252,13 +252,13 @@ type tokenUser struct {
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
-		err = serror.NewStackErrorStr("could not extract token user from context")
+		err = serror.FromStr("could not extract token user from context")
 		return
 	}
 
 	tUser, ok := userInfo.(tokenUser)
 	if !ok || len(tUser.ID) == 0 {
-		err = serror.NewStackErrorStr("invalid user extracted from context")
+		err = serror.FromStr("invalid user extracted from context")
 		return
 	}
 

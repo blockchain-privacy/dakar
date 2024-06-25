@@ -31,7 +31,7 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 	var r crawlerStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func GetClassifierStatus(c external.Database) (status ClassifierStatus, err erro
 	var r classifierStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func GetClusteringHMIStatus(c external.Database) (status ClusteringHierarchicalM
 	var r clusteringHMIStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInpu
 	var r clusteringFMIStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -140,13 +140,13 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 
 	switch {
 	case len(r.TopBlock) == 0:
-		err = serror.NewStackError(errTopBlockNotFound)
+		err = serror.New(errTopBlockNotFound)
 		return
 	case len(r.TopBlock) > 1:
-		err = serror.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	case r.TopBlock[0].Max == 0:
-		err = serror.NewStackError(errTopBlockNotFound)
+		err = serror.New(errTopBlockNotFound)
 		return
 	}
 	max = r.TopBlock[0].Max
@@ -179,7 +179,7 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	defer cancel()
 	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -191,58 +191,58 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	// check if all values are set correctly
 	if len(r.Crawler) != 1 {
-		err = serror.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	}
 
 	if r.Crawler[0].IsCrawling == nil {
-		err = serror.NewStackError(errIsCrawlingNotFound)
+		err = serror.New(errIsCrawlingNotFound)
 		return
 	}
 
 	if r.Crawler[0].LastBlockID == nil {
-		err = serror.NewStackError(errLastBlockIDNotFound)
+		err = serror.New(errLastBlockIDNotFound)
 		return
 	}
 
 	if len(r.Classifier) == 1 {
 		if r.Classifier[0].IsClassifying == nil {
-			err = serror.NewStackError(errIsClassifyingNotFound)
+			err = serror.New(errIsClassifyingNotFound)
 			return
 		}
 
 		if r.Classifier[0].LastClassifiedBlockID == nil {
-			err = serror.NewStackError(errLastClassifiedBlockIDNotFound)
+			err = serror.New(errLastClassifiedBlockIDNotFound)
 			return
 		}
 	}
 
 	if len(r.HMI) == 1 {
 		if r.HMI[0].IsClustering == nil {
-			err = serror.NewStackError(errIsClusteringMultiInputNotFound)
+			err = serror.New(errIsClusteringMultiInputNotFound)
 			return
 		}
 
 		if r.HMI[0].LastClusteredBlockID == nil {
-			err = serror.NewStackError(errLastClusteringMultiInputBlockIDNotFound)
+			err = serror.New(errLastClusteringMultiInputBlockIDNotFound)
 			return
 		}
 	}
 
 	if len(r.FMI) == 1 {
 		if r.FMI[0].IsClustering == nil {
-			err = serror.NewStackError(errIsClusteringMultiInputNotFound)
+			err = serror.New(errIsClusteringMultiInputNotFound)
 			return
 		}
 
 		if r.FMI[0].LastClusteredBlockID == nil {
-			err = serror.NewStackError(errLastClusteringMultiInputBlockIDNotFound)
+			err = serror.New(errLastClusteringMultiInputBlockIDNotFound)
 			return
 		}
 	}
@@ -289,7 +289,7 @@ func GetMeta(c external.Database) (meta Meta, err error) {
 	var r metaQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -303,7 +303,7 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*10, &api.Request{
@@ -320,7 +320,7 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*10, &api.Request{
@@ -337,7 +337,7 @@ func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMu
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*10, &api.Request{
@@ -354,7 +354,7 @@ func SetClusteringFMIStatus(c external.Database, status ClusteringFlatMultiInput
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*10, &api.Request{
@@ -432,7 +432,7 @@ func SetMeta(c external.Database, meta Meta) error {
 
 	pb, err := json.Marshal(meta)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*10, &api.Request{

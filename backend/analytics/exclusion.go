@@ -11,11 +11,11 @@ import (
 // ImportAddressExclusions writes the given address relations into the database
 func ImportAddressExclusions(dgraph external.Database, exclusions []string, userID string) error {
 	if userID == "" {
-		return serror.NewStackErrorStr("user ID is not set")
+		return serror.FromStr("user ID is not set")
 	}
 
 	if len(exclusions) == 0 {
-		return serror.NewStackErrorStr("address exclusion list is empty")
+		return serror.FromStr("address exclusion list is empty")
 	}
 
 	uids, err := validateExclusionAddresses(dgraph, exclusions)
@@ -49,11 +49,11 @@ func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusio
 func validateExclusionAddresses(dgraph external.Database, exclusions []string) ([]string, error) {
 	// check maximum number of items
 	if len(exclusions) > 10000 {
-		return nil, serror.NewStackError(ErrTooManyAddresses)
+		return nil, serror.New(ErrTooManyAddresses)
 	}
 
 	if len(exclusions) == 0 {
-		return nil, serror.NewStackErrorStr("empty argument")
+		return nil, serror.FromStr("empty argument")
 	}
 
 	addresses := map[string]bool{}
@@ -73,7 +73,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 			delete(addresses, a.Hash)
 		}
 
-		return nil, serror.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.FromFormat("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping
@@ -81,7 +81,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	uids := make([]string, len(dbAddresses))
 	for i, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, serror.NewStackErrorf("address invalid: %v", dbAddress)
+			return nil, serror.FromFormat("address invalid: %v", dbAddress)
 		}
 		uids[i] = dbAddress.UID
 	}

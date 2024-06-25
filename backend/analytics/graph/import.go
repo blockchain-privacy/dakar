@@ -242,7 +242,7 @@ func pruneNodes(g *ReversibleGraph) error {
 		if !ok {
 			g.RemoveNode(nodeID)
 		} else if txNode.TS.IsZero() {
-			return serror.NewStackErrorStr("node timestamp is zero")
+			return serror.FromStr("node timestamp is zero")
 		}
 	}
 
@@ -271,16 +271,16 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 		nodeID = node.ID()
 
 		if g.To(nodeID).Len() == 0 && g.From(nodeID).Len() == 0 {
-			return serror.NewStackErrorStr("node exists with no edges")
+			return serror.FromStr("node exists with no edges")
 		}
 
 		txNode, ok = node.(TransactionNode)
 		if !ok {
-			return serror.NewStackErrorf("node has wrong type: %T", node)
+			return serror.FromFormat("node has wrong type: %T", node)
 		}
 
 		if txNode.TS.IsZero() {
-			return serror.NewStackErrorStr("node has invalid timestamp")
+			return serror.FromStr("node has invalid timestamp")
 		}
 	}
 

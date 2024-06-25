@@ -49,7 +49,7 @@ func (h oneSourceHeuristic) hasParameter() bool {
 func (h *oneSourceHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
@@ -63,7 +63,7 @@ func (h *oneSourceHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return serror.NewStackError(errInvalidClusterTypes)
+		return serror.New(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -265,7 +265,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	for k := range remainingOrigins {
 		v, ok := allOriginMap[k]
 		if !ok {
-			return nil, serror.NewStackErrorStr("could not find origin in all origin map")
+			return nil, serror.FromStr("could not find origin in all origin map")
 		}
 
 		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{

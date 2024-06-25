@@ -30,7 +30,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	serror.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 type workKey struct {
@@ -84,7 +84,7 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		BufferItems: 64,   // number of keys per Get buffer
 	})
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 	workLog, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 5000, // number of keys to track frequency of
@@ -92,7 +92,7 @@ func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
 		BufferItems: 64,   // number of keys per Get buffer
 	})
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return &Worker{
@@ -171,7 +171,7 @@ func (w *Worker) GetFinishedDatabaseUID(workID int, userUID string) (string, err
 
 	databaseUID, ok := databaseUIDInterface.(string)
 	if !ok {
-		return "", serror.NewStackErrorStr("not able to convert cache item to string")
+		return "", serror.FromStr("not able to convert cache item to string")
 	}
 
 	return databaseUID, nil

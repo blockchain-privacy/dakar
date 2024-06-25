@@ -61,7 +61,7 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 		clusterCountVariables = outputClusterVariable + ", " + inputClusterVariable
 		addressesWithClusterVariables = outputAddressesWithClusterVariable + ", " + inputAddressesWithClusterVariable
 	default:
-		err = serror.NewStackErrorStr("invalid option")
+		err = serror.FromStr("invalid option")
 		return
 	}
 
@@ -114,12 +114,12 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.AddressCount) != 1 || len(r.ClusterCount) != 1 || len(r.AddressesWithCluster) != 1 {
-		err = serror.NewStackErrorStr("invalid response from database")
+		err = serror.FromStr("invalid response from database")
 		return
 	}
 
@@ -150,12 +150,12 @@ func BlockHeightToTimestamp(c external.Database, blockHeight uint64) (timestamp 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = serror.NewStackErrorStr("invalid response from database")
+		err = serror.FromStr("invalid response from database")
 		return
 	}
 

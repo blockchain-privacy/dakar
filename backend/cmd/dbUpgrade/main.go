@@ -45,7 +45,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	serror.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 type Config struct {

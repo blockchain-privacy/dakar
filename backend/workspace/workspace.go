@@ -85,7 +85,7 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 func CreateWork(newHeuristic dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
 	userUID string, workspaceMutex *Mutex) (worker.Work, error) {
 	if workspaceUID == "" {
-		return nil, serror.NewStackErrorStr("workspace UID not set for heuristic request")
+		return nil, serror.FromStr("workspace UID not set for heuristic request")
 	}
 
 	executor, err := heuristics.ConstructExecutors(newHeuristic, userUID)
@@ -120,7 +120,7 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 
 	// sanity check
 	if len(w.Nodes) == 0 {
-		return "", serror.NewStackErrorStr("received update for empty workspace")
+		return "", serror.FromStr("received update for empty workspace")
 	}
 
 	// find the index of the hew heuristic's parent
@@ -143,7 +143,7 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 
 	// no parent found
 	if parentIndex == -1 {
-		return "", serror.NewStackErrorStr("could not determine parent for new heuristic")
+		return "", serror.FromStr("could not determine parent for new heuristic")
 	}
 
 	clusterTypes := make([]string, len(heuristicRequest.ClusterTypes))
@@ -190,7 +190,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
 	isOutdated, err := isWorkspaceOutdated(dgraph, w)
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
@@ -239,7 +239,7 @@ func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, work
 	}
 
 	if len(w.Nodes) == 0 {
-		return serror.NewStackErrorStr("received update for empty workspace")
+		return serror.FromStr("received update for empty workspace")
 	}
 
 	frontendState := make(map[string]workspace.Node, len(state))
@@ -323,7 +323,7 @@ func DeleteNodes(dgraph external.Database, workspaceMutex *Mutex, workspaceUID s
 	}
 
 	if len(w.Nodes) == 0 {
-		return nil, serror.NewStackErrorf(
+		return nil, serror.FromFormat(
 			"node deletion request for empty workspace. workspace: %s", workspaceUID)
 	}
 
@@ -339,7 +339,7 @@ func DeleteNodes(dgraph external.Database, workspaceMutex *Mutex, workspaceUID s
 		}
 
 		if !found {
-			return nil, serror.NewStackErrorf(
+			return nil, serror.FromFormat(
 				"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, clientNode)
 		}
 	}
@@ -458,11 +458,11 @@ func generateNoteUID() string {
 func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, note workspace.Node) ([]workspace.Node, error) {
 	if len(note.Children) == 0 {
-		return nil, serror.NewStackErrorStr("note has no children")
+		return nil, serror.FromStr("note has no children")
 	}
 
 	if note.UID != "" && !strings.HasPrefix(note.UID, noteUIDPrefix) {
-		return nil, serror.NewStackErrorf("invalid note uid: %s", note.UID)
+		return nil, serror.FromFormat("invalid note uid: %s", note.UID)
 	}
 
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
@@ -476,12 +476,12 @@ func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID strin
 	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
 
 	if len(nodeMap) == 0 {
-		return nil, serror.NewStackErrorStr("trying to add note to an empty workspace")
+		return nil, serror.FromStr("trying to add note to an empty workspace")
 	}
 
 	if _, ok := nodeMap[note.Children[0]]; !ok {
 		// parent does not exist
-		return nil, serror.NewStackErrorf("trying to add note with non-existing child %s", note.Children[0])
+		return nil, serror.FromFormat("trying to add note with non-existing child %s", note.Children[0])
 	}
 
 	// if it is a new node generate a uid
@@ -511,7 +511,7 @@ func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, work
 	state []workspace.Node, clusterHeight *int64) error {
 	stateBytes, err := json.Marshal(state)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), clusterHeight)
@@ -531,7 +531,7 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 	for _, node := range connections {
 		nodeElement, ok := nodeMap[node.UID]
 		if !ok {
-			return 0, nil, serror.NewStackErrorf("uid %s not found in map", node.UID)
+			return 0, nil, serror.FromFormat("uid %s not found in map", node.UID)
 		}
 		nodeElement.Children = node.Children
 

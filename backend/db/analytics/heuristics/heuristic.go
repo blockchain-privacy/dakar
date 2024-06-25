@@ -54,7 +54,7 @@ func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspac
 	// set cluster height to 0, to force an update of the corresponding workspace
 	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{*h}})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -75,7 +75,7 @@ func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspac
 
 	insertUID, ok := resp.GetUids()[newHeuristicDummyUID]
 	if !ok {
-		err = serror.NewStackErrorStr("no new heuristic created")
+		err = serror.FromStr("no new heuristic created")
 		return
 	}
 
@@ -116,7 +116,7 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 	}
 
 	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return serror.NewStackError(ErrNoMutationHappened)
+		return serror.New(ErrNoMutationHappened)
 	}
 
 	return nil
@@ -166,7 +166,7 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -236,18 +236,18 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Transaction) == 0 {
-		err = serror.NewStackError(errInvalidDatabaseResponse)
+		err = serror.New(errInvalidDatabaseResponse)
 		return
 	}
 
 	for _, t := range r.Transaction {
 		if len(t.Block) != 1 || len(t.Outputs) == 0 {
-			err = serror.NewStackError(errInvalidDatabaseResponse)
+			err = serror.New(errInvalidDatabaseResponse)
 			return
 		}
 		inputTransactions = append(inputTransactions, HeuristicTransaction{
@@ -336,7 +336,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -380,7 +380,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 	for _, o := range r.Origins {
 		if o.Inputs == nil || o.Inputs[0].Address == nil {
-			err = serror.NewStackErrorf("invalid cluster information for transaction %s", o.UID)
+			err = serror.FromFormat("invalid cluster information for transaction %s", o.UID)
 			return
 		}
 
@@ -462,7 +462,7 @@ func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem,
 		}
 	}
 
-	return "", nil, serror.NewStackErrorStr("did not find cluster uid in merged cluster list")
+	return "", nil, serror.FromStr("did not find cluster uid in merged cluster list")
 }
 
 // createKeyHash creates from the keys of the map a unique string.
@@ -512,7 +512,7 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -551,12 +551,12 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Transaction) != 1 {
-		err = serror.NewStackError(errInvalidDatabaseResponse)
+		err = serror.New(errInvalidDatabaseResponse)
 		return
 	}
 
@@ -604,7 +604,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -623,12 +623,12 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if heuristicUID == "" {
-		err = serror.NewStackErrorStr("empty response from database")
+		err = serror.FromStr("empty response from database")
 		return
 	}
 
@@ -639,7 +639,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		destinationMap := make(map[string]bool)
 		for _, result := range cluster.Results {
 			if len(result.Origin) != 1 {
-				err = serror.NewStackErrorStr("invalid response from database")
+				err = serror.FromStr("invalid response from database")
 				return
 			}
 

@@ -18,13 +18,13 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 	for _, a := range attributions {
 		if a.Address.UID == "" || a.Tag == "" || a.Timestamp == "" ||
 			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
-			return serror.NewStackErrorf("attribution invalid: %v", a)
+			return serror.FromFormat("attribution invalid: %v", a)
 		}
 	}
 
 	pb, err := json.Marshal(attributions)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*5, &api.Request{
@@ -65,7 +65,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func DeletePrivateAttribution(c external.Database, userID string, attributionUID
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return serror.NewStackErrorStr("nothing was deleted")
+		return serror.FromStr("nothing was deleted")
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func DeletePublicAttribution(c external.Database, attributionUID string) error {
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return serror.NewStackErrorStr("nothing was deleted")
+		return serror.FromStr("nothing was deleted")
 	}
 
 	return nil
@@ -181,7 +181,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -246,7 +246,7 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 

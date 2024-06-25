@@ -20,11 +20,11 @@ type Attribution struct {
 // ImportAttribution writes the given address relations into the database
 func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string, isPublic bool) error {
 	if userID == "" {
-		return serror.NewStackErrorStr("user ID is not set")
+		return serror.FromStr("user ID is not set")
 	}
 
 	if len(attributions) == 0 {
-		return serror.NewStackErrorStr("attribution list is empty")
+		return serror.FromStr("attribution list is empty")
 	}
 
 	addrToUID, err := validateAddresses(dgraph, attributions)
@@ -73,11 +73,11 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 func validateAddresses(dgraph external.Database, attributions []Attribution) (map[string]string, error) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
-		return nil, serror.NewStackError(ErrTooManyAddresses)
+		return nil, serror.New(ErrTooManyAddresses)
 	}
 
 	if len(attributions) == 0 {
-		return nil, serror.NewStackErrorStr("attribution list is empty")
+		return nil, serror.FromStr("attribution list is empty")
 	}
 
 	addresses := map[string]bool{}
@@ -97,14 +97,14 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 			delete(addresses, a.Hash)
 		}
 
-		return nil, serror.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.FromFormat("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping
 	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, serror.NewStackErrorf("address invalid: %v", dbAddress)
+			return nil, serror.FromFormat("address invalid: %v", dbAddress)
 		}
 		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}

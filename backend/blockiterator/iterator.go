@@ -69,7 +69,7 @@ func info(iterator BlockIterator, msg string, v ...interface{}) {
 func StartIteration(iterator BlockIterator) (err error) {
 	props := iterator.Props()
 	if l := props.Logger; l == nil {
-		return serror.NewStackErrorStr(props.Name + " logger is nil")
+		return serror.FromStr(props.Name + " logger is nil")
 	}
 
 	defer func() {

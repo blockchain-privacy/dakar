@@ -36,14 +36,14 @@ func (s *Server) authorization() adapter {
 			kratosID := r.Header.Get("x-user")
 			if kratosID == "" {
 				sendUnauthorizedMessage(w)
-				warn(serror.NewStackErrorStr("kratos ID not set"))
+				warn(serror.FromStr("kratos ID not set"))
 				return
 			}
 
 			dakarUser := r.Header.Get("x-dakar-user")
 			if dakarUser == "" {
 				sendUnauthorizedMessage(w)
-				warn(serror.NewStackErrorStr("dgraph UID not set"))
+				warn(serror.FromStr("dgraph UID not set"))
 				return
 			}
 
@@ -69,7 +69,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "an error occurred", http.StatusInternalServerError)
-				warn(serror.NewStackError(err))
+				warn(serror.New(err))
 				return
 			}
 			// reset body, so it can be read by the next handler
@@ -115,7 +115,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			w.WriteHeader(response.statusCode)
 
 			if _, err = w.Write(response.buffer); err != nil {
-				warn(serror.NewStackError(err))
+				warn(serror.New(err))
 			}
 		})
 	}

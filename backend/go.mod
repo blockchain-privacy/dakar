@@ -8,11 +8,10 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/ory/kratos-client-go v1.1.0
 	github.com/prometheus/client_golang v1.19.1
-	github.com/qrest/gomisc v0.0.0-20240625130950-74e04641299c
+	github.com/qrest/gomisc v0.0.1
 	github.com/stretchr/testify v1.9.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/grpc v1.64.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -41,4 +40,5 @@ require (
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

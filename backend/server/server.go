@@ -33,7 +33,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	serror.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 type Server struct {
@@ -60,11 +60,11 @@ type Server struct {
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
 	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if adminAuth == nil || auth == nil {
-		return nil, serror.NewStackErrorStr("authentication handles are not set")
+		return nil, serror.FromStr("authentication handles are not set")
 	}
 
 	if worker == nil {
-		return nil, serror.NewStackErrorStr("worker pointer is nil")
+		return nil, serror.FromStr("worker pointer is nil")
 	}
 
 	// init cache
@@ -74,7 +74,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return &Server{
@@ -105,7 +105,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			warn(serror.NewStackError(err))
+			warn(serror.New(err))
 		}
 		wg.Done()
 	}()
@@ -130,7 +130,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			warn(serror.NewStackError(err))
+			warn(serror.New(err))
 		}
 		wg.Done()
 	}()

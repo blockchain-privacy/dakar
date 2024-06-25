@@ -64,7 +64,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	serror.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -81,7 +81,7 @@ func selectConfig(blockchainMode string) (processor.Config, analytics.Config, er
 	case "Bitcoin":
 		return processor.NewBitcoinConfig(), analytics.NewBitcoinConfig(), nil
 	default:
-		return processor.Config{}, analytics.Config{}, serror.NewStackErrorStr("invalid blockchain mode")
+		return processor.Config{}, analytics.Config{}, serror.FromStr("invalid blockchain mode")
 	}
 }
 

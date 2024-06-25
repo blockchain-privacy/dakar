@@ -19,7 +19,7 @@ var (
 // AddWorkspace creates a new workspace
 func AddWorkspace(c external.Database, name string, userUID string) (workspaceUID string, err error) {
 	if name == "" || userUID == "" {
-		err = serror.NewStackError(db.ErrEmptyRequestArgument)
+		err = serror.New(db.ErrEmptyRequestArgument)
 		return
 	}
 	const newWorkspaceDummyUID = "new_w"
@@ -38,7 +38,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (workspaceUI
 
 	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (workspaceUI
 
 	workspaceUID, ok := resp.GetUids()[newWorkspaceDummyUID]
 	if !ok {
-		err = serror.NewStackErrorStr("new workspace was not created")
+		err = serror.FromStr("new workspace was not created")
 		return
 	}
 
@@ -62,7 +62,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (workspaceUI
 // RenameWorkspace renames a workspace
 func RenameWorkspace(c external.Database, name string, userUID string, workspaceUID string) (err error) {
 	if name == "" || userUID == "" {
-		return serror.NewStackError(db.ErrEmptyRequestArgument)
+		return serror.New(db.ErrEmptyRequestArgument)
 	}
 	w := Workspace{
 		UID:              workspaceUID,
@@ -79,7 +79,7 @@ func RenameWorkspace(c external.Database, name string, userUID string, workspace
 
 	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func RenameWorkspace(c external.Database, name string, userUID string, workspace
 func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 	state string, clusterHeight *int64) (err error) {
 	if workspaceUID == "" || userUID == "" || state == "" {
-		return serror.NewStackError(db.ErrEmptyRequestArgument)
+		return serror.New(db.ErrEmptyRequestArgument)
 	}
 	w := Workspace{
 		UID:              "uid(v)",
@@ -112,7 +112,7 @@ func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 
 	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 // GetFrontendWorkspaces returns all workspaces of the current user without its state
 func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, error) {
 	if userUID == "" {
-		return nil, serror.NewStackError(db.ErrEmptyRequestArgument)
+		return nil, serror.New(db.ErrEmptyRequestArgument)
 	}
 
 	query := `query Q($user:string){
@@ -152,7 +152,7 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$user": userUID})
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	// json struct
@@ -161,7 +161,7 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return r.Workspaces, nil
@@ -175,7 +175,7 @@ func isStateEmpty(state string) bool {
 // GetFrontendWorkspace returns the specified workspace
 func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*DecodedWorkspace, error) {
 	if userUID == "" {
-		return nil, serror.NewStackError(db.ErrEmptyRequestArgument)
+		return nil, serror.New(db.ErrEmptyRequestArgument)
 	}
 
 	query := `query Q($user:string,$workspace:string){
@@ -194,7 +194,7 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$user": userUID, "$workspace": uid})
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	// json struct
@@ -203,11 +203,11 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	if len(r.Workspaces) != 1 {
-		return nil, serror.NewStackErrorStr("invalid number of workspaces returned: " + strconv.Itoa(len(r.Workspaces)))
+		return nil, serror.FromStr("invalid number of workspaces returned: " + strconv.Itoa(len(r.Workspaces)))
 	}
 
 	decodedWorkspace := DecodedWorkspace{
@@ -222,7 +222,7 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 	}
 
 	if err := json.Unmarshal([]byte(r.Workspaces[0].State), &decodedWorkspace.Nodes); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return &decodedWorkspace, nil
@@ -288,7 +288,7 @@ func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []stri
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
 		map[string]string{"$uids": db.CreateCommaArray(nodeUIDs)})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -300,12 +300,12 @@ func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []stri
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Height) != 1 || r.Height[0].MaxHeight == nil {
-		err = serror.NewStackErrorf("invalid max height returned: %v", r.Height)
+		err = serror.FromFormat("invalid max height returned: %v", r.Height)
 		return
 	}
 

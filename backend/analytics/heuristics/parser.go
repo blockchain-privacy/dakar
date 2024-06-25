@@ -53,7 +53,7 @@ func buildHeuristicTreeElement(hMap map[string]heuristic, h heuristics.DatabaseH
 			heuristic:          newHeuristic,
 		}
 	} else {
-		err = serror.NewStackError(errHeuristicTypeNotFound)
+		err = serror.New(errHeuristicTypeNotFound)
 		return
 	}
 

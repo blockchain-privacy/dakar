@@ -49,7 +49,7 @@ func (h denominationTypeHeuristic) setParameter(_ string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *denominationTypeHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return serror.NewStackError(errInvalidClusterTypes)
+		return serror.New(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -151,7 +151,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	}
 
 	if len(origins) == 0 {
-		return nil, serror.NewStackError(errNoOriginsAtStart)
+		return nil, serror.New(errNoOriginsAtStart)
 	}
 
 	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)

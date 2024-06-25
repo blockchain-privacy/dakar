@@ -25,7 +25,7 @@ type ConnectedNodeRequest struct {
 
 func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
 	if len(c.Block) != 1 {
-		return nil, serror.NewStackErrorf("invalid block count: %d", len(c.Block))
+		return nil, serror.FromFormat("invalid block count: %d", len(c.Block))
 	}
 
 	node := ConnectedNode{
@@ -36,11 +36,11 @@ func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
 
 	for _, i := range c.Inputs {
 		if len(i.Addresses) != 1 {
-			return nil, serror.NewStackErrorf("invalid address count: %d", len(i.Addresses))
+			return nil, serror.FromFormat("invalid address count: %d", len(i.Addresses))
 		}
 
 		if len(i.InputTransactions) != 1 {
-			return nil, serror.NewStackErrorf("invalid input transaction count: %d", len(i.InputTransactions))
+			return nil, serror.FromFormat("invalid input transaction count: %d", len(i.InputTransactions))
 		}
 
 		node.Inputs = append(node.Inputs, struct {

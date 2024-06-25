@@ -50,7 +50,7 @@ func (h *forwardAmountHeuristic) hasParameter() bool {
 func (h *forwardAmountHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
@@ -64,7 +64,7 @@ func (h *forwardAmountHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *forwardAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return serror.NewStackError(errInvalidClusterTypes)
+		return serror.New(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -171,7 +171,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
-		return nil, serror.NewStackError(errNoOriginsAtStart)
+		return nil, serror.New(errNoOriginsAtStart)
 	}
 
 	var exclusions []string

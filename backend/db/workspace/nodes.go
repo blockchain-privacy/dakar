@@ -33,7 +33,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 	*connectionRequest, error) {
 	// one uid is still okay, because it could a be destination transaction with connected heuristics
 	if len(uids) == 0 {
-		return nil, serror.NewStackError(db.ErrEmptyRequestArgument)
+		return nil, serror.New(db.ErrEmptyRequestArgument)
 	}
 
 	// todo: in block 'transactions' only select first input when searching for clusters (for performance)
@@ -176,7 +176,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 	var r connectionRequest
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return &r, nil
@@ -188,12 +188,12 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
 	heuristics []Node, clusterHeight int64, err error) {
 	if len(r.ClusterHeight) != 1 {
-		err = serror.NewStackErrorf("invalid number of cluster height results: %d", len(r.ClusterHeight))
+		err = serror.FromFormat("invalid number of cluster height results: %d", len(r.ClusterHeight))
 		return
 	}
 
 	if r.ClusterHeight[0].LastClusteredID == nil {
-		err = serror.NewStackErrorStr("null pointer received for last clustered ID")
+		err = serror.FromStr("null pointer received for last clustered ID")
 		return
 	}
 
@@ -205,7 +205,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 	clusterToAddress := map[string]string{}
 	for _, address := range r.AddressClusters {
 		if len(address.Cluster) != 1 {
-			err = serror.NewStackErrorf("address not attached to FMI-cluster: %s", address)
+			err = serror.FromFormat("address not attached to FMI-cluster: %s", address)
 			return
 		}
 
@@ -454,7 +454,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$first": firstUID, "$second": secondUID})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -476,12 +476,12 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.ClusterClusters) != 1 {
-		err = serror.NewStackErrorf("invalid number of clusters returned: %d", len(r.ClusterClusters))
+		err = serror.FromFormat("invalid number of clusters returned: %d", len(r.ClusterClusters))
 		return
 	}
 	transactionMap := map[string]bool{}
@@ -557,7 +557,7 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$cluster": clusterUID,
 		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -579,17 +579,17 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.HeuristicClusters) != 1 {
-		err = serror.NewStackErrorf("invalid number of heuristic results returned: %d", len(r.HeuristicClusters))
+		err = serror.FromFormat("invalid number of heuristic results returned: %d", len(r.HeuristicClusters))
 		return
 	}
 
 	if len(r.HeuristicClusters[0].Clusters) != 1 {
-		err = serror.NewStackErrorf("invalid number of cluster results returned: %d", len(r.HeuristicClusters[0].Clusters))
+		err = serror.FromFormat("invalid number of cluster results returned: %d", len(r.HeuristicClusters[0].Clusters))
 		return
 	}
 
@@ -615,7 +615,7 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 // which is connected to clusters, they are returned instead.
 func SearchForNode(c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
 	if nodeQuery == "" || userUID == "" {
-		err = serror.NewStackError(db.ErrEmptyRequestArgument)
+		err = serror.New(db.ErrEmptyRequestArgument)
 		return
 	}
 	const query = `query Q($query:string, $user:string){
@@ -635,7 +635,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$query": nodeQuery, "$user": userUID})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -656,7 +656,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -669,7 +669,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 	if len(r.Address) > 0 {
 		addr := r.Address[0]
 		if len(addr.Clusters) != 1 {
-			return nil, serror.NewStackErrorStr("address has no cluster attached")
+			return nil, serror.FromStr("address has no cluster attached")
 		}
 
 		node = &Node{UID: addr.UID, Type: NodeTypeCluster, AddressHash: nodeQuery, ClusterType: addr.Clusters[0].Type}
@@ -714,7 +714,7 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -737,12 +737,12 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Transactions) < 1 || len(r.Transactions) > 2 {
-		err = serror.NewStackErrorf("invalid number of transactions returned: %d", len(r.Transactions))
+		err = serror.FromFormat("invalid number of transactions returned: %d", len(r.Transactions))
 		return
 	}
 
@@ -847,7 +847,7 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID,
 		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -870,12 +870,12 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Transactions) < 1 || len(r.Transactions) > 2 {
-		err = serror.NewStackErrorf("invalid number of transactions returned: %d", len(r.Transactions))
+		err = serror.FromFormat("invalid number of transactions returned: %d", len(r.Transactions))
 		return
 	}
 

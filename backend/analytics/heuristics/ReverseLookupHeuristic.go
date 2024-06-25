@@ -51,7 +51,7 @@ func (h reverseLookupHeuristic) hasParameter() bool {
 func (h *reverseLookupHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
@@ -65,7 +65,7 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return serror.NewStackError(errInvalidClusterTypes)
+		return serror.New(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -148,7 +148,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if parentHeuristicResults == nil {
-			return nil, serror.NewStackError(errNoOriginsAtStart)
+			return nil, serror.New(errNoOriginsAtStart)
 		}
 
 		parentAttributionMap = attrMap

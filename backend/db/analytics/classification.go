@@ -114,7 +114,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -166,12 +166,12 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = serror.NewStackErrorStr("wrong number of returned query counts")
+		err = serror.FromStr("wrong number of returned query counts")
 		return
 	}
 
@@ -223,12 +223,12 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = serror.NewStackErrorStr("wrong number of returned query counts")
+		err = serror.FromStr("wrong number of returned query counts")
 		return
 	}
 
@@ -284,7 +284,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 

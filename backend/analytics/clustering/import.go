@@ -24,7 +24,7 @@ var (
 // ImportCluster writes the given address relations into the database
 func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, userID string) error {
 	if userID == "" {
-		return serror.NewStackErrorStr("user ID is not set")
+		return serror.FromStr("user ID is not set")
 	}
 
 	addrToUID, err := validateAddresses(dgraph, clusters)
@@ -98,14 +98,14 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 
 	// check maximum number of addresses
 	if len(uniqueAddresses) > 1000 {
-		return nil, serror.NewStackError(ErrTooManyAddresses)
+		return nil, serror.New(ErrTooManyAddresses)
 	}
 
 	// check if clusters contain at least two addresses
 	clusterSet := buildClusterSet(clusters)
 	for _, v := range clusterSet {
 		if v == nil || len(v) < 2 {
-			return nil, serror.NewStackError(ErrShallowCluster)
+			return nil, serror.New(ErrShallowCluster)
 		}
 	}
 
@@ -121,14 +121,14 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			delete(addresses, a.Hash)
 		}
 
-		return nil, serror.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.FromFormat("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping
 	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, serror.NewStackErrorf("address invalid: %v", dbAddress)
+			return nil, serror.FromFormat("address invalid: %v", dbAddress)
 		}
 		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}

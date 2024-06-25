@@ -79,19 +79,19 @@ func (j *Client) Call(method string, params []any, result any) error {
 		ID:      j.NewRequestID(),
 	})
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	request, err := http.NewRequest(http.MethodPost, j.URI, bytes.NewBuffer(replyBuffer))
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	request.SetBasicAuth(j.User, j.Password)
 
 	r, err := j.httpClient.Do(request) //nolint:bodyclose
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -99,7 +99,7 @@ func (j *Client) Call(method string, params []any, result any) error {
 	}(r.Body)
 
 	if r.StatusCode >= 400 {
-		return serror.NewStackErrorf("status code: %d", r.StatusCode)
+		return serror.FromFormat("status code: %d", r.StatusCode)
 	}
 
 	rpcResult := Response{
@@ -107,11 +107,11 @@ func (j *Client) Call(method string, params []any, result any) error {
 	}
 	err = json.NewDecoder(r.Body).Decode(&rpcResult)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	if rpcResult.Error != nil {
-		return serror.NewStackErrorStr(rpcResult.Error.Message)
+		return serror.FromStr(rpcResult.Error.Message)
 	}
 
 	return nil
@@ -121,19 +121,19 @@ func (j *Client) Call(method string, params []any, result any) error {
 func (j *Client) Batch(requests []Request, results []Response) error {
 	replyBuffer, err := json.Marshal(requests)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	request, err := http.NewRequest(http.MethodPost, j.URI, bytes.NewBuffer(replyBuffer))
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	request.SetBasicAuth(j.User, j.Password)
 
 	r, err := j.httpClient.Do(request) //nolint:bodyclose
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -141,17 +141,17 @@ func (j *Client) Batch(requests []Request, results []Response) error {
 	}(r.Body)
 
 	if r.StatusCode >= 400 {
-		return serror.NewStackErrorf("status code: %d", r.StatusCode)
+		return serror.FromFormat("status code: %d", r.StatusCode)
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&results)
 	if err != nil {
-		return serror.NewStackError(err)
+		return serror.New(err)
 	}
 
 	for _, rpcResult := range results {
 		if rpcResult.Error != nil {
-			return serror.NewStackErrorStr(rpcResult.Error.Message)
+			return serror.FromStr(rpcResult.Error.Message)
 		}
 	}
 
@@ -222,7 +222,7 @@ func (d BlockchainClient) GetBlockCount() (int64, error) {
 	var r int64
 	err := d.rpc.Call("getblockcount", nil, &r)
 	if err != nil {
-		return 0, serror.NewStackError(err)
+		return 0, serror.New(err)
 	}
 
 	return r, nil
@@ -232,7 +232,7 @@ func (d BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseRes
 	var r GetBlockVerboseResult
 	err := d.rpc.Call("getblock", []any{blockHash, 1}, &r)
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return &r, nil
@@ -242,7 +242,7 @@ func (d BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 	var r string
 	err := d.rpc.Call("getblockhash", []any{blockHeight}, &r)
 	if err != nil {
-		return "", serror.NewStackError(err)
+		return "", serror.New(err)
 	}
 
 	return r, nil
@@ -252,7 +252,7 @@ func (d BlockchainClient) GetRawTransactionVerbose(txHash string) (*TxRawResult,
 	var r TxRawResult
 	err := d.rpc.Call("getrawtransaction", []any{txHash, 1}, &r)
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return &r, nil
@@ -274,14 +274,14 @@ func (d BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawR
 
 	err := d.rpc.Batch(requests, results)
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	txResults := make([]*TxRawResult, len(results))
 	for i, batchResult := range results {
 		converted, ok := batchResult.Result.(*TxRawResult)
 		if !ok {
-			return nil, serror.NewStackErrorStr("conversion of rpc result to type failed")
+			return nil, serror.FromStr("conversion of rpc result to type failed")
 		}
 		txResults[i] = converted
 	}
@@ -294,7 +294,7 @@ func (d BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]st
 	var blockHashes []string
 	err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes)
 	if err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return blockHashes, nil
@@ -305,7 +305,7 @@ func (d BlockchainClient) GetNewAddress() (string, error) {
 	var newAddress string
 	err := d.rpc.Call("getnewaddress", []any{}, &newAddress)
 	if err != nil {
-		return "", serror.NewStackError(err)
+		return "", serror.New(err)
 	}
 
 	return newAddress, nil
@@ -316,7 +316,7 @@ func (d BlockchainClient) CreateWallet(name string) (string, error) {
 	var newName string
 	err := d.rpc.Call("createwallet", []any{name}, &newName)
 	if err != nil {
-		return "", serror.NewStackError(err)
+		return "", serror.New(err)
 	}
 
 	return newName, nil
@@ -327,7 +327,7 @@ func (d BlockchainClient) LoadWallet(fileName string) (string, error) {
 	var newName string
 	err := d.rpc.Call("loadwallet", []any{fileName}, &newName)
 	if err != nil {
-		return "", serror.NewStackError(err)
+		return "", serror.New(err)
 	}
 
 	return newName, nil

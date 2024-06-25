@@ -83,7 +83,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	// filter duplicate transaction hashes (due to one hash per output)

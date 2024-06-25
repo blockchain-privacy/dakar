@@ -76,7 +76,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	connectedNodes := make([]ConnectedNode, len(r.Q))
@@ -117,7 +117,7 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return r.Q, nil
@@ -197,12 +197,12 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 || len(r.CC) != 1 {
-		err = serror.NewStackErrorStr("invalid response from database")
+		err = serror.FromStr("invalid response from database")
 		return
 	}
 
@@ -273,7 +273,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, nil, serror.NewStackError(err)
+		return nil, nil, serror.New(err)
 	}
 
 	connectedNodes := make([]ConnectedNode, len(r.Connected))
@@ -315,7 +315,7 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -417,7 +417,7 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 		ShallowTransactions []db.Transaction `json:"shallow_txs,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -524,7 +524,7 @@ func GetDestinationTransactionSpenders(c external.Database) (
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -618,11 +618,11 @@ func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return 0, 0, serror.NewStackError(err)
+		return 0, 0, serror.New(err)
 	}
 
 	if len(r.Inputs) != 1 || len(r.Ouptuts) != 1 {
-		return 0, 0, serror.NewStackErrorStr("invalid result")
+		return 0, 0, serror.FromStr("invalid result")
 	}
 
 	return r.Inputs[0].Count, r.Ouptuts[0].Count, nil
@@ -647,7 +647,7 @@ func GetAllFMIClusters(c external.Database) (uids []string, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -721,7 +721,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 			return nil, nil
 		}
 
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	// json struct
@@ -730,7 +730,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return r.Transactions, nil

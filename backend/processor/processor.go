@@ -32,7 +32,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	serror.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 // holds the current state of the crawling processing loop
@@ -119,11 +119,11 @@ func addOutputsToAddresses(addresses map[string]db.Address, addr string, uids []
 func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, outputs map[string]outputMapping,
 	addrMap map[string]db.Address) error {
 	if cache == nil {
-		return serror.NewStackErrorStr("cache is not set")
+		return serror.FromStr("cache is not set")
 	}
 
 	if txHash == "" {
-		return serror.NewStackErrorStr("transaction hash is empty")
+		return serror.FromStr("transaction hash is empty")
 	}
 
 	for _, mapping := range outputs {
@@ -132,7 +132,7 @@ func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, output
 			output := cache.getOutput(txHash, idx)
 
 			if output == nil {
-				return serror.NewStackErrorf("requested output not found in cache: hash: %s index: %d", txHash, idx)
+				return serror.FromFormat("requested output not found in cache: hash: %s index: %d", txHash, idx)
 			}
 
 			uids = append(uids, output.UID)
@@ -154,7 +154,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 	}
 
 	if cache == nil {
-		return serror.NewStackErrorStr("cache is not set")
+		return serror.FromStr("cache is not set")
 	}
 
 	addrMap := make(map[string]db.Address)
@@ -217,7 +217,7 @@ func newAmount(f float64) (int64, error) {
 // If no address can be found, an empty address is returned.
 func getOutputAddress(pubKey *jsonrpc.ScriptPubKeyResult, pubKeyHashAddrID byte) (string, error) {
 	if pubKey == nil {
-		return "", serror.NewStackErrorStr("received nil ScriptPubKeyResult")
+		return "", serror.FromStr("received nil ScriptPubKeyResult")
 	}
 
 	if pubKey.Address != "" {
@@ -233,14 +233,14 @@ func getOutputAddress(pubKey *jsonrpc.ScriptPubKeyResult, pubKeyHashAddrID byte)
 	if pubKey.Type != "nulldata" && pubKey.Type != "nonstandard" {
 		decodeString, err := hex.DecodeString(pubKey.Hex)
 		if err != nil {
-			return "", serror.NewStackError(err)
+			return "", serror.New(err)
 		}
 
 		cfg := chaincfg.MainNetParams
 		cfg.PubKeyHashAddrID = pubKeyHashAddrID
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(decodeString, &cfg)
 		if err != nil {
-			return "", serror.NewStackError(err)
+			return "", serror.New(err)
 		}
 
 		if len(addresses) > 0 {
@@ -283,7 +283,7 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 		if len(rawTransaction.Vin) == len(txDetails.Inputs) {
 			foundAllInputs = true
 		} else {
-			err = serror.NewStackErrorf("not all inputs where found in transaction %s", rawTransaction.Txid)
+			err = serror.FromFormat("not all inputs where found in transaction %s", rawTransaction.Txid)
 			return
 		}
 	} else {
@@ -297,7 +297,7 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 	for _, d := range rawTransaction.Vout {
 		intAmount, valErr := newAmount(d.Value)
 		if valErr != nil {
-			err = serror.NewStackError(valErr)
+			err = serror.New(valErr)
 			return
 		}
 		index := d.N
@@ -326,7 +326,7 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 	// if all inputs are available the transaction fee gets calculated
 	if foundAllInputs {
 		if err = txDetails.CalculateTransactionFee(); err != nil {
-			err = serror.NewStackError(err)
+			err = serror.New(err)
 			return
 		}
 	}
@@ -378,7 +378,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 		refOutput.UID = createOutputUID(vin.Txid, vin.Vout)
 		intAmount, err := newAmount(v.Vout[vin.Vout].Value)
 		if err != nil {
-			return serror.NewStackError(err)
+			return serror.New(err)
 		}
 		refOutput.Amount = &intAmount
 	} else if o := cache.getAndEvictOutput(vin.Txid, vin.Vout); o != nil {
@@ -387,12 +387,12 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 	} else {
 		t, ok := externalOutputs[vin.Txid]
 		if !ok {
-			return serror.NewStackErrorf("tx %s does not exist in external cache", vin.Txid)
+			return serror.FromFormat("tx %s does not exist in external cache", vin.Txid)
 		}
 
 		o, ok := t[vin.Vout]
 		if !ok {
-			return serror.NewStackErrorf("tx %s - outputindex %d does not exist in external cache", vin.Txid, vin.Vout)
+			return serror.FromFormat("tx %s - outputindex %d does not exist in external cache", vin.Txid, vin.Vout)
 		}
 
 		refOutput.Amount = o.Amount
@@ -456,7 +456,7 @@ func processingInterrupted() {
 func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj string,
 	rpcNumBlocks uint64, config Config) (currentBlock *jsonrpc.GetBlockVerboseResult, isInterrupt bool, err error) {
 	if hashObj == "" {
-		err = serror.NewStackErrorStr("blockhash is nil")
+		err = serror.FromStr("blockhash is nil")
 		return
 	}
 
@@ -471,7 +471,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 		case <-ticker.C:
 			currentBlock, err = client.GetBlockVerbose(hashObj)
 			if err != nil {
-				err = serror.NewStackError(err)
+				err = serror.New(err)
 				return
 			}
 		}
@@ -494,11 +494,11 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 	blocksCount, err := client.GetBlockCount()
 	if err != nil {
-		return 0, serror.NewStackError(err)
+		return 0, serror.New(err)
 	}
 
 	if blocksCount < 0 {
-		return 0, serror.NewStackErrorStr("error RPC client block count is negative")
+		return 0, serror.FromStr("error RPC client block count is negative")
 	}
 
 	return uint64(blocksCount), nil
@@ -510,11 +510,11 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 		if !errors.Is(err, errBlockIDsDoNotMatch) {
 			return
 		}
-		warn(serror.NewStackError(errBlockIDsDoNotMatch), "continuing...")
+		warn(serror.New(errBlockIDsDoNotMatch), "continuing...")
 	}
 
 	if state.hash, err = client.GetBlockHash(int64(state.id)); err != nil {
-		err = serror.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -540,7 +540,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 	txs := make(map[string]jsonrpc.TxRawResult, len(rawTransactions))
 	for _, rawTransaction := range rawTransactions {
 		if rawTransaction == nil {
-			return nil, serror.NewStackErrorf("raw transaction is nil. Request: %v", transactions)
+			return nil, serror.FromFormat("raw transaction is nil. Request: %v", transactions)
 		}
 
 		txs[rawTransaction.Txid] = *rawTransaction
@@ -568,7 +568,7 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (
 		for _, i := range indexes {
 			for _, o := range t.Outputs {
 				if o.OutputIndex == nil {
-					return nil, serror.NewStackErrorf("output index was not set for tx %s", t.Hash)
+					return nil, serror.FromFormat("output index was not set for tx %s", t.Hash)
 				}
 				if *o.OutputIndex == i {
 					// add index mapping
@@ -622,7 +622,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 
 	// sanity check for number of transactions
 	if len(transactions) != len(block.Tx) {
-		err = serror.NewStackErrorf("wrong number of transactions in block: %s", block.Hash)
+		err = serror.FromFormat("wrong number of transactions in block: %s", block.Hash)
 		return
 	}
 
