@@ -9,6 +9,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	mw "github.com/qrest/gomisc/middleware"
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"net/http"
@@ -118,7 +119,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 // StartMetrics creates a metrics server on the given port
 func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	handler := http.NewServeMux()
-	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), maxBody()))
+	handler.Handle(getRouteMetrics(), mw.Adapt(promhttp.Handler(), mw.MaxBody5MiB()))
 
 	// create server
 	srv := &http.Server{

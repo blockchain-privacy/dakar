@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	mw "github.com/qrest/gomisc/middleware"
 	"github.com/qrest/gomisc/serror"
 	"io"
 	"net/http"
@@ -14,15 +15,6 @@ type contextKeyUser int
 
 const middlewareContextUser contextKeyUser = iota
 
-type adapter func(http.Handler) http.Handler
-
-func adapt(h http.Handler, adapters ...adapter) http.Handler {
-	for i := len(adapters) - 1; i >= 0; i-- {
-		h = adapters[i](h)
-	}
-	return h
-}
-
 // sendUnauthorizedMessage sends an unauthorized message
 func sendUnauthorizedMessage(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
@@ -30,7 +22,7 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
-func (s *Server) authorization() adapter {
+func (s *Server) authorization() mw.Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			kratosID := r.Header.Get("x-user")
@@ -57,7 +49,7 @@ func (s *Server) authorization() adapter {
 	}
 }
 
-func (s *Server) useCache(ttl time.Duration) adapter {
+func (s *Server) useCache(ttl time.Duration) mw.Adapter {
 	type cacheElement struct {
 		buffer     []byte
 		header     http.Header
@@ -117,26 +109,6 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			if _, err = w.Write(response.buffer); err != nil {
 				warn(serror.New(err))
 			}
-		})
-	}
-}
-
-// maxBody limits the amount of bytes which can be read from the request body to maxBodySize.
-func maxBody() adapter {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
-			h.ServeHTTP(w, r)
-		})
-	}
-}
-
-// maxBodyConfig limits the amount of bytes which can be read from the request body to size (in number of MiB).
-func maxBodyConfig(size int64) adapter {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*size)
-			h.ServeHTTP(w, r)
 		})
 	}
 }
