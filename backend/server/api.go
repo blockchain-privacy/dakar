@@ -923,22 +923,22 @@ func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 func (s *Server) setupHandlers() {
 	// Search
 	s.handler.Handle(buildPattern(http.MethodGet, routeSearch, "query"),
-		mw.Adapt(s.handlerSearch(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerSearch(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Common data
 	s.handler.Handle(buildPattern(http.MethodGet, routeTransaction, "hash"),
 		// transaction data never changes so set cache time to infinte
-		mw.Adapt(s.handlerTransaction(), s.useCache(time.Duration(0)), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerTransaction(), s.cacheFactory(time.Duration(0)), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodGet, routeBlock, "hash"),
-		mw.Adapt(s.handlerBlock(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerBlock(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodGet, routeAddress, "hash"),
-		mw.Adapt(s.handlerAddress(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerAddress(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
-		mw.Adapt(s.handlerAddressOutputRange(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerAddressOutputRange(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Meta
 	s.handler.Handle(buildPattern(http.MethodGet, routeMeta, ""),
-		mw.Adapt(s.handlerMeta(), s.authorization(), s.useCache(time.Second*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
 
 	// heuristic
 	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
@@ -952,13 +952,13 @@ func (s *Server) setupHandlers() {
 
 	// Analytics
 	s.handler.Handle(buildPattern(http.MethodPost, routeShortestTxPath, ""),
-		mw.Adapt(s.handlerShortestTransactionPath(), s.authorization(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerShortestTransactionPath(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodGet, routeConnectionLookup, "hash"),
-		mw.Adapt(s.handlerConnectionLookup(), s.authorization(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerConnectionLookup(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodPost, routeMixingActivity, ""),
-		mw.Adapt(s.handlerMixingActivity(), s.authorization(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerMixingActivity(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),
-		mw.Adapt(s.handlerSpendingFingerprint(), s.authorization(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerSpendingFingerprint(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Clusters
 	s.handler.Handle(buildPattern(http.MethodGet, routeClusters, "hash"),
@@ -1038,5 +1038,5 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspaces, ""),
 		mw.Adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspacesConnection, ""),
-		mw.Adapt(s.handlerWorkspaceConnection(), s.authorization(), s.useCache(time.Minute*10), mw.MaxBody5MiB()))
+		mw.Adapt(s.handlerWorkspaceConnection(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 }

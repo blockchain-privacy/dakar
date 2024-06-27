@@ -6,7 +6,6 @@ import (
 	"backend/worker"
 	"backend/workspace"
 	"errors"
-	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	mw "github.com/qrest/gomisc/middleware"
@@ -46,8 +45,8 @@ type Server struct {
 	worker *worker.Worker
 	// in-memory transaction and address graph of all privacy transactions
 	graphWrapper *graph.Wrapper
-	// web request cache
-	cache *ristretto.Cache
+	// cache factory
+	cacheFactory func(duration time.Duration) mw.Adapter
 	// mutex map which synchronizes access to workspaces
 	workspaceMutex *workspace.Mutex
 	// ory kratos authentifaction handle
@@ -68,14 +67,9 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		return nil, serror.FromStr("worker pointer is nil")
 	}
 
-	// init cache
-	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
-		MaxCost:     1 << 30, // maximum cost of cache (1 GB).
-		BufferItems: 64,      // number of keys per Get buffer.
-	})
+	factory, err := mw.NewCacheFactory(nil)
 	if err != nil {
-		return nil, serror.New(err)
+		return nil, err
 	}
 
 	return &Server{
@@ -83,7 +77,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		client:         client,
 		worker:         worker,
 		graphWrapper:   graphWrapper,
-		cache:          cache,
+		cacheFactory:   factory,
 		auth:           auth,
 		adminAuth:      adminAuth,
 		workspaceMutex: workspace.NewMutex(),

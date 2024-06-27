@@ -10,12 +10,10 @@ import (
 	dbstat "backend/db/status"
 	"backend/db/workspace"
 	"backend/external"
-	"encoding/json"
-	"github.com/qrest/gomisc/serror"
-	"time"
-
 	"context"
+	"encoding/json"
 	"errors"
+	"github.com/qrest/gomisc/serror"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -52,14 +50,6 @@ func isValid(input string) bool {
 func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-}
-
-// setCacheHeader sets the client side caching to a third of the server side cache
-func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
-	if duration == time.Duration(0) {
-		duration = time.Hour * 24
-	}
-	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
 }
 
 // sendReply encodes the given reply into JSON and sends it
@@ -179,15 +169,6 @@ const typeEmpty queryResultType = "response_empty"
 type SearchResult struct {
 	resultType queryResultType
 	result     interface{}
-}
-
-// buildKey build a key from the given arguments
-func buildKey(requestURI string, body []byte) string {
-	if len(body) > 0 {
-		requestURI += string(body)
-	}
-
-	return requestURI
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
