@@ -14,7 +14,7 @@
     "@fontsource/roboto": "^5.0.13",
     "@mdi/js": "^7.4.47",
     "@neondark/wikiapi": "^1.2.32",
-    "@ory/client-fetch": "1.9.1",
+    "@ory/client-fetch": "^1.12.1",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -38,7 +38,7 @@
     "eslint-plugin-vue": "^9.26.0",
     "eslint-plugin-vuetify": "^2.4.0",
     "sass": "^1.77.6",
-    "vite": "^5.3.1",
+    "vite": "^5.3.2",
     "vite-plugin-vuetify": "^2.0.3",
     "vite-svg-loader": "^5.1.0"
   },
