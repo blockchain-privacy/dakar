@@ -97,6 +97,8 @@ const groupTitles = new Map([
 	['totp', 'Two-Factor Authentication'],
 	['password', 'Password'],
 	['profile', 'Profile'],
+	['passkey', 'Passkey'],
+	['webauthn', 'Webauthn'],
 ]);
 const tab = ref(null);
 
