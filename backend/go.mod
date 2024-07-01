@@ -8,7 +8,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/ory/kratos-client-go v1.2.0
 	github.com/prometheus/client_golang v1.19.1
-	github.com/qrest/gomisc v0.0.6
+	github.com/qrest/gomisc v0.0.7
 	github.com/stretchr/testify v1.9.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/grpc v1.64.0
@@ -39,7 +39,7 @@ require (
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

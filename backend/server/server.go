@@ -67,7 +67,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		return nil, serror.FromStr("worker pointer is nil")
 	}
 
-	factory, err := mw.NewCacheFactory(thisLogger)
+	factory, err := mw.NewCacheFactory(1024, thisLogger)
 	if err != nil {
 		return nil, err
 	}
