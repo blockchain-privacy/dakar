@@ -47,6 +47,8 @@ services:
   kratos:
     container_name: kratos
     image: oryd/kratos:v1.2
+    depends_on:
+      - postgres
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin
@@ -108,12 +110,10 @@ services:
 
   wikiapi:
     image: bluedark/wikiapi:latest
-    depends_on:
-      - oathkeeper
     container_name: wikiapi
-    command: -folder /data -linkPrefix /wiki/ -apiPrefix /wikiapi/
     volumes:
-      - ./wikiapi_files:/data
+      - ./wikiapi/files:/data
+      - ./wikiapi/config.yml:/config.yml
     ports:
       - "4567:4567"
     expose:
@@ -123,8 +123,6 @@ services:
 
   oathkeeper:
     image: oryd/oathkeeper:v0.40
-    depends_on:
-      - kratos
     container_name: oathkeeper
     user: "1000:1000"
     ports:

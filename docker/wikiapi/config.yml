@@ -1,0 +1,6 @@
+logfile: ""
+port: 4567
+path: "/data"
+cacheSize: 256
+linkPrefix: "/wiki/"
+apiPrefix: "/wikiapi/"
