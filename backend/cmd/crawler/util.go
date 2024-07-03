@@ -47,9 +47,15 @@ type MetricsModule struct {
 	Port   uint `yaml:"port"`
 }
 
+type UserModule struct {
+	Active bool `yaml:"active"`
+	Port   uint `yaml:"port"`
+}
+
 type ModulesConfig struct {
 	HTTP       APIModule     `yaml:"api"`
 	Metrics    MetricsModule `yaml:"metrics"`
+	User       UserModule    `yaml:"user"`
 	Crawler    CrawlerModule `yaml:"crawler"`
 	FMI        FMIModule     `yaml:"fmi"`
 	HMI        bool          `yaml:"hmi"`
@@ -84,6 +90,10 @@ var defaultConfig = Config{
 		HTTP: APIModule{
 			Active: true,
 			Port:   8081,
+		},
+		User: UserModule{
+			Active: true,
+			Port:   8085,
 		},
 		Metrics: MetricsModule{
 			Active: true,

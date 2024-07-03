@@ -46,8 +46,8 @@ func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
 }
 
-// sendReply encodes the given reply into JSON and sends it
-func sendReply(w http.ResponseWriter, reply any, statusCode int) {
+// SendReply encodes the given reply into JSON and sends it
+func SendReply(w http.ResponseWriter, reply any, statusCode int) {
 	setCORSHeaders(w)
 
 	// use marshalling instead of encoding (streaming), as it gives better error handling
@@ -276,10 +276,6 @@ type attributionOverviewReply struct {
 
 type msgReply struct {
 	Msg string `json:"msg"`
-}
-
-type createUserReply struct {
-	DakarUserUID string `json:"dakarUserUID"`
 }
 
 type addressExclusionOverviewReply struct {

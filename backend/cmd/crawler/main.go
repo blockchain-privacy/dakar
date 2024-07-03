@@ -12,6 +12,7 @@ import (
 	"backend/jsonrpc"
 	"backend/processor"
 	"backend/server"
+	"backend/userserver"
 	"backend/worker"
 	"context"
 	"flag"
@@ -54,6 +55,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
+	userserver.InitLogger()
 	worker.InitLogger()
 }
 
@@ -451,8 +453,13 @@ func main() {
 		}
 
 		wg.Add(1)
-
 		apiHTTPServer = apiServer.StartServer(&wg, newConfig.Modules.HTTP.Port)
+	}
+	// start user api endpoint
+	var userHTTPServer *http.Server
+	if newConfig.Modules.HTTP.Active {
+		wg.Add(1)
+		userHTTPServer = userserver.NewServer(graphDB).StartServer(&wg, newConfig.Modules.User.Port)
 	}
 
 	// start metrics endpoint
@@ -476,6 +483,7 @@ func main() {
 			interrupted = true
 			terminateApp()
 			shutdownServer(apiHTTPServer)
+			shutdownServer(userHTTPServer)
 			shutdownServer(metricsHTTPServer)
 		case <-chCrawlingStopped:
 			terminateApp()
@@ -499,6 +507,7 @@ func main() {
 
 		<-chSignal
 		shutdownServer(apiHTTPServer)
+		shutdownServer(userHTTPServer)
 		shutdownServer(metricsHTTPServer)
 	}
 

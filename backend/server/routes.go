@@ -34,8 +34,8 @@ const (
 	routeMetrics              string = "/metrics"
 )
 
-// buildPattern buils a route pattern which can be used with the stdlib http package
-func buildPattern(httpMethod string, r string, query string) string {
+// BuildPattern buils a route pattern which can be used with the stdlib http package
+func BuildPattern(httpMethod string, r string, query string) string {
 	base := httpMethod + " " + routePrefix + r + "/"
 
 	if query != "" {
