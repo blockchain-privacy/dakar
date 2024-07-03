@@ -1,7 +1,7 @@
 [
   {
     "namespace": "Service",
-    "object": "dakar_user",
+    "object": "kratos_admin",
     "relation": "callers",
     "subject_id": "admin"
   },

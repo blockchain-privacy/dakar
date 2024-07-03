@@ -42,9 +42,9 @@
 - id: "ory:kratos_protected_identities"
   upstream:
     preserve_host: true
-    url: "http://host.docker.internal:8081"
+    url: "http://host.docker.internal:9316"
   match:
-    url: "http://localhost:4455/api/v1/users/<.*>"
+    url: "http://localhost:4455/api/v1/identities/<.*>"
     methods:
       - GET
       - POST
@@ -62,7 +62,7 @@
           "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
           "relation": "call",
           "namespace": "Service",
-          "object": "dakar_user"
+          "object": "kratos_admin"
         }
   mutators:
     - handler: header
@@ -75,7 +75,7 @@
     preserve_host: true
     url: "http://host.docker.internal:8081"
   match:
-    url: "http://localhost:4455/api/v1/<(?!blockchain|users).*>"
+    url: "http://localhost:4455/api/v1/<(?!blockchain).*>"
     methods:
       - GET
       - POST
