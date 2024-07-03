@@ -27,15 +27,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	ory "github.com/ory/kratos-client-go"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
 )
-
-// roleMap holds all possible role values
-var roleMap = map[string]bool{"admin": true, "privileged": true}
 
 // getSearchReply searches for the given query in the database
 func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
@@ -235,42 +231,6 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaR
 		Status: &verboseStatus,
 		Blocks: &blocks,
 	}, http.StatusOK
-}
-
-func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply, status int) {
-	// get identity list
-	identities, response, err := adminAuth.IdentityAPI.ListIdentities(r.Context()).Execute() //nolint:bodyclose
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(serror.New(err))
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
-
-	sessions, response, err := adminAuth.IdentityAPI.ListSessions(r.Context()).
-		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(serror.New(err))
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
-
-	var activeSession []ory.Session
-	for _, session := range sessions {
-		if *session.Active {
-			activeSession = append(activeSession, session)
-		}
-	}
-
-	reply.Identities = identities
-	reply.Sessions = activeSession
-
-	return
 }
 
 func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
@@ -1413,266 +1373,56 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 	return
 }
 
-// getCreateIdentityReply reads the data from body and constructs a identityReply
-func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
-	r *http.Request) (reply msgReply, status int) {
-	type request struct {
-		Email string   `json:"email"`
-		Roles []string `json:"roles"`
-		State string   `json:"state"`
-	}
-
-	var frontEndUser request
-
-	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
-		status = http.StatusBadRequest
-		return
-	}
-
-	if len(frontEndUser.Email) == 0 || len(frontEndUser.Roles) == 0 ||
-		len(frontEndUser.State) == 0 || !isValidEmail(frontEndUser.Email) {
-		status = http.StatusBadRequest
-		return
-	}
-
-	// check if all roles have valid values
-	for _, ur := range frontEndUser.Roles {
-		if !roleMap[ur] {
-			status = http.StatusBadRequest
-			return
-		}
-	}
-
-	err := dbus.CreateDgraphAndKratosUser(r.Context(), dgraph, adminAuth,
-		frontEndUser.Email, nil, frontEndUser.Roles, frontEndUser.State)
+// getCreateUserReply reads the data from body and constructs a identityReply
+func getCreateUserReply(dgraph external.Database) (reply createUserReply, status int) {
+	// create dgraph user
+	newUserUID, err := dbus.CreateNewUser(dgraph)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
+		return
 	}
+
+	reply.DakarUserUID = newUserUID
 
 	return
 }
 
-// extractDgraphUID tries to extract dgraph UID from the given metadata
-func extractDgraphUID(metadataPublic any) (string, error) {
-	metadata, ok := metadataPublic.(map[string]any)
-	if !ok {
-		return "", serror.FromStr("identity has no admin metadata")
-	}
-
-	dgraphUIDInterface, ok := metadata["dgraph_uid"]
-	if !ok {
-		return "", serror.FromStr("identity has no field 'dgraph_uid'")
-	}
-
-	dgraphUID, ok := dgraphUIDInterface.(string)
-	if !ok {
-		return "", serror.FromStr("dgraph UID could not be cast from interface")
-	}
-
-	return dgraphUID, nil
-}
-
-// getDeleteIdentityReply deletes the given user
-func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
-	adminAuth *ory.APIClient, isAdmin bool) (reply msgReply, status int) {
-	var kratosID string
-	if isAdmin {
-		kratosID = r.PathValue("uid")
-	} else {
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
-			status = http.StatusUnauthorized
-			warn(err)
-			return
-		}
-
-		kratosID = tUser.KratosID
-	}
-
-	if kratosID == "" {
+// getDeleteUserReply deletes the given user
+func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	uid := r.PathValue("uid")
+	if uid == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	// get identity data
-	identity, response, err := adminAuth.IdentityAPI.GetIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(serror.New(err))
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
-
-	uid, err := extractDgraphUID(identity.MetadataPublic)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
 	if err := attribution.DeleteAllAttributions(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + " attributions"
+		reply.Msg = "could not delete users' " + uid + " attributions"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + " clusters"
+		reply.Msg = "could not delete users' " + uid + " clusters"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	if err := dbwork.DeleteAllWorkspaces(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + " workspaces"
+		reply.Msg = "could not delete users' " + uid + " workspaces"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	err = dbus.DeleteUser(dgraph, uid)
-	if err != nil {
+	if err := dbus.DeleteUser(dgraph, uid); err != nil {
 		reply.Msg = "could not delete dgraph user"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
-	response, err = adminAuth.IdentityAPI.DeleteIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
-	if err != nil {
-		reply.Msg = "could not delete identity"
-		status = http.StatusInternalServerError
-		warn(serror.New(err))
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
-
-	return
-}
-
-// setRoles adds the given roles to the metadata
-func setRoles(metaDataPublic any, roles []string) error {
-	metadata, ok := metaDataPublic.(map[string]any)
-	if !ok {
-		return serror.FromStr("identity has no public metadata")
-	}
-
-	metadata["roles"] = roles
-
-	return nil
-}
-
-// setEmail sets the given email to the traits
-func setEmail(traits any, email string) error {
-	metadata, ok := traits.(map[string]any)
-	if !ok {
-		return serror.FromStr("identity has no traits")
-	}
-
-	metadata["email"] = email
-
-	return nil
-}
-
-// getModifyIdentityReply modifies an identity with the given values in the request body
-func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply msgReply, status int) {
-	type request struct {
-		UID   string   `json:"uid"`
-		Email string   `json:"email"`
-		State string   `json:"state"`
-		Roles []string `json:"roles,omitempty"`
-	}
-
-	var modRequest request
-	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
-		status = http.StatusBadRequest
-		return
-	}
-
-	if modRequest.UID == "" || (len(modRequest.Roles) == 0 && modRequest.Email == "" &&
-		modRequest.State == "") && !isValidEmail(modRequest.Email) {
-		status = http.StatusBadRequest
-		return
-	}
-
-	initialIdentity, getIdentityResponse, err := adminAuth.IdentityAPI.GetIdentity(r.Context(),
-		modRequest.UID).Execute() //nolint:bodyclose
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(serror.New(err), "modification_request", modRequest)
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(getIdentityResponse.Body)
-
-	// handle email change
-	if len(modRequest.Email) > 0 {
-		if !isValidEmail(modRequest.Email) {
-			reply.Msg = "invalid email"
-			status = http.StatusBadRequest
-			return
-		}
-
-		// replace email
-		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
-			status = http.StatusInternalServerError
-			warn(err, "modification_request", modRequest)
-			return
-		}
-	}
-	const msgInvalidRole = "invalid role"
-
-	// handle role change
-	if len(modRequest.Roles) > 0 {
-		// check if all roles exists
-		for _, role := range modRequest.Roles {
-			if !roleMap[role] {
-				reply.Msg = msgInvalidRole
-				status = http.StatusBadRequest
-				warn(serror.FromStr(msgInvalidRole), "modification_request", modRequest)
-				return
-			}
-		}
-
-		// replace roles
-		if err = setRoles(initialIdentity.MetadataPublic, modRequest.Roles); err != nil {
-			status = http.StatusInternalServerError
-			warn(err, "modification_request", modRequest)
-			return
-		}
-	}
-
-	// check state
-	if len(modRequest.State) > 0 {
-		if !dbus.IsStateValid(modRequest.State) {
-			status = http.StatusBadRequest
-			warn(serror.FromStr("invalid identity state: "+modRequest.State), "modification_request", modRequest)
-			return
-		}
-		initialIdentity.SetState(modRequest.State)
-	}
-
-	_, response, err := adminAuth.IdentityAPI.UpdateIdentity(r.Context(), modRequest.UID).UpdateIdentityBody(ory.UpdateIdentityBody{
-		MetadataAdmin:  initialIdentity.MetadataAdmin,
-		MetadataPublic: initialIdentity.MetadataPublic,
-		SchemaId:       initialIdentity.SchemaId,
-		State:          *initialIdentity.State,
-		Traits:         initialIdentity.Traits.(map[string]any),
-	}).Execute() //nolint:bodyclose
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(serror.New(err), "modification_request", modRequest)
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
 
 	return
 }

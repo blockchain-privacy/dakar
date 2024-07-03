@@ -8,7 +8,6 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
-	dbus "backend/db/user"
 	"backend/external"
 	"backend/jsonrpc"
 	"backend/processor"
@@ -17,7 +16,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	ory "github.com/ory/kratos-client-go"
 	"github.com/qrest/gomisc/config"
 	"github.com/qrest/gomisc/serror"
 	"io"
@@ -144,30 +142,6 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) bool
 	return true
 }
 
-// createAdminIdentity creates an admin identity if no identity exist in the database and
-// prints the credentials to stdout
-func createAdminIdentity(database external.Database, adminAuth *ory.APIClient) error {
-	// check if users already exist
-	userCount, userErr := dbus.GetUserCount(database)
-	if userErr != nil {
-		return userErr
-	}
-
-	// no users exists -> create admin user
-	if userCount == 0 {
-		adminEmail := "admin@dakar.null"
-		pw, userCreationError := dbus.CreateAdminUser(database, adminAuth, adminEmail)
-		if userCreationError != nil {
-			return userCreationError
-		}
-		// do not log
-		fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
-		fmt.Println("Save the credentials, they won't be shown again.")
-	}
-
-	return nil
-}
-
 // connectBlockchainRPCClient connects to blockchain RPC client specified in the given configuration.
 func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error) {
 	rpcEndpoint, err := cli.BuildEndpoint(rpcConfig.Host, rpcConfig.Port)
@@ -227,11 +201,6 @@ func main() {
 	var newConfig Config
 	if err := config.ReadConfig(filePath, &newConfig); err != nil {
 		fmt.Println(err)
-		return
-	}
-
-	if moduleErr := newConfig.Modules.HTTP.check(); moduleErr != nil {
-		fmt.Println(moduleErr)
 		return
 	}
 
@@ -328,25 +297,6 @@ func main() {
 			return
 		} else if ok {
 			info("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
-			return
-		}
-	}
-
-	////// CONNECT TO KRATOS //////
-
-	var auth *ory.APIClient
-	var adminAuth *ory.APIClient
-
-	if newConfig.Modules.HTTP.Active {
-		auth, adminAuth, err = getKratosClient(newConfig.Modules.HTTP.KratosPublicEndpoint,
-			newConfig.Modules.HTTP.KratosAdminEndpoint)
-		if err != nil {
-			warn(err)
-			return
-		}
-		// create admin identity if none is set
-		if err := createAdminIdentity(graphDB, adminAuth); err != nil {
-			warn(err)
 			return
 		}
 	}
@@ -495,7 +445,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if newConfig.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, w, graphWrapper)
+		apiServer, serverErr := server.NewServer(graphDB, client, w, graphWrapper)
 		if serverErr != nil {
 			warn(serverErr)
 		}

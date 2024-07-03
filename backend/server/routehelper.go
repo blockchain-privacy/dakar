@@ -17,16 +17,10 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-
-	client "github.com/ory/kratos-client-go"
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
 var isValidInput = regexp.MustCompile(`^[a-zA-Z\d]*$`).MatchString
-
-// isValidEmail is a regex filter which checks if the input conforms to an email string
-var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
-	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
 
 // isValid checks if user input is valid.
 // Should be used to check address, transaction and block hashes, as well as block ids.
@@ -229,8 +223,7 @@ func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int
 }
 
 type tokenUser struct {
-	ID       string `json:"uid,omitempty"`
-	KratosID string `json:"kratos_id,omitempty"`
+	ID string `json:"uid,omitempty"`
 }
 
 // extractTokenUser extracts a tokenUser from the context.
@@ -285,6 +278,10 @@ type msgReply struct {
 	Msg string `json:"msg"`
 }
 
+type createUserReply struct {
+	DakarUserUID string `json:"dakarUserUID"`
+}
+
 type addressExclusionOverviewReply struct {
 	AddressHashes []string `json:"addresses"`
 	Count         int64    `json:"addressCount,omitempty"`
@@ -292,11 +289,6 @@ type addressExclusionOverviewReply struct {
 
 type addressExclusionStatusReply struct {
 	IsExclusion bool `json:"isExclusion"`
-}
-
-type identitiesReply struct {
-	Identities []client.Identity `json:"identities"`
-	Sessions   []client.Session  `json:"sessions"`
 }
 
 type blockReply struct {

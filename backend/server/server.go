@@ -6,7 +6,6 @@ import (
 	"backend/worker"
 	"backend/workspace"
 	"errors"
-	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	mw "github.com/qrest/gomisc/middleware"
 	"github.com/qrest/gomisc/serror"
@@ -49,20 +48,12 @@ type Server struct {
 	cacheFactory func(duration time.Duration) mw.Adapter
 	// mutex map which synchronizes access to workspaces
 	workspaceMutex *workspace.Mutex
-	// ory kratos authentifaction handle
-	auth *ory.APIClient
-	// ory kratos admin authentifaction handle
-	adminAuth *ory.APIClient
 	// HTTP mux
 	handler *http.ServeMux
 }
 
-func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
+func NewServer(db external.Database, client external.RPCClient,
 	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
-	if adminAuth == nil || auth == nil {
-		return nil, serror.FromStr("authentication handles are not set")
-	}
-
 	if worker == nil {
 		return nil, serror.FromStr("worker pointer is nil")
 	}
@@ -78,8 +69,6 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		worker:         worker,
 		graphWrapper:   graphWrapper,
 		cacheFactory:   factory,
-		auth:           auth,
-		adminAuth:      adminAuth,
 		workspaceMutex: workspace.NewMutex(),
 		handler:        http.NewServeMux(),
 	}, nil

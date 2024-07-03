@@ -1,7 +1,7 @@
 [
   {
     "namespace": "Service",
-    "object": "dakar_identity",
+    "object": "dakar_user",
     "relation": "callers",
     "subject_id": "admin"
   },

@@ -23,7 +23,6 @@ This is the backend of Dakar. It crawls the Dash blockchain and exposes its data
 * `ristretto` - in-memory cache for API requests
 * `gonum` - graph algorithms
 * `prometheus client` - metrics
-* `ory kratos` - user authentication and credential management
 
 For a more detailed overview check [here](./go.mod).
 

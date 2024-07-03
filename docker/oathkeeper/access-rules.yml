@@ -44,7 +44,7 @@
     preserve_host: true
     url: "http://host.docker.internal:8081"
   match:
-    url: "http://localhost:4455/api/v1/identities/<.*>"
+    url: "http://localhost:4455/api/v1/users/<.*>"
     methods:
       - GET
       - POST
@@ -62,7 +62,7 @@
           "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
           "relation": "call",
           "namespace": "Service",
-          "object": "dakar_identity"
+          "object": "dakar_user"
         }
   mutators:
     - handler: header
@@ -75,7 +75,7 @@
     preserve_host: true
     url: "http://host.docker.internal:8081"
   match:
-    url: "http://localhost:4455/api/v1/<(?!blockchain|identities).*>"
+    url: "http://localhost:4455/api/v1/<(?!blockchain|users).*>"
     methods:
       - GET
       - POST

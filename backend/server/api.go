@@ -511,18 +511,17 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 
 // Create Identity godoc
 //
-//	@Summary	Create a new identity.
-//	@Tags		identity
+//	@Summary	Create a new user.
+//	@Tags		user
 //	@Produce	json
 //	@Accept		json
-//	@Param		identity	body		server.getCreateIdentityReply.request	true	"Identity details"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
-//	@Router		/identities/ [post]
-func (s *Server) handlerCreateIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getCreateIdentityReply(s.db, s.adminAuth, r)
+//	@Success	200			{object}	server.createUserReply
+//	@Failure	400			{object}	server.createUserReply
+//	@Failure	500			{object}	server.createUserReply
+//	@Router		/users/ [post]
+func (s *Server) handlerCreateUser() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		reply, status := getCreateUserReply(s.db)
 
 		sendReply(w, reply, status)
 	})
@@ -530,71 +529,18 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 
 // Delete Arbitrary Identity godoc
 //
-//	@Summary	Delete an arbitrary kratos identity and dgraph user.
-//	@Tags		identity
+//	@Summary	Delete an arbitrary user.
+//	@Tags		user
 //	@Produce	json
 //	@Param		uid	path		string	true	"Identity UID"
 //	@Success	200	{object}	server.msgReply
 //	@Failure	400	{object}	server.msgReply
 //	@Failure	401	{object}	server.msgReply
 //	@Failure	500	{object}	server.msgReply
-//	@Router		/identities/{uid} [delete]
-func (s *Server) handlerAdminDeleteIdentity() http.Handler {
+//	@Router		/users/{uid} [delete]
+func (s *Server) handlerDeleteUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, true)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Delete Identity godoc
-//
-//	@Summary	Delete the kratos identity and dgraph user of the caller
-//	@Tags		identity
-//	@Produce	json
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/self/ [delete]
-func (s *Server) handlerDeleteIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, false)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Modify Identity godoc
-//
-//	@Summary	Modify an arbitrary identity.
-//	@Tags		identity
-//	@Produce	json
-//	@Accept		json
-//	@Param		identity	body		server.getModifyIdentityReply.request	true	"Identity modification details"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
-//	@Router		/identities/ [put]
-func (s *Server) handlerModifyIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getModifyIdentityReply(s.adminAuth, r)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Get Identities godoc
-//
-//	@Summary	Get all identities.
-//	@Tags		identity
-//	@Produce	json
-//	@Success	200	{object}	server.identitiesReply
-//	@Failure	500	{object}	server.identitiesReply
-//	@Router		/identities/ [get]
-func (s *Server) handlerGetIdentities() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getIdentitiesReply(s.adminAuth, r)
+		reply, status := getDeleteUserReply(r, s.db)
 
 		sendReply(w, reply, status)
 	})
@@ -1005,16 +951,10 @@ func (s *Server) setupHandlers() {
 		mw.Adapt(s.handlerGetAddressExclusionStatus(), s.authorization(), mw.MaxBody5MiB()))
 
 	// User
-	s.handler.Handle(buildPattern(http.MethodGet, routeIdentities, ""),
-		mw.Adapt(s.handlerGetIdentities(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeIdentities, ""),
-		mw.Adapt(s.handlerCreateIdentity(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeIdentities, "uid"),
-		mw.Adapt(s.handlerAdminDeleteIdentity(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeSelf, ""),
-		mw.Adapt(s.handlerDeleteIdentity(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPut, routeIdentities, ""),
-		mw.Adapt(s.handlerModifyIdentity(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeUsers, ""),
+		mw.Adapt(s.handlerCreateUser(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeUsers, "uid"),
+		mw.Adapt(s.handlerDeleteUser(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Workspace
 	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspaceRename, ""),

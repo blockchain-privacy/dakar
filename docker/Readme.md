@@ -5,7 +5,7 @@
 - Dgraph: Graph DB for blockchain data
 - RPC client: Currently either `dashd` or `bitcoind` which feeds data into Dgraph
 - Ory Kratos: User authentication
-- Ory Oathkeeper: Request authentication which integrates with Ory Kratos (currently only used for wikiapi)
+- Ory Oathkeeper: Request authentication which integrates with Ory Kratos and Ory Keto
 - WikiApi: A markdown-to-HTML converter used for displaying documentation on the frontend
 
 ## Prerequisites

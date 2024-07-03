@@ -9,13 +9,10 @@ import (
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"net/http"
-	"net/http/cookiejar"
 	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
-
-	ory "github.com/ory/kratos-client-go"
 )
 
 type RPCConfig struct {
@@ -41,19 +38,8 @@ type FMIModule struct {
 }
 
 type APIModule struct {
-	Active               bool   `yaml:"active"`
-	Port                 uint   `yaml:"port"`
-	KratosPublicEndpoint string `yaml:"kratosPublicEndpoint"`
-	KratosAdminEndpoint  string `yaml:"kratosAdminEndpoint"`
-}
-
-// check returns an error if the module has invalid values
-func (c APIModule) check() error {
-	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
-		return serror.FromStr("http module config invalid, not all fields are filled")
-	}
-
-	return nil
+	Active bool `yaml:"active"`
+	Port   uint `yaml:"port"`
 }
 
 type MetricsModule struct {
@@ -96,10 +82,8 @@ var defaultConfig = Config{
 	},
 	Modules: ModulesConfig{
 		HTTP: APIModule{
-			Active:               true,
-			Port:                 8081,
-			KratosPublicEndpoint: "http://localhost:4433",
-			KratosAdminEndpoint:  "http://localhost:4434",
+			Active: true,
+			Port:   8081,
 		},
 		Metrics: MetricsModule{
 			Active: true,
@@ -239,96 +223,4 @@ func checkMeta(db external.Database, blockchainMode string) bool {
 	}
 
 	return true
-}
-
-// newKratosClient creates a new kratos client
-func newKratosClient(endpoint string) (*ory.APIClient, error) {
-	if endpoint == "" {
-		return nil, serror.FromFormat("endpoint is invalid: %s", endpoint)
-	}
-
-	cj, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	conf := ory.NewConfiguration()
-	conf.Servers = ory.ServerConfigurations{{URL: endpoint}}
-
-	conf.HTTPClient = &http.Client{Jar: cj}
-
-	return ory.NewAPIClient(conf), nil
-}
-
-// isKratosAlive returns true if a successful connection to kratos has been established
-func isKratosAlive(auth *ory.APIClient) bool {
-	if auth == nil || auth.MetadataAPI == nil {
-		return false
-	}
-
-	// check if endpoint is alive
-	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
-	defer cancelFunc()
-
-	_, resp, err := auth.MetadataAPI.IsAlive(ctx1).Execute()
-	if resp != nil {
-		if err := resp.Body.Close(); err != nil {
-			warn(serror.New(err))
-		}
-	}
-	return err == nil
-}
-
-// waitForKratos waits until kratos is ready to receive requests
-func waitForKratos(auth *ory.APIClient) bool {
-	const maxRetries = 20
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := range maxRetries {
-		if isKratosAlive(auth) {
-			if printedErrMessage {
-				fmt.Println("Successfully established connection to kratos")
-			}
-			return true
-		}
-
-		if !printedErrMessage {
-			fmt.Println("Waiting for kratos")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return false
-}
-
-// getKratosClient returns a public (first) and admin (second) handle to an ory kratos instance.
-// Also checks if the connections are alive.
-func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClient, *ory.APIClient, error) {
-	auth, err := newKratosClient(publicEndpoint)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	adminAuth, err := newKratosClient(adminEndpoint)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// check if public endpoint is alive
-	if !waitForKratos(auth) {
-		return nil, nil, serror.FromStr("kratos public endpoint is not ready to receive requests")
-	}
-
-	// check if public endpoint is alive
-	if !waitForKratos(adminAuth) {
-		return nil, nil, serror.FromStr("kratos admin endpoint is not ready to receive requests")
-	}
-
-	return auth, adminAuth, nil
 }
