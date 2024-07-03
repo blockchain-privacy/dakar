@@ -17,7 +17,6 @@ const (
 	routeConnectionLookup     string = "connectionLookup"
 	routeMixingActivity       string = "mixingActivity"
 	routeSpendingFingerprint  string = "spendingFingerprint"
-	routeUsers                string = "users"
 	routeExclusions           string = "exclusions"
 	routeClusters             string = "clusters"
 	routeClustersHmi          string = "clusters/hmi"
