@@ -21,8 +21,9 @@
   upstream:
     preserve_host: true
     url: "http://host.docker.internal:9316"
+    strip_path: "/kratosadmin"
   match:
-    url: "http://localhost:4455/api/v1/<(?!self).*>"
+    url: "http://localhost:4455/kratosadmin/<(?!self).*>"
     methods:
       - GET
       - POST
@@ -52,8 +53,9 @@
   upstream:
     preserve_host: true
     url: "http://host.docker.internal:9316"
+    strip_path: "/kratosadmin"
   match:
-    url: "http://localhost:4455/api/v1/self/<.*>"
+    url: "http://localhost:4455/kratosadmin/self/<.*>"
     methods:
       - GET
       - POST

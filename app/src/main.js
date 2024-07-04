@@ -8,6 +8,7 @@ import {router, setupStore} from '@/router';
 import oryConfig from './plugins/ory';
 import dakarConfig from './plugins/dakarAPI';
 import wikiapiConfig from './plugins/wikiAPI';
+import kratosadminConfig from './plugins/kratosadmin';
 import './assets/main.css';
 
 const pinia = createPinia();
@@ -23,6 +24,7 @@ setupStore();
 app.provide('ory', oryConfig);
 app.provide('dakar', dakarConfig.setup(app.config.globalProperties));
 app.provide('wikiapi', wikiapiConfig.setup(app.config.globalProperties).default);
+app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties).default);
 
 await router.isReady();
 app.mount('#app');
