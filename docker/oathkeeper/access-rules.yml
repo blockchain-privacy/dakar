@@ -1,4 +1,4 @@
-- id: "ory:kratos_protected_wikiapi"
+- id: "ory:wikiapi_protected"
   upstream:
     preserve_host: true
     url: "http://wikiapi:4567"
@@ -13,38 +13,16 @@
     handler: allow
   mutators:
     - handler: noop
-  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+  errors:
     - handler: json
       config:
         verbose: false
-- id: "ory:public_dakar"
-  upstream:
-    preserve_host: true
-    url: "http://host.docker.internal:8081"
-  match:
-    url: "http://localhost:4455/api/v1/blockchain/<.*>"
-    methods:
-      - GET
-      - POST
-      - DELETE
-      - PUT
-      - HEAD
-  authenticators:
-    - handler: anonymous
-  authorizer:
-    handler: allow
-  mutators:
-    - handler: noop
-  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
-    - handler: json
-      config:
-        verbose: true
-- id: "ory:kratos_protected_identities"
+- id: "ory:kratosadmin_admin"
   upstream:
     preserve_host: true
     url: "http://host.docker.internal:9316"
   match:
-    url: "http://localhost:4455/api/v1/identities/<.*>"
+    url: "http://localhost:4455/api/v1/<(?!self).*>"
     methods:
       - GET
       - POST
@@ -62,15 +40,68 @@
           "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
           "relation": "call",
           "namespace": "Service",
-          "object": "kratos_admin"
+          "object": "kratosadmin_admin"
         }
   mutators:
     - handler: header
-  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+  errors:
     - handler: json
       config:
         verbose: false
-- id: "ory:kratos_protected_dakar"
+- id: "ory:kratosadmin_protected"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:9316"
+  match:
+    url: "http://localhost:4455/api/v1/self/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "kratosadmin_protected"
+        }
+  mutators:
+    - handler: header
+  errors:
+    - handler: json
+      config:
+        verbose: false
+- id: "ory:dakar_public"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8081"
+  match:
+    url: "http://localhost:4455/api/v1/blockchain/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+  errors:
+    - handler: json
+      config:
+        verbose: true
+- id: "ory:dakar_protected"
   upstream:
     preserve_host: true
     url: "http://host.docker.internal:8081"
@@ -97,7 +128,7 @@
         }
   mutators:
     - handler: header
-  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+  errors:
     - handler: json
       config:
         verbose: false
