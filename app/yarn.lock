@@ -39,10 +39,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.42":
-  version: 1.1.42
-  resolution: "@blockchain/dakar@npm:1.1.42::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.42.tgz"
-  checksum: 10c0/6a62914869b5d9a11963b4283dac9e6d90df30e9caa82f72421885c62b46c8c8cec0bf3484ea663f0a3a461f51dbf300dff6e47b115a49e2cbdc5edc3ffd28a1
+"@blockchain/dakar@npm:^1.1.43":
+  version: 1.1.43
+  resolution: "@blockchain/dakar@npm:1.1.43::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.43.tgz"
+  checksum: 10c0/71986a3fb3f9fc04c241923df9849b423c976fa44f5014c26e66d161315a104d5f6f7c9d0de1da66ad60897b676f74bf3fa805ea5d681e8597c27029073b873e
   languageName: node
   linkType: hard
 
@@ -316,10 +316,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@neondark/kratosadmin@npm:^0.0.3":
-  version: 0.0.3
-  resolution: "@neondark/kratosadmin@npm:0.0.3::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F59526555%2Fpackages%2Fnpm%2F%40neondark%2Fkratosadmin%2F-%2F%40neondark%2Fkratosadmin-0.0.3.tgz"
-  checksum: 10c0/00a127cbc3b470b41d23f074e4808db2fb868cd4755e47b84a64581015b801a71190e54b7c1a76a4e9d6166e55bae7962a3f8d792c317ec128ae401929036b95
+"@neondark/kratosadmin@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "@neondark/kratosadmin@npm:0.0.4::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F59526555%2Fpackages%2Fnpm%2F%40neondark%2Fkratosadmin%2F-%2F%40neondark%2Fkratosadmin-0.0.4.tgz"
+  checksum: 10c0/e83f24ee3ec55a6e8970daa1303b3bb409518b84067b9d4f9dbdef215daff32dfcd577896f8660ff80c5dde0dc77edcacb70738fc1a56dc53eb3786072382d98
   languageName: node
   linkType: hard
 
@@ -1141,10 +1141,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.42"
+    "@blockchain/dakar": "npm:^1.1.43"
     "@fontsource/roboto": "npm:^5.0.13"
     "@mdi/js": "npm:^7.4.47"
-    "@neondark/kratosadmin": "npm:^0.0.3"
+    "@neondark/kratosadmin": "npm:^0.0.4"
     "@neondark/wikiapi": "npm:^1.2.34"
     "@ory/client-fetch": "npm:^1.12.2"
     "@vitejs/plugin-vue": "npm:^5.0.5"
