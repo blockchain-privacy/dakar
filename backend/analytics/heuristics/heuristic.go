@@ -304,34 +304,39 @@ type Executor struct {
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
-	if newHeuristic.TransactionHash == "" {
-		err = serror.FromFormat("transaction of heuristic request is empty: %v", newHeuristic)
+func ConstructExecutors(heuristicRequest heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
+	if heuristicRequest.TransactionHash == "" {
+		err = serror.FromFormat("transaction of heuristic request is empty: %v", heuristicRequest)
 		return
 	}
 
-	// only set values for global type map once
-	if len(typeMap) == 0 {
-		for _, h := range ValidHeuristicTypes {
-			typeMap[h.getType()] = h
-		}
-	}
-
-	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
-		(modelHeuristic.hasParameter() && len(newHeuristic.Parameter) == 0) {
+	modelHeuristic, ok := typeMap[heuristicRequest.Type]
+	if !ok || (modelHeuristic.hasParameter() && len(heuristicRequest.Parameter) == 0) {
 		err = serror.New(errHeuristicNotValid)
 		return
 	}
 
-	newHeuristicElement, err := buildHeuristicTreeElement(typeMap, newHeuristic, userUID)
-	if err != nil {
+	// copy parameters from heuristic request into newly created heuristic
+	clonedHeuristic := modelHeuristic.clone()
+	if clonedHeuristic.hasParameter() {
+		err = clonedHeuristic.setParameter(heuristicRequest.Parameter)
+		if err != nil {
+			return
+		}
+	}
+
+	if err = clonedHeuristic.setClusterTypes(heuristicRequest.ClusterTypes); err != nil {
 		return
 	}
 
+	clonedHeuristic.setUserUID(userUID)
+	clonedHeuristic.setExcludeAddresses(heuristicRequest.ExcludeAddresses)
+	clonedHeuristic.setExcludeSpendingGaps(heuristicRequest.ExcludeSpendingGaps)
+
 	executor = Executor{
-		thisHeuristic:   newHeuristicElement.heuristic,
-		rootUID:         newHeuristicElement.parentHeuristicUID,
-		transactionHash: newHeuristic.TransactionHash,
+		thisHeuristic:   clonedHeuristic,
+		rootUID:         heuristicRequest.ParentHeuristicUID,
+		transactionHash: heuristicRequest.TransactionHash,
 	}
 
 	return

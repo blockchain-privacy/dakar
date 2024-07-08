@@ -82,13 +82,13 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 }
 
 // CreateWork creates a new work package, which can be run at a later time
-func CreateWork(newHeuristic dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
+func CreateWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
 	userUID string, workspaceMutex *Mutex) (worker.Work, error) {
 	if workspaceUID == "" {
-		return nil, serror.FromStr("workspace UID not set for heuristic request")
+		return nil, serror.FromFormat("workspace UID not set for heuristic request: %v", heuristicRequest)
 	}
 
-	executor, err := heuristics.ConstructExecutors(newHeuristic, userUID)
+	executor, err := heuristics.ConstructExecutors(heuristicRequest, userUID)
 	if err != nil {
 		return nil, err
 	}
