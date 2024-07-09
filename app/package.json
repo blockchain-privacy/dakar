@@ -10,12 +10,12 @@
     "lint": "eslint src --fix"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.43",
+    "@blockchain/dakar": "^1.1.45",
     "@fontsource/roboto": "^5.0.13",
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.4",
     "@neondark/wikiapi": "^1.2.34",
-    "@ory/client-fetch": "^1.12.2",
+    "@ory/client-fetch": "^1.13.10",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",

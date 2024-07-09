@@ -65,7 +65,7 @@
                   hide-details
                 />
                 <v-checkbox
-                  v-model="item.useAddressExclusionList"
+                  v-model="item.excludeAddresses"
                   label="Use address exclusion list"
                   hide-details
                 />

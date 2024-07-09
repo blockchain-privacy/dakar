@@ -642,13 +642,15 @@ async function addNewHeuristic(heuristic) {
 	const newHeuristic = {
 		uid: `${newUidPrefix}${uidCounter}`,
 		type: heuristic.type,
-		clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
-		useAddressExclusionList: heuristic.useAddressExclusionList,
-		excludeSpendingGaps: heuristic.excludeSpendingGaps,
+		config: {
+			clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
+			excludeAddresses: heuristic.excludeAddresses,
+			excludeSpendingGaps: heuristic.excludeSpendingGaps,
+		},
 	};
 
 	if (heuristic.parameter) {
-		newHeuristic.parameter = `${heuristic.parameter.value}`;
+		newHeuristic.config.parameter = `${heuristic.parameter.value}`;
 	}
 
 	uidCounter += 1;
