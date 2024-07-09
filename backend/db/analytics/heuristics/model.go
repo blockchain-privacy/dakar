@@ -113,7 +113,7 @@ type Config struct {
 	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
 	ExcludeSpendingGaps bool `json:"excludeSpendingGaps"`
 	// UserUID is the UID of the user who created this heuristic
-	UserUID string
+	UserUID string `json:"-"`
 }
 
 func (c Config) String() string {
@@ -127,7 +127,7 @@ type DatabaseHeuristicRequest struct {
 	TransactionHash    string  `json:"transactionHash,omitempty"`
 	Type               string  `json:"type,omitempty"`
 	ParentHeuristicUID string  `json:"parentUID,omitempty"`
-	Configuration      *Config `json:"config,omitempty"`
+	Configuration      *Config `json:"config"`
 }
 
 type HollowHeuristic struct {
