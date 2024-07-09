@@ -146,8 +146,8 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 		return "", serror.FromStr("could not determine parent for new heuristic")
 	}
 
-	clusterTypes := make([]string, len(heuristicRequest.ClusterTypes))
-	for i, c := range heuristicRequest.ClusterTypes {
+	clusterTypes := make([]string, len(heuristicRequest.Configuration.ClusterTypes))
+	for i, c := range heuristicRequest.Configuration.ClusterTypes {
 		clusterTypes[i] = string(c)
 	}
 
@@ -161,9 +161,9 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 		UID:                 workID,
 		Type:                workspace.NodeTypeHeuristic,
 		HeuristicType:       heuristicRequest.Type,
-		Parameter:           heuristicRequest.Parameter,
-		ExcludeAddresses:    &heuristicRequest.ExcludeAddresses,
-		ExcludeSpendingGaps: &heuristicRequest.ExcludeSpendingGaps,
+		Parameter:           heuristicRequest.Configuration.Parameter,
+		ExcludeAddresses:    &heuristicRequest.Configuration.ExcludeAddresses,
+		ExcludeSpendingGaps: &heuristicRequest.Configuration.ExcludeSpendingGaps,
 		ClusterTypes:        clusterTypes,
 		Loading:             &yes,
 	})

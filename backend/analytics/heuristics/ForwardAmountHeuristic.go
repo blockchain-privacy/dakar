@@ -3,10 +3,10 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 	"time"
@@ -14,25 +14,14 @@ import (
 
 // forwardAmountHeuristic - see exec for description
 type forwardAmountHeuristic struct {
+	c                    heuristics.Config
 	heuristicType        string
 	parameterDescription string
-	userUID              string
 	lookForwardTime      time.Duration
-	excludeAddresses     bool
-	excludeSpendingGaps  bool
-	clusterTypes         []clustering.ClusterType
 }
 
-// newForwardAmountHeuristic constructs an forwardAmountHeuristic. hoursToLookForward in hours.
-func newForwardAmountHeuristic(hoursToLookForward uint32,
-	clusterTypes []clustering.ClusterType) *forwardAmountHeuristic {
-	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
-	return &forwardAmountHeuristic{
-		heuristicType:        "forward_amount",
-		lookForwardTime:      lForwardTime,
-		parameterDescription: lForwardTime.String(),
-		clusterTypes:         clusterTypes,
-	}
+func newForwardAmountHeuristic() heuristic {
+	return &forwardAmountHeuristic{heuristicType: "forward_amount"}
 }
 
 func (h *forwardAmountHeuristic) getType() string {
@@ -43,66 +32,29 @@ func (h *forwardAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *forwardAmountHeuristic) hasParameter() bool {
-	return true
-}
-
-func (h *forwardAmountHeuristic) setParameter(p string) error {
-	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
+func (h *forwardAmountHeuristic) setConfig(c heuristics.Config) error {
+	hoursToLookForward, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
 	}
 
-	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
-	h.parameterDescription = strconv.FormatUint(hoursToLookForward, 10)
-	return nil
-}
-
-// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
-// Multi-input clusters are always used to execute the heuristic,
-// any cluster type set here will be used additionally. If at least one cluster type is set,
-// then the consolidation of the multi-input clusters and the additional clusters will be used.
-func (h *forwardAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
-	if !areClusterTypesValid(clusterTypes) {
+	if !areClusterTypesValid(c.ClusterTypes) {
 		return serror.New(errInvalidClusterTypes)
 	}
 
-	h.clusterTypes = clusterTypes
+	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
+	h.parameterDescription = strconv.FormatUint(hoursToLookForward, 10)
+	h.c = c
+
 	return nil
 }
 
-// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
-func (h *forwardAmountHeuristic) getClusterTypes() []clustering.ClusterType {
-	return h.clusterTypes
-}
-
-// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
-func (h *forwardAmountHeuristic) setExcludeAddresses(excludeAddresses bool) {
-	h.excludeAddresses = excludeAddresses
-}
-
-// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
-func (h *forwardAmountHeuristic) getExcludeAddresses() bool {
-	return h.excludeAddresses
-}
-
-// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
-func (h *forwardAmountHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
-	h.excludeSpendingGaps = excludeSpendingGaps
-}
-
-// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
-func (h *forwardAmountHeuristic) getExcludeSpendingGaps() bool {
-	return h.excludeSpendingGaps
-}
-
-// setUserUID sets the UID of the user who created this heuristic
-func (h *forwardAmountHeuristic) setUserUID(uid string) {
-	h.userUID = uid
+func (h *forwardAmountHeuristic) getConfig() heuristics.Config {
+	return h.c
 }
 
 func (h *forwardAmountHeuristic) String() string {
-	return "Type: " + h.heuristicType
+	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
 }
 
 func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
@@ -125,11 +77,6 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 			Type:         "int",
 		},
 	}
-}
-
-func (h *forwardAmountHeuristic) clone() heuristic {
-	newHeuristic := *h
-	return &newHeuristic
 }
 
 // forwardAmountHeuristic applies the following heuristic:
@@ -155,8 +102,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime,
-				h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
+			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.c)
 			if err != nil {
 				return nil, err
 			}
@@ -175,9 +121,9 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	var exclusions []string
-	if h.excludeAddresses {
+	if h.c.ExcludeAddresses {
 		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +137,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	clusterDestinations := make([]clusterDestination, 0, len(clusterOrigins))
 	for c, txMap := range clusterOrigins {
 		destinations, err := getOriginDestinationsWithInputs(dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
-			exclusions, h.excludeSpendingGaps)
+			exclusions, h.c.ExcludeSpendingGaps)
 		if err != nil {
 			return nil, err
 		}

@@ -2,7 +2,6 @@ package heuristics
 
 import (
 	"backend/analytics/graph"
-	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -16,95 +15,48 @@ import (
 type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	userUID              string
-	excludeAddresses     bool
-	excludeSpendingGaps  bool
 	lookBackTime         time.Duration
-	clusterTypes         []clustering.ClusterType
+	c                    heuristics.Config
 }
 
-// newOneSourceHeuristic constructs an oneSourceHeuristic. hoursToLookBack in hours
-func newOneSourceHeuristic(hoursToLookBack uint32, clusterTypes []clustering.ClusterType) *oneSourceHeuristic {
-	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	return &oneSourceHeuristic{
-		heuristicType:        "one_source",
-		lookBackTime:         lBackTime,
-		parameterDescription: strconv.FormatUint(uint64(hoursToLookBack), 10),
-		clusterTypes:         clusterTypes,
-	}
+func newOneSourceHeuristic() heuristic {
+	return &oneSourceHeuristic{heuristicType: "one_source"}
 }
 
-func (h oneSourceHeuristic) getType() string {
+func (h *oneSourceHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h oneSourceHeuristic) getParameterString() string {
+func (h *oneSourceHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h oneSourceHeuristic) hasParameter() bool {
-	return true
-}
-
-func (h *oneSourceHeuristic) setParameter(p string) error {
-	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
+func (h *oneSourceHeuristic) setConfig(c heuristics.Config) error {
+	duration, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
 	}
-	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	h.lookBackTime = lBackTime
-	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
-	return nil
-}
 
-// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
-// Multi-input clusters are always used to execute the heuristic,
-// any cluster type set here will be used additionally. If at least one cluster type is set,
-// then the consolidation of the multi-input clusters and the additional clusters will be used.
-func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
-	if !areClusterTypesValid(clusterTypes) {
+	if !areClusterTypesValid(c.ClusterTypes) {
 		return serror.New(errInvalidClusterTypes)
 	}
 
-	h.clusterTypes = clusterTypes
+	h.lookBackTime = time.Duration(duration) * time.Hour
+	h.parameterDescription = strconv.FormatUint(duration, 10)
+	h.c = c
+
 	return nil
 }
 
-// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
-func (h *oneSourceHeuristic) getClusterTypes() []clustering.ClusterType {
-	return h.clusterTypes
+func (h *oneSourceHeuristic) getConfig() heuristics.Config {
+	return h.c
 }
 
-// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
-func (h *oneSourceHeuristic) setExcludeAddresses(excludeAddresses bool) {
-	h.excludeAddresses = excludeAddresses
+func (h *oneSourceHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
 }
 
-// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
-func (h *oneSourceHeuristic) getExcludeAddresses() bool {
-	return h.excludeAddresses
-}
-
-// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
-func (h *oneSourceHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
-	h.excludeSpendingGaps = excludeSpendingGaps
-}
-
-// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
-func (h *oneSourceHeuristic) getExcludeSpendingGaps() bool {
-	return h.excludeSpendingGaps
-}
-
-// setUserUID sets the UID of the user who created this heuristic
-func (h *oneSourceHeuristic) setUserUID(uid string) {
-	h.userUID = uid
-}
-
-func (h oneSourceHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
-}
-
-func (h oneSourceHeuristic) GetDescriptor() Descriptor {
+func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:       "One Source",
 		Type:        h.heuristicType,
@@ -122,11 +74,6 @@ func (h oneSourceHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h oneSourceHeuristic) clone() heuristic {
-	newHeuristic := h
-	return &newHeuristic
-}
-
 type txAndOrigins struct {
 	inputTransaction heuristics.HeuristicTransaction
 	origins          []heuristics.HeuristicTransaction
@@ -139,7 +86,7 @@ type txAndOrigins struct {
 //   - filter all origins of sources, which do not occur in all sets of input transaction origins
 //
 // This heuristic does not use the results from its parent heuristic
-func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
+func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
 	[]heuristics.HeuristicCluster, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
@@ -167,16 +114,16 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 
 	var exclusions []string
 
-	if h.excludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
+	if h.c.ExcludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
-			h.clusterTypes, exclusions, h.excludeSpendingGaps)
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it,
+			h.lookBackTime, exclusions, h.c)
 		if err != nil {
 			return nil, err
 		}

@@ -1599,9 +1599,9 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		return
 	}
 
-	reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
-	for i, t := range heuristics.ValidHeuristicTypes {
-		reply.Descriptors[i] = t.GetDescriptor()
+	reply.Descriptors = make([]heuristics.Descriptor, 0, len(heuristics.ConstructorMap))
+	for _, v := range heuristics.ConstructorMap {
+		reply.Descriptors = append(reply.Descriptors, v().GetDescriptor())
 	}
 
 	return

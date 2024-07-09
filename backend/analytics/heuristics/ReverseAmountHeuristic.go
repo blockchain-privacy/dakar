@@ -3,9 +3,9 @@ package heuristics
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
-	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"fmt"
 	"github.com/qrest/gomisc/serror"
 )
 
@@ -13,84 +13,40 @@ import (
 type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	userUID              string
-	excludeAddresses     bool
-	excludeSpendingGaps  bool
-	clusterTypes         []clustering.ClusterType
+	c                    heuristics.Config
 }
 
-// newReverseAmountHeuristic constructs an reverseAmountHeuristic
-func newReverseAmountHeuristic(clusterTypes []clustering.ClusterType) *reverseAmountHeuristic {
-	return &reverseAmountHeuristic{
-		heuristicType: "reverse_amount",
-		clusterTypes:  clusterTypes,
-	}
+func newReverseAmountHeuristic() heuristic {
+	return &reverseAmountHeuristic{heuristicType: "reverse_amount"}
 }
 
-func (h reverseAmountHeuristic) getType() string {
+func (h *reverseAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h reverseAmountHeuristic) getParameterString() string {
+func (h *reverseAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h reverseAmountHeuristic) hasParameter() bool {
-	return false
-}
-
-func (h reverseAmountHeuristic) setParameter(_ string) error {
-	return nil
-}
-
-// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
-// Multi-input clusters are always used to execute the heuristic,
-// any cluster type set here will be used additionally. If at least one cluster type is set,
-// then the consolidation of the multi-input clusters and the additional clusters will be used.
-func (h *reverseAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
-	if !areClusterTypesValid(clusterTypes) {
+func (h *reverseAmountHeuristic) setConfig(c heuristics.Config) error {
+	if !areClusterTypesValid(c.ClusterTypes) {
 		return serror.New(errInvalidClusterTypes)
 	}
 
-	h.clusterTypes = clusterTypes
+	h.c = c
+
 	return nil
 }
 
-// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
-func (h *reverseAmountHeuristic) getClusterTypes() []clustering.ClusterType {
-	return h.clusterTypes
+func (h *reverseAmountHeuristic) getConfig() heuristics.Config {
+	return h.c
 }
 
-// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
-func (h *reverseAmountHeuristic) setExcludeAddresses(excludeAddresses bool) {
-	h.excludeAddresses = excludeAddresses
+func (h *reverseAmountHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
 }
 
-// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
-func (h *reverseAmountHeuristic) getExcludeAddresses() bool {
-	return h.excludeAddresses
-}
-
-// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
-func (h *reverseAmountHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
-	h.excludeSpendingGaps = excludeSpendingGaps
-}
-
-// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
-func (h *reverseAmountHeuristic) getExcludeSpendingGaps() bool {
-	return h.excludeSpendingGaps
-}
-
-// setUserUID sets the UID of the user who created this heuristic
-func (h *reverseAmountHeuristic) setUserUID(uid string) {
-	h.userUID = uid
-}
-
-func (h reverseAmountHeuristic) String() string {
-	return "Type: " + h.heuristicType
-}
-
-func (h reverseAmountHeuristic) GetDescriptor() Descriptor {
+func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Reverse Amount",
 		Type:     h.heuristicType,
@@ -101,14 +57,9 @@ func (h reverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h reverseAmountHeuristic) clone() heuristic {
-	newHeuristic := h
-	return &newHeuristic
-}
-
 // reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+func (h *reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	txHash string, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
@@ -129,8 +80,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID,
-				h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
+			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.c)
 			if err != nil {
 				return nil, err
 			}

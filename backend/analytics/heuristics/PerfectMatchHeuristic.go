@@ -3,9 +3,9 @@ package heuristics
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
-	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"fmt"
 	"github.com/qrest/gomisc/serror"
 )
 
@@ -13,80 +13,36 @@ import (
 type perfectMatchHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	userUID              string
-	excludeAddresses     bool
-	excludeSpendingGaps  bool
-	clusterTypes         []clustering.ClusterType
+	c                    heuristics.Config
 }
 
-// newPerfectMatchHeuristic constructs a perfectMatchHeuristic
-func newPerfectMatchHeuristic(clusterTypes []clustering.ClusterType) *perfectMatchHeuristic {
-	return &perfectMatchHeuristic{
-		heuristicType: "perfect_match",
-		clusterTypes:  clusterTypes,
-	}
+func newPerfectMatchHeuristic() heuristic {
+	return &perfectMatchHeuristic{heuristicType: "perfect_match"}
 }
 
-func (h perfectMatchHeuristic) getType() string {
+func (h *perfectMatchHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h perfectMatchHeuristic) getParameterString() string {
+func (h *perfectMatchHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h perfectMatchHeuristic) hasParameter() bool {
-	return false
-}
-
-func (h perfectMatchHeuristic) setParameter(_ string) error {
-	return nil
-}
-
-// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
-// Multi-input clusters are always used to execute the heuristic,
-// any cluster type set here will be used additionally. If at least one cluster type is set,
-// then the consolidation of the multi-input clusters and the additional clusters will be used.
-func (h *perfectMatchHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
-	if !areClusterTypesValid(clusterTypes) {
+func (h *perfectMatchHeuristic) setConfig(c heuristics.Config) error {
+	if !areClusterTypesValid(c.ClusterTypes) {
 		return serror.New(errInvalidClusterTypes)
 	}
 
-	h.clusterTypes = clusterTypes
+	h.c = c
+
 	return nil
 }
 
-// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
-func (h *perfectMatchHeuristic) getClusterTypes() []clustering.ClusterType {
-	return h.clusterTypes
+func (h *perfectMatchHeuristic) getConfig() heuristics.Config {
+	return h.c
 }
 
-// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
-func (h *perfectMatchHeuristic) setExcludeAddresses(excludeAddresses bool) {
-	h.excludeAddresses = excludeAddresses
-}
-
-// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
-func (h *perfectMatchHeuristic) getExcludeAddresses() bool {
-	return h.excludeAddresses
-}
-
-// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
-func (h *perfectMatchHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
-	h.excludeSpendingGaps = excludeSpendingGaps
-}
-
-// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
-func (h *perfectMatchHeuristic) getExcludeSpendingGaps() bool {
-	return h.excludeSpendingGaps
-}
-
-// setUserUID sets the UID of the user who created this heuristic
-func (h *perfectMatchHeuristic) setUserUID(uid string) {
-	h.userUID = uid
-}
-
-func (h perfectMatchHeuristic) GetDescriptor() Descriptor {
+func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Perfect Match",
 		Type:     h.heuristicType,
@@ -98,19 +54,14 @@ func (h perfectMatchHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h perfectMatchHeuristic) String() string {
-	return "Type: " + h.heuristicType
-}
-
-func (h perfectMatchHeuristic) clone() heuristic {
-	newHeuristic := h
-	return &newHeuristic
+func (h *perfectMatchHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
 }
 
 // perfectMatchHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations without a perfect match for the
 //     denominations of the destination transaction
-func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash
@@ -132,8 +83,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID,
-				h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
+			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.c)
 			if err != nil {
 				return nil, err
 			}

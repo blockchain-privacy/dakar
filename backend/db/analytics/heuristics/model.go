@@ -102,16 +102,32 @@ func (h HeuristicTransaction) String() string {
 		h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
+type Config struct {
+	Parameter string `json:"parameter,omitempty"`
+	// ClusterTypes are used to cluster the results of the heuristic.
+	// If cluster types are set to nil, the result will not be clustered.
+	// If multiple cluster types are set, then the consolidation of these clusters will be used.
+	ClusterTypes []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	// ExcludeAddresses controls whether certain addresses should be excluded from the lookups
+	ExcludeAddresses bool `json:"excludeAddresses"`
+	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
+	ExcludeSpendingGaps bool `json:"excludeSpendingGaps"`
+	// UserUID is the UID of the user who created this heuristic
+	UserUID string
+}
+
+func (c Config) String() string {
+	return fmt.Sprintf("Parameter: %s, cluster type: %v, exclude addresses: %v, exclude spending gaps: %v",
+		c.Parameter, c.ClusterTypes, c.ExcludeAddresses, c.ExcludeSpendingGaps)
+}
+
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
-	UID                 string                   `json:"uid,omitempty"`
-	TransactionHash     string                   `json:"transactionHash,omitempty"`
-	Type                string                   `json:"type,omitempty"`
-	Parameter           string                   `json:"parameter,omitempty"`
-	ParentHeuristicUID  string                   `json:"parentUID,omitempty"`
-	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
-	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
-	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
+	UID                string  `json:"uid,omitempty"`
+	TransactionHash    string  `json:"transactionHash,omitempty"`
+	Type               string  `json:"type,omitempty"`
+	ParentHeuristicUID string  `json:"parentUID,omitempty"`
+	Configuration      *Config `json:"config,omitempty"`
 }
 
 type HollowHeuristic struct {
