@@ -118,10 +118,11 @@ func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api
 func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := range maxRetries {
-		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
+		if resp, err = execTx(db, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
 			return
 		}
+
+		// Retry the transaction if it was aborted
 		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
@@ -141,10 +142,11 @@ func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.
 func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := range maxRetries {
-		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
+		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
 			return
 		}
+
+		// Retry the transaction if it was aborted
 		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
