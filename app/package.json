@@ -13,7 +13,7 @@
     "@blockchain/dakar": "^1.1.45",
     "@fontsource/roboto": "^5.0.13",
     "@mdi/js": "^7.4.47",
-    "@neondark/kratosadmin": "^0.0.4",
+    "@neondark/kratosadmin": "^0.0.5",
     "@neondark/wikiapi": "^1.2.36",
     "@ory/client-fetch": "^1.14.2",
     "d3-array": "^3.2.4",
@@ -28,7 +28,7 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "pinia": "^2.1.7",
-    "vue": "^3.4.32",
+    "vue": "^3.4.33",
     "vue-router": "^4.4.0",
     "vuetify": "^3.6.13"
   },
