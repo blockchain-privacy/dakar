@@ -2,6 +2,7 @@ package db
 
 import (
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -107,14 +108,14 @@ func TestGetFrontendBlock(t *testing.T) {
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
 	const blockHash2 = "000000000020ef46c4026cb77aee959224b9bb0a23b24bc46c429d8c9cab498b"
 
-	block, err := GetFrontendBlock(dbHandle, blockHash, 0)
+	block, err := GetFrontendBlock(context.Background(), dbHandle, blockHash, 0)
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 2)
 
-	block, err = GetFrontendBlock(dbHandle, blockHash2, 0)
+	block, err = GetFrontendBlock(context.Background(), dbHandle, blockHash2, 0)
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 1)
 
-	_, err = GetFrontendBlock(dbHandle, "", 0)
+	_, err = GetFrontendBlock(context.Background(), dbHandle, "", 0)
 	require.Error(t, err)
 }

@@ -81,7 +81,7 @@ func GetUserCount(c external.Database) (userCount int, err error) {
 func existsUser(c external.Database, uid string) (found bool, err error) {
 	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DType + ")){uid}}"
 
-	ctx, cancel := db.GetFrontendContext()
+	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
 	// no retry
@@ -122,11 +122,9 @@ func DeleteUser(c external.Database, uid string) (err error) {
 	}
 
 	req := &api.Request{
-		Query: "query Q($uid:string){h as var(func: uid($uid))@filter(eq(dgraph.type," + DType + "))}",
-		Vars:  map[string]string{"$uid": uid},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * ."),
-		}},
+		Query:     "query Q($uid:string){h as var(func: uid($uid))@filter(eq(dgraph.type," + DType + "))}",
+		Vars:      map[string]string{"$uid": uid},
+		Mutations: []*api.Mutation{{DelNquads: []byte("uid(h) * * .")}},
 		CommitNow: true,
 	}
 

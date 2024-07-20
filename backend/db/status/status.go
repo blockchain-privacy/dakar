@@ -3,6 +3,7 @@ package status
 import (
 	"backend/db"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
@@ -155,7 +156,7 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 }
 
 // GetFrontendStatus gets verbose status information from the database
-func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
+func GetFrontendStatus(ctx context.Context, c external.Database) (status FrontendStatus, err error) {
 	query := `{
 				crawler(func: type(` + CrawlerStatusDType + `)){
 					iscrawling
@@ -175,8 +176,6 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 				}
 			}`
 
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
 		err = serror.New(err)

@@ -2,6 +2,7 @@ package db
 
 import (
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
@@ -213,7 +214,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 }
 
 // GetFrontendBlock gets verbose block information from the database
-func GetFrontendBlock(c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
+func GetFrontendBlock(ctx context.Context, c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
 	if blockHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -263,8 +264,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 					}
 				}
 			  } %s`, searchProperty, offset, FrontendTransactionFragments)
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
+
 	resp, err := c.Query(ctx, query, map[string]string{"$ident": blockHash})
 	if err != nil {
 		err = serror.New(err)

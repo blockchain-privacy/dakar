@@ -31,13 +31,6 @@ func TestGetBackendContext(t *testing.T) {
 	})
 }
 
-func TestGetFrontendContext(t *testing.T) {
-	require.NotPanics(t, func() {
-		_, cancel := GetFrontendContext()
-		cancel()
-	})
-}
-
 func TestExecTx(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 

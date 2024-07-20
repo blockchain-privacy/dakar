@@ -17,6 +17,7 @@ import (
 	"backend/external"
 	"backend/worker"
 	"backend/workspace"
+	"context"
 	"github.com/qrest/gomisc/serror"
 	"io"
 	"strings"
@@ -28,33 +29,37 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"strconv"
 )
 
 // getSearchReply searches for the given query in the database
-func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
+func getSearchReply(dgraph external.Database, r *http.Request) (searchReply, int) {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
 	}
 
+	query := r.PathValue("query")
+
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
-	searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
+
+	type dataRetriever func(context.Context, external.Database, string) (SearchResult, bool, error)
+
+	searchOrder := []dataRetriever{GetTransaction, GetAddress, GetBlock}
 
 	if isLikelyBlock(query) {
-		searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
+		searchOrder = []dataRetriever{GetBlock, GetTransaction, GetAddress}
 	} else if isLikelyAddress(query) {
-		searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
+		searchOrder = []dataRetriever{GetAddress, GetTransaction, GetBlock}
 	}
 
 	status := http.StatusOK
 
 	// iterate over db access functions
 	for _, fn := range searchOrder {
-		data, ok, err := fn(dgraph, query)
+		data, ok, err := fn(r.Context(), dgraph, query)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -77,12 +82,13 @@ func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	return reply, status
 }
 
-func getAddressReply(dgraph external.Database, query string) (reply addressReply, status int) {
+func getAddressReply(dgraph external.Database, r *http.Request) (reply addressReply, status int) {
+	query := r.PathValue("hash")
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
 
-	addr, err := db.GetFrontendAddress(dgraph, query, db.SortAscendingByOutputTime, 0, nil)
+	addr, err := db.GetFrontendAddress(r.Context(), dgraph, query, db.SortAscendingByOutputTime, 0, nil)
 	if err != nil {
 		// only print error if it is not expected
 		if errors.Is(err, db.ErrAddressNotFound) {
@@ -100,7 +106,8 @@ func getAddressReply(dgraph external.Database, query string) (reply addressReply
 	return
 }
 
-func getBlockReply(r *http.Request, dgraph external.Database, query string) (reply blockReply, status int) {
+func getBlockReply(dgraph external.Database, r *http.Request) (reply blockReply, status int) {
+	query := r.PathValue("hash")
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
@@ -117,7 +124,7 @@ func getBlockReply(r *http.Request, dgraph external.Database, query string) (rep
 		}
 	}
 
-	block, err := db.GetFrontendBlock(dgraph, query, offset)
+	block, err := db.GetFrontendBlock(r.Context(), dgraph, query, offset)
 	if err != nil {
 		if errors.Is(err, db.ErrBlockNotFound) {
 			status = http.StatusNotFound
@@ -134,12 +141,13 @@ func getBlockReply(r *http.Request, dgraph external.Database, query string) (rep
 	return
 }
 
-func getTransactionReply(dgraph external.Database, query string) (reply transactionReply, status int) {
+func getTransactionReply(dgraph external.Database, r *http.Request) (reply transactionReply, status int) {
+	query := r.PathValue("hash")
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
 
-	transactions, err := db.GetFrontendTransaction(dgraph, query)
+	transactions, err := db.GetFrontendTransaction(r.Context(), dgraph, query)
 	if err != nil {
 		// only print error if it is not expected
 		if errors.Is(err, db.ErrTransactionNotFound) {
@@ -157,7 +165,8 @@ func getTransactionReply(dgraph external.Database, query string) (reply transact
 }
 
 // getAddressOutputRangeReply searches for the given address hash in the database with the options stored in the request
-func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addressHash string) (searchReply, int) {
+func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (searchReply, int) {
+	addressHash := r.PathValue("hash")
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
@@ -194,7 +203,7 @@ func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addre
 	}
 
 	status := http.StatusOK
-	data, ok, addrErr := GetAddressWithOptions(dgraph, addressHash,
+	data, ok, addrErr := GetAddressWithOptions(r.Context(), dgraph, addressHash,
 		addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 	if addrErr != nil {
 		status = http.StatusInternalServerError
@@ -208,7 +217,7 @@ func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addre
 	return reply, status
 }
 
-func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaReply, int) {
+func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *http.Request) (metaReply, int) {
 	var reply metaReply
 
 	// get block info
@@ -219,7 +228,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaR
 	}
 
 	// get data from db
-	verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
+	verboseStatus, err := dbstat.GetFrontendStatus(r.Context(), dgraph)
 	if err != nil {
 		warn(err)
 		return reply, http.StatusInternalServerError
@@ -317,7 +326,8 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 		return
 	}
 
-	heuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
+	heuristic, err := dbHeuristic.GetFrontendHeuristicByUID(r.Context(), dgraph,
+		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -363,7 +373,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 }
 
 // getShortestTransactionPathReply searches for the shortest path between two transactions
-func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply, status int) {
+func getShortestTransactionPathReply(dgraph external.Database, r *http.Request) (reply shortestTransactionPathReply, status int) {
 	type request struct {
 		// From is the starting point of the shortest path lookup
 		From string `json:"from"`
@@ -380,7 +390,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 
 	// parse request
 	var req request
-	if err := json.NewDecoder(body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
 		return
 	}
@@ -397,7 +407,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		return
 	}
 
-	fromBlockID, err := db.GetTransactionBlockID(dgraph, req.From)
+	fromBlockID, err := db.GetTransactionBlockID(r.Context(), dgraph, req.From)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
 			status = http.StatusNotFound
@@ -410,7 +420,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		return
 	}
 
-	toBlockID, err := db.GetTransactionBlockID(dgraph, req.To)
+	toBlockID, err := db.GetTransactionBlockID(r.Context(), dgraph, req.To)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
 			status = http.StatusBadRequest
@@ -443,8 +453,8 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	}
 
 	// do 'shortest transaction path' lookup
-	txs, err := dbAnalytics.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
-		req.IncludePrivacyTransactions, anyDirection)
+	txs, err := dbAnalytics.GetShortestTransactionPathAnyDirection(r.Context(), dgraph,
+		oldTx, youngTx, req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -462,13 +472,20 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 
 // getConnectionLookupReply returns the result of a reverse lookup
 func getConnectionLookupReply(dgraph external.Database, graphWrapper *graph.Wrapper,
-	transactionHash string, urlHandle *url.URL) (reply connectionLookupReply, status int) {
+	r *http.Request) (reply connectionLookupReply, status int) {
 	if !graphWrapper.IsTransactionGraphLoaded() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
 		return
 	}
 
-	urlValues := urlHandle.Query()
+	transactionHash := r.PathValue("hash")
+	if transactionHash == "" {
+		status = http.StatusBadRequest
+		reply.Msg = "invalid value for parameter 'forward'"
+		return
+	}
+
+	urlValues := r.URL.Query()
 
 	isLookupForward, err := strconv.ParseBool(urlValues.Get("forward"))
 	if err != nil {
@@ -540,7 +557,7 @@ func getConnectionLookupReply(dgraph external.Database, graphWrapper *graph.Wrap
 		i++
 	}
 
-	frontendTransactions, err := db.GetFrontendTransactionsByUID(dgraph, transactionUids)
+	frontendTransactions, err := db.GetFrontendTransactionsByUID(r.Context(), dgraph, transactionUids)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -632,8 +649,8 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 		return
 	}
 
-	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID,
-		tUser.ID, heuristicRequest.WorkspaceUID)
+	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(r.Context(), dgraph,
+		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		http.Error(w, errReport, http.StatusInternalServerError)
 		warn(err)
@@ -1373,7 +1390,8 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 }
 
 func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.Wrapper,
-	txhash string) (reply spendingFingerprintReply, status int) {
+	r *http.Request) (reply spendingFingerprintReply, status int) {
+	txhash := r.PathValue("hash")
 	if !isValid(txhash) {
 		status = http.StatusBadRequest
 		return
@@ -1416,7 +1434,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 		uidToFingerprint[tx.TransactionUID] = fingerprintScore{Score: tx.Score, SessionCount: tx.SessionCount}
 	}
 
-	transactions, err := db.GetTransactionUIDMapping(dgraph, uids)
+	transactions, err := db.GetTransactionUIDMapping(r.Context(), dgraph, uids)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1828,7 +1846,8 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 	}
 
 	if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeCluster {
-		reply.AmountTransactions, err = dbwork.GetConnectionClusterToCluster(dgraph, req.FirstNode.UID, req.SecondNode.UID)
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToCluster(r.Context(), dgraph,
+			req.FirstNode.UID, req.SecondNode.UID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -1844,7 +1863,8 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			heuristicUID = req.FirstNode.UID
 		}
 
-		reply.AmountTransactions, err = dbwork.GetConnectionClusterToHeuristic(dgraph, clusterUID, heuristicUID, tUser.ID, req.WorkspaceUID)
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToHeuristic(r.Context(), dgraph, clusterUID,
+			heuristicUID, tUser.ID, req.WorkspaceUID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -1860,7 +1880,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			transactionUID = req.FirstNode.UID
 		}
 
-		reply.FrontendTransactions, err = dbwork.GetConnectionClusterToTransaction(dgraph, clusterUID, transactionUID)
+		reply.FrontendTransactions, err = dbwork.GetConnectionClusterToTransaction(r.Context(), dgraph, clusterUID, transactionUID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -1876,7 +1896,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			transactionUID = req.FirstNode.UID
 		}
 
-		reply.FrontendTransactions, err = dbwork.GetConnectionHeuristicToTransaction(dgraph, heuristicUID,
+		reply.FrontendTransactions, err = dbwork.GetConnectionHeuristicToTransaction(r.Context(), dgraph, heuristicUID,
 			transactionUID, tUser.ID, req.WorkspaceUID)
 		if err != nil {
 			status = http.StatusInternalServerError

@@ -21,8 +21,6 @@ import (
 const (
 	// backendTimeout is the duration until a request originating from the backend times out
 	backendTimeout = time.Minute * 20
-	// frontEndTimout is the duration until a request originating from the frontend times out
-	frontEndTimout = time.Second * 30
 	// maxRetries is the number of transaction retries in case of an error response
 	maxRetries = 5
 	// retrySleepDuration is the duration between retries
@@ -61,11 +59,6 @@ func GetBackendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), backendTimeout)
 }
 
-// GetFrontendContext returns a context with a runtime of frontEndTimout and a cancel function
-func GetFrontendContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), frontEndTimout)
-}
-
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
@@ -87,13 +80,35 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 	return resp, nil
 }
 
+// execReadOnlyTx executes the given request, vars is allowed to be nil
+func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
+	vars map[string]string) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, serror.New(errInvalidTimeout)
+	}
+
+	if q == "" {
+		return nil, serror.New(ErrEmptyRequestArgument)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
+
+	resp, err := db.Query(ctx, q, vars)
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	return resp, nil
+}
+
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
 		return nil, serror.New(errInvalidTimeout)
 	}
 
-	if req == nil {
+	if req == nil || tx == nil {
 		return nil, serror.New(ErrEmptyRequestArgument)
 	}
 
@@ -154,28 +169,6 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 	}
 
 	return
-}
-
-// execReadOnlyTx executes the given request, vars is allowed to be nil
-func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
-	vars map[string]string) (*api.Response, error) {
-	if timeoutPerRequest <= 0 {
-		return nil, serror.New(errInvalidTimeout)
-	}
-
-	if q == "" {
-		return nil, serror.New(ErrEmptyRequestArgument)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
-	defer cancel()
-
-	resp, err := db.Query(ctx, q, vars)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	return resp, nil
 }
 
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it

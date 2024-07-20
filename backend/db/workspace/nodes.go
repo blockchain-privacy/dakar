@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
+	"context"
 	"encoding/json"
 	"github.com/qrest/gomisc/serror"
 	"slices"
@@ -404,7 +405,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 
 // GetConnectionClusterToCluster return the transaction UIDs which connect two clusters.
 // The provided UIDs must be of addresses of the respective clusters.
-func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string) (
+func GetConnectionClusterToCluster(ctx context.Context, c external.Database, firstUID string, secondUID string) (
 	frontendTransactions []db.AmountTransaction, err error) {
 	const query = `query Q($first:string,$second:string){
 			# find fmi cluster for first address
@@ -452,7 +453,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 			}
 }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$first": firstUID, "$second": secondUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$first": firstUID, "$second": secondUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -497,7 +498,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	}
 
 	if len(transactionMap) > 0 {
-		frontendTransactions, err = db.GetFrontendTransactionAmounts(c, cliutil.GetMapKeys(transactionMap))
+		frontendTransactions, err = db.GetFrontendTransactionAmounts(ctx, c, cliutil.GetMapKeys(transactionMap))
 		if err != nil {
 			return
 		}
@@ -508,8 +509,8 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 
 // GetConnectionClusterToHeuristic returns the transaction UIDs which connects a cluster to an heuristic.
 // The provided cluster UID must be of a cluster address.
-func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
-	workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
+func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, clusterUID string,
+	heuristicUID string, userUID string, workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
 	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
@@ -554,7 +555,7 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 			}
 		}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$cluster": clusterUID,
+	resp, err := c.Query(ctx, query, map[string]string{"$cluster": clusterUID,
 		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
@@ -602,7 +603,7 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 	}
 
 	if len(transactionMap) > 0 {
-		frontendTransactions, err = db.GetFrontendTransactionAmounts(c, cliutil.GetMapKeys(transactionMap))
+		frontendTransactions, err = db.GetFrontendTransactionAmounts(ctx, c, cliutil.GetMapKeys(transactionMap))
 		if err != nil {
 			return
 		}
@@ -681,8 +682,8 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 
 // GetConnectionClusterToTransaction returns the given transaction, with each output
 // having a flag if it belongs to one of the cluster's addresses.
-func GetConnectionClusterToTransaction(c external.Database, clusterUID string, transactionUID string) (
-	frontendTransactions []db.FrontendTransaction, err error) {
+func GetConnectionClusterToTransaction(ctx context.Context, c external.Database, clusterUID string,
+	transactionUID string) (frontendTransactions []db.FrontendTransaction, err error) {
 	const query = `query Q($transaction:string,$address:string){
 					# find fmi cluster for address
 					var(func: uid($address))@filter(has(addresshash)){
@@ -712,7 +713,7 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -762,7 +763,7 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 	}
 
 	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
-		frontendTransactions, err = db.GetFrontendTransaction(c, r.Transactions[0].TransactionHash)
+		frontendTransactions, err = db.GetFrontendTransaction(ctx, c, r.Transactions[0].TransactionHash)
 		if err != nil {
 			return
 		}
@@ -787,8 +788,8 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 
 // GetConnectionHeuristicToTransaction returns the given transaction, with each output
 // having a flag if it belongs to one of the heuristic's clusters addresses.
-func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID string, transactionUID string, userUID string,
-	workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
+func GetConnectionHeuristicToTransaction(ctx context.Context, c external.Database, heuristicUID string,
+	transactionUID string, userUID string, workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
 	const query = `query Q($transaction:string,$heuristic:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
@@ -844,7 +845,7 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 			}
 		}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID,
+	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID,
 		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
@@ -895,7 +896,7 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 	}
 
 	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
-		frontendTransactions, err = db.GetFrontendTransaction(c, r.Transactions[0].TransactionHash)
+		frontendTransactions, err = db.GetFrontendTransaction(ctx, c, r.Transactions[0].TransactionHash)
 		if err != nil {
 			return
 		}

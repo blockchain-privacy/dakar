@@ -7,6 +7,7 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/external"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -570,8 +571,8 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 }
 
 // GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID, which was created by userUID
-func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string, workspaceUID string) (
-	frontendHeuristic FrontendHeuristicShort, err error) {
+func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
+	heuristicUID string, userUID string, workspaceUID string) (frontendHeuristic FrontendHeuristicShort, err error) {
 	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
@@ -600,9 +601,8 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				}
 			   }`
 
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID,
+		"$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
 		return

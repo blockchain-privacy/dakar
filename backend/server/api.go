@@ -20,7 +20,7 @@ import (
 //	@Router			/blockchain/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSearchReply(s.db, r.PathValue("query"))
+		reply, status := getSearchReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -39,7 +39,7 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Router		/blockchain/addresses/{hash} [get]
 func (s *Server) handlerAddress() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressReply(s.db, r.PathValue("hash"))
+		reply, status := getAddressReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -59,7 +59,7 @@ func (s *Server) handlerAddress() http.Handler {
 //	@Router		/blockchain/blocks/{hash} [get]
 func (s *Server) handlerBlock() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getBlockReply(r, s.db, r.PathValue("hash"))
+		reply, status := getBlockReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -78,7 +78,7 @@ func (s *Server) handlerBlock() http.Handler {
 //	@Router		/blockchain/transactions/{hash} [get]
 func (s *Server) handlerTransaction() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getTransactionReply(s.db, r.PathValue("hash"))
+		reply, status := getTransactionReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -98,7 +98,7 @@ func (s *Server) handlerTransaction() http.Handler {
 //	@Router		/blockchain/outputs/{hash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressOutputRangeReply(r, s.db, r.PathValue("hash"))
+		reply, status := getAddressOutputRangeReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -113,8 +113,8 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Failure	500	{object}	server.metaReply
 //	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		reply, status := getMetaReply(s.db, s.client)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getMetaReply(s.db, s.client, r)
 
 		SendReply(w, reply, status)
 	})
@@ -522,7 +522,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 //	@Router		/shortestTransactionPath/ [post]
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getShortestTransactionPathReply(s.db, r.Body)
+		reply, status := getShortestTransactionPathReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -543,7 +543,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Router		/connectionLookup/{hash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r.PathValue("hash"), r.URL)
+		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r)
 
 		SendReply(w, reply, status)
 	})
@@ -618,7 +618,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSpendingFingerprintReply(s.db, s.graphWrapper, r.PathValue("hash"))
+		reply, status := getSpendingFingerprintReply(s.db, s.graphWrapper, r)
 
 		SendReply(w, reply, status)
 	})

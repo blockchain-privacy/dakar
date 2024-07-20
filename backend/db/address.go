@@ -2,6 +2,7 @@ package db
 
 import (
 	"backend/external"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -111,7 +112,7 @@ func (f FrontendAddress) String() string {
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
-func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
+func GetFrontendAddress(ctx context.Context, c external.Database, addrHash string, sortOrder int,
 	offset int, filters []int) (addr FrontendAddress, err error) {
 	if addrHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
@@ -226,8 +227,6 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, vars)
 	if err != nil {
 		err = serror.New(err)
