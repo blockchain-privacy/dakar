@@ -74,7 +74,7 @@ func NewServer(db external.Database, client external.RPCClient,
 		cacheFactory:   factory,
 		workspaceMutex: workspace.NewMutex(),
 		handler:        http.NewServeMux(),
-		handlerTimeout: time.Minute * 2,
+		handlerTimeout: time.Minute * 3,
 	}, nil
 }
 
