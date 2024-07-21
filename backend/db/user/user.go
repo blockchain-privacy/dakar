@@ -3,6 +3,7 @@ package user
 import (
 	"backend/db"
 	"backend/external"
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -78,14 +79,10 @@ func GetUserCount(c external.Database) (userCount int, err error) {
 }
 
 // existsUser checks if a User with the given uid exists
-func existsUser(c external.Database, uid string) (found bool, err error) {
+func existsUser(ctx context.Context, c external.Database, uid string) (found bool, err error) {
 	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DType + ")){uid}}"
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-
-	// no retry
-	resp, txErr := c.Query(ctx, query, map[string]string{"$uid": uid})
+	resp, txErr := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": uid})
 	if txErr != nil {
 		err = serror.New(txErr)
 		return
@@ -112,8 +109,8 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 }
 
 // DeleteUser deletes the User with the given uid
-func DeleteUser(c external.Database, uid string) (err error) {
-	if found, existsErr := existsUser(c, uid); existsErr != nil {
+func DeleteUser(ctx context.Context, c external.Database, uid string) (err error) {
+	if found, existsErr := existsUser(ctx, c, uid); existsErr != nil {
 		err = existsErr
 		return
 	} else if !found {
@@ -128,7 +125,7 @@ func DeleteUser(c external.Database, uid string) (err error) {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, time.Minute*5, req)
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 // generateRandomPassword returns a random string if fixed length of 22

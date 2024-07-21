@@ -50,6 +50,9 @@ type Server struct {
 	workspaceMutex *workspace.Mutex
 	// HTTP mux
 	handler *http.ServeMux
+	// todo make handler timeout configurable
+	// duration after which every handler timesout
+	handlerTimeout time.Duration
 }
 
 func NewServer(db external.Database, client external.RPCClient,
@@ -71,6 +74,7 @@ func NewServer(db external.Database, client external.RPCClient,
 		cacheFactory:   factory,
 		workspaceMutex: workspace.NewMutex(),
 		handler:        http.NewServeMux(),
+		handlerTimeout: time.Minute * 2,
 	}, nil
 }
 

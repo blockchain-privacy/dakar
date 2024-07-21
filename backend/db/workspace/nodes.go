@@ -614,7 +614,7 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 
 // SearchForNode returns the uid which matches to the given query. In case the query is an address
 // which is connected to clusters, they are returned instead.
-func SearchForNode(c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
+func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
 	if nodeQuery == "" || userUID == "" {
 		err = serror.New(db.ErrEmptyRequestArgument)
 		return
@@ -634,7 +634,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 						}
 					}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$query": nodeQuery, "$user": userUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$query": nodeQuery, "$user": userUID})
 	if err != nil {
 		err = serror.New(err)
 		return

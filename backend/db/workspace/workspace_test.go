@@ -4,6 +4,7 @@ import (
 	"backend/db"
 	"backend/db/user"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -43,7 +44,7 @@ func TestAddWorkspace(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		newWorkspaceUID, err := AddWorkspace(dbHandle, tt.name, tt.userUID)
+		newWorkspaceUID, err := AddWorkspace(context.Background(), dbHandle, tt.name, tt.userUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -55,20 +56,20 @@ func TestAddWorkspace(t *testing.T) {
 
 func TestGetFrontendWorkspaces(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-
+	ctx := context.Background()
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(dbHandle)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID)
 	require.NoError(t, err)
 
 	userUID2, err := user.CreateNewUser(dbHandle)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -92,7 +93,7 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		workspaces, err := GetFrontendWorkspaces(dbHandle, tt.userUID)
+		workspaces, err := GetFrontendWorkspaces(ctx, dbHandle, tt.userUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

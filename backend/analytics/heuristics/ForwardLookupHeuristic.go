@@ -2,6 +2,7 @@ package heuristics
 
 import (
 	"backend/analytics/graph"
+	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -85,6 +86,10 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	var results []heuristics.HeuristicTransaction
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
 	var resultAttributionMap map[heuristics.ClusterUID][]string
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	{ // separate enclosure so the results slice can be garbage collected
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
@@ -95,7 +100,7 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g,
+			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(ctx, dgraph, g,
 				txHash, h.lookForwardTime, h.c)
 			if err != nil {
 				return nil, err

@@ -147,6 +147,32 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 	return
 }
 
+// MutationWithRetry executes the given request. In case the request fails repeat it
+func MutationWithRetry(ctx context.Context, db external.Database, req *api.Request) error {
+	_, err := MutationWithRetryAndResponse(ctx, db, req)
+	return err
+}
+
+// MutationWithRetryAndResponse executes the given request. In case the request fails repeat it
+func MutationWithRetryAndResponse(ctx context.Context, db external.Database,
+	req *api.Request) (resp *api.Response, err error) {
+	for i := range maxRetries {
+		if resp, err = db.Mutate(ctx, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
+			return
+		}
+
+		err = serror.New(err)
+
+		// Retry the transaction if it was aborted
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
 // ExistingTxWithRetry executes the given request. In case the request fails repeat it
 func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) error {
 	_, err := ExistingTxWithRetryAndResponse(tx, timeoutPerRequest, req)
@@ -193,6 +219,25 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 	}
 
 	return nil, err
+}
+
+// QueryVarWithRetry executes the given request. In case the request fails repeats it
+func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
+	vars map[string]string) (resp *api.Response, err error) {
+	for i := range maxRetries {
+		resp, err = db.Query(ctx, q, vars)
+		if err == nil {
+			return
+		}
+		err = serror.New(err)
+
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
 }
 
 // ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it

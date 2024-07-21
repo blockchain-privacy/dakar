@@ -142,7 +142,7 @@ func TestGetAddressUIDs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotAddresses, err := GetAddressUIDs(tt.args.c, tt.args.addressHashes)
+		gotAddresses, err := GetAddressUIDs(context.Background(), tt.args.c, tt.args.addressHashes)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

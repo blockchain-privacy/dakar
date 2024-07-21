@@ -3,6 +3,7 @@ package workspace
 import (
 	"backend/db"
 	"backend/external"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/dgraph-io/dgo/v230/protos/api"
@@ -17,7 +18,7 @@ var (
 )
 
 // AddWorkspace creates a new workspace
-func AddWorkspace(c external.Database, name string, userUID string) (workspaceUID string, err error) {
+func AddWorkspace(ctx context.Context, c external.Database, name string, userUID string) (workspaceUID string, err error) {
 	if name == "" || userUID == "" {
 		err = serror.New(db.ErrEmptyRequestArgument)
 		return
@@ -42,11 +43,9 @@ func AddWorkspace(c external.Database, name string, userUID string) (workspaceUI
 		return
 	}
 
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, &api.Request{
-		Mutations: []*api.Mutation{{SetJson: pb}},
-		CommitNow: true,
-	})
+	resp, err := c.Mutate(ctx, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true})
 	if err != nil {
+		err = serror.New(err)
 		return
 	}
 
@@ -60,7 +59,8 @@ func AddWorkspace(c external.Database, name string, userUID string) (workspaceUI
 }
 
 // RenameWorkspace renames a workspace
-func RenameWorkspace(c external.Database, name string, userUID string, workspaceUID string) (err error) {
+func RenameWorkspace(ctx context.Context, c external.Database, name string,
+	userUID string, workspaceUID string) (err error) {
 	if name == "" || userUID == "" {
 		return serror.New(db.ErrEmptyRequestArgument)
 	}
@@ -83,16 +83,13 @@ func RenameWorkspace(c external.Database, name string, userUID string, workspace
 		return
 	}
 
-	_, err = db.TxWithRetryAndResponse(c, time.Minute*10, &api.Request{
-		Mutations: []*api.Mutation{{SetJson: pb}},
-		CommitNow: true,
-	})
+	_, err = c.Mutate(ctx, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true})
 
 	return
 }
 
 // SetWorkspaceState sets the state of the specified workspace
-func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
+func SetWorkspaceState(ctx context.Context, c external.Database, userUID string, workspaceUID string,
 	state string, clusterHeight *int64) (err error) {
 	if workspaceUID == "" || userUID == "" || state == "" {
 		return serror.New(db.ErrEmptyRequestArgument)
@@ -116,7 +113,7 @@ func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 		return
 	}
 
-	_, err = db.TxWithRetryAndResponse(c, time.Minute*10, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Query: "query Q($uid:string){var(func: uid($uid))@filter(type(Workspace)){v as uid}}",
 		Vars:  map[string]string{"$uid": workspaceUID},
 		Mutations: []*api.Mutation{{
@@ -125,15 +122,10 @@ func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 		}},
 		CommitNow: true,
 	})
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 // GetFrontendWorkspaces returns all workspaces of the current user without its state
-func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, error) {
+func GetFrontendWorkspaces(ctx context.Context, c external.Database, userUID string) ([]Workspace, error) {
 	if userUID == "" {
 		return nil, serror.New(db.ErrEmptyRequestArgument)
 	}
@@ -150,7 +142,7 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 			}
 		}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$user": userUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$user": userUID})
 	if err != nil {
 		return nil, serror.New(err)
 	}
@@ -173,7 +165,7 @@ func isStateEmpty(state string) bool {
 }
 
 // GetFrontendWorkspace returns the specified workspace
-func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*DecodedWorkspace, error) {
+func GetFrontendWorkspace(ctx context.Context, c external.Database, uid string, userUID string) (*DecodedWorkspace, error) {
 	if userUID == "" {
 		return nil, serror.New(db.ErrEmptyRequestArgument)
 	}
@@ -192,7 +184,7 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 			}
 		}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$user": userUID, "$workspace": uid})
+	resp, err := c.Query(ctx, query, map[string]string{"$user": userUID, "$workspace": uid})
 	if err != nil {
 		return nil, serror.New(err)
 	}
@@ -229,12 +221,12 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 }
 
 // DeleteAllWorkspaces deletes a user's workspaces and their heuristics
-func DeleteAllWorkspaces(c external.Database, userUID string) error {
-	return DeleteWorkspace(c, userUID, "")
+func DeleteAllWorkspaces(ctx context.Context, c external.Database, userUID string) error {
+	return DeleteWorkspace(ctx, c, userUID, "")
 }
 
 // DeleteWorkspace deletes a user's workspace
-func DeleteWorkspace(c external.Database, userUID string, workspaceUID string) error {
+func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, workspaceUID string) error {
 	var filterWorkspaces string
 
 	if workspaceUID != "" {
@@ -264,8 +256,7 @@ func DeleteWorkspace(c external.Database, userUID string, workspaceUID string) e
 		CommitNow: true,
 	}
 
-	_, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	return err
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []string) (isOutdated bool, err error) {

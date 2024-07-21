@@ -338,7 +338,7 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 }
 
 // GetAddressUIDs returns all requested address nodes.
-func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
+func GetAddressUIDs(ctx context.Context, c external.Database, addressHashes []string) ([]Address, error) {
 	if len(addressHashes) == 0 {
 		return nil, serror.New(ErrEmptyRequestArgument)
 	}
@@ -356,22 +356,19 @@ func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Ad
 				}
 			  }`
 
-	resp, err := ReadOnlyTxWithRetry(c, time.Minute*10, query)
+	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
-		return
+		return nil, serror.New(err)
 	}
 	var r struct {
 		Addresses []Address `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.New(err)
-		return
+		return nil, serror.New(err)
 	}
 
-	addresses = r.Addresses
-
-	return
+	return r.Addresses, nil
 }
 
 // GetAddressesByBlockRange returns all address-output mappings of the given block range

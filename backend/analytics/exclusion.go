@@ -5,11 +5,12 @@ import (
 	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 )
 
 // ImportAddressExclusions writes the given address relations into the database
-func ImportAddressExclusions(dgraph external.Database, exclusions []string, userID string) error {
+func ImportAddressExclusions(ctx context.Context, dgraph external.Database, exclusions []string, userID string) error {
 	if userID == "" {
 		return serror.FromStr("user ID is not set")
 	}
@@ -18,14 +19,14 @@ func ImportAddressExclusions(dgraph external.Database, exclusions []string, user
 		return serror.FromStr("address exclusion list is empty")
 	}
 
-	uids, err := validateExclusionAddresses(dgraph, exclusions)
+	uids, err := validateExclusionAddresses(ctx, dgraph, exclusions)
 	if err != nil {
 		return err
 	}
 
 	dbExclusions := buildDatabaseAddressExclusions(uids, userID)
 
-	return exclusion.AddAddressExclusions(dgraph, dbExclusions)
+	return exclusion.AddAddressExclusions(ctx, dgraph, dbExclusions)
 }
 
 func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusion.User {
@@ -46,7 +47,7 @@ func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusio
 // Returns ErrTooManyAddresses if there are more than 20000 addresses.
 // If an address does not exist on the db, an error containing the address hash is returned.
 // Returns a list of the address UIDs
-func validateExclusionAddresses(dgraph external.Database, exclusions []string) ([]string, error) {
+func validateExclusionAddresses(ctx context.Context, dgraph external.Database, exclusions []string) ([]string, error) {
 	// check maximum number of items
 	if len(exclusions) > 10000 {
 		return nil, serror.New(ErrTooManyAddresses)
@@ -62,7 +63,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	}
 
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(dgraph, cliutil.GetMapKeys(addresses))
+	dbAddresses, err := db.GetAddressUIDs(ctx, dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}

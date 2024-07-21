@@ -4,10 +4,12 @@ import (
 	"backend/analytics/graph"
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
+	"backend/db"
 	dbHeuristic "backend/db/analytics/heuristics"
 	"backend/db/workspace"
 	"backend/external"
 	"backend/worker"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/qrest/gomisc/serror"
@@ -36,6 +38,9 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 	lock := h.workspaceMutex.Lock(h.workspaceUID)
 	defer lock.Unlock()
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	newHeuristicUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
 	if err != nil {
 		return "", err
@@ -43,7 +48,7 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 
 	// update workspace
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, h.workspaceUID, h.userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, h.workspaceUID, h.userUID)
 	if err != nil {
 		return "", err
 	}
@@ -74,7 +79,8 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 
 	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
-	if err := encodeAndStoreWorkspaceState(dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight); err != nil {
+	if err := encodeAndStoreWorkspaceState(ctx, dgraph, h.userUID, h.workspaceUID,
+		frontEndNodes, &clusterHeight); err != nil {
 		return "", err
 	}
 
@@ -103,7 +109,7 @@ func CreateWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspace
 
 // AddHeuristic adds a new heuristic to the workspace. It returns a work ID,
 // which can be used to check the execution status of the heuristic.
-func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex,
+func AddHeuristic(ctx context.Context, dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex,
 	heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string) (string, error) {
 	work, err := CreateWork(heuristicRequest, workspaceUID, userUID, workspaceMutex)
 	if err != nil {
@@ -113,7 +119,7 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
 		return "", err
 	}
@@ -168,7 +174,7 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 		Loading:             &yes,
 	})
 
-	if err = encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
+	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
 		return "", err
 	}
 
@@ -177,12 +183,12 @@ func AddHeuristic(dgraph external.Database, worker *worker.Worker, workspaceMute
 
 // GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.
 // This becomes necessary if connections become outdated, when new blocks are added to the blockchain.
-func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex, workspaceUID string,
-	userUID string) (*workspace.FrontendWorkspace, error) {
+func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database, worker *worker.Worker,
+	workspaceMutex *Mutex, workspaceUID string, userUID string) (*workspace.FrontendWorkspace, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +224,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 	if updatedConnections || needToStore {
 		w.Nodes = slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
-		err = encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
+		err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
 		if err != nil {
 			return nil, err
 		}
@@ -228,12 +234,12 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 }
 
 // UpdateNodeCoordinates replaces the coordinates of the given workspace with the coordinates from state
-func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, state []workspace.Node) error {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
 		return err
 	}
@@ -254,7 +260,7 @@ func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, work
 		}
 	}
 
-	return encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+	return encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
 		w.Nodes, w.ClusterHeight)
 }
 
@@ -312,12 +318,12 @@ func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes [
 
 // DeleteNodes removes nodes and all their dependent nodes from a workspace.
 // Returns all node UIDs which have been deleted.
-func DeleteNodes(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+func DeleteNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, nodeUIDs []string) ([]string, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
 		return nil, err
 	}
@@ -366,7 +372,7 @@ func DeleteNodes(dgraph external.Database, workspaceMutex *Mutex, workspaceUID s
 
 	w.Nodes = workspace.DeleteNodes(w.Nodes, deletedNodes)
 
-	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+	if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
 		w.Nodes, w.ClusterHeight); err != nil {
 		return nil, err
 	}
@@ -388,12 +394,12 @@ func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []stri
 }
 
 // AddNodes adds a node to a workspace and refreshes the connections between all nodes.
-func AddNodes(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
+func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
 	userUID string, newNodes []*workspace.Node) ([]workspace.Node, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +410,7 @@ func AddNodes(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wo
 	// If newNodes is a destination transaction, it might be connected to heuristics.
 	if len(nodeMap) == 0 && len(newNodes) == 1 && !newNodes[0].IsDestination() {
 		frontEndNodes := []workspace.Node{*newNodes[0]}
-		if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
+		if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
 			frontEndNodes, w.ClusterHeight); err != nil {
 			return nil, err
 		}
@@ -439,7 +445,7 @@ func AddNodes(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wo
 
 	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
-	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
+	if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
 		return nil, err
 	}
 
@@ -455,7 +461,7 @@ func generateNoteUID() string {
 }
 
 // AddNote adds a note to a workspace
-func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+func AddNote(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, note workspace.Node) ([]workspace.Node, error) {
 	if len(note.Children) == 0 {
 		return nil, serror.FromStr("note has no children")
@@ -468,7 +474,7 @@ func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID strin
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
 		return nil, err
 	}
@@ -499,7 +505,7 @@ func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID strin
 	notes = append(notes, note)
 	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
-	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, nil); err != nil {
+	if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, nil); err != nil {
 		return nil, err
 	}
 
@@ -507,14 +513,14 @@ func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID strin
 }
 
 // encodeAndStoreWorkspaceState transforms the workspace state into JSON and stores it in the database
-func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string,
+func encodeAndStoreWorkspaceState(ctx context.Context, dgraph external.Database, userUID string, workspaceUID string,
 	state []workspace.Node, clusterHeight *int64) error {
 	stateBytes, err := json.Marshal(state)
 	if err != nil {
 		return serror.New(err)
 	}
 
-	return workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), clusterHeight)
+	return workspace.SetWorkspaceState(ctx, dgraph, userUID, workspaceUID, string(stateBytes), clusterHeight)
 }
 
 // InsertNodeConnectionsAndHeuristics queries the db for connections between nodes in nodeMap and inserts them.

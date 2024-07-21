@@ -10,6 +10,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -214,9 +215,10 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 
 // getDestinationTxOrigins returns all origins of the given
 // transaction, limited to a look back time of 90 days.
-func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash string, c heuristics.Config) ([]heuristics.HeuristicTransaction,
+func getDestinationTxOrigins(ctx context.Context, dgraph external.Database,
+	g *graph.Wrapper, txHash string, c heuristics.Config) ([]heuristics.HeuristicTransaction,
 	map[heuristics.ClusterUID][]string, error) {
-	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90, c)
+	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(ctx, dgraph, g, txHash, time.Hour*24*90, c)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -225,10 +227,11 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash 
 
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
-func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper, txHash string, dur time.Duration, c heuristics.Config) (
+func getDestinationTxOriginsTimeLimited(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	txHash string, dur time.Duration, c heuristics.Config) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// get uid for txhash
-	uid, err := db.GetTransactionUID(dgraph, txHash)
+	uid, err := db.GetTransactionUID(ctx, dgraph, txHash)
 	if err != nil {
 		return nil, nil, err
 	}

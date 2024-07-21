@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
+	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"fmt"
@@ -73,6 +74,10 @@ func (h *denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrap
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	var attributionMap map[heuristics.ClusterUID][]string
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
@@ -86,7 +91,7 @@ func (h *denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrap
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.c)
+			results, attributionMap, err = getDestinationTxOrigins(ctx, dgraph, g, txHash, h.c)
 			if err != nil {
 				return nil, err
 			}

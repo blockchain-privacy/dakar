@@ -227,7 +227,6 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 		return reply, http.StatusInternalServerError
 	}
 
-	// get data from db
 	verboseStatus, err := dbstat.GetFrontendStatus(r.Context(), dgraph)
 	if err != nil {
 		warn(err)
@@ -241,8 +240,8 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 	}, http.StatusOK
 }
 
-func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
-	worker *worker.Worker) (reply heuristicByWorkIDReply, status int) {
+func getHeuristicByWorkIDReply(dgraph external.Database, worker *worker.Worker,
+	r *http.Request) (reply heuristicByWorkIDReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -288,7 +287,7 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	w, err := dbwork.GetFrontendWorkspace(dgraph, workRequest.WorkspaceUID, tUser.ID)
+	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, workRequest.WorkspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -300,7 +299,7 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 	return
 }
 
-func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply heuristicDetailsReply, status int) {
+func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply heuristicDetailsReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -339,7 +338,7 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 	return
 }
 
-func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worker *worker.Worker,
+func getHeuristicExecutionReply(dgraph external.Database, worker *worker.Worker, r *http.Request,
 	workspaceMutex *workspace.Mutex) (reply heuristicExecutionReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -361,7 +360,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 		return
 	}
 
-	reply.WorkID, err = workspace.AddHeuristic(dgraph, worker, workspaceMutex, heuristicRequest.NewHeuristic,
+	reply.WorkID, err = workspace.AddHeuristic(r.Context(), dgraph, worker, workspaceMutex, heuristicRequest.NewHeuristic,
 		heuristicRequest.WorkspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -515,7 +514,7 @@ func getConnectionLookupReply(dgraph external.Database, graphWrapper *graph.Wrap
 
 	lookBackTime := time.Duration(numDays)
 
-	uid, err := db.GetTransactionUID(dgraph, transactionHash)
+	uid, err := db.GetTransactionUID(r.Context(), dgraph, transactionHash)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
 			status = http.StatusNotFound
@@ -572,7 +571,7 @@ func getConnectionLookupReply(dgraph external.Database, graphWrapper *graph.Wrap
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(r *http.Request, dgraph external.Database) (reply clusterLookupReply, status int) {
+func getClusterLookupReply(dgraph external.Database, r *http.Request) (reply clusterLookupReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -587,7 +586,7 @@ func getClusterLookupReply(r *http.Request, dgraph external.Database) (reply clu
 	}
 
 	const maxAddresses = 30
-	clusters, err := clustering.GetClusters(dgraph, addressHash, maxAddresses, tUser.ID)
+	clusters, err := clustering.GetClusters(r.Context(), dgraph, addressHash, maxAddresses, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -600,13 +599,14 @@ func getClusterLookupReply(r *http.Request, dgraph external.Database) (reply clu
 }
 
 // getHMILookupReply returns all hmi clusters connected to the given address hash
-func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply, status int) {
+func getHMILookupReply(dgraph external.Database, r *http.Request) (reply hmiLookupReply, status int) {
+	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
 		status = http.StatusBadRequest
 		return
 	}
 
-	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
+	addressCluster, clusters, err := clustering.GetHMIClusters(r.Context(), dgraph, addressHash)
 	if err != nil {
 		warn(err)
 		status = http.StatusInternalServerError
@@ -620,7 +620,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 }
 
 // writeHeuristicReport writes heuristic data in CSV format
-func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 
 	const errReport = "error getting heuristic report"
@@ -709,7 +709,7 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 }
 
 // writeClusterReport writes cluster data in CSV format
-func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+func writeClusterReport(dgraph external.Database, w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
@@ -726,7 +726,7 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 		return
 	}
 
-	clusters, err := clustering.GetClusters(dgraph, addressHash, 0, tUser.ID)
+	clusters, err := clustering.GetClusters(r.Context(), dgraph, addressHash, 0, tUser.ID)
 	if err != nil {
 		http.Error(w, errReport, http.StatusNotFound)
 		warn(err)
@@ -773,7 +773,7 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 }
 
 // getMixingActivity returns the result of a mixing activity lookup
-func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply, status int) {
+func getMixingActivity(dgraph external.Database, r *http.Request) (reply mixingActivityReply, status int) {
 	type request struct {
 		// AddressHash is the address hash for which the lookup will be done
 		AddressHash string `json:"addressHash"`
@@ -781,7 +781,7 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
 	}
 	var req request
-	if err := json.NewDecoder(body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
 		warn(serror.New(err))
 		return
@@ -802,7 +802,7 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 		}
 	}
 
-	activities, err := dbAnalytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
+	activities, err := dbAnalytics.GetMixingActivity(r.Context(), dgraph, req.AddressHash, req.IsClusterLookup)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -921,7 +921,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 		return
 	}
 
-	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
+	if err := analyticsClustering.ImportCluster(r.Context(), dgraph, addresses, tUser.ID); err != nil {
 		switch {
 		case errors.Is(err, analyticsClustering.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
@@ -944,7 +944,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 	return
 }
 
-func getAddAttributionReply(r *http.Request, dgraph external.Database, isPublic bool) (reply msgReply, status int) {
+func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic bool) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1042,7 +1042,7 @@ func getAddAttributionReply(r *http.Request, dgraph external.Database, isPublic 
 		return
 	}
 
-	if err := analytics.ImportAttribution(dgraph, attributions, tUser.ID, isPublic); err != nil {
+	if err := analytics.ImportAttribution(r.Context(), dgraph, attributions, tUser.ID, isPublic); err != nil {
 		switch {
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
@@ -1108,7 +1108,7 @@ func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msg
 	return
 }
 
-func getDeleteAllClustersReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+func getDeleteAllClustersReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1116,7 +1116,7 @@ func getDeleteAllClustersReply(r *http.Request, dgraph external.Database) (reply
 		return
 	}
 
-	if err := clustering.DeleteAllClusters(dgraph, tUser.ID); err != nil {
+	if err := clustering.DeleteAllClusters(r.Context(), dgraph, tUser.ID); err != nil {
 		reply.Msg = "could not delete clusters"
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1126,7 +1126,7 @@ func getDeleteAllClustersReply(r *http.Request, dgraph external.Database) (reply
 	return
 }
 
-func getAttributionOverviewReply(r *http.Request, dgraph external.Database) (reply attributionOverviewReply, status int) {
+func getAttributionOverviewReply(dgraph external.Database, r *http.Request) (reply attributionOverviewReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1134,7 +1134,7 @@ func getAttributionOverviewReply(r *http.Request, dgraph external.Database) (rep
 		return
 	}
 
-	attributions, err := attribution.GetUserAttributions(dgraph, tUser.ID)
+	attributions, err := attribution.GetUserAttributions(r.Context(), dgraph, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1163,9 +1163,9 @@ func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
 	}
 
 	if isPublicDeletion {
-		err = attribution.DeletePublicAttribution(dgraph, attributionUID)
+		err = attribution.DeletePublicAttribution(r.Context(), dgraph, attributionUID)
 	} else {
-		err = attribution.DeletePrivateAttribution(dgraph, tUser.ID, attributionUID)
+		err = attribution.DeletePrivateAttribution(r.Context(), dgraph, tUser.ID, attributionUID)
 	}
 
 	if err != nil {
@@ -1178,7 +1178,7 @@ func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
 	return
 }
 
-func getDeleteAllAttributionsReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+func getDeleteAllAttributionsReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1186,7 +1186,7 @@ func getDeleteAllAttributionsReply(r *http.Request, dgraph external.Database) (r
 		return
 	}
 
-	if err := attribution.DeleteAllAttributions(dgraph, tUser.ID); err != nil {
+	if err := attribution.DeleteAllAttributions(r.Context(), dgraph, tUser.ID); err != nil {
 		reply.Msg = "could not delete clusters"
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1196,20 +1196,20 @@ func getDeleteAllAttributionsReply(r *http.Request, dgraph external.Database) (r
 	return
 }
 
-func getAttributionSearchReply(r *http.Request, dgraph external.Database, query string) (reply attributionOverviewReply, status int) {
+func getAttributionSearchReply(dgraph external.Database, r *http.Request) (reply attributionOverviewReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
-
+	query := r.PathValue("query")
 	if query == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	attributions, err := attribution.SearchAttributions(dgraph, tUser.ID, query)
+	attributions, err := attribution.SearchAttributions(r.Context(), dgraph, tUser.ID, query)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1287,7 +1287,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 		return
 	}
 
-	if err := analytics.ImportAddressExclusions(dgraph, addresses, tUser.ID); err != nil {
+	if err := analytics.ImportAddressExclusions(r.Context(), dgraph, addresses, tUser.ID); err != nil {
 		switch {
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
@@ -1307,7 +1307,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 	return
 }
 
-func getAddressExclusionOverviewReply(r *http.Request, dgraph external.Database) (reply addressExclusionOverviewReply, status int) {
+func getAddressExclusionOverviewReply(dgraph external.Database, r *http.Request) (reply addressExclusionOverviewReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1315,7 +1315,7 @@ func getAddressExclusionOverviewReply(r *http.Request, dgraph external.Database)
 		return
 	}
 
-	addresses, count, err := exclusion.GetAddressExclusions(dgraph, tUser.ID)
+	addresses, count, err := exclusion.GetAddressExclusions(r.Context(), dgraph, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1328,7 +1328,7 @@ func getAddressExclusionOverviewReply(r *http.Request, dgraph external.Database)
 	return
 }
 
-func getDeleteAddressExclusionReply(r *http.Request, dgraph external.Database) int {
+func getDeleteAddressExclusionReply(dgraph external.Database, r *http.Request) int {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		warn(err)
@@ -1340,7 +1340,7 @@ func getDeleteAddressExclusionReply(r *http.Request, dgraph external.Database) i
 		return http.StatusBadRequest
 	}
 
-	if err := exclusion.DeleteAddressExclusion(dgraph, tUser.ID, addressHash); err != nil {
+	if err := exclusion.DeleteAddressExclusion(r.Context(), dgraph, tUser.ID, addressHash); err != nil {
 		warn(err)
 		return http.StatusInternalServerError
 	}
@@ -1348,14 +1348,14 @@ func getDeleteAddressExclusionReply(r *http.Request, dgraph external.Database) i
 	return http.StatusOK
 }
 
-func getDeleteAllAddressExclusionsReply(r *http.Request, dgraph external.Database) int {
+func getDeleteAllAddressExclusionsReply(dgraph external.Database, r *http.Request) int {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		warn(err)
 		return http.StatusUnauthorized
 	}
 
-	if err := exclusion.DeleteAllAddressExclusions(dgraph, tUser.ID); err != nil {
+	if err := exclusion.DeleteAllAddressExclusions(r.Context(), dgraph, tUser.ID); err != nil {
 		warn(err)
 		return http.StatusInternalServerError
 	}
@@ -1363,7 +1363,7 @@ func getDeleteAllAddressExclusionsReply(r *http.Request, dgraph external.Databas
 	return http.StatusOK
 }
 
-func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, addressHash string) (
+func getAddressExclusionStatusReply(dgraph external.Database, r *http.Request) (
 	reply addressExclusionStatusReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -1372,12 +1372,13 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 		return
 	}
 
+	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
 		status = http.StatusBadRequest
 		return
 	}
 
-	exclusionStatus, err := exclusion.GetAddressExclusionStatus(dgraph, addressHash, tUser.ID)
+	exclusionStatus, err := exclusion.GetAddressExclusionStatus(r.Context(), dgraph, addressHash, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1402,7 +1403,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 		return
 	}
 
-	uid, err := db.GetTransactionUID(dgraph, txhash)
+	uid, err := db.GetTransactionUID(r.Context(), dgraph, txhash)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
 			status = http.StatusBadRequest
@@ -1500,7 +1501,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 
 	newNodes := map[string]*dbwork.Node{}
 	for _, query := range searchRequest.Queries {
-		newNode, err := dbwork.SearchForNode(dgraph, query, tUser.ID)
+		newNode, err := dbwork.SearchForNode(r.Context(), dgraph, query, tUser.ID)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err, "query", searchRequest)
@@ -1515,7 +1516,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 		newNodes[newNode.UID] = newNode
 	}
 
-	reply.Nodes, err = workspace.AddNodes(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID,
+	reply.Nodes, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID,
 		tUser.ID, cliutil.GetMapValues(newNodes))
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -1557,7 +1558,7 @@ func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	reply.Nodes, err = workspace.AddNote(dgraph, workspaceMutex, req.WorkspaceUID,
+	reply.Nodes, err = workspace.AddNote(r.Context(), dgraph, workspaceMutex, req.WorkspaceUID,
 		tUser.ID, dbwork.Node{
 			UID:      req.UID,
 			Text:     req.Text,
@@ -1580,7 +1581,7 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 		return
 	}
 
-	workspaces, err := dbwork.GetFrontendWorkspaces(dgraph, tUser.ID)
+	workspaces, err := dbwork.GetFrontendWorkspaces(r.Context(), dgraph, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1610,7 +1611,8 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		return
 	}
 
-	reply.Workspace, err = workspace.GetAndRefreshWorkspace(dgraph, worker, workspaceMutex, workspaceUID, tUser.ID)
+	reply.Workspace, err = workspace.GetAndRefreshWorkspace(r.Context(), dgraph, worker,
+		workspaceMutex, workspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1639,7 +1641,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 		return
 	}
 
-	_, err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	_, err = dbwork.AddWorkspace(r.Context(), dgraph, workspaceName, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1675,7 +1677,7 @@ func getRenameWorkspaceReply(dgraph external.Database, r *http.Request) (status 
 		return
 	}
 
-	err = dbwork.RenameWorkspace(dgraph, req.Name, tUser.ID, req.WorkspaceUID)
+	err = dbwork.RenameWorkspace(r.Context(), dgraph, req.Name, tUser.ID, req.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1711,7 +1713,7 @@ func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mute
 		return
 	}
 
-	if err = workspace.UpdateNodeCoordinates(dgraph, workspaceMutex,
+	if err = workspace.UpdateNodeCoordinates(r.Context(), dgraph, workspaceMutex,
 		searchRequest.WorkspaceUID, tUser.ID, searchRequest.CurrentState); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1748,7 +1750,8 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 		return
 	}
 
-	reply.DeletedNodeUIDs, err = workspace.DeleteNodes(dgraph, workspaceMutex, searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUIDs)
+	reply.DeletedNodeUIDs, err = workspace.DeleteNodes(r.Context(), dgraph, workspaceMutex,
+		searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUIDs)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1758,7 +1761,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 	return
 }
 
-func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+func getDeleteWorkspaceReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1772,7 +1775,7 @@ func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply m
 		return
 	}
 
-	if err := dbwork.DeleteWorkspace(dgraph, tUser.ID, workspaceUID); err != nil {
+	if err := dbwork.DeleteWorkspace(r.Context(), dgraph, tUser.ID, workspaceUID); err != nil {
 		if errors.Is(err, dbwork.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction might not have any workspaces."
 			status = http.StatusNotFound
@@ -1787,7 +1790,7 @@ func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply m
 	return
 }
 
-func getDeleteAllWorkspacesReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+func getDeleteAllWorkspacesReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1795,7 +1798,7 @@ func getDeleteAllWorkspacesReply(r *http.Request, dgraph external.Database) (rep
 		return
 	}
 
-	if err := dbwork.DeleteAllWorkspaces(dgraph, tUser.ID); err != nil {
+	if err := dbwork.DeleteAllWorkspaces(r.Context(), dgraph, tUser.ID); err != nil {
 		if errors.Is(err, dbwork.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The user might not have any workspaces."
 			status = http.StatusNotFound

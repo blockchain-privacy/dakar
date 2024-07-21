@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 	"time"
 )
@@ -18,7 +19,8 @@ type Attribution struct {
 }
 
 // ImportAttribution writes the given address relations into the database
-func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string, isPublic bool) error {
+func ImportAttribution(ctx context.Context, dgraph external.Database,
+	attributions []Attribution, userID string, isPublic bool) error {
 	if userID == "" {
 		return serror.FromStr("user ID is not set")
 	}
@@ -27,14 +29,14 @@ func ImportAttribution(dgraph external.Database, attributions []Attribution, use
 		return serror.FromStr("attribution list is empty")
 	}
 
-	addrToUID, err := validateAddresses(dgraph, attributions)
+	addrToUID, err := validateAddresses(ctx, dgraph, attributions)
 	if err != nil {
 		return err
 	}
 
 	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID, isPublic)
 
-	return attribution.AddAttributions(dgraph, dbAttributions)
+	return attribution.AddAttributions(ctx, dgraph, dbAttributions)
 }
 
 func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string,
@@ -70,7 +72,8 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 // Returns ErrTooManyAddresses if there are more than 1000 items.
 // If an address does not exist on the db, an error containing the address hash is returned.
 // Returns a mapping from address hash to db UID.
-func validateAddresses(dgraph external.Database, attributions []Attribution) (map[string]string, error) {
+func validateAddresses(ctx context.Context, dgraph external.Database,
+	attributions []Attribution) (map[string]string, error) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
 		return nil, serror.New(ErrTooManyAddresses)
@@ -86,7 +89,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 	}
 
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(dgraph, cliutil.GetMapKeys(addresses))
+	dbAddresses, err := db.GetAddressUIDs(ctx, dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}

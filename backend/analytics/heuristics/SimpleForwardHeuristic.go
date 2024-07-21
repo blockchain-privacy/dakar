@@ -90,6 +90,8 @@ func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
 	var resultAttributionMap map[heuristics.ClusterUID][]string
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 	if isParentHeuristicSet(parentHeuristicUID) {
 		// get transactions from parent heuristic
 		var err error
@@ -98,7 +100,7 @@ func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			return nil, err
 		}
 	} else {
-		uid, err := db.GetTransactionUID(dgraph, txHash)
+		uid, err := db.GetTransactionUID(ctx, dgraph, txHash)
 		if err != nil {
 			return nil, err
 		}

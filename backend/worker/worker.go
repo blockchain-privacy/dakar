@@ -216,6 +216,7 @@ mainLoop:
 
 			databaseUID, err := work.Run(dgraph, w.graphWrapper, w.currentWorkItem.workID)
 			if err != nil {
+				// todo communicate error to user
 				warn(err)
 			}
 

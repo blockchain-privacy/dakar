@@ -316,14 +316,15 @@ func TestGetTransactionUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	_, err := GetTransactionUID(dbHandle, "")
+	ctx := context.Background()
+	_, err := GetTransactionUID(ctx, dbHandle, "")
 	require.Error(t, err)
 
-	_, err = GetTransactionUID(dbHandle, "transaction_hash_which_does_not_exist")
+	_, err = GetTransactionUID(ctx, dbHandle, "transaction_hash_which_does_not_exist")
 	require.Error(t, err)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
-	uid, err := GetTransactionUID(dbHandle, txHash1)
+	uid, err := GetTransactionUID(ctx, dbHandle, txHash1)
 	require.NoError(t, err)
 	require.NotEmpty(t, uid)
 }
