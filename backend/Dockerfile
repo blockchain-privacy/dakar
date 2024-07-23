@@ -1,5 +1,7 @@
 FROM golang:latest AS build-stage
 
+ENV CGO_ENABLED=0
+
 # download dependencies before build, so they can be cached
 COPY go.mod .
 COPY go.sum .
@@ -9,9 +11,8 @@ COPY . .
 RUN go build -o /crawler ./cmd/crawler/
 
 FROM scratch
-COPY --from=build-stage /crawler /app/
+COPY --from=build-stage /crawler .
 
 VOLUME ["/data"]
-WORKDIR /app
 CMD ["--config", "/data/config.yml"]
-ENTRYPOINT ["./crawler"]
+ENTRYPOINT ["/crawler"]
