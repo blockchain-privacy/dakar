@@ -33,7 +33,7 @@
     "vuetify": "^3.6.13"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.5",
+    "@vitejs/plugin-vue": "^5.1.0",
     "eslint": "^9.7.0",
     "eslint-config-xo": "^0.45.0",
     "eslint-plugin-vue": "^9.27.0",
