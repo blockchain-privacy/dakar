@@ -121,6 +121,21 @@ services:
     networks:
       - dgraph_default
 
+  kratosadmin:
+    image: bluedark/kratosadmin:latest
+    container_name: kratosadmin
+    volumes:
+      - ./kratosadmin/config.yml:/config.yml
+    ports:
+      - "9316:9316"
+    expose:
+      - 9316
+    networks:
+      - dgraph_default
+    logging: *default-logging
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   oathkeeper:
     image: oryd/oathkeeper:v0.40
     container_name: oathkeeper

@@ -20,7 +20,7 @@
 - id: "ory:kratosadmin_admin"
   upstream:
     preserve_host: true
-    url: "http://host.docker.internal:9316"
+    url: "http://kratosadmin:9316"
     strip_path: "/kratosadmin"
   match:
     url: "http://localhost:4455/kratosadmin/<(?!self).*>"
@@ -52,7 +52,7 @@
 - id: "ory:kratosadmin_protected"
   upstream:
     preserve_host: true
-    url: "http://host.docker.internal:9316"
+    url: "http://kratosadmin:9316"
     strip_path: "/kratosadmin"
   match:
     url: "http://localhost:4455/kratosadmin/self/<.*>"

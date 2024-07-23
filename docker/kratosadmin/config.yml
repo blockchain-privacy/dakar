@@ -1,0 +1,4 @@
+logfile: ""
+port: 9316
+dakarEndpoint: "http://host.docker.internal:8085"
+kratosAdminEndpoint: "http://kratos:4434"
