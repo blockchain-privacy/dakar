@@ -1,6 +1,5 @@
 # build stage
-FROM golang:1.21-alpine as build-stage
-ARG BLOCKCHAIN_MODE="unkown"
+FROM golang:1.22-alpine as build-stage
 ARG MODFILE_PATH="go.mod"
 ARG MODSUM_PATH="go.sum"
 
@@ -12,7 +11,7 @@ COPY $MODSUM_PATH ./go.sum
 RUN go mod download
 
 COPY . .
-RUN go build -v -ldflags "-X main.blockchainMode=$BLOCKCHAIN_MODE" -modfile $MODFILE_PATH -o crawler ./cmd/crawler/
+RUN go build -v -modfile $MODFILE_PATH -o crawler ./cmd/crawler/
 
 # production stage
 FROM scratch

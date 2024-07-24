@@ -1,10 +1,8 @@
 package external
 
 import (
+	"backend/jsonrpc"
 	"context"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/dgraph-io/dgo/v230"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 )
@@ -17,31 +15,16 @@ import (
 type RPCClient interface {
 	// GetBlockCount returns the number of blocks in the longest blockchain.
 	GetBlockCount() (int64, error)
-	// GetBlockVerbose returns a data structure from the server with information
-	// about a block given its hash.
-	GetBlockVerbose(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseResult, error)
-	// GetBlockHash returns the hash of the block in the best blockchain at the
-	// given height.
-	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)
-	// GetRawTransactionVerbose returns information about a transaction given
-	// its hash.
-	GetRawTransactionVerbose(txHash *chainhash.Hash) (*btcjson.TxRawResult, error)
-}
-
-// BatchRPCClient defines the methods which rpcclient of btcsuite implements.
-// Descriptions are copied from there.
-type BatchRPCClient interface {
-	// GetRawTransactionVerboseAsync returns an instance of a type that can be used
-	// to get the result of the RPC at some future time by invoking the Receive
-	// function on the returned instance.
-	GetRawTransactionVerboseAsync(txHash *chainhash.Hash) rpcclient.FutureGetRawTransactionVerboseResult
-	// GetBlockCountAsync returns an instance of a type that can be used to get the
-	// result of the RPC at some future time by invoking the Receive function on the
-	// returned instance.
-	GetBlockCountAsync() rpcclient.FutureGetBlockCountResult
-	// Send marshall's bulk requests and sends to the server
-	// creates a response channel to receive the response
-	Send() error
+	// GetBlockVerbose returns a data structure from the server with information about a block given its hash.
+	GetBlockVerbose(blockHash string) (*jsonrpc.GetBlockVerboseResult, error)
+	// GetBlockHash returns the hash of the block in the best blockchain at the given height.
+	GetBlockHash(blockHeight int64) (string, error)
+	// GetRawTransactionVerbose returns information about a transaction given its hash.
+	GetRawTransactionVerbose(txHash string) (*jsonrpc.TxRawResult, error)
+	// GetRawTransactionVerboseBatch returns several GetRawTransactionVerbose in one batch
+	GetRawTransactionVerboseBatch(txs []string) ([]*jsonrpc.TxRawResult, error)
+	// GenerateToAddress mines blocks immediately. Only available on regtest mode
+	GenerateToAddress(numBlocks int, address string) ([]string, error)
 }
 
 // Database defines the methods which Dgraph of Dgo implements.

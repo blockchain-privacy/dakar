@@ -18,6 +18,7 @@ const (
 	EnvDBTests              = "DB_TESTS"
 	EnvRPCTests             = "RPC_TESTS"
 	EnvDBHostname           = "DB_HOSTNAME"
+	EnvRPCHostname          = "RPC_HOSTNAME"
 	UseClassifierFile       = "classifier"
 	UseBlockFile            = "block"
 	UsePrivacyFile          = "privacy"
@@ -78,6 +79,9 @@ func GetDBName() (string, bool) {
 	return os.LookupEnv(EnvDBHostname)
 }
 
+func GetRPCName() (string, bool) {
+	return os.LookupEnv(EnvRPCHostname)
+}
 func SkipIfNoDB(t *testing.T) {
 	if !DoDBTests() {
 		t.SkipNow()

@@ -10,6 +10,7 @@ import (
 	"backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
+	"backend/jsonrpc"
 	"backend/processor"
 	"backend/server"
 	"backend/worker"
@@ -26,17 +27,13 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-
-	"github.com/btcsuite/btcd/rpcclient"
 )
 
 // versionString displays the version of the Crawler
 const versionString = "v1.0.0"
 
-// blockchainMode is empty by default and should be set at compile time via the ldflags options.
-// blockchainMode controls various config parameters (see config.go).
-// Allowed values: "Dash" "Bitcoin" "Doge"
-var blockchainMode = ""
+// name of the executable
+const executableName = "crawler"
 
 var thisLogger *slog.Logger
 
@@ -81,8 +78,6 @@ func selectConfig(blockchainMode string) (processor.Config, analytics.Config, er
 		return processor.NewDashConfig(), analytics.NewDashConfig(), nil
 	case "Bitcoin":
 		return processor.NewBitcoinConfig(), analytics.NewBitcoinConfig(), nil
-	case "Doge":
-		return processor.NewDogecoinConfig(), analytics.NewDogecoinConfig(), nil
 	default:
 		return processor.Config{}, analytics.Config{}, cli.NewStackErrorStr("invalid blockchain mode")
 	}
@@ -112,7 +107,7 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 // resetDatabaseDialog asks the user if the database should be reset and performs the reset if necessary.
 // Returns false if the program should be shutdown.
-func resetDatabaseDialog(database external.Database) bool {
+func resetDatabaseDialog(database external.Database, blockchainMode string) bool {
 	// get confirmation for database deletion
 	var userAnswer string
 	info("All data in the database will we deleted! Do you want to continue (yes/no)?")
@@ -147,9 +142,9 @@ func resetDatabaseDialog(database external.Database) bool {
 	return true
 }
 
-// createAdminUser creates an admin user if no user exist in the database and
+// createAdminIdentity creates an admin identity if no identity exist in the database and
 // prints the credentials to stdout
-func createAdminUser(database external.Database, adminAuth *ory.APIClient) error {
+func createAdminIdentity(database external.Database, adminAuth *ory.APIClient) error {
 	// check if users already exist
 	userCount, userErr := dbus.GetUserCount(database)
 	if userErr != nil {
@@ -172,44 +167,20 @@ func createAdminUser(database external.Database, adminAuth *ory.APIClient) error
 }
 
 // connectBlockchainRPCClient connects to blockchain RPC client specified in the given configuration.
-func connectBlockchainRPCClient(rpcConfig RPCConfig) (*rpcclient.Client, *rpcclient.Client, error) {
+func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error) {
 	rpcEndpoint, err := cli.BuildEndpoint(rpcConfig.Host, rpcConfig.Port)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	connection := rpcclient.ConnConfig{
-		Host:                rpcEndpoint,
-		User:                rpcConfig.User,
-		Pass:                rpcConfig.Password,
-		DisableConnectOnNew: true,
-		DisableTLS:          true,
-		HTTPPostMode:        true,
-	}
-
-	client, err := rpcclient.New(&connection, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	batchClient, err := rpcclient.NewBatch(&connection)
-	if err != nil {
-		return nil, nil, err
-	}
+	client := jsonrpc.NewBlockchainClient(rpcEndpoint, rpcConfig.User, rpcConfig.Password, nil)
 
 	// test if rpc client is active
-	if !waitForRPCClient(client) {
-		// no error text, was already handled in function above
-		return nil, nil, cli.NewStackErrorStr("")
+	if err := waitForRPCClient(client); err != nil {
+		return nil, err
 	}
 
-	// test if batch rpc client is active
-	if !waitForBatchRPCClient(batchClient) {
-		// no error text, was already handled in function above
-		return nil, nil, cli.NewStackErrorStr("")
-	}
-
-	return client, batchClient, nil
+	return client, nil
 }
 
 //	@title			Dakar API
@@ -237,13 +208,6 @@ func main() {
 	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
 
-	////// PRINT VERSION //////
-
-	if commands.ShowVersion {
-		printVersion()
-		return
-	}
-
 	////// CONFIGURATION FILE HANDLING //////
 
 	if createConfigFile {
@@ -264,8 +228,15 @@ func main() {
 		return
 	}
 
-	if moduleErr := checkAPIModuleConfig(config.Modules.HTTP); moduleErr != nil {
+	if moduleErr := config.Modules.HTTP.check(); moduleErr != nil {
 		fmt.Println(moduleErr)
+		return
+	}
+
+	////// PRINT VERSION //////
+
+	if commands.ShowVersion {
+		printVersion(config.BlockchainMode)
 		return
 	}
 
@@ -286,11 +257,9 @@ func main() {
 
 	initAllLoggers(f)
 
-	processorConfig, analyserConfig, err := selectConfig(blockchainMode)
+	processorConfig, analyserConfig, err := selectConfig(config.BlockchainMode)
 	if err != nil {
-		fmt.Println("invalid blockchain mode selected: '" + blockchainMode + "'")
-		fmt.Println("the blockchain mode has to be set at compile time via the ldflags option.")
-		fmt.Println("example: go build -ldflags \"-X main.blockchainMode=Dash\" .")
+		fmt.Printf("invalid blockchain mode: '%s', valid values are 'Dash' and 'Bitcoin'\n", config.BlockchainMode)
 		return
 	}
 
@@ -325,7 +294,7 @@ func main() {
 	}
 
 	if commands.ResetDB {
-		if !resetDatabaseDialog(graphDB) {
+		if !resetDatabaseDialog(graphDB, config.BlockchainMode) {
 			return
 		}
 	}
@@ -347,7 +316,7 @@ func main() {
 		return
 	}
 
-	if !checkMeta(graphDB) {
+	if !checkMeta(graphDB, config.BlockchainMode) {
 		return
 	}
 
@@ -363,18 +332,18 @@ func main() {
 
 	////// CONNECT TO KRATOS //////
 
-	auth, adminAuth, err := getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
-		config.Modules.HTTP.KratosAdminEndpoint)
-	if err != nil {
-		warn(err)
-		return
-	}
+	var auth *ory.APIClient
+	var adminAuth *ory.APIClient
 
-	////// CREATE ADMIN USER //////
-
-	// create admin account if none is set
 	if config.Modules.HTTP.Active {
-		if err := createAdminUser(graphDB, adminAuth); err != nil {
+		auth, adminAuth, err = getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
+			config.Modules.HTTP.KratosAdminEndpoint)
+		if err != nil {
+			warn(err)
+			return
+		}
+		// create admin identity if none is set
+		if err := createAdminIdentity(graphDB, adminAuth); err != nil {
 			warn(err)
 			return
 		}
@@ -383,10 +352,9 @@ func main() {
 	////// CONNECT TO RPC //////
 
 	// Set up the RPC connection, only if needed
-	var client *rpcclient.Client
-	var batchClient *rpcclient.Client
+	var client external.RPCClient
 	if config.Modules.HTTP.Active || config.Modules.Crawler.Active {
-		client, batchClient, err = connectBlockchainRPCClient(config.RPC)
+		client, err = connectBlockchainRPCClient(config.RPC)
 		if err != nil {
 			warn(err)
 			return
@@ -420,7 +388,7 @@ func main() {
 			}()
 
 			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
-				appContext, graphDB, client, batchClient, config.Modules.Crawler.InitialCacheSize,
+				appContext, graphDB, client, config.Modules.Crawler.InitialCacheSize,
 				processorConfig)); processorErr != nil {
 				warn(processorErr)
 			}

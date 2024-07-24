@@ -153,12 +153,12 @@ func main() {
 	info("deleting all FMI clusters ...")
 	err = clustering.DeleteAllFMIClusters(dgraph)
 	if err != nil {
+		warn(err)
 		return
 	}
 	info("deleted all FMI clusters")
 
 	info("resetting FMI cluster status ...")
-	// old: 1555184
 	zero := uint64(0)
 	err = status.SetClusteringFMIStatus(dgraph, status.ClusteringFlatMultiInputStatus{
 		LastClusteredBlockID: &zero,
@@ -168,4 +168,28 @@ func main() {
 		return
 	}
 	info("reset FMI cluster status")
+
+	info("dropping hex starting ...")
+	err = db.DropPredicateHex(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("dropping hex finished")
+
+	info("removing hex starting ...")
+	err = db.AlterSchemaRemoveHex(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("removing hex finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 5)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
 }

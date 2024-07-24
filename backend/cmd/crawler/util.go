@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"runtime"
@@ -48,6 +47,15 @@ type APIModule struct {
 	KratosAdminEndpoint  string `yaml:"kratosAdminEndpoint"`
 }
 
+// check returns an error if the module has invalid values
+func (c APIModule) check() error {
+	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
+		return cliutil.NewStackErrorStr("http module config invalid, not all fields are filled")
+	}
+
+	return nil
+}
+
 type MetricsModule struct {
 	Active bool `yaml:"active"`
 	Port   uint `yaml:"port"`
@@ -63,14 +71,18 @@ type ModulesConfig struct {
 }
 
 type Config struct {
-	Logfile  string         `yaml:"logfile"`
-	RPC      RPCConfig      `yaml:"rpc"`
-	Database DatabaseConfig `yaml:"database"`
-	Modules  ModulesConfig  `yaml:"modules"`
+	Logfile string `yaml:"logfile"`
+	// BlockchainMode controls various config parameters (see config.go).
+	// Allowed values: "Dash" and "Bitcoin"
+	BlockchainMode string         `yaml:"blockchainMode"`
+	RPC            RPCConfig      `yaml:"rpc"`
+	Database       DatabaseConfig `yaml:"database"`
+	Modules        ModulesConfig  `yaml:"modules"`
 }
 
 var defaultConfig = Config{
-	Logfile: "dakar.log",
+	Logfile:        "dakar.log",
+	BlockchainMode: "",
 	RPC: RPCConfig{
 		Host:     "0.0.0.0",
 		Port:     9998,
@@ -99,15 +111,6 @@ var defaultConfig = Config{
 	},
 }
 
-// checkAPIModuleConfig returns an error if the given http module has invalid values
-func checkAPIModuleConfig(c APIModule) error {
-	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
-		return cliutil.NewStackErrorStr("http module config invalid, not all fields are filled")
-	}
-
-	return nil
-}
-
 type Commands struct {
 	ResetDB         bool
 	IgnoreSafeGuard bool
@@ -133,7 +136,7 @@ func isCrawling(db external.Database) (bool, error) {
 }
 
 // waitForRPCClient waits until the RPC client is ready to receive requests
-func waitForRPCClient(client external.RPCClient) bool {
+func waitForRPCClient(client external.RPCClient) error {
 	const maxRetries = 5
 	const retrySleepDuration = time.Second * 5
 
@@ -145,12 +148,11 @@ func waitForRPCClient(client external.RPCClient) bool {
 			if printedErrMessage {
 				info("Successfully established connection to RPC client.")
 			}
-			return true
+			return nil
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
-			return false
+			return cliutil.NewStackErrorf("Authentication error: %w", err)
 		}
 
 		if !printedErrMessage {
@@ -162,47 +164,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 			time.Sleep(retrySleepDuration)
 		}
 	}
-	info("RPC client is not ready to receive requests.")
-	return false
-}
-
-// waitForBatchRPCClient waits until the batch RPC client is ready to receive requests
-func waitForBatchRPCClient(client external.BatchRPCClient) bool {
-	const maxRetries = 5
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := range maxRetries {
-		result := client.GetBlockCountAsync()
-		err := client.Send()
-		if err != nil {
-			log.Fatal(err)
-		}
-		_, err = result.Receive()
-		if err == nil {
-			if printedErrMessage {
-				info("Successfully established connection to RPC client.")
-			}
-			return true
-		}
-
-		if strings.Contains(err.Error(), "status code: 401") {
-			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
-			return false
-		}
-
-		if !printedErrMessage {
-			info("Waiting for RPC client to start")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-	info("RPC client is not ready to receive requests.")
-	return false
+	return cliutil.NewStackErrorStr("RPC client is not ready to receive requests")
 }
 
 // shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
@@ -224,7 +186,7 @@ func shutdownServer(srv *http.Server) {
 }
 
 // printVersion prints the version of the application and build information
-func printVersion() {
+func printVersion(blockchainMode string) {
 	fmt.Println("Dakar", versionString, "compiled with", runtime.Version())
 	fmt.Println("Blockchain mode:", blockchainMode)
 	buildInfo, ok := debug.ReadBuildInfo()
@@ -242,18 +204,18 @@ func printVersion() {
 }
 
 // checkMeta returns true if the blockchain mode and the schema version of the database match with the executable.
-func checkMeta(db external.Database) bool {
+func checkMeta(db external.Database, blockchainMode string) bool {
 	meta, err := status.GetMeta(db)
 	if err != nil {
 		warn(err)
 		return false
 	}
 
-	// check if the blockchain mode of database matches the blockchain mode of the executable
+	// check if the blockchain mode of database matches the blockchain mode of the configuration
 	if meta.BlockchainMode != blockchainMode {
-		info("Database is using a different blockchain mode than the executable. You likely used the wrong executable or connected to the wrong database.",
+		info("Database is using a different blockchain mode than the "+executableName+" configuration. You likely are connecting to the wrong database.",
 			"database blockchain mode", meta.BlockchainMode,
-			"executable blockchain mode", blockchainMode)
+			"crawler "+executableName+" blockchain mode", blockchainMode)
 		return false
 	}
 

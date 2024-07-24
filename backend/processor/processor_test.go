@@ -4,11 +4,8 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/external"
+	"backend/jsonrpc"
 	"backend/testhelper"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"log"
@@ -18,10 +15,26 @@ import (
 )
 
 var (
-	dbHandle    = &testhelper.TestDB{IsDirty: true}
-	client      *rpcclient.Client
-	batchClient *rpcclient.Client
+	dbHandle          = &testhelper.TestDB{IsDirty: true}
+	client            *jsonrpc.BlockchainClient
+	generateToAddress string
 )
+
+func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
+	// wallet might already exist -> ignore error
+	_, _ = client.CreateWallet("testwallet")
+	// wallet might already be loaded -> ignore error
+	_, _ = client.LoadWallet("testwallet")
+
+	var err error
+	generateToAddress, err = client.GetNewAddress()
+	if err != nil {
+		return err
+	}
+
+	_, err = client.GenerateToAddress(numBlocks, generateToAddress)
+	return err
+}
 
 func TestMain(m *testing.M) {
 	InitLogger()
@@ -53,27 +66,18 @@ func TestMain(m *testing.M) {
 	}
 
 	if testhelper.DoRPCTests() {
-		// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
-		harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd", "--txindex"}, "btcd")
-		if err != nil {
-			log.Panic("unable to create primary harness: ", err)
+		rpcHostname, ok := testhelper.GetRPCName()
+		if !ok {
+			log.Panic("environment variable " + testhelper.EnvRPCHostname + " is not set")
 			return
 		}
 
-		defer func(harness *rpctest.Harness) {
-			_ = harness.TearDown()
-		}(harness)
+		client = jsonrpc.NewBlockchainClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
 
-		// Initialize the primary mining node with a chain of length 105,
-		// providing 5 mature coinbases to allow spending from for testing
-		// purposes.
-		if err := harness.SetUp(true, 5); err != nil {
-			log.Panic("unable to setup test chain: ", err)
+		if err := setupRPCTest(client, 5); err != nil {
+			log.Panic("Could not setup RPC test", err)
 			return
 		}
-
-		client = harness.Client
-		batchClient = harness.BatchClient
 	}
 
 	m.Run()
@@ -83,7 +87,6 @@ func TestIncrementProcessingState(t *testing.T) {
 	const (
 		firstHash   = "000000003b36901a4771aebad94ab2707e55b19ba62898bedcea9a69265f8e7"
 		secondHash  = "00000000251b4f191d09553f115383e12108fdf98d3d77530a9e96bc9dd6dd6a"
-		toLongHash  = "000000000251b4f191d09553f115383e12108fdf98d3d77530a9e96bc9dd6dd6a"
 		invalidHash = "."
 	)
 
@@ -103,13 +106,9 @@ func TestIncrementProcessingState(t *testing.T) {
 		t.Fatal("incrementation not successful")
 	}
 
-	p2 := p
-
-	err = p2.increment(toLongHash)
-	require.Error(t, err)
-
+	//  no error on invliad values
 	err = p.increment(invalidHash)
-	require.Error(t, err)
+	require.NoError(t, err)
 }
 
 func TestAddOutputToMapping(t *testing.T) {
@@ -273,7 +272,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	blkCount, err := client.GetBlockCount()
 	require.NoError(t, err)
 	// add two blocks, so the first block has a reference to the next block
-	hashes, err := client.Generate(2)
+	hashes, err := client.GenerateToAddress(2, generateToAddress)
 	require.NoError(t, err)
 
 	// normal operation
@@ -283,7 +282,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	require.NotNil(t, currentBlock)
 
 	// missing hash
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, nil, uint64(blkCount), cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, "", uint64(blkCount), cfg)
 	require.Error(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.Nil(t, currentBlock)
@@ -323,11 +322,12 @@ func Test_crawlerState_increment(t *testing.T) {
 	require.NoError(t, state.increment(""))
 	require.EqualValues(t, 0, state.id)
 
-	require.Error(t, state.increment("asdf"))
-	require.EqualValues(t, 0, state.id)
+	// no error check for invalid values
+	require.NoError(t, state.increment("asdf"))
+	require.EqualValues(t, 1, state.id)
 
 	require.NoError(t, state.increment("000007248b1005ffdcf3f41f3a5630b5cb0078ca5733d931223839821f7f5faa"))
-	require.EqualValues(t, 1, state.id)
+	require.EqualValues(t, 2, state.id)
 }
 
 func getPointer[number any](n number) *number {
@@ -419,7 +419,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
 
-	blockHashes, err := client.Generate(1)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.Len(t, blockHashes, 1)
 
@@ -427,16 +427,15 @@ func Test_buildTransactionMapping(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, block.Tx)
 
-	basicBlock, err := client.GetBlock(blockHashes[0])
+	basicBlock, err := client.GetBlockVerbose(blockHashes[0])
 	require.NoError(t, err)
-	require.NotEmpty(t, basicBlock.Transactions)
+	require.NotEmpty(t, basicBlock.Tx)
 
-	txHash := basicBlock.Transactions[0].TxHash()
-	rawTxResult, err := client.GetRawTransactionVerbose(&txHash)
+	rawTxResult, err := client.GetRawTransactionVerbose(basicBlock.Tx[0])
 	require.NoError(t, err)
 	require.NotNil(t, rawTxResult)
 
-	txHashMap, err := createTransactionHashmap(batchClient, block.Tx)
+	txHashMap, err := createTransactionHashmap(client, block.Tx)
 	require.NoError(t, err)
 
 	txWithoutAddresses := rawTxResult
@@ -446,8 +445,8 @@ func Test_buildTransactionMapping(t *testing.T) {
 	}
 
 	type args struct {
-		rawTransaction  btcjson.TxRawResult
-		txHashMap       map[string]btcjson.TxRawResult
+		rawTransaction  jsonrpc.TxRawResult
+		txHashMap       map[string]jsonrpc.TxRawResult
 		externalOutputs map[string]map[uint32]db.Output
 		config          Config
 		cache           *outputCache
@@ -494,8 +493,8 @@ func Test_buildTransactionMapping(t *testing.T) {
 }
 
 func Test_filterExternalOutputs(t *testing.T) {
-	txMap := map[string]btcjson.TxRawResult{"": {
-		Vin: []btcjson.Vin{
+	txMap := map[string]jsonrpc.TxRawResult{"": {
+		Vin: []jsonrpc.Vin{
 			{Txid: "txhash1", Vout: 0},
 			{Txid: "txhash1", Vout: 1},
 			{Txid: "txhash1", Vout: 2},
@@ -513,7 +512,7 @@ func Test_filterExternalOutputs(t *testing.T) {
 	}))
 
 	type args struct {
-		txHashMap map[string]btcjson.TxRawResult
+		txHashMap map[string]jsonrpc.TxRawResult
 		cache     *outputCache
 	}
 	tests := []struct {
@@ -558,9 +557,9 @@ func Test_processTxVin(t *testing.T) {
 	type args struct {
 		details         *db.Transaction
 		externalOutputs map[string]map[uint32]db.Output
-		vin             btcjson.Vin
+		vin             jsonrpc.Vin
 		index           uint32
-		txHashMap       map[string]btcjson.TxRawResult
+		txHashMap       map[string]jsonrpc.TxRawResult
 		cache           *outputCache
 	}
 	tests := []struct {
@@ -571,18 +570,17 @@ func Test_processTxVin(t *testing.T) {
 			args: args{
 				details:         &db.Transaction{Inputs: []db.Output{}},
 				externalOutputs: nil,
-				vin: btcjson.Vin{
+				vin: jsonrpc.Vin{
 					Txid: "txhash1",
-					ScriptSig: &btcjson.ScriptSig{
+					ScriptSig: &jsonrpc.ScriptSig{
 						Asm: "some_asm",
-						Hex: "some_hex",
 					},
 					Vout: 0,
 				},
 				index: 0,
-				txHashMap: map[string]btcjson.TxRawResult{"txhash1": {
+				txHashMap: map[string]jsonrpc.TxRawResult{"txhash1": {
 					Hash: "txhash1",
-					Vout: []btcjson.Vout{{Value: 0}},
+					Vout: []jsonrpc.Vout{{Value: 0}},
 				}},
 				cache: newOutputCache(),
 			},
@@ -592,16 +590,15 @@ func Test_processTxVin(t *testing.T) {
 			args: args{
 				details:         &db.Transaction{Inputs: []db.Output{}},
 				externalOutputs: nil,
-				vin: btcjson.Vin{
+				vin: jsonrpc.Vin{
 					Txid: "txhash1",
-					ScriptSig: &btcjson.ScriptSig{
+					ScriptSig: &jsonrpc.ScriptSig{
 						Asm: "some_asm",
-						Hex: "some_hex",
 					},
 					Vout: 0,
 				},
 				index:     0,
-				txHashMap: map[string]btcjson.TxRawResult{},
+				txHashMap: map[string]jsonrpc.TxRawResult{},
 				cache:     newOutputCache(),
 			},
 			wantErr: true,
@@ -610,16 +607,15 @@ func Test_processTxVin(t *testing.T) {
 			args: args{
 				details:         &db.Transaction{Inputs: []db.Output{}},
 				externalOutputs: nil,
-				vin: btcjson.Vin{
+				vin: jsonrpc.Vin{
 					Txid: "txhash1",
-					ScriptSig: &btcjson.ScriptSig{
+					ScriptSig: &jsonrpc.ScriptSig{
 						Asm: "some_asm",
-						Hex: "some_hex",
 					},
 					Vout: 0,
 				},
 				index:     0,
-				txHashMap: map[string]btcjson.TxRawResult{},
+				txHashMap: map[string]jsonrpc.TxRawResult{},
 				cache:     cache,
 			},
 			wantErr: false,
@@ -729,7 +725,7 @@ func Test_getInitialState(t *testing.T) {
 func Test_createTransactionHashmap(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
-	blockHashes, err := client.Generate(1)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
 
@@ -783,7 +779,7 @@ func Test_processRound(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	blockHashes, err := client.Generate(2)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
 
@@ -792,7 +788,7 @@ func Test_processRound(t *testing.T) {
 
 	type args struct {
 		state  crawlerState
-		block  *btcjson.GetBlockVerboseResult
+		block  *jsonrpc.GetBlockVerboseResult
 		config Config
 		cache  *outputCache
 	}
@@ -811,11 +807,98 @@ func Test_processRound(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		_, _, err := processRound(dbHandle, batchClient, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		_, _, err := processRound(dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
+		}
+	}
+}
+
+func Test_getOutputAddress(t *testing.T) {
+	tests := []struct {
+		pubKey           *jsonrpc.ScriptPubKeyResult
+		pubKeyHashAddrID byte
+		want             string
+		wantErr          bool
+	}{
+		{
+			pubKey:  nil,
+			wantErr: true,
+		},
+		{
+			pubKey:  &jsonrpc.ScriptPubKeyResult{},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Address: "a",
+			},
+			want:    "a",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Addresses: []string{"b"},
+				Address:   "a",
+			},
+			want:    "a",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Addresses: []string{"b"},
+			},
+			want:    "b",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Type: "nulldata",
+			},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Type: "nonstandard",
+			},
+			want:    "",
+			wantErr: false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Hex: "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788ac",
+			},
+			pubKeyHashAddrID: 0x4c,
+			want:             "XssjzLKgsfATYGqTQmiJURQzeKdpL5K1k3",
+			wantErr:          false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				Hex: "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788ac",
+			},
+			pubKeyHashAddrID: 0x00,
+			want:             "1JBuA5fnuwwsPLEsYtQ5ctjCoz48JpqMmB",
+			wantErr:          false,
+		},
+		{
+			pubKey: &jsonrpc.ScriptPubKeyResult{
+				// invalid hex
+				Hex: "76a914bc89d6071dabc5b4494d303af761a052a5c70d5788a",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		address, err := getOutputAddress(tt.pubKey, tt.pubKeyHashAddrID)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, address)
 		}
 	}
 }

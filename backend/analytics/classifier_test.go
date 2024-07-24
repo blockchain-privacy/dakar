@@ -360,12 +360,11 @@ func unregisterCollectors(c *Classifier) {
 
 func TestNewClassifier(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{
-		ClassifierStartAfterBlock: 0,
-		BlockchainName:            "Dash",
-		IsHeuristicWorkerEnabled:  false,
-		IsClassifyingEnabled:      false,
-		IsHMIClusteringEnabled:    false,
-		IsFMIClusteringEnabled:    false,
+		BlockchainName:           "Dash",
+		IsHeuristicWorkerEnabled: false,
+		IsClassifyingEnabled:     false,
+		IsHMIClusteringEnabled:   false,
+		IsFMIClusteringEnabled:   false,
 	})
 	unregisterCollectors(classifier)
 	require.NotNil(t, classifier)
@@ -634,7 +633,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := setInitialClassifierID(dbHandle, tt.startBlockClassifier)
+		err := setInitialClassifierID(dbHandle)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

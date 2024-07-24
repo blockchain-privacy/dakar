@@ -2,8 +2,6 @@ package analytics
 
 // Config defines configuration values for a specific blockchain type
 type Config struct {
-	// ClassifierStartAfterBlock is the block id after classifications starts.
-	ClassifierStartAfterBlock uint64
 	// BlockchainName is the name of the blockchain
 	BlockchainName string
 	// IsHeuristicWorkerEnabled controls if analysing is allowed
@@ -24,9 +22,6 @@ func NewDashConfig() Config {
 		IsClassifyingEnabled:     true,
 		IsHMIClusteringEnabled:   true,
 		IsFMIClusteringEnabled:   true,
-		// after block height 323756 the first mixing transactions with the
-		// most recent format (same number of inputs and outputs) appear
-		ClassifierStartAfterBlock: 0,
 	}
 }
 
@@ -34,17 +29,6 @@ func NewDashConfig() Config {
 func NewBitcoinConfig() Config {
 	return Config{
 		BlockchainName:           "Bitcoin",
-		IsHeuristicWorkerEnabled: false,
-		IsClassifyingEnabled:     false,
-		IsHMIClusteringEnabled:   false,
-		IsFMIClusteringEnabled:   false,
-	}
-}
-
-// NewDogecoinConfig returns a Config for Dogecoin
-func NewDogecoinConfig() Config {
-	return Config{
-		BlockchainName:           "Doge",
 		IsHeuristicWorkerEnabled: false,
 		IsClassifyingEnabled:     false,
 		IsHMIClusteringEnabled:   false,

@@ -171,8 +171,6 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 					keyasm
 					sigasm
 					txtype
-					sighex
-					keyhex
 					dgraph.type
 				}`
 

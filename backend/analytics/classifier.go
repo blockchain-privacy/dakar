@@ -164,7 +164,7 @@ func (c *Classifier) CalculateInitialState() error {
 		return err
 	}
 
-	if err := setInitialClassifierID(c.db, c.config.ClassifierStartAfterBlock); err != nil {
+	if err := setInitialClassifierID(c.db); err != nil {
 		return err
 	}
 
@@ -405,15 +405,14 @@ func (c *Classifier) PostExecution() error {
 
 // setInitialClassifierID sets the starting classifier block id to the
 // value of startBlockClassifier if no value has been set yet
-func setInitialClassifierID(dgraph external.Database, startBlockClassifier uint64) (err error) {
+func setInitialClassifierID(dgraph external.Database) (err error) {
 	status, err := dbstat.GetClassifierStatus(dgraph)
 	if err != nil {
 		return
 	}
 
-	if status.LastClassifiedBlockID == nil ||
-		*status.LastClassifiedBlockID < startBlockClassifier {
-		if err = dbstat.SetLastClassifiedBlockID(dgraph, startBlockClassifier); err != nil {
+	if status.LastClassifiedBlockID == nil {
+		if err = dbstat.SetLastClassifiedBlockID(dgraph, 0); err != nil {
 			return
 		}
 	}
