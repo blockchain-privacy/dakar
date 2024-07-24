@@ -142,7 +142,9 @@
 </template>
 
 <script setup>
-import {mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport} from '@mdi/js';
+import {
+	mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport,
+} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import ImportAddressExclusionsDialog from './ImportAddressExclusionsDialog.vue';
@@ -178,7 +180,7 @@ async function loadData() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.addressExclusion.addressExclusionOverviewGet();
+		const response = await dakar.addressExclusion.exclusionsGet();
 
 		if (response.addresses) {
 			items.value = response.addresses;

@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="700px"
   >
     <v-card class="mx-auto pb-2">
@@ -44,7 +44,7 @@ XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
               variant="text"
               :disabled="isLoading"
               class="mr-2"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -63,7 +63,7 @@ XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
 </template>
 
 <script setup>
-import {computed, inject, ref} from 'vue';
+import {inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {fileRule} from '@/utilities';
 import {useMsgStore} from '@/pinia/msg';
@@ -72,8 +72,8 @@ const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 
-const props = defineProps({modelValue: {type: Boolean, required: true}});
-const emit = defineEmits(['added', 'update:modelValue']);
+const model = defineModel({type: Boolean});
+const emit = defineEmits(['added']);
 
 // Template ref
 const csvForm = ref(null);
@@ -83,27 +83,23 @@ const csv = ref({
 	file: null,
 });
 
-// Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 // Functions
 function setSuccessMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'success', temporary: true, category: route.name,
+	});
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
+	});
 }
 
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function handleCSVUpload() {
@@ -115,7 +111,7 @@ async function handleCSVUpload() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.addressExclusion.addAddressExclusionsPost({file: csv.value.file[0]});
+		const response = await dakar.addressExclusion.exclusionsPost({file: csv.value.file[0]});
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}
@@ -128,7 +124,7 @@ async function handleCSVUpload() {
 
 	isLoading.value = false;
 	csv.value.file = null;
-	show.value = false;
+	model.value = false;
 }
 
 // CodeToMsg returns a message for the given message code

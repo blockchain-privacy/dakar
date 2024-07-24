@@ -158,7 +158,7 @@ type OutputTransactionMapping struct {
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	transaction []OutputTransactionMapping, err error) {
 	if len(transactionHashes) == 0 {
-		return nil, cliutil.NewStackError(errEmptyRequestArgument)
+		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	for _, t := range transactionHashes {
@@ -251,7 +251,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 // GetTransaction returns the transaction specified by the transaction hash
 func GetTransaction(c external.Database, txHash string) (transaction Transaction, err error) {
 	if txHash == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -301,7 +301,7 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 // with the inputs and outputs of the transaction uid
 func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
 	if uid == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -365,7 +365,7 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 // GetFrontendTransaction gets transaction information for the frontend
 func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
 	if txHash == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 	const query = `query Q($hash: string){
@@ -464,7 +464,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 // GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
 func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
 	if len(txUids) == 0 {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -508,7 +508,7 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 // GetTransactionUIDMapping returns for each transaction a mapping between transaction UID and transaction hash
 func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Transaction, err error) {
 	if len(txUids) == 0 {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -548,7 +548,7 @@ func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Trans
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
 func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
 	if txHash == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -598,7 +598,7 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 // The transaction uids must be set.
 func UpdateTransactions(c external.Database, transactions []Transaction) error {
 	if len(transactions) == 0 {
-		return cliutil.NewStackError(errEmptyRequestArgument)
+		return cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	for _, tx := range transactions {
@@ -618,7 +618,7 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 // GetTransactionUID returns the uid of the given transaction
 func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
 	if txHash == "" {
-		return "", cliutil.NewStackError(errEmptyRequestArgument)
+		return "", cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	const query = `query Q($tx:string) {

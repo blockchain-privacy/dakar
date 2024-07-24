@@ -10,7 +10,6 @@ import (
 	"os"
 	"slices"
 	"sort"
-	"sync"
 	"testing"
 	"time"
 )
@@ -43,16 +42,18 @@ func TestWrapper_IsTransactionGraphLoaded(t *testing.T) {
 	require.True(t, w.IsTransactionGraphLoaded())
 
 	// should be thread safe
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	numGoroutines := 10
+	responses := make(chan bool, numGoroutines)
+	for range numGoroutines {
 		go func() {
-			defer wg.Done()
-			require.True(t, w.IsTransactionGraphLoaded())
+			responses <- w.IsTransactionGraphLoaded()
 		}()
 	}
 
-	wg.Wait()
+	for range numGoroutines {
+		r := <-responses
+		require.True(t, r)
+	}
 }
 
 func TestWrapper_ReverseLookup(t *testing.T) {
@@ -110,21 +111,28 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 
 	// test thread safety
 	tt := tests[0]
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	numGoroutines := 10
+	type response struct {
+		err error
+		res map[string]bool
+	}
+	responses := make(chan response, numGoroutines)
+	for range numGoroutines {
 		go func() {
-			defer wg.Done()
 			results, err := w.ReverseLookup(ToHex(tt.args.nodeID), tt.args.maxLookBackTime, tt.args.addressExclusions, tt.args.excludeSpendingGaps)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.want, results)
-			}
+			responses <- response{err: err, res: results}
 		}()
 	}
-	wg.Wait()
+
+	for range numGoroutines {
+		r := <-responses
+		if tt.wantErr {
+			require.Error(t, r.err)
+		} else {
+			require.NoError(t, r.err)
+			require.Equal(t, tt.want, r.res)
+		}
+	}
 }
 
 func TestWrapper_ForwardLookup(t *testing.T) {
@@ -181,21 +189,28 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 
 	// test thread safety
 	tt := tests[0]
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	numGoroutines := 10
+	type response struct {
+		err error
+		res map[string]bool
+	}
+	responses := make(chan response, numGoroutines)
+	for range numGoroutines {
 		go func() {
-			defer wg.Done()
 			results, err := w.ForwardLookup(ToHex(tt.args.nodeID), ToHex(tt.args.targetID), tt.args.addressExclusions, tt.args.excludeSpendingGaps)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.want, results)
-			}
+			responses <- response{err: err, res: results}
 		}()
 	}
-	wg.Wait()
+
+	for range numGoroutines {
+		r := <-responses
+		if tt.wantErr {
+			require.Error(t, r.err)
+		} else {
+			require.NoError(t, r.err)
+			require.Equal(t, tt.want, r.res)
+		}
+	}
 }
 
 func TestWrapper_ForwardLookupByTime(t *testing.T) {
@@ -252,21 +267,28 @@ func TestWrapper_ForwardLookupByTime(t *testing.T) {
 
 	// test thread safety
 	tt := tests[0]
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	numGoroutines := 10
+	type response struct {
+		err error
+		res map[string]bool
+	}
+	responses := make(chan response, numGoroutines)
+	for range numGoroutines {
 		go func() {
-			defer wg.Done()
 			results, err := w.ForwardLookupByTime(ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.addressExclusions, tt.args.excludeSpendingGaps)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.want, results)
-			}
+			responses <- response{err: err, res: results}
 		}()
 	}
-	wg.Wait()
+
+	for range numGoroutines {
+		r := <-responses
+		if tt.wantErr {
+			require.Error(t, r.err)
+		} else {
+			require.NoError(t, r.err)
+			require.Equal(t, tt.want, r.res)
+		}
+	}
 }
 
 func TestWrapper_SpendingFingerprint(t *testing.T) {
@@ -349,29 +371,37 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 
 	// test thread safety
 	tt := tests[0]
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	numGoroutines := 10
+	type response struct {
+		err          error
+		fingerprints []FingerPrint
+		numSessions  int
+	}
+	responses := make(chan response, numGoroutines)
+	for range numGoroutines {
 		go func() {
-			defer wg.Done()
-			fingerprints, i, err := w.SpendingFingerprint(tt.uid)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.wantNumSessions, i)
-				fingerprintUIDs := make([]string, len(fingerprints))
-				for j, f := range fingerprints {
-					fingerprintUIDs[j] = f.TransactionUID
-				}
-
-				sort.Strings(fingerprintUIDs)
-
-				require.Equal(t, tt.wantFingerprint, fingerprintUIDs)
-			}
+			fingerprints, sessionCount, err := w.SpendingFingerprint(tt.uid)
+			responses <- response{err: err, fingerprints: fingerprints, numSessions: sessionCount}
 		}()
 	}
-	wg.Wait()
+
+	for range numGoroutines {
+		r := <-responses
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.wantNumSessions, r.numSessions)
+			fingerprintUIDs := make([]string, len(r.fingerprints))
+			for j, f := range r.fingerprints {
+				fingerprintUIDs[j] = f.TransactionUID
+			}
+
+			sort.Strings(fingerprintUIDs)
+
+			require.Equal(t, tt.wantFingerprint, fingerprintUIDs)
+		}
+	}
 }
 
 func TestWrapper_GetInputTransactions(t *testing.T) {
@@ -419,23 +449,30 @@ func TestWrapper_GetInputTransactions(t *testing.T) {
 
 	// test thread safety
 	tt := tests[0]
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	numGoroutines := 10
+	type response struct {
+		err error
+		res []string
+	}
+	responses := make(chan response, numGoroutines)
+	for range numGoroutines {
 		go func() {
-			defer wg.Done()
 			results, err := w.GetInputTransactions(tt.uid)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				// sort results so order stays the same
-				slices.Sort(results)
-				require.Equal(t, tt.want, results)
-			}
+			responses <- response{err: err, res: results}
 		}()
 	}
-	wg.Wait()
+
+	for range numGoroutines {
+		r := <-responses
+		if tt.wantErr {
+			require.Error(t, r.err)
+		} else {
+			require.NoError(t, r.err)
+			// sort results so order stays the same
+			slices.Sort(r.res)
+			require.Equal(t, tt.want, r.res)
+		}
+	}
 }
 
 func TestWrapper_LoadGraphs(t *testing.T) {

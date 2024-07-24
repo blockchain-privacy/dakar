@@ -114,7 +114,7 @@ func (f FrontendAddress) String() string {
 func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	offset int, filters []int) (addr FrontendAddress, err error) {
 	if addrHash == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -341,7 +341,7 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 // GetAddressUIDs returns all requested address nodes.
 func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
 	if len(addressHashes) == 0 {
-		return nil, cliutil.NewStackError(errEmptyRequestArgument)
+		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	for _, a := range addressHashes {

@@ -53,7 +53,7 @@ func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
 
 // WaitForDatabase waits until the database is ready to receive requests
 func WaitForDatabase(c Database) bool {
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		if IsConnectionEstablished(c) {
 			return true
 		}

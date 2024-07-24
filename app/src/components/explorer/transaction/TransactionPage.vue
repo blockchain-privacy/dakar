@@ -36,7 +36,9 @@
 import Transaction from './Transaction.vue';
 import {PAGE_TITLE} from '@/constants';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
-import {computed, onMounted, onUpdated, watch} from 'vue';
+import {
+	computed, onMounted, onUpdated, watch,
+} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useExplorerStore} from '@/pinia/explorer';
 import {useLocalStore} from '@/pinia/local';

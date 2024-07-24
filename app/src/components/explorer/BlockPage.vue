@@ -147,7 +147,9 @@ import IconItem from '../common/IconItem.vue';
 import Transaction from './transaction/Transaction.vue';
 import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {computed, inject, onMounted, onUpdated, watch} from 'vue';
+import {
+	computed, inject, onMounted, onUpdated, watch,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {storeToRefs} from 'pinia';
@@ -198,9 +200,8 @@ function setPageTitle() {
 	document.title = `Block${id}- ${PAGE_TITLE}`;
 }
 
-function isResponseValid(data) {
-	return !(!data.type || data.type !== 'block' || !data.payload || !data.payload.transactions
-      || data.payload.transactions.length === 0);
+function isResponseValid(reponse) {
+	return !(!reponse.block || !reponse.block.transactions || reponse.block.transactions.length === 0);
 }
 
 async function addNewData({done}) {
@@ -218,10 +219,10 @@ async function addNewData({done}) {
 	}
 
 	try {
-		const response = await dakar.data.blkRangeBlockHashPost({blockHash: block.value.blockhash, offset: {offset}});
+		const response = await dakar.data.blockchainBlocksHashGet({hash: block.value.blockhash, offset});
 
 		if (isResponseValid(response)) {
-			block.value.transactions = [...block.value.transactions, ...response.payload.transactions];
+			block.value.transactions = [...block.value.transactions, ...response.block.transactions];
 			msgStore.resetMessages();
 		}
 

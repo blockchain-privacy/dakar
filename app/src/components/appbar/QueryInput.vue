@@ -2,11 +2,12 @@
   <v-text-field
     id="query-input"
     v-model="query"
-    style="margin: 23px 0 0 0;min-width:220px"
+    :hide-details="true"
+    style="min-width:220px"
     variant="outlined"
     density="compact"
     color="primary"
-    single-line
+    :single-line="true"
     label="Search for blocks, transactions and addresses"
     :append-inner-icon="mdiMagnify"
     :rules="[isValidQuery]"
@@ -22,7 +23,9 @@ import {
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
-import {computed, inject, ref, watch} from 'vue';
+import {
+	computed, inject, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {useMsgStore} from '@/pinia/msg';
@@ -113,7 +116,7 @@ async function handleInput(q) {
 	}
 }
 
-async function storeResult(promise, action, piniaAction) {
+async function storeResult(promise, piniaAction) {
 	try {
 		const response = await promise;
 		piniaAction(response);
@@ -146,23 +149,26 @@ async function handleQuery(q, type) {
 
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakar.data.txHashGet({hash: trimmedQuery}), 'updateTransactionData', explorerStore.updateTransaction);
+			await storeResult(dakar.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakar.data.blkHashGet({hash: trimmedQuery}), 'updateBlockData', explorerStore.updateBlock);
+			await storeResult(dakar.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
 			break;
 		case RESPONSE_TYPE_ADDRESS:
-			await storeResult(dakar.data.addressHashGet({hash: trimmedQuery}), 'updateAddressData', explorerStore.updateAddress);
+
+			await storeResult(dakar.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
 			break;
 		default:
-			await storeResult(dakar.data.searchQueryGet({query: trimmedQuery}), 'updateSearchResult', explorerStore.updateSearchResult);
+			await storeResult(dakar.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
 	}
 
 	return true;
 }
 
 function setWarningMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'warning', temporary: true, category: route.name,
+	});
 }
 
 // Initial routing

@@ -5,7 +5,9 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -575,6 +577,320 @@ func GetDestinationTransactionSpenders(c external.Database) (
 
 	globalDestinationCount = r.DestinationCount[0].Count
 	spentDestinationTransactionCount = len(spentDestinationTransactions)
+
+	return
+}
+
+// GetNumberOfAddresses returns the number of addresses which are not connected to any cluster
+func GetNumberOfAddresses(c external.Database) (int, error) {
+	const query = `{
+		q(func:has(addresshash)){
+			count(uid)
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return 0, err
+	}
+	var r struct {
+		Addresses []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return 0, cliutil.NewStackError(err)
+	}
+
+	if len(r.Addresses) != 1 {
+		return 0, cliutil.NewStackErrorStr("invalid result")
+	}
+
+	return r.Addresses[0].Count, nil
+}
+
+// GetSingleAddressesByOffset returns the uid of all addresses which are not connected to any cluster
+func GetSingleAddressesByOffset(c external.Database, step int, offset int) (uids []string, err error) {
+	const query = `query Q($offset:int,$step:int){
+		var(func:has(addresshash), first:$step, offset:$offset){
+			c as count(~Cluster.addresses)
+		}
+		
+		q(func: uid(c))@filter(eq(val(c),0)){
+			uid
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$offset": strconv.Itoa(offset), "$step": strconv.Itoa(step)})
+	if err != nil {
+		return
+	}
+	var r struct {
+		Addresses []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	for _, a := range r.Addresses {
+		uids = append(uids, a.UID)
+	}
+	return
+}
+
+// GetAllSingleAddresses returns the uid of all addresses which are not connected to any cluster
+func GetAllSingleAddresses(c external.Database) (uids []string, err error) {
+	numAddresses, err := GetNumberOfAddresses(c)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("address count: %d\n", numAddresses)
+
+	const stepSize = 10000000
+	var offset = 0
+	for {
+		fmt.Printf("offset: %d\n", offset)
+		addresses, err := GetSingleAddressesByOffset(c, stepSize, offset)
+		if err != nil {
+			return nil, err
+		}
+		uids = append(uids, addresses...)
+
+		offset += stepSize
+		if offset >= numAddresses {
+			break
+		}
+	}
+
+	return
+}
+
+// GetTransactionCountPerAddresses returns the number of transactions each address has created
+func GetTransactionCountPerAddresses(c external.Database, addressUIDs []string) ([]int, []int, error) {
+	if len(addressUIDs) == 0 {
+		return nil, nil, cliutil.NewStackErrorStr("invalid arguments")
+	}
+
+	var queryBody string
+	var sumInputs string
+	var sumOutputs string
+
+	for i, a := range addressUIDs {
+		index := strconv.Itoa(i)
+		queryBody += `
+					var(func: uid(` + a + `)){
+						addr_outputs{
+							i` + index + ` as ~tx_inputs
+							o` + index + ` as ~tx_outputs
+						}
+					}
+					
+					var(func: uid(i` + index + `)){
+						ci` + index + ` as count(uid)
+					}
+
+					var(func: uid(o` + index + `)){
+						co` + index + ` as count(uid)
+					}`
+
+		sumInputs += "\n" + `sum(val(ci` + index + `))`
+		sumOutputs += "\n" + `sum(val(co` + index + `))`
+	}
+
+	var query = "{" + queryBody + "q() {" + sumInputs + "}\nx(){" + sumOutputs + "}}"
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return nil, nil, err
+	}
+	var r struct {
+		Inputs  []map[string]int `json:"q,omitempty"`
+		Outputs []map[string]int `json:"x,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, nil, cliutil.NewStackError(err)
+	}
+
+	if len(r.Inputs) != len(r.Outputs) || len(r.Outputs) != len(addressUIDs) {
+		return nil, nil, cliutil.NewStackErrorf(
+			"length of inputs (%d) and outputs (%d) do not match", len(r.Inputs), len(r.Outputs))
+	}
+
+	inputSums := make([]int, len(r.Inputs))
+	for i, v := range r.Inputs {
+		_, item := cliutil.GetOneItem(v)
+		inputSums[i] = item
+	}
+
+	outputSums := make([]int, len(r.Outputs))
+	for i, v := range r.Outputs {
+		_, item := cliutil.GetOneItem(v)
+		outputSums[i] = item
+	}
+
+	return inputSums, outputSums, nil
+}
+
+// GetTransactionCountPerCluster returns the number of transactions this cluster has created
+func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int, int, error) {
+	const query = `query Q($uid:string){
+					var(func: uid($uid)){
+						Cluster.addresses {
+							addr_outputs{
+								i as ~tx_inputs
+								o as ~tx_outputs
+							}
+						}
+					}
+					
+					q(func: uid(i)){
+						count(uid)
+					}
+
+					x(func: uid(o)){
+						count(uid)
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$uid": clusterUID})
+	if err != nil {
+		return 0, 0, err
+	}
+	var r struct {
+		Inputs []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+		Ouptuts []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"x,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return 0, 0, cliutil.NewStackError(err)
+	}
+
+	if len(r.Inputs) != 1 || len(r.Ouptuts) != 1 {
+		return 0, 0, cliutil.NewStackErrorStr("invalid result")
+	}
+
+	return r.Inputs[0].Count, r.Ouptuts[0].Count, nil
+}
+
+// GetAllFMIClusters returns the uids of all FMI clusters
+func GetAllFMIClusters(c external.Database) (uids []string, err error) {
+	const query = `{
+		q(func: type(Cluster))@filter(eq(Cluster.type, "fmi")){
+			uid
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return
+	}
+	var r struct {
+		Clusters []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	for _, a := range r.Clusters {
+		uids = append(uids, a.UID)
+	}
+	return
+}
+
+// GetShortestTransactionPathAnyDirection returns the transactions of the shortest path between two transactions.
+// anyDirection determines the search direction of the shortest transaction path query
+// True: Both inputs and outputs are traversed
+// False: Only inputs are traversed
+// withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
+func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, txTo string,
+	withPrivacyTransactions bool, anyDirection bool) (txs []db.FrontendTransaction, err error) {
+	/* Full query
+	query Q($txFrom:string, $txTo:string){
+					f as var(func: eq(txhash,$txFrom))
+					t as var(func: eq(txhash,$txTo))
+					path as shortest(from: uid(f), to: uid(t)){
+						tx_inputs
+						~tx_outputs@filter(NOT has(privacytype)) tx_outputs ~tx_inputs@filter(NOT has(privacytype)) }
+					path(func: uid(path))@normalize{
+						txhash:txhash
+						privacytype:privacytype
+						~transactions{
+							bid:id
+							bts:ts
+							bhash:blockhash
+						}
+					}
+				  }
+	*/
+
+	privacyFlag := " " // spaces are needed
+
+	if !withPrivacyTransactions {
+		privacyFlag = "@filter(NOT has(privacytype)) " // spaces are needed
+	}
+
+	var anyDirectionFlag string
+
+	if anyDirection {
+		anyDirectionFlag = "tx_outputs ~tx_inputs" + privacyFlag
+	}
+
+	query := `query Q($txFrom:string, $txTo:string){
+				f as var(func: eq(txhash,$txFrom))
+				t as var(func: eq(txhash,$txTo))
+				path as shortest(from: uid(f), to: uid(t)){
+					tx_inputs
+					~tx_outputs` + privacyFlag + anyDirectionFlag + `}
+				path(func: uid(path))@normalize{
+					txhash:txhash
+					privacytype:privacytype
+					~transactions{
+						bid:id
+						bts:ts
+						bhash:blockhash
+					}
+				}
+			  }`
+
+	// without retry, as this request can easily time out
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
+	if err != nil {
+		if !errors.Is(err, context.DeadlineExceeded) {
+			err = cliutil.NewStackError(err)
+			return
+		}
+		err = nil
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []db.FrontendTransaction `json:"path,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	txs = r.Transactions
 
 	return
 }

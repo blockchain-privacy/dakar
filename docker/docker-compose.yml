@@ -48,7 +48,7 @@ services:
 
   kratos:
     container_name: kratos
-    image: oryd/kratos:v1.0
+    image: oryd/kratos:v1.1
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin
@@ -60,7 +60,7 @@ services:
       - SECRETS_COOKIE=${KRATOS_SECRETS_COOKIE}
       - SECRETS_CIPHER=${KRATOS_SECRETS_CIPHER}
     command: serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS}
-#    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
+#    command: migrate sql -e # enable the three commands and run: sudo docker-compose --env .env.local run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
     volumes:
@@ -93,7 +93,7 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:20.0
+    image: dashpay/dashd:20.1
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/home/dash

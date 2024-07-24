@@ -16,11 +16,11 @@ func TestMain(m *testing.M) {
 func TestGenerateRandomPassword(t *testing.T) {
 	const numPasswords = 10000
 	pwMap := make(map[string]bool, numPasswords)
-	for i := 0; i < numPasswords; i++ {
+	for range numPasswords {
 		pw, err := generateRandomPassword()
 		require.NoError(t, err)
 		require.NotEmpty(t, pw, "password is empty")
-		require.EqualValues(t, len(pw), 22, "got random password with wrong size:")
+		require.Len(t, pw, 22, "got random password with wrong size:")
 		pwMap[pw] = true
 	}
 

@@ -1,51 +1,21 @@
 <template>
   <v-card :variant="embed?undefined:'text'">
     <icon-title
+      v-if="showTitleBar"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
       :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}:null"
     >
       <privacy-chip
-        v-if="tx.privacytype > 0"
-        class="mx-3"
+        v-if="tx.privacytype >= 0"
         :privacy-type="tx.privacytype"
+        class="ms-2"
       />
-      <template v-if="isDestination(tx.privacytype)">
-        <v-btn
-          v-if="showHeuristicEditorLink"
-          :id="`btn_open_heuristic_editor_${tx.txhash}`"
-          style="margin-right: 0"
-          icon
-          :color="null"
-          variant="text"
-          :to="{ name: ROUTE_NAME_HEURISTIC_PAGE,params: { id: tx.txhash } }"
-        >
-          <v-icon>{{ mdiGraph }}</v-icon>
-        </v-btn>
-        <v-tooltip
-          location="bottom"
-          :activator="`#btn_open_heuristic_editor_${tx.txhash}`"
-        >
-          <span>Open the heuristic editor for this transaction</span>
-        </v-tooltip>
-        <v-btn
-          v-if="showFingerprintLink"
-          :id="`btn_find_similar_transactions_${tx.txhash}`"
-          style="margin-right: 0"
-          icon
-          :color="null"
-          variant="text"
-          @click="showFingerprintDialog = true"
-        >
-          <v-icon>{{ mdiFingerprint }}</v-icon>
-        </v-btn>
-        <v-tooltip
-          location="bottom"
-          :activator="`#btn_find_similar_transactions_${tx.txhash}`"
-        >
-          <span>Search for similar destination transactions</span>
-        </v-tooltip>
-      </template>
+      <fingerprint-chip
+        v-if="showFingerprintLink && isDestination(tx.privacytype)"
+        :transaction-hash="tx.txhash"
+        class="ms-2"
+      />
     </icon-title>
     <v-card-text>
       <v-expand-transition>
@@ -244,27 +214,30 @@
     >
       <v-icon>{{ showAllOutputs ? mdiChevronUp : mdiChevronDown }}</v-icon>
     </v-btn>
-    <fingerprint-transactions-dialog
-      v-model="showFingerprintDialog"
-      :transaction-hash="tx.txhash"
-    />
   </v-card>
 </template>
 
 <script setup>
 import {
-	mdiTransfer, mdiGraph, mdiFormatListNumbered, mdiCalendar,
-	mdiCash, mdiFormatHeaderPound, 	mdiChevronDown,
-	mdiChevronUp, mdiPickaxe, mdiFingerprint,
+	mdiCalendar,
+	mdiCash,
+	mdiChevronDown,
+	mdiChevronUp,
+	mdiFormatHeaderPound,
+	mdiFormatListNumbered,
+	mdiPickaxe,
+	mdiTransfer,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
-import {shortenHash, convertAmount, isDestination} from '@/utilities';
-import {ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {convertAmount, isDestination, shortenHash} from '@/utilities';
+import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
-import FingerprintTransactionsDialog from './FingerprintTransactionsDialog.vue';
-import {computed, isProxy, ref, toRaw, toRef} from 'vue';
+import {
+	computed, isProxy, ref, toRaw, toRef,
+} from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -273,11 +246,11 @@ const props = defineProps({
 	showDetails: {type: Boolean, required: false, default: false},
 	showTitleLink: {type: Boolean, required: false, default: false},
 	embed: {type: Boolean, required: false, default: false},
+	showTitleBar: {type: Boolean, required: false, default: true},
 });
 
 const showTransactionDetails = toRef(props.showDetails);
 const showAllOutputs = ref(false);
-const showFingerprintDialog = ref(false);
 const maxOutputs = ref(3);
 
 // Computed
@@ -306,7 +279,7 @@ function getLabel(count, label) {
 	return `${count} ${label}`;
 }
 
-function 	sortByTimestamp(outputs) {
+function sortByTimestamp(outputs) {
 	if (!outputs) {
 		return [];
 	}

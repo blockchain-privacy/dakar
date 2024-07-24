@@ -65,7 +65,9 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 	}
 
 	if (response.status === 401) {
-		handleUnauthorizedRequest(context.$router, navStore, localStore, context.$route);
+		navStore.setFailedRoute(context.$route);
+		localStore.setSession(null);
+		context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 		throw new Error('Please login again.', {cause: response});
 	}
 
@@ -97,20 +99,6 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 	throw new Error(errMsg, {cause: response});
 }
 
-// HandleUnauthorizedRequest directs to the login page
-export function handleUnauthorizedRequest(router, navStore, localStore, currentRoute) {
-	// Set failed route so we can reroute to it later
-	navStore.setFailedRoute(currentRoute);
-	localStore.setSession(null);
-	router.push({name: ROUTE_NAME_LOGIN_PAGE});
-}
-
-// IsSessionExpired returns true if the session has expired
-export function isSessionExpired(session) {
-	return !session || !session.expires_at
-      || new Date() > new Date(session.expires_at);
-}
-
 export function handleError(context, error) {
 	let errMsg;
 	if (error.cause?.status === 500) {
@@ -119,7 +107,9 @@ export function handleError(context, error) {
 		errMsg = error.message;
 	}
 
-	context.addMessage({text: errMsg, type: 'error', temporary: true, category: context.$route.name});
+	context.addMessage({
+		text: errMsg, type: 'error', temporary: true, category: context.$route.name,
+	});
 }
 
 export const emailRules = [
@@ -163,8 +153,8 @@ export function isValidQuery(str) {
 
 function isRole(session, roleName) {
 	return Boolean(session && session.identity && session.identity.metadata_public
-      && session.identity.metadata_public.roles
-      && session.identity.metadata_public.roles.some(d => d === roleName));
+    && session.identity.metadata_public.roles
+    && session.identity.metadata_public.roles.some(d => d === roleName));
 }
 
 export function isPrivilegedIdentity(session) {
@@ -320,4 +310,15 @@ export function isFunction(functionToCheck) {
 // Plural appends an 's' at the end of subject if count is higher than one
 export function plural(subject, count) {
 	return count > 1 ? `${subject}s` : subject;
+}
+
+// Returns a mapping between transaction types and their colors
+export function getColorMap() {
+	const colorMap = new Map();
+	colorMap.set('destination', '#0072B2');
+	colorMap.set('collateral creation', '#E69F00');
+	colorMap.set('collateral payment', '#009E73');
+	colorMap.set('origin', '#D55E00');
+	colorMap.set('mixing', '#56B4E9');
+	return colorMap;
 }

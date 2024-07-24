@@ -139,7 +139,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 
 	var printedErrMessage bool
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		_, err := client.GetBlockCount()
 		if err == nil {
 			if printedErrMessage {
@@ -173,7 +173,7 @@ func waitForBatchRPCClient(client external.BatchRPCClient) bool {
 
 	var printedErrMessage bool
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		result := client.GetBlockCountAsync()
 		err := client.Send()
 		if err != nil {
@@ -295,7 +295,7 @@ func newKratosClient(endpoint string) (*ory.APIClient, error) {
 
 // isKratosAlive returns true if a successful connection to kratos has been established
 func isKratosAlive(auth *ory.APIClient) bool {
-	if auth == nil || auth.MetadataApi == nil {
+	if auth == nil || auth.MetadataAPI == nil {
 		return false
 	}
 
@@ -303,7 +303,7 @@ func isKratosAlive(auth *ory.APIClient) bool {
 	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()
 
-	_, resp, err := auth.MetadataApi.IsAlive(ctx1).Execute()
+	_, resp, err := auth.MetadataAPI.IsAlive(ctx1).Execute()
 	if resp != nil {
 		if err := resp.Body.Close(); err != nil {
 			warn(cliutil.NewStackError(err))
@@ -319,7 +319,7 @@ func waitForKratos(auth *ory.APIClient) bool {
 
 	var printedErrMessage bool
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		if isKratosAlive(auth) {
 			if printedErrMessage {
 				fmt.Println("Successfully established connection to kratos")

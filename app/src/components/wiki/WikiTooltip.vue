@@ -64,7 +64,9 @@ const description = ref('');
 const requestedDescription = ref(false);
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function requestBlurb() {

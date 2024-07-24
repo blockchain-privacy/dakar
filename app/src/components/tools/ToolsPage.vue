@@ -8,9 +8,9 @@
       <v-divider />
       <v-list :nav="true">
         <v-list-item
-          :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE}"
-          :prepend-icon="mdiGraph"
-          title="Heuristics"
+          :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}"
+          prepend-icon="$graphIcon"
+          title="Workspaces"
         />
         <v-list-item
           :to="{ name: ROUTE_NAME_ATTRIBUTIONS}"
@@ -58,18 +58,17 @@
 
 <script setup>
 import {
-	mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch, mdiMerge,
-	mdiTag, mdiPlaylistRemove,
+	mdiChartTimelineVariant, mdiMerge, mdiPlaylistRemove, mdiTag, mdiTextBoxSearch, mdiToolbox,
 } from '@mdi/js';
 import {
-	ROUTE_NAME_USER_HEURISTIC_PAGE,
-	ROUTE_NAME_SHORTEST_PATH_PAGE,
-	ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
+	ROUTE_NAME_ADDRESS_EXCLUSIONS,
+	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_CLUSTER_OVERVIEW,
-	ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS,
+	ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
+	ROUTE_NAME_SHORTEST_PATH_PAGE,
+	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
-
 </script>
 
 <style scoped>

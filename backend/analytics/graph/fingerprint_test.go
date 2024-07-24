@@ -51,7 +51,7 @@ func Test_splitTimestampsIntoSessions(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.wantNumberSessions, len(splitTimestampsIntoSessions(tt.timestamps)))
+		require.Len(t, splitTimestampsIntoSessions(tt.timestamps), tt.wantNumberSessions)
 	}
 }
 
@@ -247,7 +247,7 @@ func TestCompareTransactions(t *testing.T) {
 		means2 := getSessionMeans(splitTimestampsIntoSessions(tt.timestamps2))
 		score, err := scoreMeans(means1, means2)
 		require.NoError(t, err)
-		require.EqualValues(t, tt.wantScore, score)
+		require.InEpsilon(t, tt.wantScore, score, 0.0001)
 	}
 }
 

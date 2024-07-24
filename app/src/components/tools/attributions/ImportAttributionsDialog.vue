@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="1000px"
   >
     <v-card class="mx-auto pb-2">
@@ -48,17 +48,19 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
             label="Click here to select a file"
             truncate-length="15"
           />
-          <div class="d-flex align-center flex-wrap">
+          <div class="d-inline-flex align-center flex-wrap">
             <v-checkbox
               v-model="csv.firstRowContainsHeader"
               label="First row of file contains headers"
               :disabled="isLoading"
+              class="me-2"
             />
             <v-checkbox
               v-if="isAdmin"
               v-model="areAttributionsPublic"
               label="Public attributions"
               :disabled="isLoading"
+              class="me-2"
             />
             <v-select
               v-model="csv.separator"
@@ -73,7 +75,7 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
               variant="text"
               :disabled="isLoading"
               class="mr-2"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -92,10 +94,9 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
 </template>
 
 <script setup>
-import {isAdminIdentity} from '@/utilities';
+import {fileRule, isAdminIdentity} from '@/utilities';
 import {computed, inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {fileRule} from '@/utilities';
 import {useLocalStore} from '@/pinia/local';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -104,8 +105,8 @@ const route = useRoute();
 const localStore = useLocalStore();
 const msgStore = useMsgStore();
 
-const props = defineProps({modelValue: {type: Boolean, required: true}});
-const emit = defineEmits(['added', 'update:modelValue']);
+const model = defineModel({type: Boolean});
+const emit = defineEmits(['added']);
 
 // Template ref
 const csvForm = ref(null);
@@ -124,15 +125,6 @@ const separatorItems = [
 ];
 
 // Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 const isAdmin = computed(() => isAdminIdentity(localStore.getSession));
 
 // Functions
@@ -161,11 +153,15 @@ function codeToMsg(msgCode) {
 }
 
 function setSuccessMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'success', temporary: true, category: route.name,
+	});
 }
 
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function handleCSVUpload() {
@@ -183,9 +179,9 @@ async function handleCSVUpload() {
 
 	try {
 		if (areAttributionsPublic.value) {
-			await dakar.attribution.addPublicAttributionPost(attributionData);
+			await dakar.attribution.attributionsPublicPost(attributionData);
 		} else {
-			await dakar.attribution.addPrivateAttributionPost(attributionData);
+			await dakar.attribution.attributionsPost(attributionData);
 		}
 
 		setSuccessMessage('import was successful');
@@ -196,7 +192,7 @@ async function handleCSVUpload() {
 
 	isLoading.value = false;
 	csv.value.file = null;
-	show.value = false;
+	model.value = false;
 }
 </script>
 

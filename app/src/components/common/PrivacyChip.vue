@@ -1,20 +1,23 @@
 <template>
-  <v-chip
-    :rounded="true"
-    color="purple"
-    :size="size"
+  <wiki-tooltip
+    :description-url="getPrivacyTypeTooltip(privacyType)"
+    :show-link="false"
   >
-    <v-icon
-      :icon="mdiIncognito"
-      class="me-2"
-    />
-    <wiki-tooltip
-      :description-url="getPrivacyTypeTooltip(privacyType)"
-      :show-link="false"
+    <v-chip
+      :rounded="true"
+      color="purple"
+      :size="size"
+      style="cursor: pointer"
+      v-bind="$attrs"
+      class="text-capitalize"
     >
+      <v-icon
+        :icon="mdiIncognito"
+        class="me-2"
+      />
       {{ getPrivacyTypeLabel(privacyType) }}
-    </wiki-tooltip>
-  </v-chip>
+    </v-chip>
+  </wiki-tooltip>
 </template>
 
 <script setup>

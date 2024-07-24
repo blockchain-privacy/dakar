@@ -118,16 +118,23 @@
 </template>
 
 <script setup>
-import {mdiDelete, mdiAlert, mdiDotsVertical, mdiLinux,
-	mdiAndroid, mdiApple, mdiLaptop, mdiMicrosoftWindows,
-} from '@mdi/js';
 import {
-	PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE,
-} from '@/constants';
+	mdiAlert,
+	mdiAndroid,
+	mdiApple,
+	mdiDelete,
+	mdiDotsVertical,
+	mdiLaptop,
+	mdiLinux,
+	mdiMicrosoftWindows,
+} from '@mdi/js';
+import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {handleError} from '@/utilities';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {
+	computed, inject, onMounted, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
@@ -140,7 +147,9 @@ const router = useRouter();
 const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
-const context = {$route: route, $router: router, navStore, localStore, msgStore};
+const context = {
+	$route: route, $router: router, navStore, localStore, msgStore,
+};
 
 const settingsFlow = ref(null);
 const userSessions = ref([]);
@@ -224,13 +233,15 @@ function setSuccessMessage(msg) {
 	msgStore.addMessage({text: msg, type: 'success', temporary: true});
 }
 
-function 	setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+function setErrorMessage(msg) {
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function deleteIdentity() {
 	try {
-		await dakar.authentication.deleteIdentityGet();
+		await dakar.identity.identitiesDelete();
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
@@ -248,13 +259,8 @@ async function deleteUserSession(session) {
 	}
 
 	try {
-		const response = await ory.frontend.disableMySession({id: session.id});
-
-		if (response.status === 204) {
-			userSessions.value = userSessions.value.filter(d => d.id !== session.id);
-		} else {
-			throw new Error('unable to delete session');
-		}
+		await ory.frontend.disableMySession({id: session.id});
+		userSessions.value = userSessions.value.filter(d => d.id !== session.id);
 	} catch (e) {
 		handleError(context, e);
 	}
@@ -265,9 +271,9 @@ async function getSessions() {
 
 	try {
 		// Get a maximum of 30 sessions
-		const response = await 	ory.frontend.listMySessions({page: 1, perPage: 30});
+		const response = await ory.frontend.listMySessions({page: 1, perPage: 30});
 
-		userSessions.value = response.data.map(d => {
+		userSessions.value = response.map(d => {
 			d.authenticatedAt = new Date(d.authenticated_at).getTime();
 			d.expiresAt = new Date(d.expires_at).getTime();
 			if (d.devices?.length > 0) {
@@ -292,7 +298,7 @@ async function getSessions() {
 async function initSettingsFlow() {
 	try {
 		const response = await ory.frontend.createBrowserSettingsFlow();
-		setFlowData(response.data);
+		setFlowData(response);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}
@@ -315,14 +321,32 @@ async function handleOrySubmitSettings(formID) {
 	disabledForms.value.push(formID);
 
 	const body = Object.fromEntries(new FormData(form));
+
+	// Extract traits into object
+	const traits = {};
+	let foundTrait = false;
+	for (const [key, value] of Object.entries(body)) {
+		if (!key.startsWith('traits.')) {
+			continue;
+		}
+
+		foundTrait = true;
+		traits[key.substring(7, key.length)] = value;
+		delete body[key];
+	}
+
+	if (foundTrait) {
+		body.traits = traits;
+	}
+
 	const {flow} = route.query;
 
 	try {
 		const response = await ory.frontend.updateSettingsFlow({flow, updateSettingsFlowBody: body});
 
 		// Something went wrong and we need to display some data
-		if (response.data && response.data.ui) {
-			setFlowData(response.data);
+		if (response?.ui) {
+			setFlowData(response);
 		}
 
 		// If an account is being recovered the session is empty,
@@ -333,8 +357,8 @@ async function handleOrySubmitSettings(formID) {
 			setErrorMessage(response.error.reason);
 		}
 	} catch (e) {
-		if (e.response?.data?.ui) {
-			setFlowData(e.response.data);
+		if (e.response?.ui) {
+			setFlowData(e.response);
 		} else {
 			handleGetFlowError(context, e, async () => {
 				await initSettingsFlow();
@@ -352,10 +376,7 @@ async function handleOrySubmitSettings(formID) {
 async function refreshSession() {
 	try {
 		const response = await ory.frontend.toSession();
-
-		if (response.status === 200) {
-			session.value = response.data;
-		}
+		session.value = response;
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}
@@ -365,11 +386,9 @@ async function tryRefreshSession() {
 	let success = false;
 
 	try {
-		const response = await 	ory.frontend.toSession();
-		if (response.status === 200) {
-			session.value = response.data;
-			success = true;
-		}
+		const response = await ory.frontend.toSession();
+		session.value = response;
+		success = true;
 	} catch (_) {
 		success = false;
 	}
@@ -383,7 +402,7 @@ async function initFlow() {
 	if (typeof flow === 'string') {
 		try {
 			const response = await ory.frontend.getSettingsFlow({id: flow});
-			setFlowData(response.data);
+			setFlowData(response);
 
 			// Try to refresh session. This might fail if the identity
 			// is in the process of being recovered and aal2 is set.

@@ -85,8 +85,12 @@ const sort = ref({
 const filter = ref({
 	selected: [],
 	items: [
-		{id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false},
-		{id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false},
+		{
+			id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
+		},
+		{
+			id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
+		},
 	],
 });
 
@@ -102,7 +106,7 @@ function handleSortAndFilter() {
 	updateFilterState();
 
 	isSortingByInput.value = sort.value.selected === 2
-      || sort.value.selected === 3;
+    || sort.value.selected === 3;
 
 	emit('update:modelValue', {order: sort.value.selected, filter: filter.value.selected});
 	emit('change');
@@ -114,15 +118,12 @@ function updateSortState() {
 	if (props.dataAvailable && props.inputCount === 0) {
 		isUnspentFilterSelected = true;
 	} else {
-		filter.value.selected.some(d => {
-			if (d === 1) {
+		for (const s of filter.value.selected) {
+			if (s === 1) {
 				isUnspentFilterSelected = true;
-				// Break
-				return true;
+				break;
 			}
-
-			return false;
-		});
+		}
 	}
 
 	sort.value.items.forEach(d => {
@@ -145,7 +146,7 @@ function updateFilterState() {
 
 	let disableCoinbaseFilter = false;
 	if (props.dataAvailable
-      && (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount)) {
+    && (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount)) {
 		disableCoinbaseFilter = true;
 	}
 

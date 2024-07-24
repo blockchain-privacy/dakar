@@ -1,10 +1,15 @@
 package main
 
 import (
+	"backend/analytics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/analytics/clustering"
 	"backend/db/status"
 	"backend/external"
+	"backend/processor"
+	"backend/server"
+	"backend/worker"
 	"flag"
 	"fmt"
 	"io"
@@ -26,6 +31,12 @@ func initLogger(fileHandle *os.File) {
 	slog.SetDefault(logger)
 
 	thisLogger = slog.With(slog.String("module", "dbUpgrade"))
+
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
+	server.InitLogger()
+	worker.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -123,27 +134,38 @@ func main() {
 		return
 	}
 
-	info("dropping roles starting ...")
-	err = db.AlterSchemaDropRoles(dgraph)
+	info("adding workspaces starting ...")
+	err = db.AlterSchemaAddWorkspaces(dgraph)
 	if err != nil {
 		warn(err)
 		return
 	}
-	info("dropping roles finished")
-
-	info("altering user starting ...")
-	err = db.AlterSchemaDropUserPredicates(dgraph)
-	if err != nil {
-		warn(err)
-		return
-	}
-	info("altering user finished")
+	info("adding workspaces finished")
 
 	info("increasing schema version ...")
-	err = status.SetSchemaVersion(dgraph, 3)
+	err = status.SetSchemaVersion(dgraph, 4)
 	if err != nil {
 		warn(err)
 		return
 	}
 	info("increased schema version")
+
+	info("deleting all FMI clusters ...")
+	err = clustering.DeleteAllFMIClusters(dgraph)
+	if err != nil {
+		return
+	}
+	info("deleted all FMI clusters")
+
+	info("resetting FMI cluster status ...")
+	// old: 1555184
+	zero := uint64(0)
+	err = status.SetClusteringFMIStatus(dgraph, status.ClusteringFlatMultiInputStatus{
+		LastClusteredBlockID: &zero,
+	})
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("reset FMI cluster status")
 }

@@ -9,6 +9,7 @@ import (
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
+	"backend/db/workspace"
 	"backend/external"
 	"encoding/json"
 	"time"
@@ -108,34 +109,21 @@ type metaReply struct {
 	Blocks *int64                 `json:"blocks,omitempty"`
 }
 
-type heuristicReply struct {
-	Heuristics []dbh.FrontendHeuristic         `json:"heuristics,omitempty"`
-	Status     heuristics.HeuristicQueueStatus `json:"status"`
-}
-
-type heuristicStatusReply struct {
-	Status heuristics.HeuristicQueueStatus `json:"status"`
+type heuristicByWorkIDReply struct {
+	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 
 type heuristicExecutionReply struct {
-	Status heuristics.HeuristicQueueStatus `json:"status"`
+	WorkID string `json:"workID"`
 }
 
 type heuristicDetailsReply struct {
-	Heuristic dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
+	Heuristic *dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
 	Msg          string                   `json:"msg,omitempty"`
 	Transactions []db.FrontendTransaction `json:"transactions"`
-}
-
-type heuristicListReply struct {
-	Item []dbh.HeuristicListItem `json:"items"`
-}
-
-type heuristicDescriptorReply struct {
-	Descriptors []heuristics.Descriptor `json:"descriptors"`
 }
 
 type fingerprintScore struct {
@@ -148,6 +136,24 @@ type spendingFingerprintReply struct {
 	Msg               string             `json:"msg,omitempty"`
 	SessionCount      int                `json:"session_count"`
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores"`
+}
+
+type addWorkspaceNodeReply struct {
+	Nodes []workspace.Node `json:"nodes,omitempty"`
+}
+
+type deleteWorkspaceNodeReply struct {
+	DeletedNodeUIDs []string `json:"deletedNodeUIDs,omitempty"`
+}
+
+type workspacesReply struct {
+	Workspaces []workspace.FrontendWorkspace `json:"workspaces,omitempty"`
+}
+
+type getWorkspaceReply struct {
+	Workspace *workspace.FrontendWorkspace `json:"workspace,omitempty"`
+	// Contains all available heuristic descriptors, which define the heuristic interface
+	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty"`
 }
 
 type queryResultType string
@@ -164,13 +170,12 @@ type SearchResult struct {
 }
 
 // buildKey build a key from the given arguments
-func buildKey(route string, query string, body []byte) string {
-	key := route + query
+func buildKey(requestURI string, body []byte) string {
 	if len(body) > 0 {
-		key += string(body)
+		requestURI += string(body)
 	}
 
-	return key
+	return requestURI
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
@@ -302,39 +307,16 @@ type identitiesReply struct {
 	Sessions   []client.Session  `json:"sessions"`
 }
 
-// ClientHeuristicRequest is the client type representation of a DatabaseHeuristicRequest
-type ClientHeuristicRequest struct {
-	UID                 string                   `json:"uid,omitempty"`
-	Type                string                   `json:"type,omitempty"`
-	Parameter           string                   `json:"parameter,omitempty"`
-	ParentHeuristic     []dbh.HollowHeuristic    `json:"parent,omitempty"`
-	ChildHeuristics     []dbh.HollowHeuristic    `json:"children,omitempty"`
-	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
-	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
-	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
+type blockReply struct {
+	Block *db.FrontendBlock `json:"block"`
 }
 
-func (t ClientHeuristicRequest) ToDatabaseRequest() dbh.DatabaseHeuristicRequest {
-	parentHeuristics := make([]dbh.Heuristic, len(t.ParentHeuristic))
-	for i, ph := range t.ParentHeuristic {
-		parentHeuristics[i].UID = ph.UID
-	}
+type transactionReply struct {
+	Transactions []db.FrontendTransaction `json:"transactions"`
+}
 
-	childHeuristics := make([]dbh.Heuristic, len(t.ChildHeuristics))
-	for i, ch := range t.ChildHeuristics {
-		childHeuristics[i].UID = ch.UID
-	}
-
-	return dbh.DatabaseHeuristicRequest{
-		UID:                 t.UID,
-		Type:                t.Type,
-		Parameter:           t.Parameter,
-		ParentHeuristic:     parentHeuristics,
-		ChildHeuristics:     childHeuristics,
-		ClusterTypes:        t.ClusterTypes,
-		ExcludeAddresses:    t.ExcludeAddresses,
-		ExcludeSpendingGaps: t.ExcludeSpendingGaps,
-	}
+type addressReply struct {
+	Address *db.FrontendAddress `json:"address"`
 }
 
 // isValidEmail is a regex filter which checks if the input conforms to an email string

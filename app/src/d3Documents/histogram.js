@@ -90,7 +90,7 @@ export default class Histogram {
 		const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
 		const svg = d3Select(`#${this.svgId}`);
-
+		svg.selectAll('*').remove();
 		const margin = {
 			top: 10, right: 10, bottom: 50, left: 45,
 		};

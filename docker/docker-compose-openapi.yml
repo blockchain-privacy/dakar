@@ -2,7 +2,7 @@ version: "3.6"
 
 services:
   openapi:
-    image: openapitools/openapi-generator-cli:v7.0.1
+    image: openapitools/openapi-generator-cli:v7.2.0
     container_name: openapi
     volumes:
       - ../backend/openapi:/local

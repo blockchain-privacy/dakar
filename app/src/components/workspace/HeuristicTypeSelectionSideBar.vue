@@ -1,8 +1,8 @@
 <template>
   <side-bar
-    v-model="inputVal"
+    v-model="model"
     title="Add Heuristic"
-    :icon="mdiShapeSquareRoundedPlus"
+    :icon="mdiShapeCirclePlus"
     max-width="648px"
   >
     <template #body>
@@ -95,20 +95,16 @@
 </template>
 
 <script setup>
-import {mdiShapeSquareRoundedPlus} from '@mdi/js';
-import SideBar from '@/components/heuristic/SideBar.vue';
+import {mdiShapeCirclePlus} from '@mdi/js';
+import SideBar from '@/components/common/SideBar.vue';
 import {computed, ref} from 'vue';
-import {useDisplay} from 'vuetify';
-
-const display = useDisplay();
 
 const props = defineProps({
-	modelValue: {type: Boolean, required: true},
 	tabItems: {type: Array, required: true},
 	descriptors: {type: Array, required: true},
 });
-
-const emit = defineEmits(['update:modelValue', 'add-heuristic']);
+const model = defineModel({type: Boolean});
+const emit = defineEmits(['add-heuristic']);
 
 const parameterRules = new Map([
 	['int', [v => {
@@ -123,7 +119,7 @@ const parameterRules = new Map([
 	['string', null],
 ]);
 
-const heuristicTabs = ref(null);
+const heuristicTabs = ref(0);
 
 const heuristicTypes = computed(() => props.descriptors.map(descriptor => {
 	// Extend descriptor objects with default values for the switches
@@ -133,27 +129,14 @@ const heuristicTypes = computed(() => props.descriptors.map(descriptor => {
 	return descriptor;
 }));
 
-const inputVal = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(val) {
-		emit('update:modelValue', val);
-	},
-});
-
 // Functions
 function addNewHeuristicAction(item) {
 	if (item.parameter !== undefined && !item.parameter.valid) {
 		return;
 	}
 
-	// Hide component on small screen devices after adding a new heuristic
-	if (display.smAndDown.value) {
-		inputVal.value = false;
-	}
-
 	emit('add-heuristic', item);
+	model.value = false;
 }
 
 </script>

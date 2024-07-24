@@ -9,7 +9,8 @@ variables:
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v23.1.0
   BTCD_VERSION: v0.23.3
-  SWAGGO_VERSION: 1.16.2
+  SWAGGO_VERSION: 1.16.3
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
 
 .modcache: &modcache
   key: modcache
@@ -27,13 +28,15 @@ stages:
   - dependencies
   - test
   - build
+  - publish
+  - release
 
 before_script:
   - cd backend
 
 test:
   stage: test
-  needs: ["dependencies"]
+  needs: [ "dependencies" ]
   variables:
     DB_TESTS: "1" # variable which controls if tests requiring the database should be run
     RPC_TESTS: "1" # variable which controls if tests requiring the RPC-client should be run
@@ -44,13 +47,18 @@ test:
     - tar -xvzf btcd-linux-amd64-$BTCD_VERSION.tar.gz
     - mv btcd-linux-amd64-$BTCD_VERSION/btcd /bin/btcd
     # start tests
-    - make test
+    - go install gotest.tools/gotestsum@latest
+    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race -p 1 ./...
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
   cache:
     <<: *modcache
     policy: pull
+  artifacts:
+    when: always
+    reports:
+      junit: backend/report.xml
 
 lint:
   image: golangci/golangci-lint:latest
@@ -59,7 +67,7 @@ lint:
 
 vet:
   stage: test
-  needs: ["dependencies"]
+  needs: [ "dependencies" ]
   script: make vet
   cache:
     <<: *modcache
@@ -71,24 +79,93 @@ build:
   cache:
     <<: *modcache
     policy: pull
+  artifacts:
+    paths:
+      - backend/build
 
 swaggo:
   stage: build
   script:
-    - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download/v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
-    - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
+    - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download/v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_amd64.tar.gz
+    - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_amd64.tar.gz
     - make swagger-fmt
     - make swagger-create
-#  artifacts:
-#    paths:
-#      - backend/openapi
+  artifacts:
+    paths:
+      - backend/openapi
 
-#openapi:
-#  needs: ["swaggo"]
-#  image: openapitools/openapi-generator-cli:v7.0.1
-#  stage: build
-#  script:
-#    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
-#  artifacts:
-#    paths:
-#      - backend/openapi/client
+openapi:
+  needs: [ "swaggo" ]
+  image: openapitools/openapi-generator-cli:v7.2.0
+  stage: build
+  script:
+    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
+  artifacts:
+    paths:
+      - backend/openapi/client
+
+npm-client:
+  needs: [ "openapi" ]
+  image: node:latest
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+  script:
+    - yarn set version stable
+    - rm package.json # clean up yarn upgrade
+    - cd openapi/client/typescript-fetch
+    - |
+      cat > .yarnrc.yml << EOF
+      npmScopes:
+        blockchain:
+          npmPublishRegistry: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+          npmAlwaysAuth: true
+          npmAuthToken: "${NPM_AUTH_TOKEN}"
+      EOF
+    - |
+      cat > package.json << EOF
+      {
+        "name": "@blockchain/dakar",
+        "version": "${CI_COMMIT_TAG}",
+        "description": "Dakar client",
+        "packageManager": "yarn@4.0.0",
+        "main": "index.ts",
+        "repository": {
+          "url": "git+https://git.gvk.idi.ntnu.no/research/blockchain/dakar.git"
+        },
+        "author": "Michael Ziegler",
+        "license": "AGPL-3.0-only"
+      }
+      EOF
+    - yarn install
+    - yarn npm publish
+
+upload:
+  needs: [ "build" ]
+  stage: publish
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo $PWD
+    - ls -l
+    - ls -l ..
+    - ls -l build
+    - |
+      curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/crawler_dash "${PACKAGE_REGISTRY_URL}/crawler_dash"
+    - |
+      curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/crawler_bitcoin "${PACKAGE_REGISTRY_URL}/crawler_bitcoin"
+
+release:
+  needs: [ "upload" ]
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      release-cli create --name "$CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
+        --assets-link "{\"name\":\"crawler_dash\",\"url\":\"${PACKAGE_REGISTRY_URL}/crawler_dash\"}" \
+        --assets-link "{\"name\":\"crawler_bitcoin\",\"url\":\"${PACKAGE_REGISTRY_URL}/crawler_bitcoin\"}"

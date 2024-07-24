@@ -1,11 +1,12 @@
 package server
 
 import (
-	heuristic "backend/analytics/heuristics"
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/external"
+	"backend/worker"
+	"backend/workspace"
 	"errors"
-	"fmt"
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -36,17 +37,28 @@ func warn(err error, v ...any) {
 }
 
 type Server struct {
-	db        external.Database
-	client    external.RPCClient
-	worker    *heuristic.Worker
-	cache     *ristretto.Cache
-	auth      *ory.APIClient
+	// dgraph database
+	db external.Database
+	// Dash or Bitcoin RPC client
+	client external.RPCClient
+	// worker which sequentially processes work packages (currently only used for heuristics)
+	worker *worker.Worker
+	// in-memory transaction and address graph of all privacy transactions
+	graphWrapper *graph.Wrapper
+	// web request cache
+	cache *ristretto.Cache
+	// mutex map which synchronizes access to workspaces
+	workspaceMutex *workspace.Mutex
+	// ory kratos authentifaction handle
+	auth *ory.APIClient
+	// ory kratos admin authentifaction handle
 	adminAuth *ory.APIClient
-	handler   *http.ServeMux
+	// HTTP mux
+	handler *http.ServeMux
 }
 
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
-	worker *heuristic.Worker) (*Server, error) {
+	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if adminAuth == nil || auth == nil {
 		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
 	}
@@ -62,17 +74,19 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		return nil, err
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return &Server{
-		db:        db,
-		client:    client,
-		worker:    worker,
-		cache:     cache,
-		auth:      auth,
-		adminAuth: adminAuth,
-		handler:   http.NewServeMux(),
+		db:             db,
+		client:         client,
+		worker:         worker,
+		graphWrapper:   graphWrapper,
+		cache:          cache,
+		auth:           auth,
+		adminAuth:      adminAuth,
+		workspaceMutex: workspace.NewMutex(),
+		handler:        http.NewServeMux(),
 	}, nil
 }
 
@@ -96,7 +110,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 		wg.Done()
 	}()
 
-	info(fmt.Sprintf("Started API server at endpoint http://localhost%s", srv.Addr))
+	info("Started API server at endpoint http://localhost" + srv.Addr)
 
 	return srv
 }
@@ -104,8 +118,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 // StartMetrics creates a metrics server on the given port
 func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	handler := http.NewServeMux()
-	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), getRouteMetrics(),
-		limitMethod("GET"), maxBody()))
+	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), getRouteMetrics(), maxBody()))
 
 	// create server
 	srv := &http.Server{
@@ -122,7 +135,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 		wg.Done()
 	}()
 
-	info(fmt.Sprintf("Started metrics server at endpoint http://localhost%s", srv.Addr))
+	info("Started metrics server at endpoint http://localhost" + srv.Addr)
 
 	return srv
 }

@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="400px"
   >
     <v-card class="mx-auto pb-2">
@@ -17,7 +17,7 @@
             <v-btn
               variant="text"
               :disabled="isLoading"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import {computed, inject, ref} from 'vue';
+import {inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -45,47 +45,37 @@ const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 
-const props = defineProps({
-	modelValue: {type: Boolean, required: true},
-	addressHash: {type: String, required: true},
-});
-const emit = defineEmits(['update:modelValue', 'deleted']);
+const model = defineModel({type: Boolean});
+const props = defineProps({addressHash: {type: String, required: true}});
+const emit = defineEmits(['deleted']);
 
 const isLoading = ref(false);
 
-// Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 // Functions
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function deleteAddressExclusion() {
 	if (props.addressHash === '') {
 		setPersistentErrorMessage('could not delete address exclusion');
-		show.value = false;
+		model.value = false;
 		return;
 	}
 
 	isLoading.value = true;
 
 	try {
-		await dakar.addressExclusion.deleteAddressExclusionAddressHashGet({addressHash: props.addressHash});
+		await dakar.addressExclusion.exclusionsHashDelete({hash: props.addressHash});
 		emit('deleted', props.addressHash);
 	} catch (e) {
 		setPersistentErrorMessage(e);
 	}
 
 	isLoading.value = false;
-	show.value = false;
+	model.value = false;
 }
 
 </script>

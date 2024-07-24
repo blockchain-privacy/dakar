@@ -3,12 +3,12 @@ package main
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
-	heuristic "backend/analytics/heuristics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+	"backend/worker"
 	"flag"
 	"fmt"
 	"io"
@@ -37,7 +37,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	heuristic.InitLogger()
+	worker.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -101,6 +101,11 @@ type ExportPrivacyTransactionsModule struct {
 	StartTransaction string `yaml:"startTransaction"`
 }
 
+type ExportClusterActivityModule struct {
+	Active   bool   `yaml:"active"`
+	Filename string `yaml:"filename"`
+}
+
 type Config struct {
 	Logfile                   string                          `yaml:"logfile"`
 	DBHost                    string                          `yaml:"host"`
@@ -113,6 +118,7 @@ type Config struct {
 	ExportBlocks              ExportBlocksModule              `yaml:"exportBlocks"`
 	ExportPrivacyTransactions ExportPrivacyTransactionsModule `yaml:"exportPrivacyTransactions"`
 	DestinationCount          DestinationCountModule          `yaml:"destinationCount"`
+	ExportClusterActivity     ExportClusterActivityModule     `yaml:"exportClusterActivity"`
 }
 
 var defaultConfig = Config{
@@ -159,6 +165,10 @@ var defaultConfig = Config{
 		StartTransaction: "",
 	},
 	DestinationCount: DestinationCountModule{
+		Active:   false,
+		Filename: "",
+	},
+	ExportClusterActivity: ExportClusterActivityModule{
 		Active:   false,
 		Filename: "",
 	},
@@ -289,6 +299,10 @@ func main() {
 
 	if config.DestinationCount.Active {
 		doDestinationCountAnalysis(dgraph, g, config.DestinationCount.Filename)
+	}
+
+	if config.ExportClusterActivity.Active {
+		doExportClusterActivity(dgraph, config.ExportClusterActivity.Filename)
 	}
 }
 

@@ -1,17 +1,21 @@
-import {
-	Configuration, FrontendApi,
-} from '@ory/client';
+import {Configuration, FrontendApi} from '@ory/client-fetch';
 
-const config = new Configuration({
+const c = new Configuration({
 	basePath: '/auth',
-	baseOptions: {
-		withCredentials: true,
-		headers: {
-			Accept: 'application/json',
-		},
+	credentials: 'include',
+	headers: {
+		Accept: 'application/json',
 	},
+	middleware: [{
+		async post(d) {
+			// Decode JSON of error
+			if (!d.response.ok) {
+				return await d.response.json();
+			}
+		},
+	}],
 });
 
 export default {
-	frontend: new FrontendApi(config),
+	frontend: new FrontendApi(c),
 };

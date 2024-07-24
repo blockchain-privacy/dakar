@@ -104,10 +104,12 @@
 </template>
 
 <script setup>
-import {mdiBookOpen, mdiBook, mdiMagnify} from '@mdi/js';
+import {mdiBook, mdiBookOpen, mdiMagnify} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {
+	computed, inject, onMounted, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -126,7 +128,77 @@ const showRootPage = ref(true);
 const query = ref(null);
 
 // Computed
-const fileHierarchy = computed(() => getFileHierarchy());
+
+// fileHierarchy returns a file hierarchy based on the given directories.
+// convert map to array of objects
+// result:
+// [
+//   {
+//     "name": "Index",
+//     "items": null,
+//     "path": "index.md"
+//   },
+//   {
+//     "name": "TransactionTypes",
+//     "items": [
+//       {
+//         "name": "Destination",
+//         "path": "transactionTypes/destination.md"
+//       },
+//       {
+//         "name": "Mixing",
+//         "path": "transactionTypes/mixing.md"
+//       },
+//     ],
+//     "path": "transactionTypes/destination.md"
+//   }
+// ]
+const fileHierarchy = computed(() => {
+	if (fileSet.value === null) {
+		return [];
+	}
+
+	const hierarchy = new Map();
+
+	fileSet.value.forEach(d => {
+		const pathParts = d.split('/');
+
+		if (pathParts.length > 2) {
+			// Only a depth of 2 is supported
+			return;
+		}
+
+		let [directory, fileName] = pathParts;
+
+		directory = cleanName(directory);
+
+		const itemProps = {items: null, path: d};
+
+		if (fileName) {
+			fileName = cleanName(fileName);
+			let props = itemProps;
+
+			if (hierarchy.has(directory)) {
+				props = hierarchy.get(directory);
+			}
+
+			props.items ??= [];
+
+			props.items.push({name: fileName, path: d});
+			hierarchy.set(directory, props);
+		} else {
+			hierarchy.set(directory, itemProps);
+		}
+	});
+
+	const hierarchyArray = [];
+	hierarchy.forEach((props, directory) => {
+		const item = {name: directory, ...props};
+		hierarchyArray.push(item);
+	});
+
+	return hierarchyArray;
+});
 
 // NamePathPairs returns an array of name and
 // path pairs [{name: filename, path: filename.md}, ...]
@@ -161,81 +233,10 @@ function cleanName(fileName) {
 	return capitalize(separateWords(fileName)).replace('.md', '').replace('-', ' ');
 }
 
-// GetFileHierarchy returns a file hierarchy based on the given directories.
-// convert map to array of objects
-// result:
-// [
-//   {
-//     "name": "Index",
-//     "items": null,
-//     "path": "index.md"
-//   },
-//   {
-//     "name": "TransactionTypes",
-//     "items": [
-//       {
-//         "name": "Destination",
-//         "path": "transactionTypes/destination.md"
-//       },
-//       {
-//         "name": "Mixing",
-//         "path": "transactionTypes/mixing.md"
-//       },
-//     ],
-//     "path": "transactionTypes/destination.md"
-//   }
-// ]
-function getFileHierarchy() {
-	if (fileSet.value === null) {
-		return [];
-	}
-
-	const hierarchy = new Map();
-
-	fileSet.value.forEach(d => {
-		const pathParts = d.split('/');
-
-		if (pathParts.length > 2) {
-			// Only a depth of 2 is supported
-			return;
-		}
-
-		let [directory, fileName] = pathParts;
-
-		directory = cleanName(directory);
-
-		const itemProps = {items: null, path: d};
-
-		if (fileName) {
-			fileName = cleanName(fileName);
-			let props = itemProps;
-
-			if (hierarchy.has(directory)) {
-				props = hierarchy.get(directory);
-			}
-
-			if (!props.items) {
-				props.items = [];
-			}
-
-			props.items.push({name: fileName, path: d});
-			hierarchy.set(directory, props);
-		} else {
-			hierarchy.set(directory, itemProps);
-		}
-	});
-
-	const hierarchyArray = [];
-	hierarchy.forEach((props, directory) => {
-		const item = {name: directory, ...props};
-		hierarchyArray.push(item);
-	});
-
-	return hierarchyArray;
-}
-
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function getFileIndex() {

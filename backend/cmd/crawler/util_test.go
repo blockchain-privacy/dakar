@@ -102,7 +102,7 @@ func TestIsKratosAlive(t *testing.T) {
 		},
 		{
 			auth: &ory.APIClient{
-				MetadataApi: nil,
+				MetadataAPI: nil,
 			},
 			shouldFail: true,
 		},

@@ -322,8 +322,12 @@ const sessionHeaders = [
 ];
 
 const createNewUser = ref(false);
-const editedItem = ref({id: '', email: '', state: '', roles: []});
-const defaultItem = ref({id: '', email: '', state: '', roles: []});
+const editedItem = ref({
+	id: '', email: '', state: '', roles: [],
+});
+const defaultItem = ref({
+	id: '', email: '', state: '', roles: [],
+});
 const identities = ref(null);
 const sessions = ref(null);
 const identityPropertyDialogData = ref(null);
@@ -334,13 +338,15 @@ onMounted(() => {
 });
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function loadUserList() {
 	isLoading.value = true;
 	try {
-		const response = await dakar.authentication.getIdentitiesGet();
+		const response = await dakar.identity.identitiesGet();
 
 		identities.value = response.identities;
 		sessions.value = response.sessions;
@@ -423,7 +429,7 @@ async function deleteIdentity(identity) {
 	isLoading.value = true;
 
 	try {
-		await dakar.authentication.adminDeleteIdentityIdentityUIDGet({identityUID: identity.id});
+		await dakar.identity.identitiesUidDelete({uid: identity.id});
 		await refreshUsers();
 	} catch (e) {
 		setErrorMessage(e);

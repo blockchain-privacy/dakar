@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="700px"
   >
     <v-card class="pb-2">
@@ -46,26 +46,15 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import {computed} from 'vue';
 
-const props = defineProps({
-	modelValue: {type: Boolean, required: true},
+defineProps({
 	txHash: {type: String, required: true},
 	privacyType: {type: String, required: true},
 	dateTime: {type: Date, required: true},
 	inputTxs: {type: Array, required: true},
 });
 
-const emit = defineEmits(['update:modelValue']);
-
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
+const model = defineModel({type: Boolean});
 
 </script>
 

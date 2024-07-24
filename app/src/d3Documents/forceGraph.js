@@ -2,7 +2,10 @@ import {isFunction} from '@/utilities';
 import {drag as d3Drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
-import {forceSimulation, forceLink, forceManyBody, forceX, forceY, forceRadial, forceCenter} from 'd3-force';
+import {
+	forceSimulation, forceLink, forceManyBody, forceX, forceY, forceRadial, forceCenter,
+} from 'd3-force';
+import {reduceX, reduceY} from '@/d3Documents/util';
 
 function drag(simulation) {
 	function dragStarted(event) {
@@ -40,6 +43,7 @@ export default class ForceGraph {
 		this.width = width;
 		this.height = height;
 		this.colorMap = colorMap;
+		this.nodeRadius = 7;
 
 		this.initSvg();
 
@@ -52,14 +56,9 @@ export default class ForceGraph {
 		this.rootSvg = d3Select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 
-		this.lineGroup = this.rootGroup.append('g')
-			.attr('stroke', '#999')
-			.attr('stroke-opacity', 0.6);
+		this.lineGroup = this.rootGroup.append('g');
 
-		this.nodeGroup = this.rootGroup
-			.append('g')
-			.attr('stroke', '#fff')
-			.attr('stroke-width', '#C2C2C2');
+		this.nodeGroup = this.rootGroup.append('g');
 
 		// Add zoom and drag
 		this.zoom = zoom()
@@ -75,7 +74,7 @@ export default class ForceGraph {
 			.append('svg:marker')
 			.attr('id', 'arrowhead')
 			.attr('viewBox', '0 -5 10 10')
-			.attr('refX', 22)
+			.attr('refX', this.nodeRadius)
 			.attr('refY', 0)
 			.attr('markerWidth', 6)
 			.attr('markerHeight', 6)
@@ -113,6 +112,7 @@ export default class ForceGraph {
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
 			.attr('class', 'arrow')
+			.attr('stroke', '#999')
 			.attr('marker-end', 'url(#arrowhead)')
 			.attr('stroke-width', 1);
 
@@ -120,7 +120,8 @@ export default class ForceGraph {
 			.selectAll('circle')
 			.data(nodes, d => d.txhash)
 			.join('circle')
-			.attr('r', 7)
+			.attr('r', this.nodeRadius)
+			.attr('stroke', '#fff')
 			.attr('fill', d => this.colorMap.get(d.privacytype))
 			.on('click', (e, d) => {
 				this.clickCallBack(d);
@@ -141,8 +142,8 @@ export default class ForceGraph {
 			link
 				.attr('x1', d => d.source.x)
 				.attr('y1', d => d.source.y)
-				.attr('x2', d => d.target.x)
-				.attr('y2', d => d.target.y);
+				.attr('x2', d => reduceX(d, this.nodeRadius))
+				.attr('y2', d => reduceY(d, this.nodeRadius));
 
 			node
 				.attr('cx', d => d.x)

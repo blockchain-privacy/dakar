@@ -1,10 +1,10 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="500px"
     transition="fade-transition"
   >
-    <v-card>
+    <v-card class="mx-auto">
       <v-card-title>
         <span class="text-h5">{{ formTitle }}</span>
       </v-card-title>
@@ -44,7 +44,7 @@
         <v-spacer />
         <v-btn
           color="red"
-          @click="show = false"
+          @click="model = false"
         >
           Cancel
         </v-btn>
@@ -58,7 +58,9 @@
 
 <script setup>
 import {emailRules, handleError} from '@/utilities';
-import {computed, inject, onMounted, ref} from 'vue';
+import {
+	computed, inject, onMounted, ref,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -67,16 +69,17 @@ const dakar = inject('dakar');
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
-const emit = defineEmits(['update:modelValue', 'saved']);
-
+const emit = defineEmits(['saved']);
+const model = defineModel({type: Boolean});
 const props = defineProps({
-	modelValue: {type: Boolean, required: true},
 	identity: {type: Object, required: true},
 	createNewUser: {type: Boolean, required: true},
 });
 
 const isLoading = ref(false);
-const shadowIdentity = ref({id: '', email: '', roles: [], state: ''});
+const shadowIdentity = ref({
+	id: '', email: '', roles: [], state: '',
+});
 // Template ref
 const modifyIdentityForm = ref(null);
 
@@ -95,25 +98,20 @@ const rules = {
 // Computed
 const formTitle = computed(() => props.createNewUser ? 'Create Identity' : 'Edit Identity');
 
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 onMounted(() => {
 	shadowIdentity.value = props.identity;
 });
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
+	});
 }
 
 async function saveIdentity() {
@@ -126,7 +124,7 @@ async function saveIdentity() {
 	isLoading.value = true;
 	if (props.createNewUser) {
 		try {
-			const response = await dakar.authentication.createIdentityPost({
+			const response = await dakar.identity.identitiesPostRaw({
 				identity: {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
@@ -143,7 +141,7 @@ async function saveIdentity() {
 		}
 	} else {
 		try {
-			const response = await dakar.authentication.modifyIdentityPost({
+			const response = await dakar.identity.identitiesPut({
 				identity: {
 					uid: shadowIdentity.value.id,
 					email: shadowIdentity.value.email,
@@ -163,7 +161,7 @@ async function saveIdentity() {
 	}
 
 	isLoading.value = false;
-	show.value = false;
+	model.value = false;
 }
 
 </script>

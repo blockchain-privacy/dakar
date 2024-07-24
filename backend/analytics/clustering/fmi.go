@@ -3,14 +3,13 @@ package clustering
 import (
 	"backend/blockiterator"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
 	"log/slog"
 
 	"context"
-	"strconv"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -106,6 +105,56 @@ type newCluster struct {
 	addresses         map[string]bool
 }
 
+// processAsNonMultiInput treats each address on its own, meaning the multi-input/common spend heuristic is not applied.
+func processAsNonMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap map[string]*newCluster,
+	clusterStore map[string]clustering.Cluster, txUID string, addresses []clustering.AddressWithCluster) {
+	for _, addr := range addresses {
+		addressesWithoutCluster := make(map[string]bool)
+		existingClusters := make(map[string]bool)
+		if addr.Cluster != nil {
+			transactionCluster := addr.Cluster
+
+			existingClusters[transactionCluster.UID] = true
+
+			clusterStore[transactionCluster.UID] = clustering.Cluster{
+				UID:          transactionCluster.UID,
+				AddressCount: &transactionCluster.AddressCount,
+			}
+		} else {
+			addressesWithoutCluster[addr.UID] = true
+		}
+
+		// consider each output address on its own, as opposed to the common spend case on the input side
+		addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore,
+			txUID, existingClusters, addressesWithoutCluster)
+	}
+}
+
+// processAsMultiInput assumes each address is created by the same entity, meaning the multi-input/common spend heuristic is applied.
+func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap map[string]*newCluster,
+	clusterStore map[string]clustering.Cluster, txUID string, addresses []clustering.AddressWithCluster) {
+	addressesWithoutCluster := make(map[string]bool)
+	existingClusters := make(map[string]bool)
+
+	for _, addr := range addresses {
+		if addr.Cluster != nil {
+			transactionCluster := addr.Cluster
+
+			existingClusters[transactionCluster.UID] = true
+
+			clusterStore[transactionCluster.UID] = clustering.Cluster{
+				UID:          transactionCluster.UID,
+				AddressCount: &transactionCluster.AddressCount,
+			}
+		} else {
+			addressesWithoutCluster[addr.UID] = true
+		}
+	}
+
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore,
+		txUID, existingClusters, addressesWithoutCluster)
+}
+
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
@@ -113,7 +162,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	}
 
 	// get the transaction of the current block height
-	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeFMI)
+	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, clustering.TypeFMI)
 	if err != nil {
 		return false, err
 	}
@@ -127,48 +176,18 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		addressMergeMap := make(map[string]*newCluster)
 
 		for _, tx := range transactions {
-			// at least two addresses are needed to cluster
-			if len(tx.Addresses) < 2 {
-				continue
-			}
-
-			addressesWithoutCluster := make(map[string]bool)
-			existingClusters := make(map[string]bool)
-
-			for _, addr := range tx.Addresses {
-				if len(addr.Clusters) > 0 {
-					if len(addr.Clusters) != 1 {
-						return false, cliutil.NewStackErrorf("found more than one multi-input "+
-							"cluster attached to address %v", addr)
-					}
-					transactionCluster := addr.Clusters[0]
-
-					existingClusters[transactionCluster.UID] = true
-
-					clusterStore[transactionCluster.UID] = clustering.Cluster{
-						UID:          transactionCluster.UID,
-						AddressCount: &transactionCluster.AddressCount,
-					}
+			// tx inputs
+			if len(tx.InputAddresses) > 0 {
+				if tx.PrivacyType != nil && constants.PrivacyType(*tx.PrivacyType).IsMixing() {
+					// treat inputs of mixing transations not with the multi-input heuristic
+					processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				} else {
-					addressesWithoutCluster[addr.UID] = true
+					processAsMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				}
 			}
 
-			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
-				// this should never happen
-				return false, cliutil.NewStackErrorStr("Transaction " + tx.UID +
-					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
-			}
-
-			if (len(existingClusters) == 0 && len(addressesWithoutCluster) < 2) ||
-				(len(existingClusters) == 1 && len(addressesWithoutCluster) == 0) {
-				// if transaction has zero clusters and less than two 2 addresses -> continue
-				// if transaction has only one cluster and no new addresses -> continue
-				continue
-			}
-
-			addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore,
-				tx.UID, existingClusters, addressesWithoutCluster)
+			// tx outputs
+			processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.OutputAddresses)
 		}
 
 		processedClusters := make(map[*newCluster]bool)
@@ -205,7 +224,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		}
 	}
 
-	// set the last classified block
+	// set the last clustered block
 	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, m.state.ID); statusErr != nil {
 		return false, statusErr
 	}

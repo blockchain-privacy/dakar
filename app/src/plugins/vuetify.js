@@ -1,6 +1,7 @@
 import 'vuetify/styles';
 import {createVuetify} from 'vuetify';
 import {aliases, mdi} from 'vuetify/iconsets/mdi-svg';
+import graph from '../assets/graph.svg';
 
 import {md3} from 'vuetify/blueprints';
 const darkTheme = {
@@ -119,9 +120,13 @@ export default createVuetify({
 	},
 	icons: {
 		defaultSet: 'mdi',
-		aliases,
+		aliases: {
+			...aliases,
+			graphIcon: graph,
+		},
 		sets: {
 			mdi,
 		},
 	},
 });
+

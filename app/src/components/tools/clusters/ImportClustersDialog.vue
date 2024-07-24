@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="700px"
   >
     <v-card class="mx-auto pb-2">
@@ -42,9 +42,10 @@
             label="Click here to select a file"
             truncate-length="15"
           />
-          <div class="d-flex align-center flex-wrap">
+          <div class=" align-center flex-wrap d-inline-flex">
             <v-checkbox
               v-model="csv.firstRowContainsHeader"
+              class="me-2"
               label="First row of file contains headers"
               :disabled="isLoading"
             />
@@ -61,7 +62,7 @@
               variant="text"
               :disabled="isLoading"
               class="mr-2"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -80,7 +81,7 @@
 </template>
 
 <script setup>
-import {computed, inject, ref} from 'vue';
+import {inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {fileRule} from '@/utilities';
 import {useMsgStore} from '@/pinia/msg';
@@ -89,8 +90,8 @@ const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 
-const props = defineProps({modelValue: {type: Boolean, required: true}});
-const emit = defineEmits(['added', 'update:modelValue']);
+const model = defineModel({type: Boolean});
+const emit = defineEmits(['added']);
 
 // CsvForm is a template ref
 const csvForm = ref(null);
@@ -102,16 +103,6 @@ const csv = ref({
 	firstRowContainsHeader: false,
 });
 
-// Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 const separatorItems = [
 	{text: 'Colon (,)', value: ','},
 	{text: 'Semicolon (;)', value: ';'},
@@ -119,11 +110,15 @@ const separatorItems = [
 
 // Functions
 function setSuccessMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'success', temporary: true, category: route.name,
+	});
 }
 
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function handleCSVUpload() {
@@ -135,10 +130,11 @@ async function handleCSVUpload() {
 	isLoading.value = true;
 
 	try {
-		await dakar.cluster.addClusterPost({
+		await dakar.cluster.clustersPost({
 			separator: csv.value.separator,
 			hasHeader: csv.value.firstRowContainsHeader,
-			file: csv.value.file[0]});
+			file: csv.value.file[0],
+		});
 
 		setSuccessMessage('import was successful');
 		emit('added');
@@ -148,7 +144,7 @@ async function handleCSVUpload() {
 
 	isLoading.value = false;
 	csv.value.file = null;
-	show.value = false;
+	model.value = false;
 }
 
 // CodeToMsg returns a message for the given message code

@@ -1,4 +1,5 @@
 import {defineStore} from 'pinia';
+import {toRaw} from 'vue';
 
 export const useNavStore = defineStore('nav', {
 	state: () => ({
@@ -11,7 +12,11 @@ export const useNavStore = defineStore('nav', {
 	}),
 	actions: {
 		setFailedRoute(payload) {
-			this.failedRoute = payload;
+			const rawRoute = {};
+			// It is not enough to use toRaw, need to also use Object.assign
+			// to get a route object which does not change when the current route changes
+			Object.assign(rawRoute, toRaw(payload));
+			this.failedRoute = rawRoute;
 		},
 	},
 });

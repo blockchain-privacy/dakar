@@ -393,7 +393,7 @@ func TestClassifier_IncrementState(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{})
 	unregisterCollectors(classifier)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		require.NoError(t, classifier.IncrementState())
 	}
 

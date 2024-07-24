@@ -1,11 +1,13 @@
 import {
 	AddressExclusionsApi,
-	AttributionApi, AuthenticationApi,
+	AttributionApi, IdentityApi,
 	ClusterApi,
 	Configuration,
 	DataApi,
 	HeuristicApi,
-	MetaApi, ToolsApi,
+	MetaApi,
+	ToolsApi,
+	WorkspaceApi,
 } from '@blockchain/dakar';
 import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
@@ -28,12 +30,13 @@ export default {
 		const c = newConfig(v);
 		return {
 			attribution: new AttributionApi(c),
-			authentication: new AuthenticationApi(c),
+			identity: new IdentityApi(c),
 			tools: new ToolsApi(c),
 			data: new DataApi(c),
 			meta: new MetaApi(c),
 			heuristic: new HeuristicApi(c),
 			cluster: new ClusterApi(c),
+			workspace: new WorkspaceApi(c),
 			addressExclusion: new AddressExclusionsApi(c),
 		};
 	},

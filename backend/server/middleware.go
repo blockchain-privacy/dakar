@@ -94,7 +94,7 @@ func extractDgraphUID(metadataPublic any) (string, error) {
 func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, sessionResponse, err := s.auth.FrontendApi.ToSession(r.Context()).
+			session, sessionResponse, err := s.auth.FrontendAPI.ToSession(r.Context()).
 				Cookie(r.Header.Get("Cookie")).Execute() //nolint:bodyclose
 			if err != nil {
 				sendUnauthorizedMessage(w)
@@ -113,11 +113,10 @@ func (s *Server) authorization() adapter {
 				return
 			}
 
-			// if only reissueDuration is left of the token lifetime it gets reissued
-			const reissueDuration = time.Hour * 24 / 4
-
-			if time.Until(*session.ExpiresAt) <= reissueDuration {
-				_, extensionResponse, extensionErr := s.adminAuth.IdentityApi.
+			// if less than half of the token lifetime is left, it gets reissued
+			const reissueDuration = 72 * time.Hour / 2
+			if time.Until(*session.ExpiresAt) < reissueDuration {
+				_, extensionResponse, extensionErr := s.adminAuth.IdentityAPI.
 					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {
 					sendUnauthorizedMessage(w)
@@ -181,7 +180,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 		header     http.Header
 		statusCode int
 	}
-	return func(h http.Handler, route string) http.Handler {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// extract body
 			body, err := io.ReadAll(r.Body)
@@ -192,8 +191,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			}
 			// reset body, so it can be read by the next handler
 			r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-			cacheKey := buildKey(route, r.URL.Path[len(route):]+r.URL.RawQuery, body)
+			cacheKey := buildKey(r.RequestURI, body)
 
 			// try to get request from cache
 			value, found := s.cache.Get(cacheKey)
@@ -240,8 +238,9 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 	}
 }
 
+// maxBody limits the amount of bytes which can be read from the request body to maxBodySize.
 func maxBody() adapter {
-	return func(h http.Handler, route string) http.Handler {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 			h.ServeHTTP(w, r)
@@ -249,15 +248,11 @@ func maxBody() adapter {
 	}
 }
 
-func limitMethod(method string) adapter {
-	return func(h http.Handler, route string) http.Handler {
+// maxBodyConfig limits the amount of bytes which can be read from the request body to size (in number of MiB).
+func maxBodyConfig(size int64) adapter {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != method {
-				warn(cliutil.NewStackErrorf("error received %s request for route %s instead of %s", r.Method, route, method))
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				return
-			}
-
+			r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*size)
 			h.ServeHTTP(w, r)
 		})
 	}

@@ -141,10 +141,9 @@ func DeleteUser(c external.Database, uid string) (err error) {
 // state has to be either "active" or "inactive" (as per ory kratos documentation)
 func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAuth *ory.APIClient,
 	email string, credentials *ory.IdentityWithCredentials, roles []string, state string) error {
-	// handle state
-	newState, err := ory.NewIdentityStateFromValue(state)
-	if err != nil {
-		return cliutil.NewStackError(err)
+	// check state
+	if !IsStateValid(state) {
+		return cliutil.NewStackErrorStr("invalid identity state: " + state)
 	}
 
 	// create dgraph user
@@ -154,12 +153,12 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	}
 
 	// create kratos identity
-	_, _, err = adminAuth.IdentityApi.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
+	_, _, err := adminAuth.IdentityAPI.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
 		SchemaId:       "default_v0",
 		Traits:         map[string]interface{}{"email": email},
 		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": newUserUID},
 		Credentials:    credentials,
-		State:          newState,
+		State:          &state,
 	}).Execute()
 	if err != nil {
 		return cliutil.NewStackError(err)

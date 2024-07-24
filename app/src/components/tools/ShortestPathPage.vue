@@ -96,7 +96,9 @@ import {handleError} from '@/utilities';
 import {PAGE_TITLE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
 import TransactionItem from '@/components/common/TransactionItem.vue';
-import {computed, inject, onMounted, ref} from 'vue';
+import {
+	computed, inject, onMounted, ref,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -125,7 +127,9 @@ onMounted(() => {
 
 // Functions
 function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
+	});
 }
 
 async function handleSearch() {
@@ -143,12 +147,14 @@ async function doLookup() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.tools.shortestTransactionPathPost({transactions: {
-			to: fromTransaction.value.trim(),
-			from: toTransaction.value.trim(),
-			includePrivacyTransactions: includePrivacyTransactions.value,
-			anyDirection: anyDirection.value,
-		}});
+		const response = await dakar.tools.shortestTransactionPathPost({
+			transactions: {
+				to: fromTransaction.value.trim(),
+				from: toTransaction.value.trim(),
+				includePrivacyTransactions: includePrivacyTransactions.value,
+				anyDirection: anyDirection.value,
+			},
+		});
 
 		if (response.msg) {
 			setInfoMessage(response.msg);

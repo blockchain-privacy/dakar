@@ -87,7 +87,9 @@
 </template>
 
 <script setup>
-import {mdiDelete, mdiDotsVertical,	mdiFileImport, mdiTagPlus} from '@mdi/js';
+import {
+	mdiDelete, mdiDotsVertical,	mdiFileImport, mdiTagPlus,
+} from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
 import {handleError} from '@/utilities';
 import ImportAttributionDialog from './ImportAttributionsDialog.vue';
@@ -119,7 +121,7 @@ async function loadOverviewData() {
 	items.value = [];
 
 	try {
-		const response = await dakar.attribution.attributionOverviewGet();
+		const response = await dakar.attribution.attributionsGet();
 
 		if (response.attributions) {
 			// Parse date

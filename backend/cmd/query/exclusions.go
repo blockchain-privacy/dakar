@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 )
 
@@ -127,7 +127,7 @@ func getNodeNumbers(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime tim
 	globalAddressMap := make(map[int64]bool)
 	globalMixingMap := make(map[int64]bool)
 
-	w.Walk(g, node, func(n graph.Node, d int) bool {
+	w.Walk(g, node, func(n graph.Node, _ int) bool {
 		from := g.From(n.ID())
 		if from.Len() == 0 {
 			globalEndpointMap[n.ID()] = true
@@ -176,7 +176,7 @@ func getSimulatedRandomExclusionSet(addressMap map[int64]bool, percentExcluded f
 	numAddresses := len(addresses)
 
 	for float64(len(exclusionsMap))/float64(numAddresses) < percentExcluded {
-		exclusionsMap[addresses[rand.Intn(numAddresses)]] = true //nolint:gosec
+		exclusionsMap[addresses[rand.IntN(numAddresses)]] = true //nolint:gosec
 	}
 
 	return exclusionsMap
@@ -217,7 +217,7 @@ func getSimulatedSemiRandomExclusionSet(transactionAddresses [][]int64, particip
 			break
 		}
 
-		index := rand.Intn(numTransactions) //nolint:gosec
+		index := rand.IntN(numTransactions) //nolint:gosec
 		if usedTransactionIndex[index] {
 			continue
 		}
@@ -229,7 +229,7 @@ func getSimulatedSemiRandomExclusionSet(transactionAddresses [][]int64, particip
 		// This should not be always the same number for participants > 1, so we randomize.
 		chosenParticipants := 1
 		if participants > 1 {
-			randInt := rand.Intn(100) //nolint:gosec
+			randInt := rand.IntN(100) //nolint:gosec
 
 			if randInt > 80 && randInt <= 95 {
 				chosenParticipants = 2
@@ -248,7 +248,7 @@ func getSimulatedSemiRandomExclusionSet(transactionAddresses [][]int64, particip
 		collectedAddresses := make(map[int64]bool)
 
 		for len(collectedAddresses) < numInputs {
-			collectedAddresses[addresses[rand.Intn(len(addresses))]] = true //nolint:gosec
+			collectedAddresses[addresses[rand.IntN(len(addresses))]] = true //nolint:gosec
 		}
 
 		for c := range collectedAddresses {
@@ -273,7 +273,7 @@ func getSimulatedSemiRandomExclusionSetV2(transactionAddresses [][]int64, partic
 		// randomly select participants
 		selectedParticipants := make(map[int]bool)
 		for len(selectedParticipants) < 3 {
-			selectedParticipants[rand.Intn(mixingParticipants)+1] = true //nolint:gosec
+			selectedParticipants[rand.IntN(mixingParticipants)+1] = true //nolint:gosec
 		}
 
 		// calculate the number of participants we have data from
@@ -301,7 +301,7 @@ func getSimulatedSemiRandomExclusionSetV2(transactionAddresses [][]int64, partic
 
 		selectedAddresses := make(map[int64]bool)
 		for len(selectedAddresses) < numSelectedAddresses {
-			selectedAddresses[tx[rand.Intn(len(tx))]] = true //nolint:gosec
+			selectedAddresses[tx[rand.IntN(len(tx))]] = true //nolint:gosec
 		}
 
 		for s := range selectedAddresses {

@@ -111,7 +111,9 @@ import {
 	ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
 } from '@/constants';
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
-import {computed, inject, onMounted, ref} from 'vue';
+import {
+	computed, inject, onMounted, ref,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {useExplorerStore} from '@/pinia/explorer';
@@ -138,14 +140,16 @@ onMounted(() => {
 
 // Functions
 function setWarningMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'warning', temporary: true, category: route.name,
+	});
 }
 
 async function executeQuery(query) {
 	let ok = false;
 
 	try {
-		const response = await dakar.data.searchQueryGet({query});
+		const response = await dakar.data.blockchainSearchQueryGet({query});
 
 		explorerStore.updateSearchResult(response);
 		ok = response?.type !== RESPONSE_EMPTY;

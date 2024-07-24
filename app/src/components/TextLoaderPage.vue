@@ -49,7 +49,9 @@ const route = useRoute();
 const msgStore = useMsgStore();
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 onMounted(async () => {

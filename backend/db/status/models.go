@@ -42,7 +42,7 @@ type CrawlerStatus struct {
 }
 
 func (c *CrawlerStatus) String() string {
-	output := fmt.Sprintf("UID: %s", c.UID)
+	output := "UID: " + c.UID
 
 	if c.IsCrawling != nil {
 		output += fmt.Sprintf(", IsCrawling: %t", *c.IsCrawling)
@@ -73,7 +73,7 @@ type ClassifierStatus struct {
 }
 
 func (c *ClassifierStatus) String() string {
-	output := fmt.Sprintf("UID: %s", c.UID)
+	output := "UID: " + c.UID
 
 	if c.IsClassifying != nil {
 		output += fmt.Sprintf(", IsClassifying: %t", *c.IsClassifying)
@@ -105,7 +105,7 @@ type ClusteringHierarchicalMultiInputStatus struct {
 }
 
 func (c *ClusteringHierarchicalMultiInputStatus) String() string {
-	output := fmt.Sprintf("UID: %s", c.UID)
+	output := "UID: " + c.UID
 
 	if c.IsClustering != nil {
 		output += fmt.Sprintf(", IsClustering: %t", *c.IsClustering)
@@ -136,7 +136,7 @@ type ClusteringFlatMultiInputStatus struct {
 }
 
 func (c *ClusteringFlatMultiInputStatus) String() string {
-	output := fmt.Sprintf("UID: %s", c.UID)
+	output := "UID: " + c.UID
 
 	if c.IsClustering != nil {
 		output += fmt.Sprintf(", IsClustering: %t", *c.IsClustering)

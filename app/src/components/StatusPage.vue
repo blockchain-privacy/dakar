@@ -218,7 +218,9 @@ import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from './common/IconItem.vue';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {computed, ref, onMounted, onBeforeUnmount, inject} from 'vue';
+import {
+	computed, ref, onMounted, onBeforeUnmount, inject,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 

@@ -93,19 +93,43 @@ type ClusterWithParent struct {
 	} `json:"parents,omitempty"`
 }
 
-type ClusterAddress struct {
+type BasicCluster struct {
+	UID          string `json:"uid"`
+	AddressCount int    `json:"Cluster.addressCount,omitempty"`
+}
+
+type AddressWithClusters struct {
 	UID      string              `json:"uid"`
 	Clusters []ClusterWithParent `json:"clusters,omitempty"`
 }
 
-type ClusterTransaction struct {
-	UID       string           `json:"uid"`
-	Addresses []ClusterAddress `json:"addr,omitempty"`
+type AddressWithCluster struct {
+	UID     string        `json:"uid"`
+	Cluster *BasicCluster `json:"clusters,omitempty"`
+}
+
+type TransactionWithAddressClusters struct {
+	UID       string                `json:"uid"`
+	Addresses []AddressWithClusters `json:"addr,omitempty"`
+}
+
+type TransactionWithInputOutputAddressCluster struct {
+	UID             string               `json:"uid"`
+	PrivacyType     *int64               `json:"privacytype,omitempty"`
+	InputAddresses  []AddressWithCluster `json:"input_addr,omitempty"`
+	OutputAddresses []AddressWithCluster `json:"output_addr,omitempty"`
 }
 
 type TransactionWithAddresses struct {
 	UID       string          `json:"uid"`
 	Addresses []HollowAddress `json:"addr,omitempty"`
+}
+
+type TransactionWithInputOutputAddresses struct {
+	UID             string          `json:"uid"`
+	PrivacyType     *int64          `json:"privacytype,omitempty"`
+	InputAddresses  []HollowAddress `json:"input_addr,omitempty"`
+	OutputAddresses []HollowAddress `json:"output_addr,omitempty"`
 }
 
 // ClusterLookupRequest holds all configuration data for a cluster lookup request

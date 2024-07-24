@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="400px"
   >
     <v-card class="mx-auto pb-2">
@@ -16,7 +16,7 @@
             <v-btn
               variant="text"
               :disabled="isLoading"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import {computed, inject, ref} from 'vue';
+import {inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -44,42 +44,31 @@ const dakar = inject('dakar');
 const msgStore = useMsgStore();
 const route = useRoute();
 
-const props = defineProps({
-	modelValue: {type: Boolean, required: true},
-	count: {type: Number, required: true},
-});
-
-const emit = defineEmits(['deleted', 'update:modelValue']);
+const model = defineModel({type: Boolean});
+defineProps({count: {type: Number, required: true}});
+const emit = defineEmits(['deleted']);
 
 const isLoading = ref(false);
 
-// Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 // Functions
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function deleteAllAddressExclusions() {
 	isLoading.value = true;
 
 	try {
-		await dakar.addressExclusion.deleteAllAddressExclusionsGet();
+		await dakar.addressExclusion.exclusionsDelete();
 		emit('deleted');
 	} catch (e) {
 		setPersistentErrorMessage(e);
 	}
 
 	isLoading.value = false;
-	show.value = false;
+	model.value = false;
 }
 
 </script>

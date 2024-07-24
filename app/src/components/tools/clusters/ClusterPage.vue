@@ -136,7 +136,9 @@
 </template>
 
 <script setup>
-import {mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport} from '@mdi/js';
+import {
+	mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import ImportClusterDialog from './ImportClustersDialog.vue';
@@ -173,7 +175,7 @@ async function loadData() {
 	isLoading.value = true;
 
 	try {
-		const response = await 	dakar.cluster.clusterOverviewGet();
+		const response = await 	dakar.cluster.clustersGet();
 
 		if (response.clusters) {
 			// Parse date

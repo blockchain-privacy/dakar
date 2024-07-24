@@ -20,7 +20,7 @@ import (
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
 // The size of the returned slice can be zero in case the only transaction contained
 // in the block is the coinbase transaction (no inputs) or all transaction are filtered out (mixing transactions).
-func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType ClusterType) (transactions []ClusterTransaction, err error) {
+func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType ClusterType) (transactions []TransactionWithAddressClusters, err error) {
 	const query = `query Q($block:string,$ctype:string) {
 				var(func: eq(id, $block)){
 					# do not consider mixing transaction
@@ -57,7 +57,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 
 	var r struct {
 		TransactionToAddresses []TransactionWithAddresses `json:"q,omitempty"`
-		AddressToClusters      []ClusterAddress           `json:"x,omitempty"`
+		AddressToClusters      []AddressWithClusters      `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = cliutil.NewStackError(err)
@@ -77,16 +77,112 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	// merge the two returned arrays
 	for _, t := range r.TransactionToAddresses {
 		// new transaction
-		tx := ClusterTransaction{UID: t.UID}
+		tx := TransactionWithAddressClusters{UID: t.UID}
 
 		for _, a := range t.Addresses {
-			ca := ClusterAddress{UID: a.UID}
+			ca := AddressWithClusters{UID: a.UID}
 
 			if _, ok := addressToCluster[a.UID]; ok {
 				ca.Clusters = append(ca.Clusters, addressToCluster[a.UID]...)
 			}
 
 			tx.Addresses = append(tx.Addresses, ca)
+		}
+
+		transactions = append(transactions, tx)
+	}
+
+	return
+}
+
+// GetAddressesByBlock gets all addresses per transaction by block id.
+func GetAddressesByBlock(c external.Database, blockID uint64,
+	clusterType ClusterType) (transactions []TransactionWithInputOutputAddressCluster, err error) {
+	const query = `query Q($block:string,$ctype:string) {
+				var(func: eq(id, $block)){
+					txs as transactions
+				}
+
+				q(func: uid(txs)){
+					uid
+					privacytype
+					input_addr:tx_inputs@normalize{
+						~addr_outputs{
+							a as uid:uid
+						}
+					}
+					output_addr:tx_outputs@normalize{
+						~addr_outputs{
+							b as uid:uid
+						}
+					}
+				}
+
+				x(func: uid(a,b))@cascade{
+					uid
+					clusters: ~Cluster.addresses@filter(eq(Cluster.type,$ctype)){
+						uid
+						Cluster.addressCount
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$block": strconv.FormatUint(blockID, 10), "$ctype": string(clusterType)})
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		TransactionToAddresses []TransactionWithInputOutputAddresses `json:"q,omitempty"`
+		AddressToClusters      []AddressWithClusters                 `json:"x,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.TransactionToAddresses) == 0 {
+		return
+	}
+
+	// create address to cluster lookup map
+	addressToCluster := make(map[string]BasicCluster)
+	for _, ac := range r.AddressToClusters {
+		if len(ac.Clusters) > 1 {
+			err = cliutil.NewStackErrorf("address with more than one FMI Cluster found: %s", ac.UID)
+			return
+		}
+
+		addressToCluster[ac.UID] = BasicCluster{
+			UID:          ac.Clusters[0].UID,
+			AddressCount: ac.Clusters[0].AddressCount,
+		}
+	}
+
+	// merge the two returned arrays
+	for _, t := range r.TransactionToAddresses {
+		// new transaction
+		tx := TransactionWithInputOutputAddressCluster{UID: t.UID, PrivacyType: t.PrivacyType}
+
+		for _, a := range t.InputAddresses {
+			ca := AddressWithCluster{UID: a.UID}
+
+			if addressCluster, ok := addressToCluster[a.UID]; ok {
+				ca.Cluster = &addressCluster
+			}
+
+			tx.InputAddresses = append(tx.InputAddresses, ca)
+		}
+
+		for _, a := range t.OutputAddresses {
+			ca := AddressWithCluster{UID: a.UID}
+
+			if addressCluster, ok := addressToCluster[a.UID]; ok {
+				ca.Cluster = &addressCluster
+			}
+
+			tx.OutputAddresses = append(tx.OutputAddresses, ca)
 		}
 
 		transactions = append(transactions, tx)
@@ -355,7 +451,7 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 	userID string) (clusters []FrontendCluster, err error) {
 	query := `query Q($addressHash:string,$user:string) {
 				var(func:eq(addresshash,$addressHash)){
-					c as ~Cluster.addresses
+					c as ~Cluster.addresses@filter(not eq(Cluster.type,` + string(TypeHMI) + `))
 				}` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash,
@@ -702,4 +798,56 @@ func GetClusterAddressCount(c external.Database, addressHash string) (addressCou
 	addressCount = r.Count[0].Count
 
 	return
+}
+
+// DeleteAllFMIClusters deletes all flat multi-input clusters of a given user
+func DeleteAllFMIClusters(c external.Database) error {
+	const query = `{
+				 q(func: eq(Cluster.type, "fmi")){
+					count(uid)
+				  }
+				}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	if err != nil {
+		return err
+	}
+
+	var r struct {
+		Count []struct {
+			Count int64 `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return err
+	}
+
+	deletionRounds := r.Count[0].Count / 10000
+	for range deletionRounds + 1 {
+		err := deleteTenThousandFMIClusters(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func deleteTenThousandFMIClusters(c external.Database) error {
+	req := &api.Request{
+		Query: `{
+				var(func:eq(Cluster.type, "fmi"), first: 10000){
+					c as uid
+				}
+			  }`,
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(c) * * ."),
+		}},
+		CommitNow: true,
+	}
+	_, err := db.TxWithRetryAndResponse(c, time.Minute*15, req)
+
+	return err
 }

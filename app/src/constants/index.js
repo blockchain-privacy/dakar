@@ -14,13 +14,13 @@ export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
 export const ROUTE_NAME_ACCOUNT_RECOVERY = 'Account Recovery Page';
 export const ROUTE_NAME_USER_ADMIN_PAGE = 'User Administration Page';
 export const ROUTE_NAME_USER_PROFILE_PAGE = 'User Profile Page';
-export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
+export const ROUTE_NAME_WORKSPACE_PAGE = 'Workspace Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
 export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
-export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
 export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
+export const ROUTE_NAME_WORKSPACES_PAGE = 'Workspace Lookup Page';
 export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Custom Clusters Page';
 export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
@@ -44,6 +44,10 @@ export const COIN_UNIT_BTC = 'BTC';
 export const COIN_UNIT = COIN_UNIT_DASH;
 
 // Cluster
-export const CLUSTER_TYPE_HMI = 'hmi';
 export const CLUSTER_TYPE_FMI = 'fmi';
 export const CLUSTER_TYPE_CUSTOM = 'custom';
+
+// Workspace node type
+export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
+export const WORKSPACE_NODE_TYPE_CLUSTER = 'cluster';
+export const WORKSPACE_NODE_TYPE_HEURISTIC = 'heuristic';

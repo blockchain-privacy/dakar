@@ -33,7 +33,7 @@
     />
   </div>
   <v-text-field
-    v-else-if="attributes.type === 'text'"
+    v-else-if="attributes.type === 'text' || (attributes.type === 'text'&& metaLabel === 'E-Mail')"
     :key="meta?.label?.id"
     :label="metaLabel"
     :model-value="attributes.value?attributes.value:''"
@@ -54,6 +54,21 @@
       :value="attributes.value"
       type="hidden"
     >
+    <!-- workaround for: https://github.com/ory/kratos/issues/2504 -->
+    <template v-if="name === 'totp_unlink'">
+      <input
+        name="method"
+        value="totp"
+        type="hidden"
+      >
+    </template>
+    <template v-else-if="name === 'webauthn_remove'">
+      <input
+        name="method"
+        value="webauthn"
+        type="hidden"
+      >
+    </template>
     <v-btn
       :name="name"
       :loading="!submitEnabled"
@@ -88,7 +103,7 @@ const password = ref({show: false});
 
 // Computed
 const metaLabel = computed(() => {
-	if (props.meta.label && props.meta.label.text) {
+	if (props.meta.label?.text) {
 		return props.meta.label.text;
 	}
 
@@ -104,7 +119,11 @@ const inputIcon = computed(() => {
 		return mdiFormTextboxPassword;
 	}
 
-	if (metaLabel.value === 'ID') {
+	if (metaLabel.value === 'E-Mail') {
+		return mdiEmail;
+	}
+
+	if (props.attributes?.name === 'identifier') {
 		return mdiAccount;
 	}
 

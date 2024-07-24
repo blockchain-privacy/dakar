@@ -10,9 +10,8 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-	"fmt"
-
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -296,52 +295,62 @@ func isParentHeuristicSet(parentHeuristicUID string) bool {
 	return parentHeuristicUID != ""
 }
 
-// heuristicExecutor holds information for executing on heuristic and its children
-type heuristicExecutor struct {
-	rootUID        string
-	thisHeuristic  heuristic
-	nextHeuristics []heuristicExecutor
+// Executor holds information for executing on heuristic and its children
+type Executor struct {
+	rootUID         string
+	thisHeuristic   heuristic
+	transactionHash string
 }
 
-// buildExecutor is a convenience function for building heuristic executors
-func buildExecutor(thisHeuristic heuristic, nextHeuristics ...heuristicExecutor) heuristicExecutor {
-	return heuristicExecutor{
-		thisHeuristic:  thisHeuristic,
-		nextHeuristics: nextHeuristics,
-	}
-}
-
-// run start the execution of the given heuristic executor. The executor runs initial heuristic and
-// triggers the run function of all nextHeuristics. If parentHeuristicUID is not
-// set (e.g. "") than the heuristicExecutor.rootUID is used
-func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string, userUID string) error {
-	thisRootUID := hx.rootUID
-	if parentHeuristicUID != "" {
-		thisRootUID = parentHeuristicUID
+// ConstructExecutors creates executors based on heuristics
+func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
+	if newHeuristic.TransactionHash == "" {
+		err = cliutil.NewStackErrorf("transaction of heuristic request is empty: %v", newHeuristic)
+		return
 	}
 
-	newUID, err := exec(dgraph, g, txHash, thisRootUID, hx.thisHeuristic, userUID)
-	if err != nil {
-		return fmt.Errorf("heuristic type: %s, parameter: %s, %w",
-			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
-	}
-
-	for _, executor := range hx.nextHeuristics {
-		if runErr := executor.run(dgraph, g, txHash, newUID, userUID); runErr != nil {
-			return fmt.Errorf("heuristic type: %s, parameter: %s, %w",
-				executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr)
+	// only set values for global type map once
+	if len(typeMap) == 0 {
+		for _, h := range ValidHeuristicTypes {
+			typeMap[h.getType()] = h
 		}
 	}
 
-	var returnError error
+	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
+		(modelHeuristic.hasParameter() && len(newHeuristic.Parameter) == 0) {
+		err = cliutil.NewStackError(errHeuristicNotValid)
+		return
+	}
 
-	return returnError
+	newHeuristicElement, err := buildHeuristicTreeElement(typeMap, newHeuristic, userUID)
+	if err != nil {
+		return
+	}
+
+	executor = Executor{
+		thisHeuristic:   newHeuristicElement.heuristic,
+		rootUID:         newHeuristicElement.parentHeuristicUID,
+		transactionHash: newHeuristic.TransactionHash,
+	}
+
+	return
+}
+
+// Run start the execution of the given heuristic executor. If parentHeuristicUID is not
+// set (e.g. "") than the Executor.rootUID is used
+func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.Heuristic, error) {
+	newHeuristic, err := exec(dgraph, g, hx.transactionHash, hx.rootUID, hx.thisHeuristic)
+	if err != nil {
+		return nil, fmt.Errorf("heuristic type: %s, parameter: %s, %w",
+			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
+	}
+
+	return newHeuristic, nil
 }
 
 // exec executes the heuristic on the transaction specified by txHash for the given userUID
-func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h heuristic,
-	userUID string) (thisUID string, err error) {
+func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string,
+	h heuristic) (newHeuristic *heuristics.Heuristic, err error) {
 	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return
@@ -369,7 +378,7 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	shouldExcludeAddresses := h.getExcludeAddresses()
 	shouldExcludeSpendingGaps := h.getExcludeSpendingGaps()
 
-	return heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
+	newHeuristic = &heuristics.Heuristic{
 		HeuristicType:       h.getType(),
 		ClusterTypes:        clusterTypes,
 		ExcludeAddresses:    &shouldExcludeAddresses,
@@ -378,7 +387,10 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		Parameter:           h.getParameterString(),
 		ParentHeuristic:     pHeuristic,
 		TxHash:              txHash,
-	}, userUID)
+		Timestamp:           time.Now().UTC().Format(time.RFC3339),
+	}
+
+	return
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's

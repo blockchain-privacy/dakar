@@ -7,7 +7,6 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/external"
-	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -27,9 +26,8 @@ var (
 )
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUID string, err error) {
+func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspaceUID string) (insertUID string, err error) {
 	h.SetDType()
-	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
 	const newHeuristicDummyUID = "new_h"
 	h.UID = "_:" + newHeuristicDummyUID
@@ -39,17 +37,21 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 	// if TxHash is not empty we have to search for the transaction uid
 	if h.TxHash != "" {
 		h.Transaction.UID = "uid(tx)"
-		query = `query Q($txhash: string) {
+		query = `query Q($txhash: string, $userUID: string, $workspaceUID: string) {
 					tx as var(func: eq(txhash, $txhash))
+					var(func: uid($userUID))@filter(type(User)){
+						w as User.workspaces@filter(uid($workspaceUID))
+					}
 				  }`
 	}
 
-	type dummyUser struct {
+	type dummyWorkspace struct {
 		UID        string      `json:"uid,omitempty"`
-		Heuristics []Heuristic `json:"User.heuristics,omitempty"`
+		Heuristics []Heuristic `json:"Workspace.heuristics,omitempty"`
 	}
 
-	pb, err := json.Marshal(dummyUser{UID: userUID, Heuristics: []Heuristic{h}})
+	// set cluster height to 0, to force an update of the corresponding workspace
+	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{*h}})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
@@ -57,8 +59,9 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$txhash": h.TxHash},
+		Vars:  map[string]string{"$txhash": h.TxHash, "$userUID": userUID, "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
+			Cond:    "@if(gt(len(w), 0))",
 			SetJson: pb,
 		}},
 		CommitNow: true,
@@ -79,81 +82,29 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 }
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (err error) {
-	uidList := db.CreateCommaArray(uids)
-
-	const query = `query Q($user:string, $uids:string){
-				h as var(func: uid($uids))@filter(uid_in(~User.heuristics,$user) AND eq(dgraph.type,` + DType + `)){
-					hc as Heuristic.clusters{
-							hr as HeuristicCluster.results
-					}
-				}
-			  }`
-
-	req := &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$user": userUID, "$uids": uidList},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ."),
-		}},
-		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*5, req)
-}
-
-// DeleteAllUserHeuristics deletes all heuristics of a user
-func DeleteAllUserHeuristics(c external.Database, userUID string) error {
-	req := &api.Request{
-		Query: `query Q($user:string){
-				var(func: uid($user)){
-					h as User.heuristics{
+func DeleteUserHeuristics(c external.Database, uids []string, userUID string, workspaceUID string) error {
+	const query = `
+		query Q($userUID:string,$heuristicUIDs:string,$workspaceUID:string){
+			var(func: uid($userUID)){
+				User.workspaces@filter(uid($workspaceUID)){
+					h as Workspace.heuristics@filter(uid($heuristicUIDs)){
 						hc as Heuristic.clusters{
 							hr as HeuristicCluster.results
 						}
 					}
 				}
-}`,
-		Vars: map[string]string{"$user": userUID},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ."),
-		}},
-		CommitNow: true,
-	}
-
-	_, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	return err
-}
-
-// DeleteAllUserTxHeuristics deletes all heuristics of a user of a particular transaction
-func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) error {
-	query := `query Q($user:string, $hash:string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				# get all heuristic of that user and transaction
-				var(func: uid($user)){
-					h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(tx))){
-						hc as Heuristic.clusters{
-							hr as HeuristicCluster.results
-						}
-					}
-				}
-			  }`
+			}
+		}`
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$user": userUID, "$hash": txhash},
+		Vars: map[string]string{"$userUID": userUID,
+			"$heuristicUIDs": db.CreateCommaArray(uids), "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte(` uid(hr) * * .
 								uid(hc) * * .
 								uid(h) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ."),
+								<` + workspaceUID + "> <Workspace.heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -199,7 +150,18 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 
 	// json struct
 	var r struct {
-		Clusters []queryHeuristicClusters `json:"q,omitempty"`
+		Clusters []struct {
+			UID     ClusterUID `json:"uid,omitempty"`
+			Results []struct {
+				Origin struct {
+					UID     string            `json:"uid,omitempty"`
+					Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+				} `json:"HeuristicResult.origin,omitempty"`
+			} `json:"HeuristicCluster.results,omitempty"`
+			Attributions []struct {
+				UID string `json:"uid,omitempty"`
+			} `json:"HeuristicCluster.attributions,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -259,7 +221,17 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 
 	// json struct
 	var r struct {
-		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
+		Transaction []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+			Inputs  []struct {
+				Address string `json:"addr_uid,omitempty"`
+				Cluster string `json:"cluster_uid,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Block []struct {
+				Timestamp time.Time `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -532,7 +504,10 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 
 	// json struct
 	var r struct {
-		Origins []queryHeuristicTransactionInputs `json:"q,omitempty"`
+		Origins []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -593,106 +568,16 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	return
 }
 
-// DoesHeuristicUIDExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
-func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (allExist bool, err error) {
-	uidList := db.CreateCommaArray(uids)
-
-	const query = `query Q($hash:string, $uids:string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				# filter and count
-				q(func: uid($uids))@filter(uid_in(Heuristic.transaction, uid(tx)) AND eq(dgraph.type,` + DType + `)){
-					count(uid)
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$hash": txhash, "$uids": uidList})
-	if err != nil {
-		return
-	}
-
-	var r struct {
-		Count []struct {
-			Number int `json:"count,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	if len(r.Count) == 0 || len(r.Count) > 1 {
-		err = cliutil.NewStackErrorStr("error invalid response from database")
-		return
-	} else if r.Count[0].Number != len(uids) {
-		err = cliutil.NewStackErrorStr("error received number of uids does not match")
-		return
-	}
-
-	allExist = true
-	return
-}
-
-// GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only.
-func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID string) (
-	heuristics []FrontendHeuristic, err error) {
-	const query = `query Q($hash:string, $user:string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				var(func: uid($user)){
-					h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(tx)))
-				}
-				
-				q(func: uid(h)){
-					uid
-					ts:Heuristic.ts
-					type:Heuristic.type
-					parameter:Heuristic.parameter
-					clusterTypes:Heuristic.clusterTypes
-					excludeAddresses:Heuristic.excludeAddresses
-					excludeSpendingGaps:Heuristic.excludeSpendingGaps
-					parent:Heuristic.parent{
-						uid
-					}
-					children:~Heuristic.parent{
-						uid
-					}
-					clusterCount: count(Heuristic.clusters)
-				}
-			  }`
-
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$user": userUID})
-	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Heuristics []FrontendHeuristic `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	heuristics = r.Heuristics
-
-	return
-}
-
 // GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID, which was created by userUID
-func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string) (
+func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string, workspaceUID string) (
 	frontendHeuristic FrontendHeuristicShort, err error) {
-	const query = `query Q($uid:string,$user:string){
-				var(func:uid($uid))@cascade{
-					~User.heuristics@filter(uid($user))
-					c as Heuristic.clusters
+	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
+				var(func: uid($userUID)){
+					User.workspaces@filter(uid($workspaceUID)){
+						Workspace.heuristics@filter(uid($heuristicUID)){
+							c as Heuristic.clusters
+						}
+					}
 				}
 
 				q(func: uid(c)){
@@ -716,7 +601,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$user": userUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
@@ -772,136 +657,6 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 			Attributions: cluster.Attributions,
 		})
 	}
-
-	return
-}
-
-// GetShortestTransactionPathAnyDirection returns the transactions of the shortest path between two transactions.
-// anyDirection determines the search direction of the shortest transaction path query
-// True: Both inputs and outputs are traversed
-// False: Only inputs are traversed
-// withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
-func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, txTo string,
-	withPrivacyTransactions bool, anyDirection bool) (txs []db.FrontendTransaction, err error) {
-	/* Full query
-	query Q($txFrom:string, $txTo:string){
-					f as var(func: eq(txhash,$txFrom))
-					t as var(func: eq(txhash,$txTo))
-					path as shortest(from: uid(f), to: uid(t)){
-						tx_inputs
-						~tx_outputs@filter(NOT has(privacytype)) tx_outputs ~tx_inputs@filter(NOT has(privacytype)) }
-					path(func: uid(path))@normalize{
-						txhash:txhash
-						privacytype:privacytype
-						~transactions{
-							bid:id
-							bts:ts
-							bhash:blockhash
-						}
-					}
-				  }
-	*/
-
-	privacyFlag := " " // spaces are needed
-
-	if !withPrivacyTransactions {
-		privacyFlag = "@filter(NOT has(privacytype)) " // spaces are needed
-	}
-
-	var anyDirectionFlag string
-
-	if anyDirection {
-		anyDirectionFlag = "tx_outputs ~tx_inputs" + privacyFlag
-	}
-
-	query := `query Q($txFrom:string, $txTo:string){
-				f as var(func: eq(txhash,$txFrom))
-				t as var(func: eq(txhash,$txTo))
-				path as shortest(from: uid(f), to: uid(t)){
-					tx_inputs
-					~tx_outputs` + privacyFlag + anyDirectionFlag + `}
-				path(func: uid(path))@normalize{
-					txhash:txhash
-					privacytype:privacytype
-					~transactions{
-						bid:id
-						bts:ts
-						bhash:blockhash
-					}
-				}
-			  }`
-
-	// without retry, as this request can easily time out
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
-	if err != nil {
-		if !errors.Is(err, context.DeadlineExceeded) {
-			err = cliutil.NewStackError(err)
-			return
-		}
-		err = nil
-		return
-	}
-
-	// json struct
-	var r struct {
-		Transactions []db.FrontendTransaction `json:"path,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	txs = r.Transactions
-
-	return
-}
-
-// GetHeuristicListByUser returns all transactions for which the given user has created heuristics
-func GetHeuristicListByUser(c external.Database, userUID string) (frontendHeuristic []HeuristicListItem, err error) {
-	query := `query Q($uuid:string){
-				# get transaction
-				var(func: uid($uuid)){
-					User.heuristics{
-						tx as Heuristic.transaction
-					}
-				}
-				# get count
-				var(func: uid(tx)){
-					c as count(~Heuristic.transaction)@filter(uid_in(~User.heuristics,$uuid))
-				}
-				# get time
-				var(func: uid(tx)){
-					~Heuristic.transaction@filter(uid_in(~User.heuristics,$uuid)){
-						t as Heuristic.ts
-					}
-					max_time as  max(val(t))
-				}
-				# output
-				q(func: uid(tx)){
-					txhash
-					h_count: val(c)
-					mod_time: val(max_time)
-				}
-			   }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uuid": userUID})
-	if err != nil {
-		return
-	}
-
-	var r struct {
-		Items []HeuristicListItem `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	frontendHeuristic = r.Items
 
 	return
 }

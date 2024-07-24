@@ -7,8 +7,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-
-	"fmt"
 )
 
 // reverseAmountHeuristic - see exec for description
@@ -89,7 +87,7 @@ func (h *reverseAmountHeuristic) setUserUID(uid string) {
 }
 
 func (h reverseAmountHeuristic) String() string {
-	return fmt.Sprintf("Type: %s", h.heuristicType)
+	return "Type: " + h.heuristicType
 }
 
 func (h reverseAmountHeuristic) GetDescriptor() Descriptor {

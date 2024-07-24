@@ -4,7 +4,6 @@ import (
 	"backend/analytics"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
-	heuristic "backend/analytics/heuristics"
 	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
@@ -13,6 +12,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+	"backend/worker"
 	"context"
 	"flag"
 	"fmt"
@@ -57,7 +57,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	heuristic.InitLogger()
+	worker.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -428,15 +428,18 @@ func main() {
 	}
 
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
-	worker := heuristic.NewWorker(graphWrapper)
+	w, err := worker.NewWorker(graphWrapper)
+	if err != nil {
+		warn(err)
+		return
+	}
 	var classifierStarted bool
 
 	if config.Modules.HTTP.Active && config.Modules.Heuristics {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
-			graphErr := graphWrapper.LoadGraphs()
-			if graphErr != nil {
+			if graphErr := graphWrapper.LoadGraphs(); graphErr != nil {
 				warn(graphErr)
 				return
 			}
@@ -464,7 +467,7 @@ func main() {
 			}
 		}()
 
-		if ok := worker.Start(appContext, graphDB); !ok {
+		if ok := w.Start(appContext, graphDB); !ok {
 			info("could not start worker")
 			return
 		}
@@ -522,7 +525,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker)
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, w, graphWrapper)
 		if serverErr != nil {
 			warn(serverErr)
 		}

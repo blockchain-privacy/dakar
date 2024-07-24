@@ -1,7 +1,5 @@
 import {createRouter, createWebHistory} from 'vue-router';
-import {
-	isAdminIdentity, isPrivilegedIdentity, isSessionExpired,
-} from '@/utilities';
+import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import EntryPage from '../components/EntryPage.vue';
 import ConnectionLookupPage from '../components/tools/ConnectionLookupPage.vue';
 import SettingsPage from '../components/user/SettingsPage.vue';
@@ -11,11 +9,11 @@ import LoginPage from '../components/user/LoginPage.vue';
 import TransactionPage from '../components/explorer/transaction/TransactionPage.vue';
 import BlockPage from '../components/explorer/BlockPage.vue';
 import AddressPage from '../components/explorer/address/AddressPage.vue';
-import HeuristicEditorPage from '../components/heuristic/HeuristicEditorPage.vue';
+import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
 import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
 import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
-import HeuristicsPage from '../components/tools/HeuristicsPage.vue';
+import WorkspacePage from '@/components/tools/WorkspacePage.vue';
 import * as Constants from '../constants';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
 import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
@@ -47,28 +45,17 @@ function isAdmin() {
 	return isAdminIdentity(localStore.getSession);
 }
 
-function checkSession(to, next, fn) {
+function checkSession(to, fn) {
 	if (!localStore.getSession) {
 		navStore.setFailedRoute(to);
-		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
-		return;
-	}
-
-	// Check if token timeout has been reached
-	if (isSessionExpired(localStore.getSession)) {
-		navStore.setFailedRoute(to);
-		localStore.setSession(null);
-		msgStore.addMessage({type: 'info', text: 'Your session timed out', temporary: true, category: Constants.ROUTE_NAME_LOGIN_PAGE});
-		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
-		return;
+		return {name: Constants.ROUTE_NAME_LOGIN_PAGE};
 	}
 
 	if ((fn) ? !fn() : false) {
-		next({name: Constants.ROUTE_NAME_ENTRY_PAGE});
-		return;
+		return {name: Constants.ROUTE_NAME_ENTRY_PAGE};
 	}
 
-	next();
+	return null;
 }
 
 export const router = createRouter({
@@ -78,59 +65,45 @@ export const router = createRouter({
 			path: '/',
 			name: Constants.ROUTE_NAME_ENTRY_PAGE,
 			component: EntryPage,
-			meta: {title: 'Entry'},
 		},
 		{
 			path: '/status',
 			name: Constants.ROUTE_NAME_STATUS_PAGE,
 			component: StatusPage,
-			meta: {title: 'Status'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isPrivileged);
-			},
+			meta: {limitToRole: 'privileged'},
 		},
 		{
 			path: '/block/:id',
 			name: Constants.ROUTE_NAME_BLOCK_PAGE,
 			component: BlockPage,
-			meta: {title: 'Block'},
 		},
 		{
 			path: '/tx/:id',
 			name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
 			component: TransactionPage,
-			meta: {title: 'Transaction'},
 		},
 		{
 			path: '/address/:id',
 			name: Constants.ROUTE_NAME_ADDRESS_PAGE,
 			component: AddressPage,
-			meta: {title: 'Address'},
 		},
 		{
-			path: '/heuristic/:id',
-			name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
-			component: HeuristicEditorPage,
-			meta: {title: 'Heuristic'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isPrivileged);
-			},
+			path: '/workspace/:id',
+			name: Constants.ROUTE_NAME_WORKSPACE_PAGE,
+			component: WorkspaceEditorPage,
+			meta: {limitToRole: 'privileged'},
 		},
 		{
 			path: '/login',
 			name: Constants.ROUTE_NAME_LOGIN_PAGE,
 			component: LoginPage,
-			meta: {title: 'Login'},
 		},
 		{
 			// Wiki root page
 			path: '/wiki',
 			name: Constants.ROUTE_NAME_WIKI_ROOT,
 			component: WikiPage,
-			meta: {title: 'Wiki'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isPrivileged);
-			},
+			meta: {limitToRole: 'privileged'},
 		},
 		{
 			// Wiki content page
@@ -138,21 +111,16 @@ export const router = createRouter({
 			path: '/wiki/:file(.*)',
 			name: Constants.ROUTE_NAME_WIKI,
 			component: WikiPage,
-			meta: {title: 'Wiki'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isPrivileged);
-			},
+			meta: {limitToRole: 'privileged'},
 		},
 		{
 			path: '/recovery',
 			name: Constants.ROUTE_NAME_ACCOUNT_RECOVERY,
 			component: RecoveryPage,
-			meta: {title: 'Account Recovery'},
 		},
 		{
 			path: '/settings',
 			component: SettingsPage,
-			meta: {title: 'Settings'},
 			children: [
 				{
 					path: 'profile/:tabName?',
@@ -164,10 +132,7 @@ export const router = createRouter({
 		{
 			path: '/tools',
 			component: ToolsPage,
-			meta: {title: 'Tools'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isPrivileged);
-			},
+			meta: {limitToRole: 'privileged'},
 			children: [
 				{
 					path: 'shortestPath',
@@ -175,9 +140,9 @@ export const router = createRouter({
 					component: ShortestPathPage,
 				},
 				{
-					path: 'heuristics',
-					name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
-					component: HeuristicsPage,
+					path: 'workspaces',
+					name: Constants.ROUTE_NAME_WORKSPACES_PAGE,
+					component: WorkspacePage,
 				},
 				{
 					path: 'connectionLookup',
@@ -205,37 +170,30 @@ export const router = createRouter({
 			path: '/userAdministration',
 			name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
 			component: AdministrationPage,
-			meta: {title: 'User Administration'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isAdmin);
-			},
+			meta: {limitToRole: 'admin'},
 		},
 		{
 			path: '/about',
 			name: Constants.ROUTE_NAME_ABOUT,
 			component: TextLoaderPage,
 			props: {pageTitle: 'About', url: 'about.html'},
-			meta: {title: 'About'},
 		},
 		{
 			path: '/privacy',
 			name: Constants.ROUTE_NAME_PRIVACY,
 			component: TextLoaderPage,
 			props: {pageTitle: 'Privacy Policy', url: 'privacy_policy.html'},
-			meta: {title: 'Privacy Policy'},
 		},
 		{
 			path: '/termsOfUse',
 			name: Constants.ROUTE_NAME_TERMS_OF_USE,
 			component: TextLoaderPage,
 			props: {pageTitle: 'Terms of Use', url: 'terms_of_use.html'},
-			meta: {title: 'Terms of Use'},
 		},
 		{
 			path: '/noResults',
 			name: Constants.ROUTE_NAME_NO_RESULTS,
 			component: ErrorPage,
-			meta: {title: 'No results found!'},
 			props: {
 				default: true,
 				title: 'No results found!',
@@ -247,7 +205,6 @@ export const router = createRouter({
 			path: '/error',
 			name: Constants.ROUTE_NAME_ERROR,
 			component: ErrorPage,
-			meta: {title: 'Error'},
 			props: {
 				default: true,
 				title: 'Error',
@@ -259,7 +216,6 @@ export const router = createRouter({
 			path: '/:catchAll(.*)',
 			name: Constants.ROUTE_NAME_404_PAGE,
 			component: ErrorPage,
-			meta: {title: '404 - Page not found!'},
 			props: {
 				default: true,
 				title: '404 - Page not found!',
@@ -271,6 +227,21 @@ export const router = createRouter({
 });
 
 router.beforeEach((to, from) => {
+	// Check for role
+	if (to.meta.limitToRole) {
+		let fn = null;
+		if (to.meta.limitToRole === 'privileged') {
+			fn = isPrivileged;
+		} else if (to.meta.limitToRole === 'admin') {
+			fn = isAdmin;
+		}
+
+		const routeTo = checkSession(to, fn);
+		if (routeTo !== null) {
+			return routeTo;
+		}
+	}
+
 	if (from && to.name !== from.name) {
 		// Clear all notifications belonging to the previous page
 		msgStore.filterMessages(from.name);

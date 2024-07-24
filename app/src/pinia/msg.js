@@ -21,7 +21,7 @@ export const useMsgStore = defineStore('msg', {
 			msgCounter += 1;
 		},
 		resetMessages() {
-			this.messages = new Map();
+			this.messages.clear();
 		},
 		removeMessage(msgKey) {
 			this.messages.delete(msgKey);

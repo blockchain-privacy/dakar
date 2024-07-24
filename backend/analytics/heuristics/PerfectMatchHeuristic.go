@@ -7,8 +7,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-
-	"fmt"
 )
 
 // perfectMatchHeuristic - see exec for description
@@ -101,7 +99,7 @@ func (h perfectMatchHeuristic) GetDescriptor() Descriptor {
 }
 
 func (h perfectMatchHeuristic) String() string {
-	return fmt.Sprintf("Type: %s", h.heuristicType)
+	return "Type: " + h.heuristicType
 }
 
 func (h perfectMatchHeuristic) clone() heuristic {

@@ -65,7 +65,7 @@ func TestToInteger(t *testing.T) {
 func TestHasSpendingGap(t *testing.T) {
 	graph := NewReversibleGraph(10)
 	now := time.Now()
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		graph.AddNode(TransactionNode{
 			TS:          now.Add(time.Hour * time.Duration(i)),
 			id:          int64(i),
