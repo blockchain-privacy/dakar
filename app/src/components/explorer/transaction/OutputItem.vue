@@ -1,20 +1,26 @@
 <template>
   <v-card
-    variant="text"
+    :variant="highlight?'outlined':'text'"
     class="my-2"
     :ripple="false"
   >
     <v-card-text style="min-height: 90px">
       <v-row>
         <v-col>
-          <div class="d-flex justify-space-between">
-            <router-link
+          <div class="d-flex justify-space-between align-center">
+            <store-link
               v-if="addressHash"
               :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
               class="shorten"
             >
               {{ addressHash }}
-            </router-link>
+            </store-link>
+            <div
+              v-else
+              style="min-width: 200px"
+            >
+              No Address available
+            </div>
             <div class="text-no-wrap ms-2">
               {{ convertAmount(amount) }} {{ COIN_UNIT }}
             </div>
@@ -26,10 +32,10 @@
           <div
             class="d-flex justify-space-between align-center"
           >
-            <div class="text-caption">
-              <router-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
+            <div class="text-caption d-flex align-center">
+              <store-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
                 <span>{{ isInput ? 'created' : 'spent' }}</span>
-              </router-link>
+              </store-link>
               on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
             </div>
             <privacy-chip
@@ -121,6 +127,7 @@ import {convertAmount} from '@/utilities';
 import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ref} from 'vue';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 defineProps({
 	isInput: {type: Boolean, required: true},
@@ -133,6 +140,7 @@ defineProps({
 	txHash: {type: String, required: false, default: ''},
 	timestamp: {type: String, required: false, default: ''},
 	privacyType: {type: Number, required: false, default: -1},
+	highlight: {type: Boolean, required: false, default: false},
 });
 
 const expanded = ref(false);
@@ -164,9 +172,5 @@ function scriptToAscii(script) {
 </script>
 
 <style scoped>
-.shorten {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
+
 </style>

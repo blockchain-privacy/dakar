@@ -130,22 +130,26 @@
                 @update:page="getTableData"
               >
                 <template #item.input_transaction="{ item }">
-                  <router-link
+                  <store-link
                     v-if="item.input_transaction"
+                    style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.input_transaction }}"
+                    class="shorten"
                   >
-                    {{ shortenHash(item.input_transaction) }}
-                  </router-link>
+                    {{ item.input_transaction }}
+                  </store-link>
                 </template>
                 <template #item.output_transaction="{ item }">
-                  <router-link
+                  <store-link
                     v-if="item.output_transaction"
+                    style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.output_transaction }}"
+                    class="shorten"
                   >
-                    {{ shortenHash(item.output_transaction) }}
-                  </router-link>
+                    {{ item.output_transaction }}
+                  </store-link>
                 </template>
                 <template #item.input_ts="{ item }">
                   {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
@@ -187,7 +191,7 @@ import {
 } from '@mdi/js';
 import {COIN_UNIT, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
+	convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
@@ -202,6 +206,7 @@ import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},

@@ -15,7 +15,7 @@
         @click="showAddWorkspaceDialogModel = true"
       >
         <v-icon :icon="mdiPlus" />
-        Add Workspace
+        New
       </v-btn>
       <v-btn
         v-model="showSearchField"
@@ -90,123 +90,79 @@
         <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
       </template>
       <template #[`item.actions`]="{ item }">
+        <v-icon
+          class="me-2"
+          @click="showRenameDialog(item)"
+        >
+          {{ mdiRename }}
+        </v-icon>
         <v-icon @click="showDeleteWorkspaceDialog(item)">
           {{ mdiDelete }}
         </v-icon>
       </template>
     </v-data-table>
-    <v-dialog
+    <confirm-dialog
+      v-if="showDeleteAllDialog"
       v-model="showDeleteAllDialog"
-      max-width="500px"
+      title="Delete All Workspaces"
+      confirm-label="Delete All"
+      confirm-color="red"
+      @confirm="deleteWorkspace(true)"
     >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Delete All Workspaces</span>
-        </v-card-title>
-        <v-card-text>
-          <p class="text-subtitle-1">
-            Are you sure you want to delete all of your workspaces?
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            @click="closeDeleteAllWorkspacesDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="red"
-            variant="text"
-            @click="deleteWorkspace(true)"
-          >
-            Delete
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <v-dialog
-      v-if="workspaceToDelete"
+      <p class="text-subtitle-1">
+        Are you sure you want to delete all of your workspaces?
+      </p>
+    </confirm-dialog>
+    <confirm-dialog
+      v-if="showDeleteWorkspaceDialogModel"
       v-model="showDeleteWorkspaceDialogModel"
-      max-width="500px"
+      title="Delete Workspace"
+      confirm-label="Delete"
+      confirm-color="red"
+      @confirm="deleteWorkspace(false)"
     >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Delete Workspace</span>
-        </v-card-title>
-        <v-card-text>
-          <p class="text-subtitle-1">
-            Workspace <code>{{ workspaceToDelete.name }}</code>
-            will be deleted. Continue?
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            @click="closeDeleteWorkspaceDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="red"
-            variant="text"
-            @click="deleteWorkspace(false)"
-          >
-            Delete
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <v-dialog
+      <p class="text-subtitle-1">
+        Workspace <code>{{ workspaceToDelete.name }}</code>
+        will be deleted. Continue?
+      </p>
+    </confirm-dialog>
+    <text-dialog
+      v-if="showAddWorkspaceDialogModel"
       v-model="showAddWorkspaceDialogModel"
-      max-width="500px"
-    >
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Add Workspace</span>
-        </v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="newWorkspaceName"
-            label="Name of the new workspace"
-            :autofocus="true"
-            @keydown.enter="addWorkspace(newWorkspaceName)"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            variant="text"
-            color="red"
-            @click="closeAddWorkspaceDialog"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            variant="text"
-            @click="addWorkspace(newWorkspaceName)"
-          >
-            Add
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+      title="New Workspace"
+      submit-label="Create"
+      input-label="Name of the new workspace"
+      :maxlength="maxWorkspaceNameLength"
+      @submit="addWorkspace"
+    />
+    <text-dialog
+      v-if="showRenameWorkspaceDialogModel"
+      v-model="showRenameWorkspaceDialogModel"
+      title="Rename Workspace"
+      submit-label="Rename"
+      input-label="New workspace name"
+      :input-value="renamedWorkspace?.name"
+      :maxlength="maxWorkspaceNameLength"
+      @submit="renameWorkspace"
+    />
   </v-card>
 </template>
 
 <script setup>
 import {
-	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus,
+	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus, mdiRename,
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {inject, onMounted, ref} from 'vue';
+import {
+	inject, onMounted, ref, toRaw,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import TextDialog from '@/components/common/TextDialog.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -217,12 +173,13 @@ const workspaceList = ref([]);
 const showDeleteAllDialog = ref(false);
 const showDeleteWorkspaceDialogModel = ref(false);
 const showAddWorkspaceDialogModel = ref(false);
+const showRenameWorkspaceDialogModel = ref(false);
 const workspaceToDelete = ref(null);
+const renamedWorkspace = ref(null);
 const isLoading = ref(false);
 const showSearchField = ref(false);
 const search = ref('');
 const sortBy = ref([{key: 'modTimeUnix', order: 'desc'}]);
-const newWorkspaceName = ref('');
 const headers = [
 	{
 		title: 'Name', key: 'name', align: 'start', sortable: false,
@@ -234,6 +191,8 @@ const headers = [
 		title: '', key: 'actions', sortable: false, align: 'end',
 	},
 ];
+
+const maxWorkspaceNameLength = 50;
 
 // Hooks
 onMounted(() => {
@@ -272,11 +231,49 @@ async function loadWorkspaceList() {
 	isLoading.value = false;
 }
 
+async function renameWorkspace(workspace) {
+	const workspaceName = workspace;
+	const workspaceUID = renamedWorkspace.value.uid;
+	if (workspaceName === '') {
+		setErrorMessage('workspace name must not be empty');
+		return;
+	}
+
+	if (workspaceName.length > maxWorkspaceNameLength) {
+		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+		return;
+	}
+
+	if (workspaceUID === '') {
+		setErrorMessage('workspace UID is not set');
+		return;
+	}
+
+	isLoading.value = true;
+
+	try {
+		await dakar.workspace.workspacesRenamePost({
+			workspace: {name: workspaceName, workspaceUID},
+		});
+		msgStore.resetMessages();
+		await refreshWorkspaceList();
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
 async function addWorkspace(name) {
 	showAddWorkspaceDialogModel.value = false;
 	const workspaceName = name.trim();
 	if (workspaceName === '') {
 		setErrorMessage('workspace name must not be empty');
+		return;
+	}
+
+	if (workspaceName.length > maxWorkspaceNameLength) {
+		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
 		return;
 	}
 
@@ -336,8 +333,16 @@ async function deleteWorkspace(all) {
 	}
 
 	isLoading.value = false;
-	showDeleteWorkspaceDialogModel.value = false;
-	showDeleteAllDialog.value = false;
+}
+
+function showRenameDialog(workspace) {
+	if (isLoading.value) {
+		return;
+	}
+
+	// Workspace is a ref -> ned to convert and clone it
+	renamedWorkspace.value = structuredClone(toRaw(workspace));
+	showRenameWorkspaceDialogModel.value = true;
 }
 
 function showDeleteWorkspaceDialog(workspace) {
@@ -349,20 +354,12 @@ function showDeleteWorkspaceDialog(workspace) {
 	workspaceToDelete.value = workspace;
 }
 
-function closeDeleteWorkspaceDialog() {
-	showDeleteWorkspaceDialogModel.value = false;
-}
+function showDeleteAllWorkspacesDialog() {
+	if (isLoading.value) {
+		return;
+	}
 
-function 	showDeleteAllWorkspacesDialog() {
 	showDeleteAllDialog.value = true;
-}
-
-function 	closeDeleteAllWorkspacesDialog() {
-	showDeleteAllDialog.value = false;
-}
-
-function closeAddWorkspaceDialog() {
-	showAddWorkspaceDialogModel.value = false;
 }
 
 </script>

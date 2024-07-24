@@ -16,9 +16,14 @@
           :items="transactions"
         >
           <template #item.txhash="{ item }">
-            <router-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}">
+            <store-link
+              class="shorten"
+              disable-select
+              :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+              @clicked="model = false"
+            >
               {{ item.txhash }}
-            </router-link>
+            </store-link>
           </template>
           <template #item.dateTime="{ item }">
             <span>{{ item.dateTime.toLocaleString() }}</span>
@@ -31,6 +36,7 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 defineProps({
 	transactions: {type: Array, required: true},

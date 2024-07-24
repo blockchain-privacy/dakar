@@ -12,7 +12,11 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"strings"
+	"time"
 )
+
+const MaxWorkspaceNameLength = 50
 
 type HeuristicWork struct {
 	executor       heuristics.Executor
@@ -43,7 +47,7 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 		return "", err
 	}
 
-	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
+	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
 
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, h.userUID, h.workspaceUID)
 	if err != nil {
@@ -67,7 +71,7 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 		return false
 	})
 
-	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
+	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
 	if err := encodeAndStoreWorkspaceState(dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight); err != nil {
 		return "", err
@@ -188,7 +192,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 		return nil, cliutil.NewStackError(err)
 	}
 
-	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
+	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
 
 	var clusterHeight int64
 	if w.ClusterHeight != nil {
@@ -211,7 +215,7 @@ func GetAndRefreshWorkspace(dgraph external.Database, worker *worker.Worker, wor
 	needToStore, dummyHeuristics := filterDummyNodes(worker, dummyHeuristics, userUID)
 
 	if updatedConnections || needToStore {
-		w.Nodes = append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
+		w.Nodes = slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
 		err = encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
 		if err != nil {
@@ -253,45 +257,16 @@ func UpdateNodeCoordinates(dgraph external.Database, workspaceMutex *Mutex, work
 		w.Nodes, w.ClusterHeight)
 }
 
-// DeleteNode removes a node and all its dependent node from a workspace.
-// Returns all node UIDs which have been deleted.
-func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
-	userUID string, nodeUID string) ([]string, error) {
-	workspaceLock := workspaceMutex.Lock(workspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(w.Nodes) == 0 {
-		return nil, cliutil.NewStackErrorf(
-			"node deletion request for empty workspace. workspace: %s, node: %s", workspaceUID, nodeUID)
-	}
-
-	var deletedNode *workspace.Node
-	for _, n := range w.Nodes {
-		if n.UID == nodeUID {
-			deletedNode = &n // #nosec G601, false positive as of go1.22
-			break
-		}
-	}
-
-	if deletedNode == nil {
-		return nil, cliutil.NewStackErrorf(
-			"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, nodeUID)
-	}
-
+func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes []workspace.Node,
+	userUID string, workspaceUID string) ([]string, error) {
 	var deletedNodes []string
-
-	if deletedNode.Type == workspace.NodeTypeHeuristic {
-		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
-		for _, n := range w.Nodes {
+	if node.Type == workspace.NodeTypeHeuristic {
+		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
+		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
 		}
 
-		uids := workspace.FindDescendantHeuristicUIDs(nodeMap, deletedNode.UID)
+		uids := workspace.FindDescendantHeuristicUIDs(nodeMap, node.UID)
 
 		// delete the actual heuristics
 		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, userUID, workspaceUID); err != nil {
@@ -302,18 +277,16 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 			return nil, err
 		}
 
-		// remove heuristics from nodes
-		w.Nodes = workspace.DeleteNodes(w.Nodes, uids)
 		deletedNodes = uids
-	} else if deletedNode.IsDestination() {
-		nodeMap := make(map[string]workspace.Node, len(w.Nodes))
-		for _, n := range w.Nodes {
+	} else if node.IsDestination() {
+		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
+		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
 		}
 
 		// collect all heuristic UIDs
 		var children []string
-		for _, child := range deletedNode.Children {
+		for _, child := range node.Children {
 			children = append(children, workspace.FindDescendantHeuristicUIDs(nodeMap, child)...)
 		}
 
@@ -328,12 +301,69 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 			}
 		}
 
-		deletedNodes = append(children, deletedNode.UID)
-		w.Nodes = workspace.DeleteNodes(w.Nodes, deletedNodes)
+		deletedNodes = append(children, node.UID)
 	} else {
-		w.Nodes = workspace.DeleteNodes(w.Nodes, []string{deletedNode.UID})
-		deletedNodes = []string{deletedNode.UID}
+		deletedNodes = []string{node.UID}
 	}
+
+	return deletedNodes, nil
+}
+
+// DeleteNodes removes nodes and all their dependent nodes from a workspace.
+// Returns all node UIDs which have been deleted.
+func DeleteNodes(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+	userUID string, nodeUIDs []string) ([]string, error) {
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(w.Nodes) == 0 {
+		return nil, cliutil.NewStackErrorf(
+			"node deletion request for empty workspace. workspace: %s", workspaceUID)
+	}
+
+	nodesToDelete := make(map[string]*workspace.Node, len(nodeUIDs))
+	for _, clientNode := range nodeUIDs {
+		found := false
+		for _, n := range w.Nodes {
+			if n.UID == clientNode {
+				nodesToDelete[n.UID] = &n // #nosec G601, false positive as of go1.22
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return nil, cliutil.NewStackErrorf(
+				"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, clientNode)
+		}
+	}
+
+	deleteNodesMap := map[string]bool{}
+	for _, n := range nodesToDelete {
+		nodes, err := deleteNode(dgraph, n, w.Nodes, userUID, workspaceUID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, delNode := range nodes {
+			deleteNodesMap[delNode] = true
+			// while deleting the current node, other connected nodes might also be deleted.
+			// Therefore, remove all these nodes from future iteration as they have been handled already
+			delete(nodesToDelete, delNode)
+		}
+	}
+
+	deletedNodes := cliutil.GetMapKeys(deleteNodesMap)
+
+	// check if any notes need to be deleted
+	deletedNodes = append(deletedNodes, findDisconnectedNotes(w.Nodes, deletedNodes)...)
+
+	w.Nodes = workspace.DeleteNodes(w.Nodes, deletedNodes)
 
 	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 		w.Nodes, w.ClusterHeight); err != nil {
@@ -343,9 +373,22 @@ func DeleteNode(dgraph external.Database, workspaceMutex *Mutex, workspaceUID st
 	return deletedNodes, nil
 }
 
-// AddNode adds a node to a workspace and refreshes the connections between all nodes.
-func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
-	userUID string, newNode *workspace.Node) ([]workspace.Node, error) {
+// findDisconnectedNotes finds all notes which would be unconnected if the nodes in deletedNodes where deleted.
+func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []string {
+	var orphanNotes []string
+	for _, n := range nodes {
+		// note can only have one child
+		if n.Type == workspace.NodeTypeNote && len(n.Children) > 0 && slices.Contains(deletedNodes, n.Children[0]) {
+			orphanNotes = append(orphanNotes, n.UID)
+		}
+	}
+
+	return orphanNotes
+}
+
+// AddNodes adds a node to a workspace and refreshes the connections between all nodes.
+func AddNodes(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
+	userUID string, newNodes []*workspace.Node) ([]workspace.Node, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -354,12 +397,12 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return nil, err
 	}
 
-	nodeMap, dummyHeuristics := separateDummyHeuristics(w.Nodes)
+	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
-	if len(nodeMap) == 0 && !newNode.IsDestination() {
-		frontEndNodes := []workspace.Node{*newNode}
+	if len(nodeMap) == 0 && len(newNodes) == 1 && !newNodes[0].IsDestination() {
+		frontEndNodes := []workspace.Node{*newNodes[0]}
 		if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID,
 			frontEndNodes, w.ClusterHeight); err != nil {
 			return nil, err
@@ -368,12 +411,24 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 		return frontEndNodes, nil
 	}
 
-	if _, ok := nodeMap[newNode.UID]; ok {
-		// new node is already in current state, therefore there is nothing to do
+	// check if all new nodes already exist in the workspace
+	receivedNewNode := false
+	for _, newNode := range newNodes {
+		if _, ok := nodeMap[newNode.UID]; !ok {
+			receivedNewNode = true
+			break
+		}
+	}
+
+	if !receivedNewNode {
+		// all new nodes are already in current state, therefore there is nothing to do
 		return nil, nil
 	}
 
-	nodeMap[newNode.UID] = *newNode
+	for _, newNode := range newNodes {
+		nodeMap[newNode.UID] = *newNode
+	}
+
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
 	if err != nil {
 		return nil, err
@@ -381,9 +436,69 @@ func AddNode(dgraph external.Database, workspaceMutex *Mutex, worker *worker.Wor
 
 	_, dummyHeuristics = filterDummyNodes(worker, dummyHeuristics, userUID)
 
-	frontEndNodes := append(cliutil.GetMapValues(nodeMap), dummyHeuristics...)
+	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
 
 	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
+		return nil, err
+	}
+
+	return frontEndNodes, nil
+}
+
+const noteUIDPrefix = "note_"
+
+// Generates a note uid using unix time. The note uid only has to be unique between the notes of a workspace.
+// Therefore it is fine to not use cryptographically secure functions.
+func generateNoteUID() string {
+	return noteUIDPrefix + strconv.FormatInt(time.Now().Unix(), 10)
+}
+
+// AddNote adds a note to a workspace
+func AddNote(dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
+	userUID string, note workspace.Node) ([]workspace.Node, error) {
+	if len(note.Children) == 0 {
+		return nil, cliutil.NewStackErrorStr("note has no children")
+	}
+
+	if note.UID != "" && !strings.HasPrefix(note.UID, noteUIDPrefix) {
+		return nil, cliutil.NewStackErrorf("invalid note uid: %s", note.UID)
+	}
+
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
+
+	if len(nodeMap) == 0 {
+		return nil, cliutil.NewStackErrorStr("trying to add note to an empty workspace")
+	}
+
+	if _, ok := nodeMap[note.Children[0]]; !ok {
+		// parent does not exist
+		return nil, cliutil.NewStackErrorf("trying to add note with non-existing child %s", note.Children[0])
+	}
+
+	// if it is a new node generate a uid
+	if note.UID == "" {
+		note.UID = generateNoteUID()
+	} else {
+		// remove existing note
+		notes = slices.DeleteFunc(notes, func(node workspace.Node) bool {
+			return node.UID == note.UID
+		})
+	}
+
+	note.Type = workspace.NodeTypeNote
+
+	notes = append(notes, note)
+	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
+
+	if err := encodeAndStoreWorkspaceState(dgraph, userUID, workspaceUID, frontEndNodes, nil); err != nil {
 		return nil, err
 	}
 
@@ -455,46 +570,48 @@ func isWorkspaceOutdated(dgraph external.Database,
 		return false, nil
 	}
 
-	containsCluster := false
-	uids := make([]string, len(w.Nodes))
-	for i, n := range w.Nodes {
-		if n.Type == workspace.NodeTypeCluster {
-			containsCluster = true
+	var clusterUIDs []string //nolint:prealloc
+	for _, n := range w.Nodes {
+		if n.Type != workspace.NodeTypeCluster {
+			continue
 		}
-		uids[i] = n.UID
+		clusterUIDs = append(clusterUIDs, n.UID)
 	}
 
 	// workspace does not contain a cluster, therefore it can not be outdated
-	if !containsCluster {
+	if len(clusterUIDs) == 0 {
 		return false, nil
 	}
 
-	isOutdated, err := workspace.IsWorkspaceStateOutdated(dgraph, *w.ClusterHeight, uids)
+	isOutdated, err := workspace.IsWorkspaceStateOutdated(dgraph, *w.ClusterHeight, clusterUIDs)
 	if err != nil {
 		return false, err
 	}
 	return isOutdated, nil
 }
 
-// separateDummyHeuristics separates dummy heuristics from other nodes:
+// separateNodes separates nodes:
 // - general node: transactions, heuristics and clusters
 // - dummy heuristic node: heuristics waiting to be executed
-func separateDummyHeuristics(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node) {
+// - notes node: notes
+func separateNodes(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node, []workspace.Node) {
 	nodeMap := map[string]workspace.Node{}
-	var dummyHeuristicMap []workspace.Node
-
+	var dummyHeuristics []workspace.Node
+	var notes []workspace.Node
 	for _, n := range nodes {
 		if n.UID == "" || n.Type == "" {
 			continue
 		}
 
-		if n.IsLoading() {
-			dummyHeuristicMap = append(dummyHeuristicMap, n)
+		if n.Type == workspace.NodeTypeNote {
+			notes = append(notes, n)
+		} else if n.IsLoading() {
+			dummyHeuristics = append(dummyHeuristics, n)
 		} else {
 			nodeMap[n.UID] = n
 		}
 	}
-	return nodeMap, dummyHeuristicMap
+	return nodeMap, dummyHeuristics, notes
 }
 
 // filterDummyNodes filters the given nodes based on wether they exist in the worker work log and/or

@@ -16,7 +16,7 @@ var (
 	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
-// AddWorkspace creates a new workspace with the given name
+// AddWorkspace creates a new workspace
 func AddWorkspace(c external.Database, name string, userUID string) (err error) {
 	if name == "" || userUID == "" {
 		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
@@ -42,9 +42,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 	}
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, &api.Request{
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
+		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	})
 	if err != nil {
@@ -56,6 +54,38 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 		err = cliutil.NewStackErrorStr("new workspace was not created")
 		return
 	}
+
+	return
+}
+
+// RenameWorkspace renames a workspace
+func RenameWorkspace(c external.Database, name string, userUID string, workspaceUID string) (err error) {
+	if name == "" || userUID == "" {
+		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
+	}
+	w := Workspace{
+		UID:              workspaceUID,
+		Name:             name,
+		ModificationTime: time.Now().UTC().Format(time.RFC3339),
+		ClusterHeight:    nil, // unset
+	}
+	w.SetDType()
+
+	type dummyUser struct {
+		UID        string      `json:"uid,omitempty"`
+		Workspaces []Workspace `json:"User.workspaces,omitempty"`
+	}
+
+	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	_, err = db.TxWithRetryAndResponse(c, time.Minute*10, &api.Request{
+		Mutations: []*api.Mutation{{SetJson: pb}},
+		CommitNow: true,
+	})
 
 	return
 }

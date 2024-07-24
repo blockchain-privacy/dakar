@@ -7,59 +7,80 @@
     :title-one-line="false"
   >
     <template #actions>
-      <div class="overflow-auto">
-        <v-chip
-          :rounded="true"
-          class="me-2"
-          variant="tonal"
-          :prepend-icon="mdiDelete"
-          @click="emitDeleteEntity"
+      <v-chip
+        :rounded="true"
+        class="me-2"
+        variant="tonal"
+        :prepend-icon="mdiDelete"
+        @click="emitDeleteEntity"
+      >
+        Delete
+      </v-chip>
+      <v-chip
+        :rounded="true"
+        class="me-2"
+        color="primary"
+        variant="tonal"
+        :prepend-icon="mdiNotePlus"
+        :disabled="disableAddingNodes || auxiliaryData?.loading"
+        @click="emitAddNote"
+      >
+        Add Note
+      </v-chip>
+      <template v-if="!isLoading && entityData">
+        <template
+          v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
+            (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
         >
-          Delete
-        </v-chip>
-        <template v-if="!isLoading && entityData">
-          <template
-            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
-              (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
-          >
-            <v-chip
-              v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
-              :rounded="true"
-              color="primary"
-              variant="tonal"
-              class="me-2"
-              :prepend-icon="mdiShapeCirclePlus"
-              :disabled="disableAddingNodes || auxiliaryData?.loading"
-              @click="handleAddHeuristicClick"
-            >
-              Add Heuristic
-            </v-chip>
-          </template>
-          <fingerprint-chip
-            v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
-            :transaction-hash="identifier"
-            class="me-2"
-          />
-          <privacy-chip
-            v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION&& entityData[0]?.privacytype >= 0"
-            :privacy-type="entityData[0].privacytype"
-          />
-          <exclusion-chip
-            v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
-            :address-hash="entityData.addresshash"
-          />
           <v-chip
-            v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
+            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
             :rounded="true"
             color="primary"
             variant="tonal"
-            :prepend-icon="mdiFileDownloadOutline"
-            @click="downloadReport"
+            class="me-2"
+            :prepend-icon="mdiShapeCirclePlus"
+            :disabled="disableAddingNodes || auxiliaryData?.loading"
+            @click="handleAddHeuristicClick"
           >
-            Download
+            Add Heuristic
           </v-chip>
         </template>
-      </div>
+        <fingerprint-chip
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
+          :transaction-hash="identifier"
+          class="me-2"
+        />
+        <privacy-chip
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION&& entityData[0]?.privacytype >= 0"
+          :privacy-type="entityData[0].privacytype"
+        />
+        <exclusion-chip
+          v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
+          :address-hash="entityData.addresshash"
+        />
+        <v-chip
+          v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
+          :rounded="true"
+          color="primary"
+          variant="tonal"
+          :prepend-icon="mdiFileDownloadOutline"
+          @click="downloadReport"
+        >
+          Download
+        </v-chip>
+      </template>
+    </template>
+    <template #secondaryActions>
+      <add-nodes-chip
+        :disabled="disableAddingNodes || auxiliaryData?.loading"
+        :show-select-all-addresses="showSelectAddresses"
+        :show-select-all-transactions="showSelectTransactions"
+        @add-nodes="emitAddNodes"
+        @select-all-addresses="selectAllAddresses"
+        @deselect-all-addresses="deselectAllAddresses"
+        @select-all-transactions="selectAllTransactions"
+        @deselect-all-transactions="deselectAllTransactions"
+      />
     </template>
     <template #body>
       <fade-transition>
@@ -102,55 +123,6 @@
       </fade-transition>
     </template>
   </side-bar>
-  <v-dialog
-    v-model="routeGuardDialogModel"
-    max-width="300px"
-    :contained="true"
-    :no-click-animation="true"
-  >
-    <v-card>
-      <v-card-text class="d-flex align-center flex-column">
-        <v-btn
-          class="mx-auto"
-          variant="text"
-          size="x-large"
-          :to="routeGuardTo"
-          target="_blank"
-          @click="routeGuardDialogModel = false"
-        >
-          <v-icon
-            :icon="mdiOpenInNew"
-            class="me-2"
-          />
-          <div
-            class="shorten"
-            style="max-width: 200px; text-transform: none !important;"
-          >
-            Go to {{ routeGuardId }}
-          </div>
-        </v-btn>
-        <named-divider
-          title="Or"
-          style="width:100%"
-          :vertical-margin="2"
-        />
-        <v-btn
-          class="mx-auto"
-          variant="text"
-          size="x-large"
-          style="text-transform: none !important;"
-          :disabled="disableAddingNodes"
-          @click="handleRouteGuardDialogAdd"
-        >
-          <v-icon
-            :icon="mdiPlus"
-            class="me-2"
-          />
-          Add to Workspace
-        </v-btn>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
 </template>
 
 <script setup>
@@ -159,8 +131,7 @@ import {
 	mdiChartBar,
 	mdiDelete,
 	mdiFileDownloadOutline,
-	mdiOpenInNew,
-	mdiPlus,
+	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -170,7 +141,7 @@ import {
 } from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
-import {onBeforeRouteLeave, useRoute} from 'vue-router';
+import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
@@ -179,13 +150,13 @@ import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities';
 import {
-	ROUTE_NAME_ADDRESS_PAGE,
-	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants';
-import NamedDivider from '@/components/common/NamedDivider.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
+import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -194,21 +165,24 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addHeuristic', 'addNode', 'deleteEntity']);
+const emit = defineEmits(['addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
+const workspaceStore = useWorkspaceStore();
 
 const isLoading = ref(true);
 const entityData = ref();
+const showSelectAddresses = ref(true);
+const showSelectTransactions = ref(true);
 
 let oldIdentifier = null;
-let routeGuardTo = null;
-let routeGuardId = '';
-const routeGuardDialogModel = ref(false);
+
+// Holds all transactions which can be selected and added to the workspace
+const selectableEntities = new Map();
 
 // Computed
 const title = computed(() => {
@@ -227,6 +201,7 @@ const title = computed(() => {
 // Hooks
 onUpdated(async () => {
 	if (props.identifier && props.identifier !== oldIdentifier) {
+		workspaceStore.workspaceNodes.clear();
 		isLoading.value = true;
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
@@ -241,24 +216,10 @@ onUpdated(async () => {
 			await getHeuristicData();
 		}
 
+		setSelectableEntities();
+
 		isLoading.value = false;
 	}
-});
-
-onBeforeRouteLeave(to => {
-	// Don't activate route guard if sidbar is closed
-	if (!model.value) {
-		return true;
-	}
-
-	if ((to.name === ROUTE_NAME_TRANSACTION_PAGE || to.name === ROUTE_NAME_ADDRESS_PAGE) && to.params?.id) {
-		routeGuardTo = to;
-		routeGuardId = to.params.id;
-		routeGuardDialogModel.value = true;
-		return false;
-	}
-
-	return true;
 });
 
 // Computed
@@ -276,6 +237,56 @@ const sideBarIcon = computed(() => {
 });
 
 // Functions
+
+function setSelectableEntities() {
+	selectableEntities.clear();
+	switch (props.type) {
+		case WORKSPACE_NODE_TYPE_TRANSACTION:
+			for (const t of entityData.value) {
+				if (t.inputs) {
+					for (const input of t.inputs) {
+						selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+						selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+					}
+				}
+
+				if (t.outputs) {
+					for (const output of t.outputs) {
+						selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+						selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+					}
+				}
+			}
+
+			showSelectTransactions.value = true;
+			showSelectAddresses.value = true;
+
+			break;
+		case WORKSPACE_NODE_TYPE_CLUSTER:
+			for (const output of entityData.value.addr_outputs) {
+				selectableEntities.set(output.input_transaction, {id: output.input_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				selectableEntities.set(output.output_transaction, {id: output.output_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			}
+
+			showSelectTransactions.value = true;
+			showSelectAddresses.value = false;
+
+			break;
+		case WORKSPACE_NODE_TYPE_HEURISTIC:
+			for (const cluster of entityData.value.clusters) {
+				for (const tx of cluster.txs) {
+					selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				}
+			}
+
+			showSelectTransactions.value = true;
+			showSelectAddresses.value = false;
+
+			break;
+		default:
+	}
+}
+
 async function getTransactionData() {
 	if (props.identifier === '') {
 		return;
@@ -390,22 +401,44 @@ function emitDeleteEntity() {
 	model.value = false;
 }
 
-function handleAddHeuristicClick() {
-	emit('addHeuristic');
+function emitAddNote() {
+	emit('addNote', props.identifier);
+	model.value = false;
 }
 
-function handleRouteGuardDialogAdd() {
-	emit('addNode', routeGuardId);
-	routeGuardDialogModel.value = false;
+function emitAddNodes(nodes) {
+	emit('addNodes', nodes);
+	model.value = false;
+}
+
+function selectAllTransactions() {
+	workspaceStore.setWorkspaceNodes([...selectableEntities.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION));
+}
+
+function selectAllAddresses() {
+	workspaceStore.setWorkspaceNodes([...selectableEntities.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER));
+}
+
+function deselectAllTransactions() {
+	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+		.map(d => d.id));
+}
+
+function deselectAllAddresses() {
+	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
+		.map(d => d.id));
+}
+
+function handleAddHeuristicClick() {
+	emit('addHeuristic');
 }
 
 </script>
 
 <style scoped>
-.shorten {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  margin-right: 2px;
-}
+
 </style>

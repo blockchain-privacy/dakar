@@ -320,5 +320,6 @@ export function getColorMap() {
 	colorMap.set('collateral payment', '#009E73');
 	colorMap.set('origin', '#D55E00');
 	colorMap.set('mixing', '#56B4E9');
+
 	return colorMap;
 }

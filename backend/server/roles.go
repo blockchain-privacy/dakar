@@ -71,14 +71,17 @@ var (
 		getRouteAddAddressExclusions():       true,
 		getRouteDeleteAllAddressExclusions(): true,
 		// workspace
-		getRouteWorkspaceAddNode():    true,
-		getRouteWorkspaces():          true,
-		getRouteAddWorkspace():        true,
-		getRouteGetWorkspace():        true,
-		getRouteUpdateWorkspace():     true,
-		getRouteDeleteWorkspace():     true,
-		getRouteDeleteAllWorkspaces(): true,
-		getRouteWorkspaceDeleteNode(): true,
+		getRouteWorkspaceAddNodes():    true,
+		getRouteWorkspaces():           true,
+		getRouteAddWorkspace():         true,
+		getRouteGetWorkspace():         true,
+		getRouteUpdateWorkspace():      true,
+		getRouteDeleteWorkspace():      true,
+		getRouteDeleteAllWorkspaces():  true,
+		getRouteWorkspaceDeleteNode():  true,
+		getRouteRenameWorkspace():      true,
+		getRouteDeleteAllWorkspaces():  true,
+		getRouteWorkspacesConnection(): true,
 	}
 )
 

@@ -120,60 +120,55 @@
         </v-card-text>
       </v-card>
     </template>
-    <v-card
-      v-show="activities && activities.length > 0"
-      class="my-3"
-      variant="text"
-    >
-      <v-card-text>
-        <v-tabs
-          v-model="graphTabs"
-          :grow="true"
-          @update:model-value="onTabChange"
+    <div v-show="activities && activities.length > 0">
+      <v-tabs
+        v-model="graphTabs"
+        :grow="true"
+        @update:model-value="onTabChange"
+      >
+        <v-tab key="histogram">
+          Histogram
+        </v-tab>
+        <v-tab key="graph">
+          Force Graph
+        </v-tab>
+      </v-tabs>
+      <v-window
+        v-model="graphTabs"
+        :touch="false"
+        style="line-height: 0"
+      >
+        <v-window-item
+          key="histogram"
+          :eager="true"
         >
-          <v-tab key="histogram">
-            Histogram
-          </v-tab>
-          <v-tab key="graph">
-            Force Graph
-          </v-tab>
-        </v-tabs>
-        <v-window
-          v-model="graphTabs"
-          :touch="false"
-        >
-          <v-window-item
-            key="histogram"
-            :eager="true"
-          >
-            <v-card variant="text">
-              <v-card-text>
-                <p
-                  v-if="showNotEnoughDataMsg && !isLoading"
-                  class="text-h6"
-                  style="text-align: center"
-                >
-                  Not enough data available to draw chart
-                </p>
-                <div
-                  v-if="showHistogram"
-                  class="text-subtitle-1"
-                  style="text-align: center"
-                >
-                  {{
-                    selectedPrivacyLabel.length === 5 ? 'All Privacy'
-                    : selectedPrivacyLabel.map(capitalize).join(', ')
-                  }}
-                  Transactions
-                </div>
-                <transaction-table-dialog
-                  v-model="barTable.show"
-                  :headers="barTable.headers"
-                  :transactions="barTable.transactions"
-                  :start-date="barTable.startDate"
-                  :end-date="barTable.endDate"
-                />
-              </v-card-text>
+          <v-card variant="text">
+            <v-card-text>
+              <p
+                v-if="showNotEnoughDataMsg && !isLoading"
+                class="text-h6"
+                style="text-align: center"
+              >
+                Not enough data available to draw chart
+              </p>
+              <div
+                v-if="showHistogram"
+                class="text-subtitle-1"
+                style="text-align: center"
+              >
+                {{
+                  selectedPrivacyLabel.length === 5 ? 'All Privacy'
+                  : selectedPrivacyLabel.map(capitalize).join(', ')
+                }}
+                Transactions
+              </div>
+              <transaction-table-dialog
+                v-model="barTable.show"
+                :headers="barTable.headers"
+                :transactions="barTable.transactions"
+                :start-date="barTable.startDate"
+                :end-date="barTable.endDate"
+              />
               <div style="overflow: auto">
                 <svg
                   v-show="showHistogram"
@@ -181,63 +176,68 @@
                   style="min-width: 1100px"
                 />
               </div>
-            </v-card>
-          </v-window-item>
-          <v-window-item
-            key="graph"
-            :eager="true"
+            </v-card-text>
+          </v-card>
+        </v-window-item>
+        <v-window-item
+          key="graph"
+          :eager="true"
+        >
+          <v-card
+            v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
+            variant="text"
           >
-            <v-card variant="text">
-              <v-card-text>
-                <div
-                  v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
-                  style="text-align:center"
+            <v-card-text>
+              <div style="text-align:center">
+                <v-alert
+                  variant="text"
+                  :prominent="true"
+                  type="warning"
                 >
-                  <v-alert
-                    variant="text"
-                    :prominent="true"
-                    type="warning"
-                  >
-                    The mixing activity results have more than
-                    {{ tooManyTransactionsThreshold }} transactions.
-                    Displaying a large number of items in a force graph may severely degrade
-                    the performance of your browser.
-                    Consider filtering the results by time or privacy type.
-                  </v-alert>
-                  <v-btn
-                    color="primary"
-                    @click="showForceGraphDespiteWarning"
-                  >
-                    Display force graph anyway
-                  </v-btn>
-                </div>
-
-                <p
-                  v-if="!showGraph && !isLoading && !showTooManyTransactionsMsg"
-                  class="text-h6"
-                  style="text-align: center"
+                  The mixing activity results have more than
+                  {{ tooManyTransactionsThreshold }} transactions.
+                  Displaying a large number of items in a force graph may severely degrade
+                  the performance of your browser.
+                  Consider filtering the results by time or privacy type.
+                </v-alert>
+                <v-btn
+                  color="primary"
+                  @click="showForceGraphDespiteWarning"
                 >
-                  No data available
-                </p>
-                <transaction-dialog
-                  v-if="clickedNode"
-                  v-model="showNodeDialog"
-                  :input-txs="clickedNode.input_txs?clickedNode.input_txs:[]"
-                  :date-time="clickedNode.dateTime"
-                  :privacy-type="clickedNode.privacytype"
-                  :tx-hash="clickedNode.txhash"
-                />
-              </v-card-text>
-              <svg
-                v-show="showGraph"
-                id="mixing_activity_force_graph"
-                style="width:100%; height:500px"
-              />
-            </v-card>
-          </v-window-item>
-        </v-window>
-      </v-card-text>
-    </v-card>
+                  Display force graph anyway
+                </v-btn>
+              </div>
+            </v-card-text>
+          </v-card>
+          <v-card
+            v-if="!showGraph && !isLoading && !showTooManyTransactionsMsg"
+            variant="text"
+          >
+            <v-card-text>
+              <p
+                class="text-h6"
+                style="text-align: center"
+              >
+                No data available
+              </p>
+            </v-card-text>
+          </v-card>
+          <transaction-dialog
+            v-if="clickedNode"
+            v-model="showNodeDialog"
+            :input-txs="clickedNode.input_txs?clickedNode.input_txs:[]"
+            :date-time="clickedNode.dateTime"
+            :privacy-type="clickedNode.privacyTypeLabel"
+            :tx-hash="clickedNode.txhash"
+          />
+          <svg
+            v-show="showGraph"
+            id="mixing_activity_force_graph"
+            style="width:100%; height:500px"
+          />
+        </v-window-item>
+      </v-window>
+    </div>
     <v-progress-linear
       v-if="isLoading"
       class="mt-10"
@@ -248,16 +248,17 @@
 
 <script setup>
 import Histogram from '@/d3Documents/histogram';
-import ForceGraph from '@/d3Documents/forceGraph';
 import {getColorMap, getPrivacyTypeLabel} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
 import {
-	computed, inject, onBeforeMount, onMounted, ref, watch,
+	computed, inject, nextTick, onBeforeMount, onMounted, ref, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import NodeGraph from '@/d3Documents/nodeGraph.js';
+import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -267,7 +268,7 @@ const props = defineProps({addressHash: {type: String, required: true}});
 const allPrivacyLabels = ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'];
 const colorMap = getColorMap();
 let svgHistogram = null;
-let svgGraph = null;
+const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;
 let initialLoadDone = false;
 let graphMode = false;
@@ -296,7 +297,7 @@ const barTable = ref({
 		title: 'Transaction', align: 'start', key: 'txhash',
 	},
 	{title: 'Timestamp', key: 'dateTime'},
-	{title: 'Transaction Type', key: 'privacytype'}],
+	{title: 'Privacy Type', key: 'privacyTypeLabel'}],
 	transactions: [],
 	startDate: '',
 	endDate: '',
@@ -306,7 +307,7 @@ const clickedNode = ref({
 	// eslint-disable-next-line camelcase
 	input_txs: [],
 	dateTime: null,
-	privacytype: '',
+	privacyTypeLabel: '',
 	txhash: '',
 });
 const showNodeDialog = ref(false);
@@ -363,9 +364,8 @@ onBeforeMount(() => {
 });
 
 onMounted(() => {
-	// Has to be called after the SVG is included in the DOM
-	svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph', colorMap);
-	svgGraph.setClickHandler(onNodeClick);
+	nodeGraph.initSvg('mixing_activity_force_graph', 1200, 500);
+	nodeGraph.setNodeClickHandler(onNodeClick);
 });
 
 // Functions
@@ -418,7 +418,7 @@ async function getMixingActivity() {
 	return response;
 }
 
-function getFilteredData(withLinks) {
+function getFilteredData(withGraphData) {
 	let fromDate = null;
 	let toDate = null;
 	let considerDate = true;
@@ -430,12 +430,11 @@ function getFilteredData(withLinks) {
 		toDate = new Date(rangePicker.value.model[1]);
 	}
 
-	const ret = {items: [], links: []};
 	const events = new Set();
 	const numActivities = activities.value.length;
-	ret.items = activities.value.filter(d => {
+	const items = activities.value.filter(d => {
 		if (selectedPrivacyLabel.value.length < 5
-        && !selectedPrivacyLabel.value.includes(d.privacytype)) {
+        && !selectedPrivacyLabel.value.includes(d.privacyTypeLabel)) {
 			return false;
 		}
 
@@ -464,25 +463,44 @@ function getFilteredData(withLinks) {
 	});
 	rangePicker.value.events = eventObj;
 
-	if (withLinks) {
-		const filteredHashes = new Set(ret.items.map(d => d.txhash));
+	if (withGraphData) {
+		const itemMap = new Map(items.map(d => [d.txhash, d]));
 
-		ret.items.forEach(d => {
+		items.forEach(d => {
 			if (!d.input_txs) {
 				return;
 			}
 
 			d.input_txs.forEach(it => {
-				if (!filteredHashes.has(it.txhash)) {
+				const currentItem = itemMap.get(it.txhash);
+				if (!currentItem) {
 					return;
 				}
 
-				ret.links.push({source: it.txhash, target: d.txhash});
+				if (currentItem.children === undefined) {
+					currentItem.children = [];
+				}
+
+				currentItem.children.push(d.txhash);
 			});
+		});
+
+		// Set children for each item
+		items.forEach(d => {
+			d.uid = d.txhash;
+			d.transactionHash = d.txhash;
+			d.type = WORKSPACE_NODE_TYPE_TRANSACTION;
+
+			const currentItem = itemMap.get(d.txhash);
+			if (currentItem === undefined || !currentItem.children) {
+				return;
+			}
+
+			d.children = currentItem.children;
 		});
 	}
 
-	return ret;
+	return items;
 }
 
 function getCategories(filtered) {
@@ -490,7 +508,7 @@ function getCategories(filtered) {
 		return selectedPrivacyLabel;
 	}
 
-	return [...new Set(filtered.map(d => d.privacytype))];
+	return [...new Set(filtered.map(d => d.privacyTypeLabel))];
 }
 
 function showForceGraphDespiteWarning() {
@@ -559,7 +577,7 @@ async function updateSvgData(pullNewData) {
 		let minDate = null;
 
 		activities.value = mixingActivity.data.activities.map(d => {
-			d.privacytype = getPrivacyTypeLabel(d.privacytype);
+			d.privacyTypeLabel = getPrivacyTypeLabel(d.privacytype);
 			d.dateTime = new Date(d.block[0].ts);
 
 			if (maxDate === null || d.dateTime > maxDate) {
@@ -581,9 +599,9 @@ async function updateSvgData(pullNewData) {
 
 	showEmptyResponseMsg.value = false;
 
-	const filtered = getFilteredData(graphMode);
+	const filteredItems = getFilteredData(graphMode);
 
-	if (!filtered.items) {
+	if (!filteredItems) {
 		isLoading.value = false;
 		showGraph.value = false;
 		showHistogram.value = false;
@@ -591,20 +609,26 @@ async function updateSvgData(pullNewData) {
 		return;
 	}
 
-	showTooManyTransactionsMsg.value = filtered.items.length > tooManyTransactionsThreshold;
+	showTooManyTransactionsMsg.value = filteredItems.length > tooManyTransactionsThreshold;
 
 	// Draw
 	if (graphMode) {
 		if (!showTooManyTransactionsMsg.value
         || overrideTooManyTransactionsWarning.value) {
-			svgGraph.draw(filtered.items, filtered.links);
 			showGraph.value = true;
+			nodeGraph.removeAllNodes(false);
+
+			// Needed so svg is not still hidden when doing force simulation
+			nextTick(() => {
+				nodeGraph.addNodes(filteredItems);
+				nodeGraph.centerGraph();
+			});
 		}
 	} else {
 		svgHistogram.reset();
 		svgHistogram.drawStacked(
-			filtered.items,
-			getCategories(filtered.items),
+			filteredItems,
+			getCategories(filteredItems),
 			colorMap,
 		);
 		showHistogram.value = !svgHistogram.empty;

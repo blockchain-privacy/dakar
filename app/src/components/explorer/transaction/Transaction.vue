@@ -90,9 +90,9 @@
       >
         <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
-      <v-row>
-        <v-col v-if="tx.inputs">
-          <p class="ml-2">
+      <v-row class="outputContainer">
+        <v-col v-if="tx.inputs && getInputs.length > 0">
+          <p class="ms-2">
             {{ getLabel(tx.inputs.length, 'Input') }}
           </p>
           <template
@@ -110,6 +110,7 @@
               :input-index="i.inputindex"
               :timestamp="i.ts"
               :privacy-type="Number(i.privacytype)"
+              :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
             />
             <v-divider
               v-if="y+1 < getInputs.length"
@@ -125,7 +126,6 @@
                 :key="i.addresshash + i.inputindex"
               >
                 <output-item
-
                   :is-input="true"
                   :amount="i.amount"
                   :address-hash="i.addresshash"
@@ -136,6 +136,7 @@
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
                   :privacy-type="Number(i.privacytype)"
+                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
                 />
                 <v-divider
                   v-if="y+1 < getResidualInputs.length"
@@ -146,9 +147,12 @@
           </v-expand-transition>
         </v-col>
         <!-- empty col if no inputs exist -->
-        <v-col v-else />
-        <v-col v-if="tx.outputs">
-          <p class="ml-2">
+        <v-col
+          v-else
+          class="emptyCol"
+        />
+        <v-col v-if="tx.outputs && getOutputs.length > 0">
+          <p class="ms-2">
             {{ getLabel(tx.outputs.length, 'Output') }}
           </p>
           <template
@@ -166,6 +170,7 @@
               :input-index="i.inputindex"
               :timestamp="i.ts"
               :privacy-type="Number(i.privacytype)"
+              :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
             />
             <v-divider
               v-if="y+1<getOutputs.length"
@@ -192,6 +197,7 @@
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
                   :privacy-type="Number(i.privacytype)"
+                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
                 />
                 <v-divider
                   v-if="y+1<getResidualOutputs.length"
@@ -202,7 +208,10 @@
           </v-expand-transition>
         </v-col>
         <!-- empty col if no outputs exist -->
-        <v-col v-else />
+        <v-col
+          v-else
+          class="emptyCol"
+        />
       </v-row>
     </v-card-text>
     <v-btn
@@ -233,7 +242,7 @@ import {convertAmount, isDestination, shortenHash} from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef,
+	computed, isProxy, ref, toRaw, toRef, isRef,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
@@ -247,6 +256,8 @@ const props = defineProps({
 	showTitleLink: {type: Boolean, required: false, default: false},
 	embed: {type: Boolean, required: false, default: false},
 	showTitleBar: {type: Boolean, required: false, default: true},
+	highlightTransaction: {type: String, required: false, default: ''},
+	filterHighlightedOutputs: {type: Boolean, required: false, default: false},
 });
 
 const showTransactionDetails = toRef(props.showDetails);
@@ -254,10 +265,15 @@ const showAllOutputs = ref(false);
 const maxOutputs = ref(3);
 
 // Computed
-const getInputs = computed(() => getLimitedItems(sortByTimestamp(props.tx.inputs)));
-const getResidualInputs = computed(() => getResidualItems(sortByTimestamp(props.tx.inputs)));
-const getOutputs = computed(() => getLimitedItems(sortByTimestamp(props.tx.outputs)));
-const getResidualOutputs = computed(() => getResidualItems(sortByTimestamp(props.tx.outputs)));
+
+const filteredInputs = computed(() => props.tx.inputs
+	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
+const filteredOutputs = computed(() => props.tx.outputs
+	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
+const getInputs = computed(() => getLimitedItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredInputs : props.tx.inputs)));
+const getResidualInputs = computed(() => getResidualItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredInputs : props.tx.inputs)));
+const getOutputs = computed(() => getLimitedItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredOutputs : props.tx.outputs)));
+const getResidualOutputs = computed(() => getResidualItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredOutputs : props.tx.outputs)));
 const areItemsLimited = computed(() => {
 	if (!props.tx) {
 		return false;
@@ -288,6 +304,9 @@ function sortByTimestamp(outputs) {
 
 	if (isProxy(outputs)) {
 		copiedOutputs = structuredClone(toRaw(outputs));
+	} else if (isRef(outputs)) {
+		// If 'outputs' is a computed value we need to convert each array element from proxy to raw
+		copiedOutputs = structuredClone(outputs.value.map(toRaw));
 	} else {
 		copiedOutputs = structuredClone(outputs);
 	}
@@ -336,5 +355,17 @@ function getResidualItems(items) {
 </script>
 
 <style scoped>
+
+.outputContainer {
+  container-type: inline-size;
+  container-name: outputContainer;
+}
+
+/* don't show col if parent is sm or smaller */
+@container outputContainer (width < 960px) {
+  .emptyCol {
+    display: none;
+  }
+}
 
 </style>

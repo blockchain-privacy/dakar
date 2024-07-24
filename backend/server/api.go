@@ -714,20 +714,40 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 	})
 }
 
-// Add Node godoc
+// Add Nodes godoc
 //
-//	@Summary	Add a node to a workspace. This will also add connections between existing nodes.
+//	@Summary	Add nodes to a workspace. This will also refresh connections between existing nodes.
 //	@Tags		workspace
 //	@Accept		json
 //	@Produce	json
-//	@Param		query	body		server.getAddWorkspaceNodeReply.request	true	"Search query"
-//	@Success	200		{object}	server.addWorkspaceNodeReply
-//	@Failure	400		{object}	server.addWorkspaceNodeReply
-//	@Failure	500		{object}	server.addWorkspaceNodeReply
-//	@Router		/workspaces/node/ [post]
-func (s *Server) handlerAddWorkspaceNode() http.Handler {
+//	@Param		query	body		server.getAddWorkspaceNodesReply.request	true	"Search query"
+//	@Success	200		{object}	server.addWorkspaceNodesReply
+//	@Failure	400		{object}	server.addWorkspaceNodesReply
+//	@Failure	500		{object}	server.addWorkspaceNodesReply
+//	@Router		/workspaces/nodes/ [post]
+func (s *Server) handlerAddWorkspaceNodes() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceNodeReply(s.db, s.workspaceMutex, s.worker, r)
+		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, s.worker, r)
+
+		sendReply(w, reply, status)
+	})
+}
+
+// Add Note godoc
+//
+//	@Summary		Add a note or update a note
+//	@Description	Add a new note (empty uid) to a workspace or update an existing one. 100 character limit for the note text.
+//	@Tags			workspace
+//	@Accept			json
+//	@Produce		json
+//	@Param			note	body		server.getAddWorkspaceNoteReply.request	true	"New note"
+//	@Success		200		{object}	server.addWorkspaceNoteReply
+//	@Failure		400		{object}	server.addWorkspaceNoteReply
+//	@Failure		500		{object}	server.addWorkspaceNoteReply
+//	@Router			/workspaces/note/ [post]
+func (s *Server) handlerAddWorkspaceNote() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getAddWorkspaceNoteReply(s.db, s.workspaceMutex, r)
 
 		sendReply(w, reply, status)
 	})
@@ -752,7 +772,7 @@ func (s *Server) handlerWorkspaces() http.Handler {
 
 // Add Workspace godoc
 //
-//	@Summary	Creates a new workspace for the current user
+//	@Summary	Creates a new workspace
 //	@Tags		workspace
 //	@Produce	json
 //	@Param		name	path		string	true	"Workspace name"
@@ -763,6 +783,24 @@ func (s *Server) handlerWorkspaces() http.Handler {
 func (s *Server) handlerAddWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getAddWorkspaceReply(s.db, r)
+
+		sendReply(w, "", status)
+	})
+}
+
+// Rename Workspace godoc
+//
+//	@Summary	Renames a workspace
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		workspace	body		server.getRenameWorkspaceReply.request	true	"Workspace"
+//	@Success	200			{string}	string
+//	@Failure	400			{string}	string
+//	@Failure	500			{string}	string
+//	@Router		/workspaces/rename/ [post]
+func (s *Server) handlerRenameWorkspace() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		status := getRenameWorkspaceReply(s.db, r)
 
 		sendReply(w, "", status)
 	})
@@ -818,6 +856,24 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 func (s *Server) handlerDeleteWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteWorkspaceNodeReply(s.db, s.workspaceMutex, r)
+
+		sendReply(w, reply, status)
+	})
+}
+
+// Get the connection between two nodes godoc
+//
+//	@Summary	Get the connection between two nodes
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		state	body		server.getWorkspaceConnectionReply.request	true	"Node which shall be deleted"
+//	@Success	200		{object}	server.workspaceConnectionReply
+//	@Failure	400		{object}	server.workspaceConnectionReply
+//	@Failure	500		{object}	server.workspaceConnectionReply
+//	@Router		/workspaces/connection/ [post]
+func (s *Server) handlerWorkspaceConnection() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getWorkspaceConnectionReply(s.db, r)
 
 		sendReply(w, reply, status)
 	})
@@ -961,8 +1017,12 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(), s.authorization(), maxBody()))
 
 	// Workspace
-	s.handler.Handle(getRouteWorkspaceAddNode(),
-		adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteRenameWorkspace(),
+		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteWorkspaceAddNodes(),
+		adapt(s.handlerAddWorkspaceNodes(), getRouteWorkspaceAddNodes(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteWorkspaceAddNote(),
+		adapt(s.handlerAddWorkspaceNote(), getRouteWorkspaceAddNote(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaceDeleteNode(),
 		adapt(s.handlerDeleteWorkspaceNode(), getRouteWorkspaceDeleteNode(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(), s.authorization()))
@@ -974,4 +1034,6 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllWorkspaces(),
 		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteWorkspacesConnection(),
+		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 }

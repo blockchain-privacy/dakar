@@ -19,13 +19,14 @@
           </p>
           <v-text-field
             v-model="graphQuery"
+            class="noOutline"
             style="min-width:220px; max-width:300px"
             :hide-details="true"
             variant="outlined"
             density="compact"
             color="primary"
             :single-line="true"
-            label="Add transactions or clusters"
+            label="Search"
             :disabled="isModifyingWorkspace"
             :append-inner-icon="mdiMagnify"
             @click:append-inner="handleGraphQuery(graphQuery)"
@@ -75,7 +76,6 @@
                   class="mt-3"
                   :indeterminate="true"
                   rounded
-                  :color="executionStatus.processing?'primary':''"
                 />
               </div>
             </v-card-text>
@@ -95,23 +95,70 @@
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
           @add-heuristic="openTypeSelectionSheet"
-          @add-node="handleGraphQuery"
+          @add-note="showAddNoteDialog"
+          @add-nodes="checkNodeCount"
           @delete-entity="removeGraphNode"
         />
+        <connection-side-bar
+          v-model="isConnectionSideBarOpen"
+          :connection="connectionData"
+          :workspace-uid="workspaceUID"
+          :disable-adding-nodes="isModifyingWorkspace"
+          @add-nodes="checkNodeCount"
+        />
+        <routing-dialog
+          v-model="showRouteGuardDialogModel"
+          :to="routeGuardTo"
+          :disable-adding-nodes="isModifyingWorkspace"
+          @add-node="handleGraphQuery"
+        />
+        <text-dialog
+          v-if="showAddNoteDialogModel"
+          v-model="showAddNoteDialogModel"
+          title="New Note"
+          submit-label="Create"
+          input-label="Note content"
+          :maxlength="maxNoteLength"
+          :text-area="true"
+          @submit="addNewNote"
+        />
+        <text-dialog
+          v-if="showEditNoteDialogModel"
+          v-model="showEditNoteDialogModel"
+          title="Edit Note"
+          submit-label="OK"
+          input-label="Note content"
+          :input-value="editNoteDialogValue"
+          :maxlength="maxNoteLength"
+          :text-area="true"
+          @submit="changeNote"
+        />
+        <confirm-dialog
+          v-if="showWarningDialogModel"
+          v-model="showWarningDialogModel"
+          title="Adding Entities"
+          confirm-label="Add"
+          @confirm="handleWarningDialogConfirm"
+        >
+          <p class="text-subtitle-1">
+            You are about to add <strong>{{ warningDialogNodes.length }}</strong> entities to your workspace.
+            Depending on their connections this might take several minutes.
+          </p>
+        </confirm-dialog>
         <v-menu
           v-model="contextMenuModel.display"
           :open-on-hover="false"
           transition="fade-transition"
           :target="[contextMenuModel.x,contextMenuModel.y]"
         >
-          <v-list>
+          <v-list class="py-0">
             <template
               v-for="(item, index) in contextMenuModel.items"
               :key="index"
             >
               <v-divider v-if="item.isDivider" />
               <v-list-item
-                v-else
+                v-else-if="!item.show || item.show()"
                 :key="index"
                 :disabled="item.disabled && item.disabled()"
                 @click="item.action(item)"
@@ -140,6 +187,8 @@ import {
 	mdiDelete,
 	mdiImageFilterCenterFocus,
 	mdiMagnify,
+	mdiNoteEdit,
+	mdiNotePlus,
 	mdiOpenInNew,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
@@ -152,21 +201,31 @@ import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
+	WORKSPACE_NODE_TYPE_NOTE,
+	PRIVACY_TYPE_DESTINATION,
 } from '@/constants';
-import {getColorMap, handleError, isDestination} from '@/utilities';
+import {
+	getColorMap, handleError, getPrivacyTypeLabel, plural,
+} from '@/utilities';
 import {
 	inject, nextTick, onMounted, onUnmounted, ref, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
+import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
+import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
+import TextDialog from '@/components/common/TextDialog.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
+const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const newUidPrefix = 'newUid_';
@@ -197,35 +256,21 @@ const workspaceUID = ref('');
 const workspaceName = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
+const isConnectionSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
-const executionStatus = ref({
-	dormantTimer: {
-		timer: null,
-		refreshRate: 20000,
-	},
-	activeTimer: {
-		timer: null,
-		refreshRate: 2000,
-	},
-	value: {
-		executing: false,
-		processing: false,
-	},
-	enum: {
-		added: 0,
-		duplicate: 1,
-		notInQueue: 2,
-		inQueue: 3,
-		processing: 4,
-		notReady: 5,
-	},
-});
-
-const showContextMenuAddHeuristic = ref(false);
+const connectionData = ref({});
+const showRouteGuardDialogModel = ref(false);
+const routeGuardTo = ref({});
+const showAddNoteDialogModel = ref(false);
+const showEditNoteDialogModel = ref(false);
+const showWarningDialogModel = ref(false);
+const editNoteDialogValue = ref('');
+const warningDialogNodes = ref([]);
+const lassoSelectedNodes = ref([]);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -234,8 +279,24 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
+			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC
+        || nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
-			disabled: () => !showContextMenuAddHeuristic.value || nodeGraph.getContextNode()?.loading,
+			disabled: () => nodeGraph.getContextNode()?.loading,
+		},
+		{
+			title: 'Add Note',
+			icon: mdiNotePlus,
+			action: showAddNoteDialog,
+			show: () => nodeGraph.getContextNode()?.type !== WORKSPACE_NODE_TYPE_NOTE,
+			disabled: () => nodeGraph.getContextNode()?.loading,
+		},
+		{
+			title: 'Edit',
+			icon: mdiNoteEdit,
+			show: () => isEditEnabled(nodeGraph.getContextNode()),
+			action: () => editNote(nodeGraph.getContextNode()),
+			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Delete',
@@ -246,18 +307,29 @@ const contextMenuModel = ref({
 	],
 });
 
-const menuItems = [
+const menuItems = ref([
 	{
-		title: 'Rearrange', icon: mdiCached, action() {
+		title: 'Rearrange',
+		icon: mdiCached,
+		action() {
 			nodeGraph.reorderNodes();
 			queueAutoSave();
 		},
 	},
 	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
 	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
-];
+	{
+		title: () => `Delete ${lassoSelectedNodes.value.length} ${plural('node', lassoSelectedNodes.value.length)}`,
+		icon: mdiDelete,
+		action: () => nodeGraph.centerGraph(),
+		show: () => lassoSelectedNodes.value.length > 0,
+		disabled: () => lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)),
+		fill: true,
+	},
+]);
 
 let autoSaveTimer = null;
+const maxNoteLength = 100;
 
 // Watchers
 watch(route, () => {
@@ -280,6 +352,22 @@ watch(isEntitySideBarOpen, newVal => {
 	}
 });
 
+watch(isConnectionSideBarOpen, newVal => {
+	// If sheet is being closed reset click state of graph
+	if (!newVal) {
+		nodeGraph.resetClick();
+		nodeGraph.resetLasso();
+	}
+});
+
+watch(
+	() => workspaceStore.workspaceNode,
+	newVal => {
+		routeGuardTo.value = newVal.to;
+		showRouteGuardDialogModel.value = true;
+	},
+);
+
 // Hooks
 function onDocumentClose() {
 	if (document.visibilityState === 'hidden') {
@@ -292,6 +380,7 @@ function onDocumentClose() {
 }
 
 onMounted(async () => {
+	workspaceStore.setWorkspaceActive(true);
 	await whenMounted();
 	document.addEventListener('visibilitychange', onDocumentClose);
 });
@@ -308,6 +397,7 @@ onUnmounted(() => {
 	heuristicTimers.forEach(d => clearTimeout(d));
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
+	workspaceStore.setWorkspaceActive(false);
 });
 
 // Functions
@@ -331,6 +421,11 @@ async function removeGraphNode() {
 	}
 }
 
+function editNote(note) {
+	editNoteDialogValue.value = note.text;
+	showEditNoteDialogModel.value = true;
+}
+
 // Getlock prevents further actions causing an autosave event to occur,
 // and waits until the current autosave event is done.
 async function lockAutosave() {
@@ -344,6 +439,10 @@ async function lockAutosave() {
 	}
 }
 
+function isEditEnabled(contextNode) {
+	return contextNode?.type === WORKSPACE_NODE_TYPE_NOTE;
+}
+
 // Checks if a node can be deleted. If a heuristic or a node
 // in a heuristic sub graph is loading it return false.
 function isDeleteEnabled(contextNode) {
@@ -351,7 +450,7 @@ function isDeleteEnabled(contextNode) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && !isDestination(contextNode.privacyType)) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
 		return true;
 	}
 
@@ -376,6 +475,49 @@ function releaseAutosaveLock() {
 	nodeGraph.setEnableInteractions(true);
 }
 
+async function handleWarningDialogConfirm() {
+	await addMultipleNodes(warningDialogNodes.value);
+}
+
+// Checks if the node count warning dialog needs to be shown
+async function checkNodeCount(nodes) {
+	if (nodes.length > 10) {
+		showWarningDialogModel.value = true;
+		warningDialogNodes.value = nodes;
+		return;
+	}
+
+	await addMultipleNodes(nodes);
+}
+
+// Receives a node array
+async function addMultipleNodes(nodes) {
+	if (isModifyingWorkspace.value) {
+		return;
+	}
+
+	await lockAutosave();
+
+	try {
+		const response = await dakar.workspace.workspacesNodesPost({
+			query: {
+				queries: nodes,
+				workspaceUID: workspaceUID.value,
+			},
+		});
+		if (response.nodes) {
+			nodeGraph.removeAllNodes(false);
+			nodeGraph.addNodes(response.nodes);
+			queueAutoSave();
+			nodeGraph.centerOnNewNodes();
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	releaseAutosaveLock();
+}
+
 async function handleGraphQuery(query) {
 	if (isModifyingWorkspace.value) {
 		return;
@@ -388,12 +530,49 @@ async function handleGraphQuery(query) {
 
 	graphQuery.value = '';
 
+	await addMultipleNodes([trimmedQuery]);
+}
+
+async function changeNote(noteText) {
+	const trimmed = noteText.trim();
+	if (!trimmed) {
+		return;
+	}
+
+	const note = nodeGraph.getContextNode();
+	note.text = trimmed;
+
+	await addNewNote(noteText, note.uid, note.children[0]);
+}
+
+async function addNewNote(noteText, noteUID, childUID) {
+	if (isModifyingWorkspace.value) {
+		return;
+	}
+
+	const trimmed = noteText.trim();
+	if (!trimmed) {
+		return;
+	}
+
+	if (!childUID) {
+		// Child uid not set, therefore we have to get it from the context node
+		const child = nodeGraph.getContextNode();
+		if (!child) {
+			return;
+		}
+
+		childUID = child.uid;
+	}
+
 	await lockAutosave();
 
 	try {
-		const response = await dakar.workspace.workspacesNodePost({
-			query: {
-				query: trimmedQuery,
+		const response = await dakar.workspace.workspacesNotePost({
+			note: {
+				uid: noteUID ? noteUID : '',
+				childUID,
+				text: trimmed,
 				workspaceUID: workspaceUID.value,
 			},
 		});
@@ -509,8 +688,6 @@ async function checkWork(workID) {
 		if (response.nodes) {
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
-
-			// ReplaceTemporaryHeuristic(workID, response.heuristic);
 		} else {
 			addWork(workID);
 		}
@@ -556,11 +733,23 @@ function contextMenuOpenTypeSelection(node) {
 	openTypeSelectionSheet();
 }
 
+function openConnectionSheet(d) {
+	connectionData.value = d;
+
+	isEntitySideBarOpen.value = false;
+	isAddHeuristicSheetOpen.value = false;
+	isConnectionSideBarOpen.value = true;
+
+	// Next tick so watcher actions are executed first
+	nextTick(() => nodeGraph.setContextObjectClicked());
+}
+
 function openTypeSelectionSheet() {
 	isEntitySideBarOpen.value = false;
+	isConnectionSideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
 	// Next tick so watcher actions are executed first
-	nextTick(() => nodeGraph.setContextNodeClicked());
+	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
 function openEntitySideBar(nodeData) {
@@ -601,22 +790,22 @@ function openEntitySideBar(nodeData) {
 	}
 
 	isAddHeuristicSheetOpen.value = false;
+	isConnectionSideBarOpen.value = false;
 	isEntitySideBarOpen.value = true;
 	// Next tick so watcher actions are executed first
-	nextTick(() => nodeGraph.setContextNodeClicked());
+	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
 function closeSideBars() {
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = false;
+	isConnectionSideBarOpen.value = false;
 }
 
-function showContextMenu(e, nodeData) {
+function showContextMenu(e) {
 	contextMenuModel.value.display = false;
 
 	e.preventDefault();
-
-	showContextMenuAddHeuristic.value = Boolean(nodeData?.type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(nodeData.privacyType));
 
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
@@ -624,6 +813,18 @@ function showContextMenu(e, nodeData) {
 	nextTick(() => {
 		contextMenuModel.value.display = true;
 	});
+}
+
+function handleLassoSelection() {
+	lassoSelectedNodes.value = nodeGraph.getLassoSelectedNodesData();
+}
+
+function handleLassoReset() {
+	lassoSelectedNodes.value = [];
+}
+
+function showAddNoteDialog() {
+	showAddNoteDialogModel.value = true;
 }
 
 async function refreshData() {
@@ -637,6 +838,11 @@ async function refreshData() {
 
 		if (response.workspace) {
 			data = response.workspace;
+			data.nodes = data.nodes.map(d => {
+				d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
+				return d;
+			});
+
 			workspaceName.value = data.name;
 		} else {
 			data = null;
@@ -697,6 +903,10 @@ function createTabs() {
 }
 
 function queueAutoSave(t = 5000) {
+	if (nodeGraph.isEmpty()) {
+		return;
+	}
+
 	isAutoSaving.value = true;
 	wasAutoSaved.value = true;
 	if (autoSaveTimer !== null) {
@@ -710,10 +920,15 @@ async function doAutoSave() {
 	isAutoSaving.value = true;
 	autoSaveTimer = null;
 	try {
+		const exportedNodes = nodeGraph.exportNodes();
+		if (exportedNodes.length === 0) {
+			return;
+		}
+
 		await dakar.workspace.workspacesPut({
 			state: {
 				workspaceUID: workspaceUID.value,
-				currentState: nodeGraph.exportNodes(),
+				currentState: exportedNodes,
 			},
 		});
 	} catch (e) {
@@ -735,7 +950,12 @@ async function whenMounted() {
 	document.title = `Workspace - ${APPLICATION_NAME}`;
 
 	if (!nodeGraph.setNodeClickHandler(openEntitySideBar)) {
-		setErrorMessage('error setting heuristic click handler');
+		setErrorMessage('error setting node click handler');
+		return false;
+	}
+
+	if (!nodeGraph.setLineClickHandler(openConnectionSheet)) {
+		setErrorMessage('error setting line click handler');
 		return false;
 	}
 
@@ -761,6 +981,16 @@ async function whenMounted() {
 		return false;
 	}
 
+	if (!nodeGraph.setLassoSelectionCallback(handleLassoSelection)) {
+		setErrorMessage('error setting lasso selection handler');
+		return false;
+	}
+
+	if (!nodeGraph.setLassoResetCallback(handleLassoReset)) {
+		setErrorMessage('error setting lasso reset handler');
+		return false;
+	}
+
 	nodeGraph.initSvg(svgCanvasId);
 	if (!await refreshData()) {
 		return false;
@@ -774,8 +1004,7 @@ async function whenMounted() {
 	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
 
 	nodeGraph.addNodes(data.nodes);
-
-	await nodeGraph.centerGraph();
+	nodeGraph.centerGraph();
 
 	// Add for each dummy heuristics a timer which checks if their heuristic is done executing
 	for (const node of data.nodes) {
@@ -824,4 +1053,16 @@ async function whenMounted() {
   z-index: 1004;
   background-color: rgb(var(--v-theme-surface))
 }
+
+/* remove outline from text-field variant 'outlined'.
+ This can also be achieved by using variant 'plain',
+ but then the label text is not centered */
+.noOutline :deep(.v-field__outline__start) {
+  border-width: 0 0 0 0 !important;
+}
+
+.noOutline :deep(.v-field__outline__end) {
+  border-width: 0 0 0 0 !important;
+}
+
 </style>

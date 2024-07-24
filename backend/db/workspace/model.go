@@ -12,6 +12,7 @@ const (
 	NodeTypeCluster     = "cluster"
 	NodeTypeTransaction = "transaction"
 	NodeTypeHeuristic   = "heuristic"
+	NodeTypeNote        = "note"
 )
 
 type Workspace struct {
@@ -64,6 +65,11 @@ type NodeConnections struct {
 	Children []string `json:"children,omitempty"`
 }
 
+type NodeConnectionsMap struct {
+	UID      string
+	children map[string]bool
+}
+
 type connectionRequest struct {
 	ClusterHeight []struct {
 		LastClusteredID *int64 `json:"lastclusteredid,omitempty"`
@@ -112,13 +118,6 @@ type connectionRequest struct {
 							} `json:"~Cluster.addresses,omitempty"`
 						} `json:"~addr_outputs,omitempty"`
 					} `json:"tx_inputs,omitempty"`
-					Outputs []struct {
-						Addresses []struct {
-							Clusters []struct {
-								UID string `json:"uid,omitempty"`
-							} `json:"~Cluster.addresses,omitempty"`
-						} `json:"~addr_outputs,omitempty"`
-					} `json:"tx_outputs,omitempty"`
 				} `json:"HeuristicResult.destinations,omitempty"`
 				Origin struct {
 					Inputs []struct {
@@ -128,13 +127,6 @@ type connectionRequest struct {
 							} `json:"~Cluster.addresses,omitempty"`
 						} `json:"~addr_outputs,omitempty"`
 					} `json:"tx_inputs,omitempty"`
-					Outputs []struct {
-						Addresses []struct {
-							Clusters []struct {
-								UID string `json:"uid,omitempty"`
-							} `json:"~Cluster.addresses,omitempty"`
-						} `json:"~addr_outputs,omitempty"`
-					} `json:"tx_outputs,omitempty"`
 				} `json:"HeuristicResult.origin,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
 		} `json:"Heuristic.clusters,omitempty"`
@@ -206,6 +198,10 @@ type Node struct {
 	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
 	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
 	Timestamp           string   `json:"heuristicTs,omitempty"`
+
+	// note
+	Text string `json:"text,omitempty"`
+
 	// Loading is true if a new heuristic has been created, which is not yet finished executing
 	Loading *bool `json:"loading,omitempty"`
 }

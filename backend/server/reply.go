@@ -279,8 +279,8 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 	}
 
 	type request struct {
-		ID           string `json:"id,omitempty"`
-		WorkspaceUID string `json:"workspaceUID,omitempty"`
+		ID           string `json:"id"`
+		WorkspaceUID string `json:"workspaceUID"`
 	}
 
 	var workRequest request
@@ -337,8 +337,8 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 	}
 
 	type request struct {
-		HeuristicUID string `json:"heuristicUID,omitempty"`
-		WorkspaceUID string `json:"workspaceUID,omitempty"`
+		HeuristicUID string `json:"heuristicUID"`
+		WorkspaceUID string `json:"workspaceUID"`
 	}
 
 	var heuristicRequest request
@@ -377,7 +377,7 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 
 	type request struct {
 		NewHeuristic dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic,omitempty"`
-		WorkspaceUID string                               `json:"workspaceUID,omitempty"`
+		WorkspaceUID string                               `json:"workspaceUID"`
 	}
 
 	var heuristicRequest request
@@ -403,9 +403,9 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply, status int) {
 	type request struct {
 		// From is the starting point of the shortest path lookup
-		From string `json:"from,omitempty"`
+		From string `json:"from"`
 		// To is the end point of the shortest path lookup
-		To string `json:"to,omitempty"`
+		To string `json:"to"`
 		// IncludePrivacyTransactions determines if privacy transactions
 		// should be considered when doing the shortest path lookup
 		IncludePrivacyTransactions bool `json:"includePrivacyTransactions"`
@@ -419,6 +419,12 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
+		return
+	}
+
+	if req.From == "" || req.To == "" {
+		status = http.StatusBadRequest
+		reply.Msg = "Hash is empty"
 		return
 	}
 
@@ -647,8 +653,8 @@ func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph externa
 	}
 
 	type request struct {
-		HeuristicUID string `json:"heuristicUID,omitempty"`
-		WorkspaceUID string `json:"workspaceUID,omitempty"`
+		HeuristicUID string `json:"heuristicUID"`
+		WorkspaceUID string `json:"workspaceUID"`
 	}
 
 	var heuristicRequest request
@@ -798,7 +804,7 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply, status int) {
 	type request struct {
 		// AddressHash is the address hash for which the lookup will be done
-		AddressHash string `json:"addressHash,omitempty"`
+		AddressHash string `json:"addressHash"`
 		// IsClusterLookup determines if all addresses of the cluster will be considered
 		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
 	}
@@ -1560,9 +1566,9 @@ func setEmail(traits any, email string) error {
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply msgReply, status int) {
 	type request struct {
-		UID   string   `json:"uid,omitempty"`
-		Email string   `json:"email,omitempty"`
-		State string   `json:"state,omitempty"`
+		UID   string   `json:"uid"`
+		Email string   `json:"email"`
+		State string   `json:"state"`
 		Roles []string `json:"roles,omitempty"`
 	}
 
@@ -1572,8 +1578,8 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 		return
 	}
 
-	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 &&
-		len(modRequest.State) == 0) && !isValidEmail(modRequest.Email) {
+	if modRequest.UID == "" || (len(modRequest.Roles) == 0 && modRequest.Email == "" &&
+		modRequest.State == "") && !isValidEmail(modRequest.Email) {
 		status = http.StatusBadRequest
 		return
 	}
@@ -1729,8 +1735,8 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 	return
 }
 
-func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
-	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodeReply, status int) {
+func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
+	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodesReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1739,8 +1745,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 	}
 
 	type request struct {
-		Query        string `json:"query,omitempty"`
-		WorkspaceUID string `json:"workspaceUID,omitempty"`
+		Queries      []string `json:"queries"`
+		WorkspaceUID string   `json:"workspaceUID"`
 	}
 
 	var searchRequest request
@@ -1751,24 +1757,83 @@ func getAddWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspac
 		return
 	}
 
-	if searchRequest.WorkspaceUID == "" || !isValid(searchRequest.Query) {
+	if searchRequest.WorkspaceUID == "" || len(searchRequest.Queries) == 0 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	newNode, err := dbwork.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
+	for _, query := range searchRequest.Queries {
+		if !isValid(query) {
+			status = http.StatusBadRequest
+			return
+		}
+	}
+
+	newNodes := map[string]*dbwork.Node{}
+	for _, query := range searchRequest.Queries {
+		newNode, err := dbwork.SearchForNode(dgraph, query, tUser.ID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err, "query", searchRequest)
+			return
+		}
+
+		if newNode == nil {
+			status = http.StatusBadRequest
+			return
+		}
+
+		newNodes[newNode.UID] = newNode
+	}
+
+	reply.Nodes, err = workspace.AddNodes(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID,
+		tUser.ID, cliutil.GetMapValues(newNodes))
 	if err != nil {
 		status = http.StatusInternalServerError
-		warn(err, "query", searchRequest)
+		warn(err)
 		return
 	}
 
-	if newNode == nil {
+	return
+}
+
+func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
+	r *http.Request) (reply addWorkspaceNoteReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		UID string `json:"uid"`
+		// the note text
+		Text string `json:"text"`
+		// the node to which the note is connected to
+		ChildUID     string `json:"childUID"`
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if req.WorkspaceUID == "" || req.Text == "" || req.ChildUID == "" || len(req.Text) > 100 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	reply.Nodes, err = workspace.AddNode(dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID, tUser.ID, newNode)
+	reply.Nodes, err = workspace.AddNote(dgraph, workspaceMutex, req.WorkspaceUID,
+		tUser.ID, dbwork.Node{
+			UID:      req.UID,
+			Text:     req.Text,
+			Children: []string{req.ChildUID},
+		})
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1840,12 +1905,48 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 	}
 
 	workspaceName := r.PathValue("name")
-	if workspaceName == "" || len(workspaceName) > 150 {
+	if workspaceName == "" || len(workspaceName) > workspace.MaxWorkspaceNameLength {
 		status = http.StatusBadRequest
 		return
 	}
 
 	err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
+func getRenameWorkspaceReply(dgraph external.Database, r *http.Request) (status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		Name         string `json:"name"`
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if req.Name == "" || len(req.Name) > workspace.MaxWorkspaceNameLength || req.WorkspaceUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	err = dbwork.RenameWorkspace(dgraph, req.Name, tUser.ID, req.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1865,7 +1966,7 @@ func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mute
 
 	type request struct {
 		CurrentState []dbwork.Node `json:"currentState,omitempty"`
-		WorkspaceUID string        `json:"workspaceUID,omitempty"`
+		WorkspaceUID string        `json:"workspaceUID"`
 	}
 
 	var searchRequest request
@@ -1901,8 +2002,8 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 	}
 
 	type request struct {
-		NodeUID      string `json:"nodeUID,omitempty"`
-		WorkspaceUID string `json:"workspaceUID,omitempty"`
+		NodeUIDs     []string `json:"nodeUIDs,omitempty"`
+		WorkspaceUID string   `json:"workspaceUID"`
 	}
 
 	var searchRequest request
@@ -1913,12 +2014,12 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 		return
 	}
 
-	if searchRequest.WorkspaceUID == "" || searchRequest.NodeUID == "" {
+	if searchRequest.WorkspaceUID == "" || len(searchRequest.NodeUIDs) == 0 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	reply.DeletedNodeUIDs, err = workspace.DeleteNode(dgraph, workspaceMutex, searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUID)
+	reply.DeletedNodeUIDs, err = workspace.DeleteNodes(dgraph, workspaceMutex, searchRequest.WorkspaceUID, tUser.ID, searchRequest.NodeUIDs)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1974,6 +2075,106 @@ func getDeleteAllWorkspacesReply(r *http.Request, dgraph external.Database) (rep
 			status = http.StatusInternalServerError
 			warn(err)
 		}
+		return
+	}
+
+	return
+}
+
+func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (reply workspaceConnectionReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		FirstNode struct {
+			UID  string `json:"uid"`
+			Type string `json:"type"`
+		} `json:"firstNode"`
+		SecondNode struct {
+			UID  string `json:"uid"`
+			Type string `json:"type"`
+		} `json:"secondNode"`
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	// validate input
+	if req.FirstNode.UID == "" || req.SecondNode.UID == "" ||
+		req.WorkspaceUID == "" || req.FirstNode.UID == req.SecondNode.UID {
+		status = http.StatusBadRequest
+		return
+	}
+
+	if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeCluster {
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToCluster(dgraph, req.FirstNode.UID, req.SecondNode.UID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
+		}
+	} else if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeHeuristic ||
+		req.FirstNode.Type == dbwork.NodeTypeHeuristic && req.SecondNode.Type == dbwork.NodeTypeCluster {
+		clusterUID := req.FirstNode.UID
+		heuristicUID := req.SecondNode.UID
+
+		if req.SecondNode.Type == dbwork.NodeTypeCluster {
+			clusterUID = req.SecondNode.UID
+			heuristicUID = req.FirstNode.UID
+		}
+
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToHeuristic(dgraph, clusterUID, heuristicUID, tUser.ID, req.WorkspaceUID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
+		}
+	} else if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeTransaction ||
+		req.FirstNode.Type == dbwork.NodeTypeTransaction && req.SecondNode.Type == dbwork.NodeTypeCluster {
+		clusterUID := req.FirstNode.UID
+		transactionUID := req.SecondNode.UID
+
+		if req.FirstNode.Type == dbwork.NodeTypeTransaction {
+			clusterUID = req.SecondNode.UID
+			transactionUID = req.FirstNode.UID
+		}
+
+		reply.FrontendTransactions, err = dbwork.GetConnectionClusterToTransaction(dgraph, clusterUID, transactionUID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
+		}
+	} else if req.FirstNode.Type == dbwork.NodeTypeHeuristic && req.SecondNode.Type == dbwork.NodeTypeTransaction ||
+		req.FirstNode.Type == dbwork.NodeTypeTransaction && req.SecondNode.Type == dbwork.NodeTypeHeuristic {
+		heuristicUID := req.FirstNode.UID
+		transactionUID := req.SecondNode.UID
+
+		if req.FirstNode.Type == dbwork.NodeTypeTransaction {
+			heuristicUID = req.SecondNode.UID
+			transactionUID = req.FirstNode.UID
+		}
+
+		reply.FrontendTransactions, err = dbwork.GetConnectionHeuristicToTransaction(dgraph, heuristicUID,
+			transactionUID, tUser.ID, req.WorkspaceUID)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
+		}
+	} else {
+		// wrong comibnation of types
+		status = http.StatusBadRequest
 		return
 	}
 

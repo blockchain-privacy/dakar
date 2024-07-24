@@ -143,7 +143,7 @@ export default class Histogram {
 					let parentSize = 0;
 
 					// All data of d grouped by privacy type
-					const privacyGroups = group(d, e => e.privacytype);
+					const privacyGroups = group(d, e => e.privacyTypeLabel);
 
 					if (privacyGroups.size === 0) {
 						return elements;

@@ -3,31 +3,35 @@ package server
 const (
 	routePrefix string = "/api/v1/"
 
-	routeSearch              string = "blockchain/search"
-	routeTransaction         string = "blockchain/transactions"
-	routeBlock               string = "blockchain/blocks"
-	routeAddress             string = "blockchain/addresses"
-	routeAddressOutputRange  string = "blockchain/outputs"
-	routeMeta                string = "meta"
-	routeHeuristicByWorkID   string = "heuristicByWorkID"
-	routeHeuristicReport     string = "heuristics/report"
-	routeHeuristicsExecution string = "executeHeuristics"
-	routeHeuristicDetails    string = "heuristicDetails"
-	routeShortestTxPath      string = "shortestTransactionPath"
-	routeConnectionLookup    string = "connectionLookup"
-	routeMixingActivity      string = "mixingActivity"
-	routeSpendingFingerprint string = "spendingFingerprint"
-	routeIdentities          string = "identities"
-	routeExclusions          string = "exclusions"
-	routeClusters            string = "clusters"
-	routeHMILookup           string = "clusters/hmi"
-	clusterReport            string = "clusters/report"
-	routeAttributions        string = "attributions"
-	routeAttributionsPublic  string = "attributions/public"
-	routeAttributionsSearch  string = "attributions/search"
-	routeWorkspaces          string = "workspaces"
-	routeAddWorkspaceNode    string = "workspaces/node"
-	routeMetrics             string = "/metrics"
+	routeSearch               string = "blockchain/search"
+	routeTransaction          string = "blockchain/transactions"
+	routeBlock                string = "blockchain/blocks"
+	routeAddress              string = "blockchain/addresses"
+	routeAddressOutputRange   string = "blockchain/outputs"
+	routeMeta                 string = "meta"
+	routeHeuristicByWorkID    string = "heuristicByWorkID"
+	routeHeuristicReport      string = "heuristics/report"
+	routeHeuristicsExecution  string = "executeHeuristics"
+	routeHeuristicDetails     string = "heuristicDetails"
+	routeShortestTxPath       string = "shortestTransactionPath"
+	routeConnectionLookup     string = "connectionLookup"
+	routeMixingActivity       string = "mixingActivity"
+	routeSpendingFingerprint  string = "spendingFingerprint"
+	routeIdentities           string = "identities"
+	routeExclusions           string = "exclusions"
+	routeClusters             string = "clusters"
+	routeHMILookup            string = "clusters/hmi"
+	clusterReport             string = "clusters/report"
+	routeAttributions         string = "attributions"
+	routeAttributionsPublic   string = "attributions/public"
+	routeAttributionsSearch   string = "attributions/search"
+	routeWorkspaces           string = "workspaces"
+	routeAddWorkspaceNodes    string = "workspaces/nodes"
+	routeAddWorkspaceNode     string = "workspaces/node"
+	routeAddWorkspaceNote     string = "workspaces/note"
+	routeWorkspacesConnection string = "workspaces/connection"
+	routeRenameWorkspace      string = "workspaces/rename"
+	routeMetrics              string = "/metrics"
 )
 
 const (
@@ -198,8 +202,12 @@ func getRouteSpendingFingerprint() string {
 	return buildRoutePattern(httpGET, routeSpendingFingerprint, "hash")
 }
 
-func getRouteWorkspaceAddNode() string {
-	return buildRoutePattern(httpPOST, routeAddWorkspaceNode, "")
+func getRouteWorkspaceAddNodes() string {
+	return buildRoutePattern(httpPOST, routeAddWorkspaceNodes, "")
+}
+
+func getRouteWorkspaceAddNote() string {
+	return buildRoutePattern(httpPOST, routeAddWorkspaceNote, "")
 }
 
 func getRouteWorkspaceDeleteNode() string {
@@ -225,9 +233,15 @@ func getRouteUpdateWorkspace() string {
 func getRouteDeleteWorkspace() string {
 	return buildRoutePattern(httpDELETE, routeWorkspaces, "uid")
 }
-
+func getRouteRenameWorkspace() string {
+	return buildRoutePattern(httpPOST, routeRenameWorkspace, "")
+}
 func getRouteDeleteAllWorkspaces() string {
 	return buildRoutePattern(httpDELETE, routeWorkspaces, "")
+}
+
+func getRouteWorkspacesConnection() string {
+	return buildRoutePattern(httpPOST, routeWorkspacesConnection, "")
 }
 
 func getRouteMetrics() string {

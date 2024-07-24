@@ -1,33 +1,29 @@
 <template>
   <v-list>
-    <v-list-item
+    <store-link
       v-for="tx in getLimitedItems"
       :key="tx.txhash"
       :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
              params: { id: tx.txhash }}"
     >
-      <v-list-item-title>
-        {{ tx.txhash }}
-        <div v-if="tx.destinationCount">
-          Destinations: {{ tx.destinationCount }}
-        </div>
-      </v-list-item-title>
-    </v-list-item>
+      {{ tx.txhash }}
+      <div v-if="tx.destinationCount">
+        Destinations: {{ tx.destinationCount }}
+      </div>
+    </store-link>
     <v-expand-transition>
       <div v-if="showAllOutputs">
-        <v-list-item
+        <store-link
           v-for="tx in getResidualItems"
           :key="tx.txhash"
           :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                  params: { id: tx.txhash }}"
         >
-          <v-list-item-title>
-            {{ tx.txhash }}
-            <div v-if="tx.destinationCount">
-              Destinations: {{ tx.destinationCount }}
-            </div>
-          </v-list-item-title>
-        </v-list-item>
+          {{ tx.txhash }}
+          <div v-if="tx.destinationCount">
+            Destinations: {{ tx.destinationCount }}
+          </div>
+        </store-link>
       </div>
     </v-expand-transition>
   </v-list>
@@ -50,6 +46,7 @@ import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {mdiChevronDown, mdiChevronUp} from '@mdi/js';
 import {plural} from '@/utilities';
 import {computed, ref} from 'vue';
+import StoreLink from '@/components/common/StoreLink.vue';
 
 const props = defineProps({
 	items: {type: Array, required: true},

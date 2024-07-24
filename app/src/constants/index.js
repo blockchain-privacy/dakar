@@ -47,7 +47,15 @@ export const COIN_UNIT = COIN_UNIT_DASH;
 export const CLUSTER_TYPE_FMI = 'fmi';
 export const CLUSTER_TYPE_CUSTOM = 'custom';
 
+// Privacy type
+export const PRIVACY_TYPE_DESTINATION = 'destination';
+export const PRIVACY_TYPE_CC = 'collateral creation';
+export const PRIVACY_TYPE_CP = 'collateral payment';
+export const PRIVACY_TYPE_ORIGIN = 'origin';
+export const PRIVACY_TYPE_MIXING = 'mixing';
+
 // Workspace node type
 export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
 export const WORKSPACE_NODE_TYPE_CLUSTER = 'cluster';
 export const WORKSPACE_NODE_TYPE_HEURISTIC = 'heuristic';
+export const WORKSPACE_NODE_TYPE_NOTE = 'note';

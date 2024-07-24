@@ -1,4 +1,3 @@
-version: "3.6"
 x-logging:
   &default-logging
   driver: "journald"
@@ -6,9 +5,8 @@ x-logging:
     tag: "{{.Name}}"
 
 services:
-
   zero:
-    image: dgraph/dgraph:v23.1.0
+    image: dgraph/dgraph:v23.1.1
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -21,7 +19,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v23.1.0
+    image: dgraph/dgraph:v23.1.1
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph

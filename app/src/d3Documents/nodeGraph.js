@@ -1,21 +1,28 @@
-import {getPrivacyTypeLabel, isFunction} from '@/utilities';
+import {isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
 import {
 	forceCollide, forceLink, forceManyBody, forceSimulation,
 } from 'd3-force';
-import {abbreviateNumber} from '@/d3Documents/util';
+import {
+	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
+} from '@/d3Documents/util';
 import {
 	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_NOTE,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
+
+// In ms
+const animationDuration = 175;
+const longAnimationDuration = 500;
+const animationDelay = 2000;
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -94,10 +101,14 @@ function dragEnded(event, context) {
 
 export default class NodeGraph {
 	constructor(nodeTypeColorMap) {
+		// Callbacks
 		this.nodeClickCallBack = null;
+		this.lineClickCallBack = null;
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
 		this.contextMenuCallback = null;
+		this.lassoSelectionCallback = null;
+		this.lassoResetCallback = null;
 
 		// Drag
 		this.dragEndCallback = null;
@@ -114,11 +125,13 @@ export default class NodeGraph {
 		this.contextNodeSelection = null;
 
 		// Svg
+		this.svgID = '';
 		this.simulation = null;
 		this.nodeRadius = 14;
 		this.rootSvg = null;
 		this.rootGroup = null;
 		this.lineGroup = null;
+		this.shadowLineGroup = null;
 		this.nodeGroup = null;
 		this.zoom = null;
 		this.newNodes = null;
@@ -154,17 +167,30 @@ export default class NodeGraph {
 
 	resetClick() {
 		this.nodeGroup.selectAll('.clicked').classed('clicked', false);
+		this.shadowLineGroup.selectAll('.lineClicked').classed('lineClicked', false);
 	}
 
 	resetLasso() {
 		this.nodeGroup.selectAll('.lasso-selected').classed('lasso-selected', false);
 		this.lassoSelectedNodes = null;
+
+		if (this.lassoResetCallback !== null) {
+			this.lassoResetCallback();
+		}
 	}
 
-	setContextNodeClicked() {
+	setContextObjectClicked() {
 		this.resetClick();
 		this.resetLasso();
-		d3Select(this.contextNodeSelection).select('.node').classed('clicked', true);
+
+		const contextNode = d3Select(this.contextNodeSelection);
+
+		// Try selecting the active object, can be a node or a line
+		if (contextNode.classed('shadowArrow')) {
+			contextNode.classed('lineClicked', true);
+		} else {
+			contextNode.select('.node').classed('clicked', true);
+		}
 	}
 
 	nodeClick(e, d, d3This) {
@@ -184,6 +210,23 @@ export default class NodeGraph {
 		}
 	}
 
+	lineClick(e, d, d3This) {
+		if (e) {
+			e.stopPropagation();
+		}
+
+		if (!this.enableInteractions) {
+			return;
+		}
+
+		this.contextNodeData = d;
+		this.contextNodeSelection = d3This;
+
+		if (this.lineClickCallBack !== null) {
+			this.lineClickCallBack(d);
+		}
+	}
+
 	setLassoEnabled(flag) {
 		this.isLassoEnabled = flag;
 	}
@@ -192,12 +235,25 @@ export default class NodeGraph {
 		return this.isLassoEnabled;
 	}
 
-	initSvg(svgID) {
+	getLassoSelectedNodesData() {
+		if (this.lassoSelectedNodes === null) {
+			return [];
+		}
+
+		return this.lassoSelectedNodes.data();
+	}
+
+	initSvg(svgID, width, height) {
 		// Add attributes to root svg
+		this.svgID = svgID;
 		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
-		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
+		this.rootGroup = this.rootSvg.append('g').classed('root-group', true);
 		this.lineGroup = this.rootGroup.append('g');
+		this.shadowLineGroup = this.rootGroup.append('g');
 		this.nodeGroup = this.rootGroup.append('g');
+
+		this.virtualWidth = width;
+		this.virutalHeight = height;
 
 		// Add zoom and drag
 		this.zoom = zoom()
@@ -225,6 +281,9 @@ export default class NodeGraph {
 			})
 			.on('end', () => {
 				self.lassoSelectedNodes = self.lasso.selectedItems();
+				if (this.lassoSelectionCallback !== null) {
+					this.lassoSelectionCallback();
+				}
 			});
 
 		this.rootSvg.call(this.lasso);
@@ -235,25 +294,73 @@ export default class NodeGraph {
 		// Arrow is unused for now. In case it is used later on, use reduceY and
 		// reduceX to reduce the length of the links (modify d.target.x and d.target.y)
 		defs.node().innerHTML
-      = `<pattern id="striped" viewBox="0,0,4,4" width="40%" height="40%">
-          <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
-          <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style="stroke:black; stroke-width:1.5 "/>
-        </pattern>
-        <pattern id="checkers" viewBox="0,0,8,8" width="60%" height="60%" patternTransform="translate(0, -4)">
-          <rect width="8" height="8" fill="rgb(var(--v-theme-primary))" />
-          <path id="a" data-color="fill" fill="#000" d="M4 4h4v4H4zM0 0h4v4H0z"></path>
-        </pattern>
-        <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="10" markerHeight="10" orient="auto">
-            <path d="M0,-5L10,0L0,5" fill="#999"/>
+      = `<marker id="${this.svgID}_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0,-5L10,0L0,5" fill="currentColor"/>
+        </marker>
+        <marker id="${this.svgID}_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+            <path d="M0,-5L10,0L0,5" fill="rgb(var(--v-theme-primary))" />
+        </marker>
+        <marker id="${this.svgID}_arrowhead_reversed" viewBox="-10 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0,-5L-10,0L0,5" fill="currentColor" />
+        </marker>
+        <marker id="${this.svgID}_arrowhead_reversed_shadow" viewBox="-10 -5 10 10" refX="-1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
+            <path d="M0,-5L-10,0L0,5" fill="rgb(var(--v-theme-primary))" />
         </marker>`;
 
 		const style = this.rootSvg.append('svg:style');
 		style.node().innerHTML
       = `
+        .node {
+          stroke: currentColor;
+          stroke-width: 1;
+          cursor: pointer;
+        }
+
+        .note {
+          stroke: currentColor;
+          stroke-width: 1;
+          fill: rgb(var(--v-theme-surface));
+          cursor: pointer;
+        }
+
+        .note-text {
+          fill: currentColor;
+          font-size: 10px;
+          text-anchor: middle;
+          cursor: pointer;
+        }
+
         .clicked {
           stroke: #B71C1C;
           stroke-width: 3;
          }
+
+        .arrow {
+          stroke: currentColor;
+          stroke-opacity: 1;
+          stroke-width: 1;
+          marker-end: url(#${this.svgID}_arrowhead);
+        }
+
+        .shadowArrow {
+          cursor: pointer;
+          stroke: rgb(var(--v-theme-primary));
+          stroke-opacity: 1;
+          stroke-width: 4;
+          opacity: 0;
+          marker-end: url(#${this.svgID}_arrowhead_shadow);
+          transition: all 0.175s ease;
+        }
+
+        .lineHovered {
+          stroke-width: 5;
+          opacity: 0.3;
+        }
+
+        .lineClicked {
+          stroke-width: 5;
+          opacity: 0.3;
+        }
 
         .lasso-selected {
           stroke: rgb(var(--v-theme-primary));
@@ -285,9 +392,8 @@ export default class NodeGraph {
 
 	// Creates links based on the given nodes
 	getLinks(nodes) {
-		const linkSet = new Set();
+		const links = new Map();
 
-		const links = [];
 		nodes.forEach(d => {
 			if (!d.children) {
 				return;
@@ -299,15 +405,22 @@ export default class NodeGraph {
 				}
 
 				// Check if link already exists
-				if (linkSet.has(child + d.uid) || linkSet.has(d.uid + child)) {
+				if (links.has(d.uid + child)) {
 					return;
 				}
 
-				links.push({source: child, target: d.uid});
-				linkSet.add(child + d.uid);
+				// If reverse link exist, mark it as having both directions
+				const reversedLink = links.get(child + d.uid);
+				if (reversedLink !== undefined) {
+					reversedLink.isDual = true;
+					return;
+				}
+
+				links.set(d.uid + child, {source: d.uid, target: child});
 			});
 		});
-		return links;
+
+		return Array.from(links.values());
 	}
 
 	// CheckNode returns tur if both the UID and type of the node is set
@@ -345,8 +458,10 @@ export default class NodeGraph {
 
 	reorderNodes() {
 		for (const [key, value] of this.nodeMap) {
-			delete value.x;
-			delete value.y;
+			// Randomize position, reorderNodes creates different arrangements for each call
+			const random = Math.random() * 30;
+			value.x = random;
+			value.y = random;
 			delete value.fx;
 			delete value.fy;
 			this.nodeMap[key] = value;
@@ -473,7 +588,7 @@ export default class NodeGraph {
 
 		let iconGroup = groupElement.select('.iconGroup');
 		if (iconGroup.empty()) {
-			iconGroup = groupElement.append('g').attr('class', 'iconGroup');
+			iconGroup = groupElement.append('g').classed('iconGroup', true);
 		}
 
 		const textAreaMargin = 3;
@@ -505,30 +620,136 @@ export default class NodeGraph {
 		iconGroup.attr('transform', `translate(${-groupWidth / 2},0)`);
 	}
 
-	drawNode(groupElement) {
-		const self = this;
+	// Draws nodes and notes
+	drawEntities(groupElement) {
 		// CircleGroup contains the node circle and loading circle
-
-		let circleGroup = groupElement.select('g');
-		if (circleGroup.empty()) {
-			circleGroup = groupElement.append('g');
+		let entityGroup = groupElement.select('g');
+		if (entityGroup.empty()) {
+			entityGroup = groupElement.append('g');
 		}
 
-		circleGroup.selectAll('circle').remove();
+		this.drawNodes(groupElement.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE));
+		this.drawNotes(groupElement.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE));
+	}
+
+	drawNotes(groupElement, entityGroup) {
+		entityGroup.selectAll('.note,.note-text').remove();
+
+		entityGroup.append('text')
+			.classed('note-text', true)
+			.each(function (d) {
+				const textLines = d.text.split('\n');
+				d3Select(this)
+					.selectAll('tspan')
+					.data(textLines)
+					.enter()
+					.append('tspan')
+					.attr('x', 0)
+					.attr('dy', '1.2em') // Line spacing
+					.text(d => d ? d : ' '); // Insert space for empty row so vertical spacing works
+
+				const nodeRect = this.getBBox();
+				d.bbHeight = nodeRect.height;
+				d.bbWidth = nodeRect.width;
+				d3Select(this).attr('y', -nodeRect.height / 2 - 2);
+			});
+
+		entityGroup.append('rect')
+			.classed('note', true)
+			.attr('rx', 3)
+			.attr('ry', 3)
+			.lower()
+			.each(function (d) {
+				const rectMargin = 10;
+				d.width = d.bbWidth + rectMargin;
+				d.height = d.bbHeight + rectMargin;
+				d3Select(this)
+					.attr('width', d.width)
+					.attr('height', d.height)
+					.attr('x', -d.width / 2)
+					.attr('y', -d.height / 2);
+
+				// Add marker to new nodes
+				if (d.fx !== undefined) {
+					return;
+				}
+
+				const thisElement = d3Select(this.parentNode);
+
+				const marker = thisElement.append('rect')
+					.attr('width', d.width * 2)
+					.attr('height', d.height * 2)
+					.attr('x', -d.width)
+					.attr('y', -d.height)
+					.attr('rx', 3)
+					.attr('ry', 3)
+					.attr('fill', 'rgba(255, 109, 0, 0.3)')
+					.lower();
+
+				marker.transition().delay(animationDelay).duration(longAnimationDuration)
+					.attr('width', 0)
+					.attr('height', 0)
+					.attr('x', 0)
+					.attr('y', 0)
+					.remove();
+			});
+
+		const self = this;
+		// Set event handlers
+		entityGroup
+			.on('contextmenu', function (e, d) {
+				if (!self.enableInteractions) {
+					return;
+				}
+
+				self.contextNodeData = d;
+				self.contextNodeSelection = this;
+
+				if (self.contextMenuCallback !== null) {
+					self.contextMenuCallback(e);
+				}
+			})
+			.on('mouseenter', function () {
+				if (!self.enableInteractions) {
+					return;
+				}
+
+				d3Select(this.parentNode).raise();
+				d3Select(this).select('.note').transition().duration(animationDuration)
+					.attr('width', d => d.width * 1.2)
+					.attr('height', d => d.height * 1.2)
+					.attr('x', d => -d.width * 1.2 / 2)
+					.attr('y', d => -d.height * 1.2 / 2);
+			})
+			.on('mouseleave', function () {
+				if (!self.enableInteractions) {
+					return;
+				}
+
+				d3Select(this).select('.note').transition().duration(animationDuration)
+					.attr('width', d => d.width)
+					.attr('height', d => d.height)
+					.attr('x', d => -d.width / 2)
+					.attr('y', d => -d.height / 2);
+			});
+	}
+
+	drawNodes(groupElement, entityGroup) {
+		const self = this;
+		entityGroup.selectAll('circle').remove();
 
 		// Node circle
-		circleGroup.append('circle')
-			.attr('class', 'node')
+		entityGroup.append('circle')
+			.classed('node', true)
 			.attr('r', this.nodeRadius)
-			.attr('stroke', 'currentColor')
-			.attr('stroke-width', 1)
-			.attr('cursor', 'pointer')
 			.attr('fill', d => {
 				if (this.nodeTypeColorMap) {
 					let nodeColor;
 
-					if (d.privacyType) {
-						nodeColor = this.nodeTypeColorMap.get(getPrivacyTypeLabel(d.privacyType));
+					if (d.privacyTypeLabel) {
+						nodeColor = this.nodeTypeColorMap.get(d.privacyTypeLabel);
 					} else {
 						nodeColor = this.nodeTypeColorMap.get(d.type);
 					}
@@ -557,11 +778,11 @@ export default class NodeGraph {
 					.attr('fill', 'rgba(255, 109, 0, 0.3)')
 					.lower();
 
-				marker.transition().delay(1000).duration(500).attr('r', 0).remove();
+				marker.transition().delay(animationDelay).duration(longAnimationDuration).attr('r', 0).remove();
 			});
 
 		// Set event handlers
-		circleGroup
+		entityGroup
 			.on('click', function (e, d) {
 				self.nodeClick(e, d, this);
 			})
@@ -574,7 +795,7 @@ export default class NodeGraph {
 				self.contextNodeSelection = this;
 
 				if (self.contextMenuCallback !== null) {
-					self.contextMenuCallback(e, d);
+					self.contextMenuCallback(e);
 				}
 			})
 			.on('mouseenter', function () {
@@ -583,14 +804,14 @@ export default class NodeGraph {
 				}
 
 				d3Select(this.parentNode).raise();
-				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius * 1.2);
+				self.setMouseOverAnimation(self, this, true);
 			})
 			.on('mouseleave', function () {
 				if (!self.enableInteractions) {
 					return;
 				}
 
-				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius);
+				self.setMouseOverAnimation(self, this, false);
 			});
 
 		// Add loading circle
@@ -599,7 +820,7 @@ export default class NodeGraph {
 
 		const gapString = `${gap} ${gap}`;
 
-		circleGroup.each(function (d) {
+		entityGroup.each(function (d) {
 			if (!d.loading) {
 				return;
 			}
@@ -641,13 +862,13 @@ export default class NodeGraph {
 		// Text container
 		let textContainer = groupElement.select('.textContainer');
 		if (textContainer.empty()) {
-			textContainer = groupElement.append('g').attr('class', 'textContainer');
+			textContainer = groupElement.append('g').classed('textContainer', true);
 		}
 
 		// Node title
 		let nodeTitle = textContainer.select('.nodeTitle');
 		if (nodeTitle.empty()) {
-			nodeTitle = textContainer.append('text').attr('class', 'nodeTitle');
+			nodeTitle = textContainer.append('text').classed('nodeTitle', true);
 		}
 
 		nodeTitle
@@ -678,7 +899,7 @@ export default class NodeGraph {
 
 		let nodeSubtitle = textContainer.select('.nodeSubtitle');
 		if (nodeSubtitle.empty()) {
-			nodeSubtitle = textContainer.append('text').attr('class', 'nodeSubtitle');
+			nodeSubtitle = textContainer.append('text').classed('nodeSubtitle', true);
 		}
 
 		nodeSubtitle
@@ -688,8 +909,8 @@ export default class NodeGraph {
 			.attr('fill', 'currentColor')
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
-				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyType) {
-					return getPrivacyTypeLabel(d.privacyType);
+				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyTypeLabel) {
+					return d.privacyTypeLabel;
 				}
 
 				return '';
@@ -698,9 +919,9 @@ export default class NodeGraph {
 
 		// Heuristic properties
 		// Cluster count
-		let nodeClusterCount = circleGroup.select('.clusterCount');
+		let nodeClusterCount = entityGroup.select('.clusterCount');
 		if (nodeClusterCount.empty()) {
-			nodeClusterCount = circleGroup.append('text').attr('class', 'clusterCount');
+			nodeClusterCount = entityGroup.append('text').classed('clusterCount', true);
 		}
 
 		nodeClusterCount.raise();
@@ -748,6 +969,20 @@ export default class NodeGraph {
 			});
 	}
 
+	setMouseOverAnimation(context, nodeContext, isEnter) {
+		const thisNode = d3Select(nodeContext).select('.node');
+		const nodeRadius = isEnter ? context.nodeRadius * 1.2 : context.nodeRadius;
+		const opacity = isEnter ? 0.3 : 1.0;
+		thisNode.transition().duration(animationDuration).attr('r', nodeRadius);
+
+		const thisNodeUID = thisNode.data()[0].uid;
+		context.lineGroup.selectAll('.arrow')
+			.filter(d => d.source.uid !== thisNodeUID && d.target.uid !== thisNodeUID)
+			.each(function () {
+				d3Select(this).transition().duration(animationDuration).attr('opacity', opacity);
+			});
+	}
+
 	applyDragHandler(nodes) {
 		if (!nodes) {
 			return;
@@ -782,11 +1017,26 @@ export default class NodeGraph {
 		const links = this.getLinks(nodes);
 
 		const svgRect = this.rootSvg.node().getBoundingClientRect();
+		if (this.virtualWidth && this.virutalHeight) {
+			svgRect.width = this.virtualWidth;
+			svgRect.height = this.virutalHeight;
+		}
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
 			.force('charge', forceManyBody().strength(-150))
-			.force('collide', forceCollide(this.nodeRadius * 4))
+			.force('collide', forceCollide(d => {
+				if (d.type === WORKSPACE_NODE_TYPE_NOTE) {
+					if (d.width && d.height) {
+						// With max() the distance to other nodes in non-quadratic rects is too high, therefore use min()
+						return Math.min(d.width, d.height);
+					}
+
+					return 50;
+				}
+
+				return this.nodeRadius * 4;
+			}))
 			.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.nodeRadius)).stop();
 
 		// Do simulation
@@ -796,34 +1046,55 @@ export default class NodeGraph {
 			.selectAll('.arrow')
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
-			.attr('class', 'arrow')
-			.attr('stroke', 'currentColor')
-			.attr('stroke-opacity', 1)
-			.attr('stroke-width', 1)
-			.attr('x1', d => d.source.x)
-			.attr('y1', d => d.source.y)
-			.attr('x2', d => d.target.x)
-			.attr('y2', d => d.target.y);
+			.classed('arrow', true)
+			.attr('marker-start', d => d.isDual ? `url(#${this.svgID}_arrowhead_reversed)` : undefined)
+			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d, this.nodeRadius))
+			.attr('y2', d => reduceY(d, this.nodeRadius));
+
+		// For mouseover events
+		const shadowLinks = this.shadowLineGroup
+			.selectAll('.shadowArrow')
+			.data(links, d => `${d.source}${d.target}`)
+			.join('line')
+			.classed('shadowArrow', true)
+			.attr('marker-start', d => d.isDual ? `url(#${this.svgID}_arrowhead_reversed_shadow)` : undefined)
+			.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d, this.nodeRadius))
+			.attr('y2', d => reduceY(d, this.nodeRadius));
+
+		const self = this;
+		shadowLinks
+			.on('click', function (e, d) {
+				self.lineClick(e, d, this);
+			})
+			.on('mouseenter', function () {
+				d3Select(this).classed('lineHovered', true);
+			})
+			.on('mouseleave', function () {
+				d3Select(this).classed('lineHovered', false);
+			});
 
 		const node = this.nodeGroup
 			.selectAll('.nodeContainer')
 			.data(nodes, d => d.uid)
 			.join(enter => {
 				const g = enter.append('g');
-
-				this.drawNode(g);
+				this.drawEntities(g);
 				this.newNodes = g;
 				return g;
 			},
 			update => {
 				if (this.changedData.size > 0) {
 					// Do drawing only for actually updated nodes
-					this.drawNode(update.filter(d => this.changedData.has(d.uid)));
+					this.drawEntities(update.filter(d => this.changedData.has(d.uid)));
 				}
 
 				return update;
 			})
-			.attr('class', 'nodeContainer')
+			.classed('nodeContainer', true)
 			.each(d => {
 				// Exclude every node from force simulation
 				d.fx = d.x;
@@ -835,15 +1106,20 @@ export default class NodeGraph {
 
 		this.simulation.on('tick', () => {
 			link
-				.attr('x1', d => d.source.x)
-				.attr('y1', d => d.source.y)
-				.attr('x2', d => d.target.x)
-				.attr('y2', d => d.target.y);
+				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d, this.nodeRadius))
+				.attr('y2', d => reduceY(d, this.nodeRadius));
+			shadowLinks
+				.attr('x1', d => d.isDual ? reduceXR(d, this.nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceYR(d, this.nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d, this.nodeRadius))
+				.attr('y2', d => reduceY(d, this.nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
 
-		this.lasso.items(node.selectAll('.node'));
+		this.lasso.items(node.selectAll('.node,.note'));
 
 		this.changedData.clear();
 	}
@@ -888,12 +1164,25 @@ export default class NodeGraph {
 		});
 	}
 
+	isEmpty() {
+		return this.nodeMap.size === 0;
+	}
+
 	setNodeClickHandler(callback) {
 		if (!isFunction(callback)) {
 			return false;
 		}
 
 		this.nodeClickCallBack = callback;
+		return true;
+	}
+
+	setLineClickHandler(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.lineClickCallBack = callback;
 		return true;
 	}
 
@@ -930,6 +1219,17 @@ export default class NodeGraph {
 		return true;
 	}
 
+	// SetLassoSelectionCallback receives a function as an argument.
+	// The function is going to be called each time nodes are selected via the lasso
+	setLassoSelectionCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.lassoSelectionCallback = callback;
+		return true;
+	}
+
 	// Returns the node which triggered the context menu event or click event
 	getContextNode() {
 		return this.contextNodeData;
@@ -943,6 +1243,17 @@ export default class NodeGraph {
 		}
 
 		this.dragEndCallback = callback;
+		return true;
+	}
+
+	// SetLassoResetCallback receives a function as an argument.
+	// The function is going to be called when the lasso is reset.
+	setLassoResetCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.lassoResetCallback = callback;
 		return true;
 	}
 

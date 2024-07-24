@@ -5,6 +5,7 @@ CRAWLER_DIR := "./cmd/crawler"
 
 
 all: crawler
+build: crawler
 
 lint: # Lint the files
 	golangci-lint run
