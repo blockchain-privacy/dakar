@@ -1,6 +1,7 @@
 package selectors
 
 import (
+	"backend/constants"
 	"backend/external"
 	"context"
 	"encoding/json"
@@ -22,12 +23,14 @@ func (a AmountRange) IsValid() bool {
 }
 
 type Options struct {
-	StartDate   *time.Time
-	EndDate     *time.Time
-	OutputSum   *AmountRange
-	InputSum    *AmountRange
-	InputRange  *AmountRange
-	OutputRange *AmountRange
+	StartDate                  *time.Time
+	EndDate                    *time.Time
+	PrivacyTypes               []int
+	ExcludePrivacyTransactions *bool
+	InputSum                   *AmountRange
+	OutputSum                  *AmountRange
+	InputRange                 *AmountRange
+	OutputRange                *AmountRange
 }
 
 func (o Options) isValid() bool {
@@ -37,7 +40,9 @@ func (o Options) isValid() bool {
 	}
 
 	// at least one option must be set
-	if o.OutputSum == nil && o.InputSum == nil && o.InputRange == nil && o.OutputRange == nil {
+	if o.OutputSum == nil && o.InputSum == nil &&
+		o.InputRange == nil && o.OutputRange == nil &&
+		o.PrivacyTypes == nil && o.ExcludePrivacyTransactions == nil {
 		return false
 	}
 
@@ -55,6 +60,22 @@ func (o Options) isValid() bool {
 
 	if o.OutputRange != nil && !o.OutputRange.IsValid() {
 		return false
+	}
+
+	// can not exclude all privacy transactions and at the same time filter for privacy transactions
+	if o.PrivacyTypes != nil && o.ExcludePrivacyTransactions != nil && *o.ExcludePrivacyTransactions {
+		return false
+	}
+
+	// there are only 5 privacy types
+	if o.PrivacyTypes != nil && len(o.PrivacyTypes) > 5 {
+		return false
+	}
+
+	for _, privacyType := range o.PrivacyTypes {
+		if privacyType < 0 || privacyType > 4 {
+			return false
+		}
 	}
 
 	return true
@@ -139,17 +160,46 @@ func DoSelection(ctx context.Context, c external.Database, o Options) ([]string,
 		outputRangeFilter = "tx_outputs@filter(" + outputRangeFilter + "){amount}"
 	}
 
+	var privacyTypeFilter string
+	if o.PrivacyTypes != nil {
+		for _, privacyType := range o.PrivacyTypes {
+			if privacyTypeFilter != "" {
+				privacyTypeFilter += " or "
+			}
+
+			switch privacyType {
+			case 0:
+				privacyTypeFilter += "between(privacytype,0," + constants.StrPrivacyMixingLast + ")"
+			case 1:
+				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + ")"
+			case 2:
+				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + ")"
+			case 3:
+				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralCreationFirst + "," + constants.StrPrivacyCollateralCreationLast + ")"
+			case 4:
+				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralPaymentFirst + "," + constants.StrPrivacyCollateralPaymentLast + ")"
+			}
+		}
+	}
+
+	// construct @filter(between(privacytype, ..., ...) or between(privacytype, ..., ....) ...)
+	if privacyTypeFilter != "" {
+		privacyTypeFilter = "@filter(" + privacyTypeFilter + ")"
+	}
+
+	if o.ExcludePrivacyTransactions != nil && *o.ExcludePrivacyTransactions {
+		privacyTypeFilter = "@filter(not has(privacytype))"
+	}
+
 	query := `{
 				var(func: between(ts,"` + o.StartDate.Format(time.RFC3339) + `","` + o.EndDate.Format(time.RFC3339) + `")){
-					t as transactions
-				}
-
-				filterByOutputs as var(func: uid(t))@cascade{
+					t as transactions` + privacyTypeFilter + `@cascade{
 					` + inputRangeFilter + `
 					` + outputRangeFilter + `
+					}
 				}
 
-				withSums as var(func: uid(filterByOutputs)){
+				withSums as var(func: uid(t)){
 					` + queryBody + `
 				}
 				

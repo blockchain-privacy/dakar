@@ -18,16 +18,17 @@ func TestMain(m *testing.M) {
 
 func TestDoSelection(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	startDate1, err := time.Parse(time.RFC3339, "2014-04-28T00:00:00+01:00")
+	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
 	require.NoError(t, err)
-	endDate1, err := time.Parse(time.RFC3339, "2014-04-30T00:00:00+01:00")
+	endDate1, err := time.Parse(time.RFC3339, "2021-10-22T00:00:00+01:00")
 	require.NoError(t, err)
 
 	val1 := int64(1)
-	val150 := int64(1500000000)
-	val200 := int64(2000000000)
+	valPoint01 := int64(1000000)
+	valPoint1 := int64(10000000)
+	yes := true
 
 	tests := []struct {
 		o       Options
@@ -54,7 +55,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
-				InputSum:  &AmountRange{Min: &val200, Max: &val150},
+				InputSum:  &AmountRange{Min: &valPoint1, Max: &valPoint01},
 			},
 			wantErr: true,
 		},
@@ -62,7 +63,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
-				OutputSum: &AmountRange{Min: &val200, Max: &val150},
+				OutputSum: &AmountRange{Min: &valPoint1, Max: &valPoint01},
 			},
 			wantErr: true,
 		},
@@ -70,7 +71,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
-				OutputSum: &AmountRange{Min: &val200},
+				OutputSum: &AmountRange{Min: &valPoint1},
 			},
 			wantErr: false,
 		},
@@ -78,8 +79,8 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
-				InputSum:  &AmountRange{Min: &val200},
-				OutputSum: &AmountRange{Min: &val150},
+				InputSum:  &AmountRange{Min: &valPoint1},
+				OutputSum: &AmountRange{Min: &valPoint01},
 			},
 			wantErr: false,
 		},
@@ -87,7 +88,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
-				InputSum:  &AmountRange{Min: &val1, Max: &val200},
+				InputSum:  &AmountRange{Min: &val1, Max: &valPoint1},
 			},
 			wantErr: false,
 		},
@@ -95,7 +96,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate:  &startDate1,
 				EndDate:    &endDate1,
-				InputRange: &AmountRange{Min: &val150, Max: &val1},
+				InputRange: &AmountRange{Min: &valPoint01, Max: &val1},
 			},
 			wantErr: true,
 		},
@@ -104,7 +105,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate:   &startDate1,
 				EndDate:     &endDate1,
-				OutputRange: &AmountRange{Min: &val150, Max: &val1},
+				OutputRange: &AmountRange{Min: &valPoint01, Max: &val1},
 			},
 			wantErr: true,
 		},
@@ -112,7 +113,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate:  &startDate1,
 				EndDate:    &endDate1,
-				InputRange: &AmountRange{Min: &val150, Max: &val200},
+				InputRange: &AmountRange{Min: &valPoint01, Max: &valPoint1},
 			},
 			wantErr: false,
 		},
@@ -120,8 +121,8 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate:   &startDate1,
 				EndDate:     &endDate1,
-				InputRange:  &AmountRange{Min: &val150, Max: &val200},
-				OutputRange: &AmountRange{Min: &val1, Max: &val200},
+				InputRange:  &AmountRange{Min: &valPoint01, Max: &valPoint1},
+				OutputRange: &AmountRange{Min: &val1, Max: &valPoint1},
 			},
 			wantErr: false,
 		},
@@ -130,8 +131,36 @@ func TestDoSelection(t *testing.T) {
 				StartDate:   &startDate1,
 				EndDate:     &endDate1,
 				InputSum:    &AmountRange{Min: &val1},
-				InputRange:  &AmountRange{Min: &val150, Max: &val200},
-				OutputRange: &AmountRange{Min: &val1, Max: &val200},
+				InputRange:  &AmountRange{Min: &valPoint01, Max: &valPoint1},
+				OutputRange: &AmountRange{Min: &val1, Max: &valPoint1},
+			},
+			wantErr: false,
+		},
+		{
+			o: Options{
+				StartDate:    &startDate1,
+				EndDate:      &endDate1,
+				PrivacyTypes: []int{0, 2},
+				InputSum:     &AmountRange{Min: &val1},
+				InputRange:   &AmountRange{Min: &valPoint01, Max: &valPoint1},
+				OutputRange:  &AmountRange{Min: &val1, Max: &valPoint1},
+			},
+			wantErr: false,
+		},
+		{
+			o: Options{
+				StartDate:                  &startDate1,
+				EndDate:                    &endDate1,
+				PrivacyTypes:               []int{0, 2},
+				ExcludePrivacyTransactions: &yes,
+			},
+			wantErr: true,
+		},
+		{
+			o: Options{
+				StartDate:                  &startDate1,
+				EndDate:                    &endDate1,
+				ExcludePrivacyTransactions: &yes,
 			},
 			wantErr: false,
 		},
