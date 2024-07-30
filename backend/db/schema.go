@@ -171,6 +171,7 @@ func SetupSchema(c external.Database) error {
 			Workspace.state: string . # JSON encoded state of the workspace
 			Workspace.clusterHeight: int . # last clustered block at which this workspace was updated
 			Workspace.heuristics: [uid] @reverse . # heuristics which are managed by this workspace
+			Workspace.selectors: [uid] @reverse . # selectors which are managed by this workspace
 
 			type Workspace {
 				Workspace.name
@@ -178,6 +179,25 @@ func SetupSchema(c external.Database) error {
 				Workspace.state
 				Workspace.clusterHeight
 				Workspace.heuristics
+				Workspace.selectors
+			}
+			
+			Selector.created: dateTime @index(day) .  # creation date of the selector
+			Selector.modified: dateTime @index(day) .  # modification date of the selector
+			Selector.type: string @index(hash) . # type of the selector
+			Selector.status: string @index(hash) . # status of the selector (waiting, error, success)
+			Selector.parent: uid @reverse . # parent node from which a selector can use data
+			Selector.options: string . # JSON encoded options of the selector
+			Selector.results: [uid] @reverse . # results of the selector
+
+			type Selector {
+				Selector.created
+				Selector.modified
+				Selector.type
+				Selector.status
+				Selector.parent
+				Selector.options
+				Selector.results
 			}
 
 			Cluster.type: string @index(hash) . # the cluster type

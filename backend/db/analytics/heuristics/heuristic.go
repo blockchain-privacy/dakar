@@ -627,13 +627,6 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 		return
 	}
 
-	if heuristicUID == "" {
-		err = serror.FromStr("empty response from database")
-		return
-	}
-
-	frontendHeuristic.UID = heuristicUID
-
 	for _, cluster := range r.Clusters {
 		var origins []FrontendTransactionResult
 		destinationMap := make(map[string]bool)
@@ -658,6 +651,8 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 			Attributions: cluster.Attributions,
 		})
 	}
+
+	frontendHeuristic.UID = heuristicUID
 
 	return
 }

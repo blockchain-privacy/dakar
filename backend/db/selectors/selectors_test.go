@@ -2,8 +2,11 @@ package selectors
 
 import (
 	"backend/db"
+	"backend/db/user"
+	"backend/db/workspace"
 	"backend/testhelper"
 	"context"
+	"encoding/json"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -172,6 +175,184 @@ func TestDoSelection(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 			require.NotEmpty(t, selection)
+		}
+	}
+}
+
+func createUserAndWorkspace() (string, string, error) {
+	userUID, err := user.CreateNewUser(dbHandle)
+	if err != nil {
+		return "", "", err
+	}
+
+	workspaceUID, err := workspace.AddWorkspace(context.Background(), dbHandle, "test", userUID)
+	if err != nil {
+		return "", "", err
+	}
+
+	return userUID, workspaceUID, nil
+}
+
+func doSelection() ([]string, []byte, error) {
+	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
+	if err != nil {
+		return nil, nil, err
+	}
+	endDate1, err := time.Parse(time.RFC3339, "2021-10-22T00:00:00+01:00")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	val1 := int64(1)
+	valPoint01 := int64(1000000)
+	valPoint1 := int64(10000000)
+
+	opt := Options{
+		StartDate:   &startDate1,
+		EndDate:     &endDate1,
+		InputSum:    &AmountRange{Min: &val1},
+		InputRange:  &AmountRange{Min: &valPoint01, Max: &valPoint1},
+		OutputRange: &AmountRange{Min: &val1, Max: &valPoint1},
+	}
+
+	optJSON, err := json.Marshal(opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	selection, err := DoSelection(context.Background(), dbHandle, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return selection, optJSON, nil
+}
+
+func TestInsertSelector(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	userUID, workspaceUID, err := createUserAndWorkspace()
+	require.NoError(t, err)
+
+	resultUIDs, optJSON, err := doSelection()
+	require.NoError(t, err)
+
+	results := make([]DummyNode, len(resultUIDs))
+	for i, result := range resultUIDs {
+		results[i] = DummyNode{UID: result}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	tests := []struct {
+		selector     *Selector
+		userUID      string
+		workspaceUID string
+		wantErr      bool
+	}{
+		{
+			selector: nil,
+			wantErr:  true,
+		},
+		{
+			selector: &Selector{
+				Created: "",
+			},
+			wantErr: true,
+		},
+		{
+			selector: &Selector{
+				Created:  now,
+				Modified: now,
+				Type:     "invalidType",
+				Status:   "invalidStatus",
+				Options:  string(optJSON),
+			},
+			wantErr: true,
+		},
+		{
+			selector: &Selector{
+				Created:  now,
+				Modified: now,
+				Type:     "transactionProperties",
+				Status:   "success",
+				Options:  string(optJSON),
+				Results:  results,
+			},
+			userUID:      userUID,
+			workspaceUID: workspaceUID,
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		selector, err := InsertSelector(ctx, dbHandle, tt.selector, tt.userUID, tt.workspaceUID)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.NotNil(t, selector)
+		}
+	}
+}
+
+func TestGetFrontendSelectorByUID(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	userUID, workspaceUID, err := createUserAndWorkspace()
+	require.NoError(t, err)
+
+	resultUIDs, optJSON, err := doSelection()
+	require.NoError(t, err)
+
+	results := make([]DummyNode, len(resultUIDs))
+	for i, result := range resultUIDs {
+		results[i] = DummyNode{UID: result}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
+		Created:  now,
+		Modified: now,
+		Type:     "transactionProperties",
+		Status:   "success",
+		Options:  string(optJSON),
+		Results:  results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	tests := []struct {
+		selectorUID  string
+		userUID      string
+		workspaceUID string
+		wantErr      bool
+	}{
+		{
+			selectorUID:  selectorUID,
+			userUID:      userUID,
+			workspaceUID: workspaceUID,
+			wantErr:      false,
+		},
+		{
+			// invalid selector uid
+			selectorUID:  "0x123",
+			userUID:      userUID,
+			workspaceUID: workspaceUID,
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		selector, err := GetFrontendSelectorByUID(ctx, dbHandle, tt.selectorUID, tt.userUID, tt.workspaceUID)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.NotNil(t, selector)
 		}
 	}
 }
