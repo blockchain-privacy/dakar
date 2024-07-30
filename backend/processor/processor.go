@@ -178,13 +178,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		return err
 	}
 
-	// map to slice
-	addrSlice := make([]db.Address, 0, len(addrMap))
-	for _, a := range addrMap {
-		addrSlice = append(addrSlice, a)
-	}
-
-	return db.UpsertAddresses(dgraph, addrSlice)
+	return db.UpsertAddresses(dgraph, cliutil.GetMapValues(addrMap))
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
