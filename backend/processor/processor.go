@@ -224,11 +224,6 @@ func getOutputAddress(pubKey *jsonrpc.ScriptPubKeyResult, pubKeyHashAddrID byte)
 		return pubKey.Address, nil
 	}
 
-	if len(pubKey.Addresses) > 0 {
-		// use first address, ignore others
-		return pubKey.Addresses[0], nil
-	}
-
 	// try to extract addresses
 	if pubKey.Type != "nulldata" && pubKey.Type != "nonstandard" {
 		decodeString, err := hex.DecodeString(pubKey.Hex)

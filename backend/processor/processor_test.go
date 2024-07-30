@@ -440,7 +440,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 
 	txWithoutAddresses := rawTxResult
 	for i := range txWithoutAddresses.Vout {
-		txWithoutAddresses.Vout[i].ScriptPubKey.Addresses = nil
+		txWithoutAddresses.Vout[i].ScriptPubKey.Address = ""
 		txWithoutAddresses.Vout[i].ScriptPubKey.Type = "pubkeyhash"
 	}
 
@@ -837,21 +837,6 @@ func Test_getOutputAddress(t *testing.T) {
 				Address: "a",
 			},
 			want:    "a",
-			wantErr: false,
-		},
-		{
-			pubKey: &jsonrpc.ScriptPubKeyResult{
-				Addresses: []string{"b"},
-				Address:   "a",
-			},
-			want:    "a",
-			wantErr: false,
-		},
-		{
-			pubKey: &jsonrpc.ScriptPubKeyResult{
-				Addresses: []string{"b"},
-			},
-			want:    "b",
 			wantErr: false,
 		},
 		{

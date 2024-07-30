@@ -186,12 +186,9 @@ func (v *Vin) IsCoinBase() bool {
 }
 
 type ScriptPubKeyResult struct {
-	Asm  string `json:"asm"`
-	Hex  string `json:"hex,omitempty"`
-	Type string `json:"type"`
-	// Dash still uses Addresses instead of Address
-	Addresses []string `json:"addresses,omitempty"`
-	// Since Bitcoin Core v24 Address is used instead of Addresses: https://github.com/bitcoin/bitcoin/pull/20286
+	Asm     string `json:"asm"`
+	Hex     string `json:"hex,omitempty"`
+	Type    string `json:"type"`
 	Address string `json:"address"`
 }
 
