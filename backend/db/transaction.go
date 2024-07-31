@@ -241,7 +241,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	}
 
 	if len(r.Q) == 0 {
-		err = serror.FromFormat("block: %d: %w", blockID, ErrTransactionNotFound)
+		err = serror.NewWithContext(ErrTransactionNotFound, "block", blockID)
 		return
 	}
 

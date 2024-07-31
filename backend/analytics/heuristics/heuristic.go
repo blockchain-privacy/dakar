@@ -356,7 +356,7 @@ func ConstructExecutors(heuristicRequest heuristics.DatabaseHeuristicRequest, us
 func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.Heuristic, error) {
 	newHeuristic, err := exec(dgraph, g, hx.transactionHash, hx.rootUID, hx.thisHeuristic)
 	if err != nil {
-		return nil, fmt.Errorf("heuristic: %v, %w", hx.thisHeuristic, err)
+		return nil, serror.AddContext(err, "heuristic", hx.thisHeuristic)
 	}
 
 	return newHeuristic, nil

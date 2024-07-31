@@ -585,7 +585,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 
 	txHashMap, err := createTransactionHashmap(rpcClient, block.Tx)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", state.String(), err)
+		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 
@@ -598,7 +598,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
-			err = fmt.Errorf("%s: %w", state.String(), err)
+			err = serror.AddContext(err, "state", state.String())
 			return
 		}
 
@@ -629,7 +629,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
-			err = fmt.Errorf("%s: %w", state.String(), err)
+			err = serror.AddContext(err, "state", state.String())
 			return
 		}
 
@@ -675,13 +675,13 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 	}
 
 	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
-		err = fmt.Errorf("%s: %w", state.String(), err)
+		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 
 	// save processing state
 	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
-		err = fmt.Errorf("%s: %w", state.String(), err)
+		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 

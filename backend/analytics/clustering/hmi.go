@@ -6,7 +6,6 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/qrest/gomisc/serror"
@@ -161,8 +160,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 					} else {
 						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.UID)
 						if dbErr != nil {
-							return false, fmt.Errorf("block %d cluster uid %s: %w",
-								m.state.ID, transactionCluster.UID, dbErr)
+							return false, serror.AddContext(dbErr, "block", m.state.ID, "cluster uid", transactionCluster.UID)
 						}
 
 						clusterMap[root.UID] = clustering.Cluster{
@@ -250,7 +248,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 		// insert new clusters
 		if len(newClusters) > 0 {
 			if validationErr := validateClusters(newClusters); validationErr != nil {
-				return false, fmt.Errorf("block id %d: %w", m.state.ID, validationErr)
+				return false, serror.AddContext(validationErr, "block id", m.state.ID)
 			}
 
 			clusterErr := clustering.AddClusters(m.db, newClusters, true)

@@ -74,7 +74,7 @@ func validateExclusionAddresses(ctx context.Context, dgraph external.Database, e
 			delete(addresses, a.Hash)
 		}
 
-		return nil, serror.FromFormat("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.NewWithContext(ErrNonExistentAddress, "address", cliutil.GetOneKey(addresses))
 	}
 
 	// build mapping
