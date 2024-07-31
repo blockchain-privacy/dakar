@@ -6,48 +6,36 @@
     <div style="height: 100%; width:100%; position: relative">
       <v-card
         v-if="workspaceName"
-        class="workspace-toolbar"
+        :rounded="$vuetify.display.xs?'0':undefined"
+        :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
       >
-        <v-card-text class="d-flex align-center pa-0">
-          <v-icon
-            class="mx-3"
-            icon="$graphIcon"
-            size="32"
-          />
-          <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
-            {{ workspaceName }}
-          </p>
-          <v-text-field
-            v-model="graphQuery"
-            class="noOutline"
-            style="min-width:220px; max-width:300px"
-            :hide-details="true"
-            variant="outlined"
-            density="compact"
-            color="primary"
-            :single-line="true"
-            label="Search"
-            :disabled="isModifyingWorkspace"
-            :append-inner-icon="mdiMagnify"
-            @click:append-inner="handleGraphQuery(graphQuery)"
-            @keydown.enter="handleGraphQuery(graphQuery)"
-          />
-          <adaptive-menu
-            :items="menuItems"
-            @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
-          />
-        </v-card-text>
+        <adaptive-toolbar
+          :name="workspaceName"
+          :selected-item-count="lassoSelectedNodes.length"
+          :delete-enabled="isLassoDeletionEnabled"
+          :shortest-path-enabled="isShortestPathLookupEnabled"
+          :add-entity-enabled="!isModifyingWorkspace"
+          :node-type-items="nodeTypeLabels"
+          :privacy-type-items="privacyTypeLabels"
+          @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
+          @rearrange="handleMenuRearrange"
+          @center="handleMenuCenter"
+          @delete-selected="handleMenuDeleteSelected"
+          @add-entity="handleGraphQuery"
+          @filter-changed="handleMenuFilterChanged"
+          @shortest-path-lookup="handleShortestPathLookup"
+        />
         <v-progress-linear
           v-if="isModifyingWorkspace"
-          :indeterminate="true"
-          :rounded="true"
+          indeterminate
+          rounded
           location="bottom"
         />
       </v-card>
       <div
         v-if="workspaceName && wasAutoSaved"
         style=""
-        :class="{'text-caption':true, 'auto-save-small-screen': $vuetify.display.smAndDown, 'auto-save-large-screen': $vuetify.display.mdAndUp }"
+        :class="{'text-caption':true, 'auto-save-sm': $vuetify.display.smAndDown, 'auto-save': $vuetify.display.mdAndUp }"
       >
         <template v-if="isAutoSaving">
           Saving ...
@@ -61,10 +49,10 @@
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
         <v-dialog
           :model-value="isLoadingWorkspace"
-          :persistent="true"
+          persistent
           max-width="350px"
-          :contained="true"
-          :no-click-animation="true"
+          contained
+          no-click-animation
         >
           <v-card>
             <v-card-text class="text-subtitle-1 d-flex align-center">
@@ -74,7 +62,7 @@
                 </p>
                 <v-progress-linear
                   class="mt-3"
-                  :indeterminate="true"
+                  indeterminate
                   rounded
                 />
               </div>
@@ -97,7 +85,7 @@
           @add-heuristic="openTypeSelectionSheet"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
-          @delete-entity="removeGraphNode"
+          @delete-entity="removeContextNode"
         />
         <connection-side-bar
           v-model="isConnectionSideBarOpen"
@@ -105,6 +93,11 @@
           :workspace-uid="workspaceUID"
           :disable-adding-nodes="isModifyingWorkspace"
           @add-nodes="checkNodeCount"
+        />
+        <shortest-path-side-bar
+          v-model="isShortestPathSideBarOpen"
+          :from="shortestPathTransactions[0]"
+          :to="shortestPathTransactions[1]"
         />
         <routing-dialog
           v-model="showRouteGuardDialogModel"
@@ -119,7 +112,7 @@
           submit-label="Create"
           input-label="Note content"
           :maxlength="maxNoteLength"
-          :text-area="true"
+          text-area
           @submit="addNewNote"
         />
         <text-dialog
@@ -130,7 +123,7 @@
           input-label="Note content"
           :input-value="editNoteDialogValue"
           :maxlength="maxNoteLength"
-          :text-area="true"
+          text-area
           @submit="changeNote"
         />
         <confirm-dialog
@@ -182,22 +175,17 @@
 
 <script setup>
 import {
-	mdiCached,
 	mdiCheckCircle,
 	mdiDelete,
-	mdiImageFilterCenterFocus,
-	mdiMagnify,
 	mdiNoteEdit,
 	mdiNotePlus,
-	mdiOpenInNew,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
-import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
+import HeuristicTypeSelectionSideBar from './sidebars/HeuristicTypeSelectionSideBar.vue';
 import {
 	APPLICATION_NAME,
 	CLUSTER_TYPE_CUSTOM,
 	ROUTE_NAME_WORKSPACE_PAGE,
-	ROUTE_NAME_WORKSPACES_PAGE,
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
@@ -205,9 +193,10 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 } from '@/constants';
 import {
-	getColorMap, handleError, getPrivacyTypeLabel, plural,
+	getColorMap, handleError, getPrivacyTypeLabel,
 } from '@/utilities';
 import {
+	computed,
 	inject, nextTick, onMounted, onUnmounted, ref, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
@@ -215,12 +204,13 @@ import {useMsgStore} from '@/pinia/msg';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
-import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
-import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
-import ConnectionSideBar from '@/components/workspace/ConnectionSideBar.vue';
+import EntitySideBar from '@/components/workspace/sidebars/EntitySideBar.vue';
+import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
+import ConnectionSideBar from '@/components/workspace/sidebars/ConnectionSideBar.vue';
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
+import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -235,6 +225,12 @@ colorMap.set(WORKSPACE_NODE_TYPE_HEURISTIC, '#4CAF50');
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
+
+const nodeTypeLabels = [
+	{text: WORKSPACE_NODE_TYPE_HEURISTIC, color: '#4CAF50'},
+	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#CDDC39'},
+	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
+];
 
 const nodeGraph = new NodeGraph(colorMap);
 
@@ -251,12 +247,12 @@ const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
 const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
-const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
+const isShortestPathSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
@@ -271,6 +267,7 @@ const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
 const lassoSelectedNodes = ref([]);
+const shortestPathTransactions = ref(['', '']);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -301,32 +298,11 @@ const contextMenuModel = ref({
 		{
 			title: 'Delete',
 			icon: mdiDelete,
-			action: removeGraphNode,
+			action: removeContextNode,
 			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
 		},
 	],
 });
-
-const menuItems = ref([
-	{
-		title: 'Rearrange',
-		icon: mdiCached,
-		action() {
-			nodeGraph.reorderNodes();
-			queueAutoSave();
-		},
-	},
-	{title: 'Center', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
-	{title: 'Workspaces', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
-	{
-		title: () => `Delete ${lassoSelectedNodes.value.length} ${plural('node', lassoSelectedNodes.value.length)}`,
-		icon: mdiDelete,
-		action: () => nodeGraph.centerGraph(),
-		show: () => lassoSelectedNodes.value.length > 0,
-		disabled: () => lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)),
-		fill: true,
-	},
-]);
 
 let autoSaveTimer = null;
 const maxNoteLength = 100;
@@ -368,6 +344,21 @@ watch(
 	},
 );
 
+// Computed
+const privacyTypeLabels = computed(() => {
+	const labels = [];
+
+	getColorMap().forEach((v, k) => {
+		labels.push({text: k, color: v});
+	});
+
+	return labels;
+});
+
+const isLassoDeletionEnabled = computed(() => !lassoSelectedNodes.value.some(d => !isDeleteEnabled(d)));
+const isShortestPathLookupEnabled = computed(() =>
+	lassoSelectedNodes.value.length === 2 && !lassoSelectedNodes.value.some(d => !d.transactionHash));
+
 // Hooks
 function onDocumentClose() {
 	if (document.visibilityState === 'hidden') {
@@ -401,16 +392,19 @@ onUnmounted(() => {
 });
 
 // Functions
-async function removeGraphNode() {
-	const node = nodeGraph.getContextNode();
-	if (!node || node.loading) {
+async function removeGraphNodes(nodes) {
+	if (!nodes.length) {
+		return;
+	}
+
+	if (nodes.some(d => d.loading)) {
 		return;
 	}
 
 	try {
 		const response = await dakar.workspace.workspacesNodeDelete({
 			state: {
-				nodeUID: node.uid,
+				nodeUIDs: nodes,
 				workspaceUID: workspaceUID.value,
 			},
 		});
@@ -419,6 +413,15 @@ async function removeGraphNode() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
+}
+
+async function removeContextNode() {
+	const node = nodeGraph.getContextNode();
+	if (!node || node.loading) {
+		return;
+	}
+
+	await removeGraphNodes([node.uid]);
 }
 
 function editNote(note) {
@@ -490,6 +493,28 @@ async function checkNodeCount(nodes) {
 	await addMultipleNodes(nodes);
 }
 
+function handleMenuRearrange() {
+	nodeGraph.reorderNodes();
+	queueAutoSave();
+}
+
+function handleMenuCenter() {
+	nodeGraph.centerGraph();
+}
+
+function handleShortestPathLookup() {
+	openShortestPathSidebar();
+}
+
+function handleMenuFilterChanged(nodeFilter, privacyFilter) {
+	nodeGraph.filterNodes(nodeFilter, privacyFilter);
+	nodeGraph.draw();
+}
+
+function handleMenuDeleteSelected() {
+	removeGraphNodes(lassoSelectedNodes.value.map(d => d.uid));
+}
+
 // Receives a node array
 async function addMultipleNodes(nodes) {
 	if (isModifyingWorkspace.value) {
@@ -506,6 +531,7 @@ async function addMultipleNodes(nodes) {
 			},
 		});
 		if (response.nodes) {
+			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -518,6 +544,13 @@ async function addMultipleNodes(nodes) {
 	releaseAutosaveLock();
 }
 
+function setPrivacyLabels(nodes) {
+	return nodes.map(d => {
+		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
+		return d;
+	});
+}
+
 async function handleGraphQuery(query) {
 	if (isModifyingWorkspace.value) {
 		return;
@@ -527,8 +560,6 @@ async function handleGraphQuery(query) {
 	if (!trimmedQuery) {
 		return;
 	}
-
-	graphQuery.value = '';
 
 	await addMultipleNodes([trimmedQuery]);
 }
@@ -577,6 +608,7 @@ async function addNewNote(noteText, noteUID, childUID) {
 			},
 		});
 		if (response.nodes) {
+			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -686,6 +718,7 @@ async function checkWork(workID) {
 			},
 		});
 		if (response.nodes) {
+			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
@@ -739,6 +772,7 @@ function openConnectionSheet(d) {
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = false;
 	isConnectionSideBarOpen.value = true;
+	isShortestPathSideBarOpen.value = false;
 
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
@@ -748,6 +782,7 @@ function openTypeSelectionSheet() {
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
+	isShortestPathSideBarOpen.value = false;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
@@ -770,7 +805,7 @@ function openEntitySideBar(nodeData) {
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
 		case WORKSPACE_NODE_TYPE_HEURISTIC:
-			// Brackets so local variables stay local (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
+			// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
 				let displayType = '';
 				for (const descriptor of heuristicDescriptors.value) {
@@ -791,15 +826,26 @@ function openEntitySideBar(nodeData) {
 
 	isAddHeuristicSheetOpen.value = false;
 	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = false;
 	isEntitySideBarOpen.value = true;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
+}
+
+function openShortestPathSidebar() {
+	shortestPathTransactions.value = lassoSelectedNodes.value.map(d => d.transactionHash);
+
+	isEntitySideBarOpen.value = false;
+	isAddHeuristicSheetOpen.value = false;
+	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = true;
 }
 
 function closeSideBars() {
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = false;
 }
 
 function showContextMenu(e) {
@@ -838,12 +884,8 @@ async function refreshData() {
 
 		if (response.workspace) {
 			data = response.workspace;
-			data.nodes = data.nodes.map(d => {
-				d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
-				return d;
-			});
-
 			workspaceName.value = data.name;
+			data.nodes &&= setPrivacyLabels(data.nodes);
 		} else {
 			data = null;
 		}
@@ -949,12 +991,12 @@ async function whenMounted() {
 	// Set page title
 	document.title = `Workspace - ${APPLICATION_NAME}`;
 
-	if (!nodeGraph.setNodeClickHandler(openEntitySideBar)) {
+	if (!nodeGraph.setNodeClickCallback(openEntitySideBar)) {
 		setErrorMessage('error setting node click handler');
 		return false;
 	}
 
-	if (!nodeGraph.setLineClickHandler(openConnectionSheet)) {
+	if (!nodeGraph.setLineClickCallback(openConnectionSheet)) {
 		setErrorMessage('error setting line click handler');
 		return false;
 	}
@@ -1032,21 +1074,21 @@ async function whenMounted() {
   white-space: nowrap;
 }
 
-.auto-save-large-screen {
+.auto-save {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 1004;
 }
 
-.auto-save-small-screen {
+.auto-save-sm {
   position: absolute;
-  top: 65px;
+  bottom: 10px;
   left: 10px;
   z-index: 1004;
 }
 
-.workspace-toolbar {
+.toolbar {
   position: absolute;
   left: 10px;
   top: 10px;
@@ -1054,15 +1096,13 @@ async function whenMounted() {
   background-color: rgb(var(--v-theme-surface))
 }
 
-/* remove outline from text-field variant 'outlined'.
- This can also be achieved by using variant 'plain',
- but then the label text is not centered */
-.noOutline :deep(.v-field__outline__start) {
-  border-width: 0 0 0 0 !important;
-}
-
-.noOutline :deep(.v-field__outline__end) {
-  border-width: 0 0 0 0 !important;
+.toolbar-sm {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right:0;
+  z-index: 1004;
+  background-color: rgb(var(--v-theme-surface))
 }
 
 </style>

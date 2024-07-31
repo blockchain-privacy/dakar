@@ -1,7 +1,6 @@
 import {createRouter, createWebHistory} from 'vue-router';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import EntryPage from '../components/EntryPage.vue';
-import ConnectionLookupPage from '../components/tools/ConnectionLookupPage.vue';
 import SettingsPage from '../components/user/SettingsPage.vue';
 import ProfilePage from '../components/user/ProfilePage.vue';
 import AdministrationPage from '../components/user/AdministrationPage.vue';
@@ -12,7 +11,6 @@ import AddressPage from '../components/explorer/address/AddressPage.vue';
 import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
 import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
-import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
 import WorkspacePage from '@/components/tools/WorkspacePage.vue';
 import * as Constants from '../constants';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
@@ -135,19 +133,9 @@ export const router = createRouter({
 			meta: {limitToRole: 'privileged'},
 			children: [
 				{
-					path: 'shortestPath',
-					name: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
-					component: ShortestPathPage,
-				},
-				{
 					path: 'workspaces',
 					name: Constants.ROUTE_NAME_WORKSPACES_PAGE,
 					component: WorkspacePage,
-				},
-				{
-					path: 'connectionLookup',
-					name: Constants.ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-					component: ConnectionLookupPage,
 				},
 				{
 					path: 'clusterOverview',

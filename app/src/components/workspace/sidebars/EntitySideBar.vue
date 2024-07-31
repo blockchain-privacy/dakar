@@ -8,7 +8,7 @@
   >
     <template #actions>
       <v-chip
-        :rounded="true"
+        rounded
         class="me-2"
         variant="tonal"
         :prepend-icon="mdiDelete"
@@ -17,7 +17,7 @@
         Delete
       </v-chip>
       <v-chip
-        :rounded="true"
+        rounded
         class="me-2"
         color="primary"
         variant="tonal"
@@ -34,7 +34,7 @@
         >
           <v-chip
             v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
-            :rounded="true"
+            rounded
             color="primary"
             variant="tonal"
             class="me-2"
@@ -60,7 +60,7 @@
         />
         <v-chip
           v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
-          :rounded="true"
+          rounded
           color="primary"
           variant="tonal"
           :prepend-icon="mdiFileDownloadOutline"
@@ -100,7 +100,7 @@
               <transaction
                 :tx="t"
                 :show-heuristic-editor-link="false"
-                :show-fingerprint-link="true"
+                show-fingerprint-link
                 show-details
                 :embed="false"
                 :show-title-bar="false"
@@ -142,21 +142,21 @@ import {
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {useMsgStore} from '@/pinia/msg.js';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
-import {useCacheStore} from '@/pinia/cache';
-import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
-import {getCurrentDate, isDestination} from '@/utilities';
+import {useCacheStore} from '@/pinia/cache.js';
+import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
+import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
-} from '@/constants';
+} from '@/constants/index.js';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
-import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
+import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -238,23 +238,27 @@ const sideBarIcon = computed(() => {
 
 // Functions
 
+function addOutputToSelectableEntities(output) {
+	if (output.txhash) {
+		selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+	}
+
+	if (output.addresshash) {
+		selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+	}
+}
+
 function setSelectableEntities() {
 	selectableEntities.clear();
 	switch (props.type) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			for (const t of entityData.value) {
 				if (t.inputs) {
-					for (const input of t.inputs) {
-						selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-						selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
-					}
+					t.inputs.forEach(addOutputToSelectableEntities);
 				}
 
 				if (t.outputs) {
-					for (const output of t.outputs) {
-						selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-						selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
-					}
+					t.outputs.forEach(addOutputToSelectableEntities);
 				}
 			}
 
@@ -264,8 +268,13 @@ function setSelectableEntities() {
 			break;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			for (const output of entityData.value.addr_outputs) {
-				selectableEntities.set(output.input_transaction, {id: output.input_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-				selectableEntities.set(output.output_transaction, {id: output.output_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				if (output.input_transaction) {
+					selectableEntities.set(output.input_transaction, {id: output.input_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				}
+
+				if (output.output_transaction) {
+					selectableEntities.set(output.output_transaction, {id: output.output_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				}
 			}
 
 			showSelectTransactions.value = true;
@@ -275,7 +284,9 @@ function setSelectableEntities() {
 		case WORKSPACE_NODE_TYPE_HEURISTIC:
 			for (const cluster of entityData.value.clusters) {
 				for (const tx of cluster.txs) {
-					selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+					if (tx.txhash) {
+						selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+					}
 				}
 			}
 
@@ -422,13 +433,13 @@ function selectAllAddresses() {
 }
 
 function deselectAllTransactions() {
-	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		.map(d => d.id));
 }
 
 function deselectAllAddresses() {
-	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
 		.map(d => d.id));
 }

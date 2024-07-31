@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"backend/blockiterator"
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
 	"backend/external"
@@ -9,7 +10,6 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"log/slog"
 )
 
 // Crawler implements BlockIterator which processes the transactions of each traversed block
@@ -53,24 +53,14 @@ func NewCrawler(ctx context.Context, database external.Database,
 	}
 }
 
-// Name returns the name
-func (c *Crawler) Name() string {
-	return "processor"
-}
-
-// Logger returns the Logger
-func (c *Crawler) Logger() *slog.Logger {
-	return thisLogger
-}
-
-// Context returns the context
-func (c *Crawler) Context() context.Context {
-	return c.ctx
-}
-
-// DB returns the database access
-func (c *Crawler) DB() external.Database {
-	return c.db
+func (c *Crawler) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "processor",
+		Context:             c.ctx,
+		Logger:              thisLogger,
+		CurrentBlock:        c.state.id,
+		ProcessedBlockCount: 1,
+	}
 }
 
 // IncrementState increments the state one block
@@ -119,11 +109,6 @@ func (c *Crawler) CalculateInitialState() error {
 // PostExecution sets the crawler status activity flag to false
 func (c *Crawler) PostExecution() error {
 	return dbstat.SetCrawling(c.db, false)
-}
-
-// CurrentBlock returns the height of the block which is currently crawled
-func (c *Crawler) CurrentBlock() uint64 {
-	return c.state.id
 }
 
 // NextBlock tries to increase the internal state to the next block

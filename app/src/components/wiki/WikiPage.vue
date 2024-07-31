@@ -21,7 +21,7 @@
           <v-divider />
           <v-list
             v-if="fileSet"
-            :nav="true"
+            nav
           >
             <div
               v-for="fileItem in fileHierarchy"
@@ -66,7 +66,7 @@
         <fade-transition>
           <v-card
             v-if="showRootPage"
-            :flat="true"
+            flat
           >
             <v-card-text>
               <v-autocomplete

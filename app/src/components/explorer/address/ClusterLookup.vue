@@ -36,11 +36,11 @@
     <v-progress-linear
       v-if="isLoading"
       class="mt-10"
-      :indeterminate="true"
+      indeterminate
     />
     <v-card
       v-if="showEmptyText"
-      :flat="true"
+      flat
       class="my-3"
       variant="text"
     >
@@ -61,7 +61,7 @@
           {{ getClusterTypeLabel(c.type) }}
           <v-chip
             v-if="!$vuetify.display.xs"
-            :rounded="true"
+            rounded
             class="me-2 ms-auto"
           >
             {{ c.addressCount }}
@@ -69,7 +69,7 @@
           </v-chip>
           <v-chip
             v-if="$vuetify.display.xs"
-            :rounded="true"
+            rounded
             class="me-2 ms-auto"
           >
             {{ c.addressCount }}

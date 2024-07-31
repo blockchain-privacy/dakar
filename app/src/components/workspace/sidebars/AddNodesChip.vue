@@ -1,7 +1,7 @@
 <template>
   <v-chip
     v-if="showSelectAllTransactions"
-    :rounded="true"
+    rounded
     class="me-2"
     color="primary"
     variant="tonal"
@@ -12,7 +12,7 @@
   </v-chip>
   <v-chip
     v-if="showSelectAllAddresses"
-    :rounded="true"
+    rounded
     class="me-2"
     color="primary"
     variant="tonal"
@@ -24,7 +24,7 @@
   <fade-transition>
     <v-chip
       v-if="selectionCount"
-      :rounded="true"
+      rounded
       class="me-2"
       color="primary"
       variant="tonal"
@@ -50,7 +50,7 @@ import {mdiCheckboxMultipleOutline, mdiPlus} from '@mdi/js';
 import {computed, ref, watch} from 'vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {WORKSPACE_NODE_TYPE_CLUSTER, WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants';
+import {WORKSPACE_NODE_TYPE_CLUSTER, WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 
 const selectionCount = ref(0);
 const addressCount = ref(0);

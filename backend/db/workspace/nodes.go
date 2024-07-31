@@ -12,10 +12,27 @@ import (
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
 	connections []NodeConnections, heuristicNodes []Node, clusterHeight int64, err error) {
+	result, err := getWorkspaceConnectionsRaw(c, uids, userUID, workspaceUID)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	transactions, clusters, heuristicNodes, clusterHeight, err := parseConnectionResult(result)
+	if err != nil {
+		return
+	}
+
+	connections = append(transactions, clusters...)
+
+	return
+}
+
+// getWorkspaceConnectionsRaw returns all connections between the given UIDs, and all connected heuristics in unparsed form
+func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID string, workspaceUID string) (
+	*connectionRequest, error) {
 	// one uid is still okay, because it could a be destination transaction with connected heuristics
 	if len(uids) == 0 {
-		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
-		return
+		return nil, cliutil.NewStackError(db.ErrEmptyRequestArgument)
 	}
 
 	// todo: in block 'transactions' only select first input when searching for clusters (for performance)
@@ -151,35 +168,26 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{
 		"$uids": db.CreateCommaArray(uids), "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
+		return nil, err
 	}
 
 	// json struct
 	var r connectionRequest
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
+		return nil, cliutil.NewStackError(err)
 	}
 
-	transactions, clusters, heuristicNodes, clusterHeight, err := parseConnectionResult(r)
-	if err != nil {
-		return
-	}
-
-	connections = append(transactions, clusters...)
-
-	return
+	return &r, nil
 }
 
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 //
 //nolint:gocyclo
-func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
+func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
 	heuristics []Node, clusterHeight int64, err error) {
 	if len(r.ClusterHeight) != 1 {
-		err = cliutil.NewStackErrorf("invalid number of cluster information: %d", len(r.ClusterHeight))
+		err = cliutil.NewStackErrorf("invalid number of cluster height results: %d", len(r.ClusterHeight))
 		return
 	}
 

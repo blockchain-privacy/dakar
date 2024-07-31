@@ -1,6 +1,6 @@
 <template>
   <v-container
-    :fluid="true"
+    fluid
     class="content"
   >
     <v-row

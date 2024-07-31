@@ -8,7 +8,7 @@ import (
 	"backend/db/analytics"
 	dbstat "backend/db/status"
 	"backend/external"
-	"log/slog"
+	"slices"
 
 	"context"
 	"log"
@@ -128,19 +128,14 @@ func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *C
 	}
 }
 
-// Name returns the name
-func (c *Classifier) Name() string {
-	return "classifier"
-}
-
-// Logger returns the Logger
-func (c *Classifier) Logger() *slog.Logger {
-	return analyticsLogger
-}
-
-// Context returns the context
-func (c *Classifier) Context() context.Context {
-	return c.ctx
+func (c *Classifier) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "classifier",
+		Context:             c.ctx,
+		Logger:              analyticsLogger,
+		CurrentBlock:        c.state.ID,
+		ProcessedBlockCount: 1,
+	}
 }
 
 // IncrementState increments the state one block
@@ -269,11 +264,6 @@ func (c *Classifier) NextBlock() (bool, error) {
 	return false, nil
 }
 
-// CurrentBlock returns the height of the block which is currently classified
-func (c *Classifier) CurrentBlock() uint64 {
-	return c.state.ID
-}
-
 // Iterate classifies all transactions of the current block based
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
@@ -307,7 +297,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// step 2.2.1: set the privacy type of destination transactions by analyzing the connected transactions.
 	// Origins are only returned in this step and not set directly, if the number of potentialCollateralTransactions
-	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
+	// is bigger than zero. This is so the classification is resilient against sudden shutdowns. If the origins were
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
@@ -326,14 +316,12 @@ func (c *Classifier) Iterate() (bool, error) {
 			return false, err
 		}
 
-		var updatedTransactions []db.Transaction
-
-		for _, o := range foundOrigins {
-			updatedTransactions = append(updatedTransactions, newOriginTransaction(o.UID))
+		updatedTransactions := make([]db.Transaction, len(foundOrigins))
+		for i, o := range foundOrigins {
+			updatedTransactions[i] = newOriginTransaction(o.UID)
 		}
 
-		updatedTransactions = append(updatedTransactions, originCC...)
-		updatedTransactions = append(updatedTransactions, originCP...)
+		updatedTransactions = slices.Concat(updatedTransactions, originCC, originCP)
 
 		if len(updatedTransactions) > 0 {
 			if updateErr := db.UpdateTransactions(c.db, updatedTransactions); updateErr != nil {

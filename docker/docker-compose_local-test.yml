@@ -1,6 +1,6 @@
 services:
   dgraph_db:
-    image: dgraph/standalone:v23.1.0
+    image: dgraph/standalone:v24.0.0-rc1
     network_mode: "bridge"
     container_name: dgraph_db
     ports:
@@ -10,7 +10,7 @@ services:
       - 9080
   bitcoin:
     container_name: bitcoind
-    image: lncm/bitcoind:v26.0
+    image: lncm/bitcoind:v26.1
     entrypoint: ["bitcoind"]
     command: -regtest -rpcuser=rpc1user -rpcpassword=1234pass -rpcport=8131 -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0 -txindex
     ports:

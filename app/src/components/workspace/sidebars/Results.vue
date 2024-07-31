@@ -1,7 +1,7 @@
 <template>
   <v-container
     v-if="resultItems && resultItems.length > 0"
-    :fluid="true"
+    fluid
   >
     <div
       v-if="resultItems.length > 1"
@@ -10,8 +10,8 @@
       <v-text-field
         v-model="search"
         class="me-3 mb-3"
-        :clearable="true"
-        :flat="true"
+        clearable
+        flat
         hide-details
         style="min-width: 300px"
         :append-inner-icon="mdiMagnify"
@@ -21,7 +21,7 @@
         <v-select
           v-model="sortKey"
           class="me-3 mb-3"
-          :flat="true"
+          flat
           hide-details
           :items="keys"
           label="Sort by"
@@ -38,7 +38,7 @@
           <v-btn :value="false">
             <v-icon>{{ mdiArrowUp }}</v-icon>
           </v-btn>
-          <v-btn :value="true">
+          <v-btn value>
             <v-icon>{{ mdiArrowDown }}</v-icon>
           </v-btn>
         </v-btn-toggle>
@@ -106,8 +106,8 @@
 import {
 	mdiArrowDown, mdiArrowUp, mdiChevronLeft, mdiChevronRight, mdiMagnify,
 } from '@mdi/js';
-import AttributionTag from '../tools/attributions/AttributionTag.vue';
-import ResultItem from '@/components/workspace/ResultItem.vue';
+import AttributionTag from '../../tools/attributions/AttributionTag.vue';
+import ResultItem from '@/components/workspace/sidebars/ResultItem.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';

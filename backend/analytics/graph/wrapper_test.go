@@ -504,23 +504,11 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	require.NotNil(t, w.transactionGraph)
 }
 
-func TestWrapper_Logger(t *testing.T) {
+func TestWrapper_Props(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
 	unregisterCollectors(w)
-	// logger is set in TestMain
-	require.NotNil(t, w.Logger())
-}
 
-func TestWrapper_Context(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
-	require.Equal(t, context.Background(), w.Context())
-}
-
-func TestWrapper_Name(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
-	require.NotEmpty(t, w.Name())
+	require.NotEmpty(t, w.Props())
 }
 
 func TestWrapper_CalculateInitialState(t *testing.T) {
@@ -556,12 +544,6 @@ func TestWrapper_NextBlock(t *testing.T) {
 	flag, err = w.NextBlock()
 	require.NoError(t, err)
 	require.False(t, flag)
-}
-
-func TestWrapper_CurrentBlock(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
-	require.Zero(t, w.CurrentBlock())
 }
 
 func TestWrapper_PostExecution(t *testing.T) {

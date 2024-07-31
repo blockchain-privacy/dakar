@@ -3,7 +3,7 @@
     <v-card
       :class="{'on-hover': hover, 'mx-auto px-2': true}"
       rounded
-      :flat="true"
+      flat
       :to="to"
       max-width="90"
     >

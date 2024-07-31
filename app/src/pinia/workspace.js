@@ -30,7 +30,7 @@ export const useWorkspaceStore = defineStore('workspace', {
 			this.workspaceNodes.delete(payload);
 		},
 		// Expects an array
-		removeNodesFromSet(payload) {
+		removeNodesFromMap(payload) {
 			payload.forEach(d => this.workspaceNodes.delete(d));
 		},
 	},

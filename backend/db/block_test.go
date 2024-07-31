@@ -95,6 +95,7 @@ func TestGetFullBlock(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 1)
 
+	// not in block file
 	_, err = GetFullBlock(dbHandle, 3, true)
 	require.Error(t, err)
 }

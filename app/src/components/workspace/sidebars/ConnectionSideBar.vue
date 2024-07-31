@@ -88,7 +88,7 @@
                 :key="t.txhash+t.bid"
               >
                 <transaction
-                  :show-fingerprint-link="true"
+                  show-fingerprint-link
                   :show-heuristic-editor-link="false"
                   :tx="t"
                   show-details
@@ -118,11 +118,11 @@ import {
 	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import {convertAmount, getPrivacyTypeLabel} from '../../utilities/index.js';
+import {convertAmount, getPrivacyTypeLabel} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import StoreLink from '@/components/common/StoreLink.vue';
-import AddNodesChip from '@/components/workspace/AddNodesChip.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
+import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 
 const props = defineProps({
@@ -264,7 +264,10 @@ async function getConnectionData() {
 		if (response.amountTransactions) {
 			let hasPrivacyType = false;
 			transactionList.value = response.amountTransactions.map(d => {
-				selectableEntities.set(d.txhash, {id: d.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				if (d.txhash) {
+					selectableEntities.set(d.txhash, {id: d.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				}
+
 				if (d.privacytype !== undefined) {
 					hasPrivacyType = true;
 				}
@@ -284,7 +287,7 @@ async function getConnectionData() {
 			}
 		} else if (response.frontendTransactions) {
 			transactions.value = response.frontendTransactions;
-			addTransactionEntitiesToSet(response.frontendTransactions);
+			addTransactionEntitiesToMap(response.frontendTransactions);
 		} else {
 			transactionList.value = [];
 		}
@@ -293,20 +296,24 @@ async function getConnectionData() {
 	}
 }
 
-function addTransactionEntitiesToSet(transactions) {
+function addOutputToSelectableEntities(output) {
+	if (output.txhash) {
+		selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+	}
+
+	if (output.addresshash) {
+		selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
+	}
+}
+
+function addTransactionEntitiesToMap(transactions) {
 	for (const t of transactions) {
 		if (t.inputs) {
-			for (const input of t.inputs) {
-				selectableEntities.set(input.txhash, {id: input.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-				selectableEntities.set(input.addresshash, {id: input.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
-			}
+			t.inputs.forEach(addOutputToSelectableEntities);
 		}
 
 		if (t.outputs) {
-			for (const output of t.outputs) {
-				selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-				selectableEntities.set(output.addresshash, {id: output.addresshash, type: WORKSPACE_NODE_TYPE_CLUSTER});
-			}
+			t.outputs.forEach(addOutputToSelectableEntities);
 		}
 	}
 
@@ -328,7 +335,7 @@ async function getTransactionData() {
 
 		if (response.transactions) {
 			transactions.value = response.transactions;
-			addTransactionEntitiesToSet(response.transactions);
+			addTransactionEntitiesToMap(response.transactions);
 		}
 	} catch (e) {
 		setErrorMessage(e);
@@ -346,13 +353,13 @@ function selectAllAddresses() {
 }
 
 function deselectAllTransactions() {
-	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		.map(d => d.id));
 }
 
 function deselectAllAddresses() {
-	workspaceStore.removeNodesFromSet([...workspaceStore.workspaceNodes.values()]
+	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
 		.map(d => d.id));
 }

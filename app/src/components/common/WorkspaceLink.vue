@@ -1,6 +1,6 @@
 <template>
   <div
-    class="d-flex float-left me-1 align-center"
+    class="me-1 align-center d-inline-flex"
     style="max-width: 100%"
   >
     <v-checkbox
@@ -11,16 +11,19 @@
       class="flex-shrink-0"
       @update:model-value="checkBoxChanged"
     />
+    <!-- The order of props is important. v-bind has to come before 'custom',
+    because 'custom' needs to overwrite 'custom' the props passed in v-bind.
+    See more here: https://www.vueframework.com/guide/migration/v-bind.html -->
     <router-link
       v-slot="{href, navigate}"
-      custom
       v-bind="$props"
+      custom
       :class="$attrs.class"
       :style="$attrs.style"
     >
       <a
-        :href="href"
         v-bind="$attrs"
+        :href="href"
         @click="onLinkClick($event, navigate)"
       >
         <slot />
@@ -56,7 +59,7 @@ const checkBoxModel = ref(false);
 // Computed
 const isWorkspaceMode = computed(() => workspaceStore.getIsWorkspaceActive
   && (props.to.name === ROUTE_NAME_TRANSACTION_PAGE || props.to.name === ROUTE_NAME_ADDRESS_PAGE)
-  && props.to.params?.id);
+  && Boolean(props.to.params?.id));
 
 // Watchers
 // keep state of checkbox in sync with store

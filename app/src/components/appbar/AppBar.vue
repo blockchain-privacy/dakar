@@ -1,6 +1,6 @@
 <template>
   <v-app-bar
-    :absolute="true"
+    absolute
     :flat="minimize"
     :color="minimize?'transparent':null"
   >
@@ -36,7 +36,7 @@
     />
     <v-btn
       v-if="isPrivilegedOrHigher"
-      :icon="true"
+      icon
     >
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
@@ -46,13 +46,13 @@
         <v-btn
           v-bind="props"
           id="app-bar-menu"
-          :icon="true"
+          icon
         >
           <v-icon>{{ mdiAccount }}</v-icon>
         </v-btn>
       </template>
       <v-list
-        :nav="true"
+        nav
         density="compact"
       >
         <v-list-item>

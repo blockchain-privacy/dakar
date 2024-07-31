@@ -20,6 +20,7 @@ export default [
 			pluginVuetify,
 		},
 		rules: {
+			'vue/prefer-true-attribute-shorthand': ['error', 'always'],
 			'vue/multi-word-component-names': 'off',
 			'no-mixed-operators': 'off',
 			'vue/component-name-in-template-casing': ['error', 'kebab-case'],

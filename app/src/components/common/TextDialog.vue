@@ -14,7 +14,7 @@
           :label="inputLabel"
           counter
           :maxlength="maxlength"
-          :autofocus="true"
+          autofocus
         />
         <v-text-field
           v-else
@@ -22,7 +22,7 @@
           :label="inputLabel"
           counter
           :maxlength="maxlength"
-          :autofocus="true"
+          autofocus
           @keydown.enter="submit"
         />
       </v-card-text>

@@ -83,7 +83,7 @@
     <v-tabs
       v-model="tab"
       class="mt-4"
-      :fixed-tabs="true"
+      fixed-tabs
     >
       <v-tab>
         Outputs
@@ -109,7 +109,7 @@
               :output-count="data.output_count"
               :input-count="data.input_count"
               :coinbase-count="data.coinbase_count"
-              :data-available="true"
+              data-available
               @change="handleFilterOrSortChange"
             />
             <v-sheet
@@ -206,7 +206,7 @@ import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},

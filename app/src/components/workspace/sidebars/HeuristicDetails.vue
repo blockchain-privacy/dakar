@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import Results from '@/components/workspace/Results.vue';
+import Results from '@/components/workspace/sidebars/Results.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import {
 	mdiApplicationVariableOutline,
@@ -155,12 +155,12 @@ import {
 	mdiPoundBoxOutline,
 	mdiTune,
 } from '@mdi/js';
-import Histogram from '@/d3Documents/histogram';
+import Histogram from '@/d3Documents/histogram.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
-import {plural} from '@/utilities';
+import {plural} from '@/utilities/index.js';
 
 const props = defineProps({
 	heuristicData: {type: Object, required: true},

@@ -7,13 +7,13 @@
       <icon-title
         title="Address Exclusions"
         :icon="mdiPlaylistRemove"
-        :one-line="true"
+        one-line
       >
         <v-menu location="bottom">
           <template #activator="{ props }">
             <v-btn
-              icon
               v-bind="props"
+              icon
               variant="text"
             >
               <v-icon>{{ mdiDotsVertical }}</v-icon>
@@ -41,7 +41,7 @@
       <v-card-text>
         <v-progress-linear
           v-if="isLoading"
-          :indeterminate="true"
+          indeterminate
         />
         <p
           v-else-if="items.length > 0"
@@ -103,8 +103,8 @@
               <v-menu location="bottom">
                 <template #activator="{ props }">
                   <v-btn
-                    icon
                     v-bind="props"
+                    icon
                     variant="plain"
                   >
                     <v-icon>{{ mdiDotsVertical }}</v-icon>

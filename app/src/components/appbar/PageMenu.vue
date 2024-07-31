@@ -6,7 +6,7 @@
       max-width="350px"
     >
       <div v-if="showTools">
-        <v-row :no-gutters="true">
+        <v-row no-gutters>
           <v-col>
             <link-card
               title="Workspaces"
@@ -32,7 +32,7 @@
             />
           </v-col>
         </v-row>
-        <v-row :no-gutters="true">
+        <v-row no-gutters>
           <v-col>
             <link-card
               title="Address Exclusions"
@@ -43,61 +43,46 @@
           </v-col>
           <v-col>
             <link-card
-              title="Shortest Path"
-              :icon="mdiChartTimelineVariant"
+              title="Server Status"
+              :icon="mdiServer"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_SHORTEST_PATH_PAGE }"
+              :to="{ name: ROUTE_NAME_STATUS_PAGE }"
             />
           </v-col>
           <v-col>
             <link-card
-              title="Connection Lookup"
-              :icon="mdiTextBoxSearch"
+              title="Wiki"
+              :icon="mdiBookOpen"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_CONNECTION_LOOKUP_PAGE }"
+              :to="{ name: ROUTE_NAME_WIKI_ROOT }"
             />
           </v-col>
         </v-row>
       </div>
-      <v-divider class="my-2" />
-      <v-row :no-gutters="true">
-        <v-col>
-          <link-card
-            title="Server Status"
-            :icon="mdiServer"
-            :color="iconColor.default"
-            :to="{ name: ROUTE_NAME_STATUS_PAGE }"
-          />
-        </v-col>
-        <v-col>
-          <link-card
-            title="Wiki"
-            :icon="mdiBookOpen"
-            :color="iconColor.default"
-            :to="{ name: ROUTE_NAME_WIKI_ROOT }"
-          />
-        </v-col>
-        <v-col v-if="showUserAdmin">
-          <link-card
-            title="User Admin"
-            :icon="mdiAccountSupervisor"
-            :color="iconColor.admin"
-            :to="{ name: ROUTE_NAME_USER_ADMIN_PAGE }"
-          />
-        </v-col>
-      </v-row>
+      <template v-if="showUserAdmin">
+        <v-divider class="my-2" />
+        <v-row no-gutters>
+          <v-col>
+            <link-card
+              title="User Admin"
+              :icon="mdiAccountSupervisor"
+              :color="iconColor.admin"
+              :to="{ name: ROUTE_NAME_USER_ADMIN_PAGE }"
+            />
+          </v-col>
+        </v-row>
+      </template>
     </v-card>
   </v-menu>
 </template>
 
 <script setup>
 import {
-	mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
+	mdiAccountSupervisor, mdiServer,
 	mdiMerge, mdiTag, mdiPlaylistRemove, mdiBookOpen,
 } from '@mdi/js';
 import {
-	ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-	ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
+	ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
 	ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS, ROUTE_NAME_WIKI_ROOT, ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import LinkCard from '../common/LinkCard.vue';

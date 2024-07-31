@@ -31,12 +31,20 @@ type BlockIterator interface {
 	// Empty returns true if the BlockIterator has no more data to iterate on.
 	// This happens if State.ID is higher than State.Top
 	Empty() bool
-	// CurrentBlock returns the height of the block which is currently processed
-	CurrentBlock() uint64
+	// Props returns the properties of the iterator
+	Props() Properties
+}
 
-	Logger() *slog.Logger
-	Context() context.Context
-	Name() string
+type Properties struct {
+	// Name of the iterator
+	Name    string
+	Context context.Context
+	// Logger used for this iterator
+	Logger *slog.Logger
+	// CurrentBlock is the block height which is currently processed
+	CurrentBlock uint64
+	// ProcessedBlockCount is the number of blocks which have been processed by the last Iterate call
+	ProcessedBlockCount uint64
 }
 
 // State holds the current state of the processing loop
@@ -44,7 +52,7 @@ type State struct {
 	// ID is the current block height
 	ID uint64
 
-	// Top is the highest block height, which was observed at one point
+	// Top is the highest block height, which was observed at some point
 	Top uint64
 }
 
@@ -53,13 +61,15 @@ func (s State) String() string {
 }
 
 func info(iterator BlockIterator, msg string, v ...interface{}) {
-	iterator.Logger().Info(msg, append([]interface{}{"block_iterator_name", iterator.Name()}, v...)...)
+	props := iterator.Props()
+	props.Logger.Info(msg, append([]interface{}{"block_iterator_name", props.Name}, v...)...)
 }
 
 // StartIteration starts the iteration process
 func StartIteration(iterator BlockIterator) (err error) {
-	if l := iterator.Logger(); l == nil {
-		return cliutil.NewStackErrorStr(iterator.Name() + " logger is nil")
+	props := iterator.Props()
+	if l := props.Logger; l == nil {
+		return cliutil.NewStackErrorStr(props.Name + " logger is nil")
 	}
 
 	defer func() {
@@ -77,11 +87,12 @@ func StartIteration(iterator BlockIterator) (err error) {
 		return
 	}
 
-	info(iterator, fmt.Sprintf("starting at: %d", iterator.CurrentBlock()))
+	info(iterator, fmt.Sprintf("starting at: %d", iterator.Props().CurrentBlock))
 
-	numIteratedBlocks := 0
+	lastMetricPrintBlockID := uint64(0)
+	numIteratedBlocks := uint64(0)
 	timerGlobal := time.Now()
-	ctx := iterator.Context()
+	ctx := props.Context
 
 	for {
 		select {
@@ -122,38 +133,38 @@ func StartIteration(iterator BlockIterator) (err error) {
 		}
 
 		// metrics
-		numIteratedBlocks++
-		if numIteratedBlocks%1000 == 0 {
-			info(iterator, fmt.Sprintf("avg 1000 blocks: %v ms/block", time.Since(timerGlobal).Milliseconds()/1000))
+		numIteratedBlocks += iterator.Props().ProcessedBlockCount
+		blocksSinceLastPrint := int64(numIteratedBlocks - lastMetricPrintBlockID)
+		if blocksSinceLastPrint >= 1000 {
+			info(iterator, fmt.Sprintf("avg %d blocks: %v ms/block", blocksSinceLastPrint,
+				time.Since(timerGlobal).Milliseconds()/blocksSinceLastPrint))
 			timerGlobal = time.Now()
+			lastMetricPrintBlockID = numIteratedBlocks
 		}
 	}
 }
 
 // waitForNextDBBlockID waits for the next block.
-// if the interrupt receives a signal isInterrupt is true
-// if the next block is available, currentBlock gets updated
-func waitForNextDBBlockID(it BlockIterator) (isInterrupt bool, err error) {
-	ctx := it.Context()
+// if an interrupt was received, returns true.
+func waitForNextDBBlockID(it BlockIterator) (bool, error) {
+	ctx := it.Props().Context
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			isInterrupt = true
-			return
+			return true, nil
 		case <-ticker.C:
 			// if iterator state is not empty anymore
 			if !it.Empty() {
-				return
+				return false, nil
 			}
 
-			if ok, nextErr := it.NextBlock(); nextErr != nil {
-				err = nextErr
-				return
+			if ok, err := it.NextBlock(); err != nil {
+				return false, err
 			} else if ok {
-				return
+				return false, nil
 			}
 		}
 	}

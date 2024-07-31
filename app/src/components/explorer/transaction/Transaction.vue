@@ -83,7 +83,7 @@
       </v-expand-transition>
       <v-btn
         variant="text"
-        :block="true"
+        block
         size="x-small"
         style="margin-top:-16px;"
         @click="showTransactionDetails = !showTransactionDetails"
@@ -100,7 +100,7 @@
             :key="i.addresshash + i.inputindex"
           >
             <output-item
-              :is-input="true"
+              is-input
               :amount="i.amount"
               :address-hash="i.addresshash"
               :tx-hash="i.txhash"
@@ -126,7 +126,7 @@
                 :key="i.addresshash + i.inputindex"
               >
                 <output-item
-                  :is-input="true"
+                  is-input
                   :amount="i.amount"
                   :address-hash="i.addresshash"
                   :tx-hash="i.txhash"
@@ -217,7 +217,7 @@
     <v-btn
       v-if="areItemsLimited"
       variant="text"
-      :block="true"
+      block
       size="x-small"
       @click="showAllOutputs = !showAllOutputs"
     >

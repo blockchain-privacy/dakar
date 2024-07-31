@@ -168,7 +168,6 @@ func (s *Server) authorization() adapter {
 				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{
 					ID:       dgraphUID,
 					KratosID: session.Identity.Id,
-					Roles:    roles,
 				})))
 		})
 	}

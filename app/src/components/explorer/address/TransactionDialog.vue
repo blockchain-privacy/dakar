@@ -52,7 +52,7 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	txHash: {type: String, required: true},

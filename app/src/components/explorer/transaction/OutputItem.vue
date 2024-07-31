@@ -64,7 +64,7 @@
               label="Key script"
               class="mb-3"
               variant="outlined"
-              :readonly="true"
+              readonly
               :model-value="keyAsm"
             >
               <template #append>
@@ -93,7 +93,7 @@
               label="Key script"
               class="mb-3"
               variant="outlined"
-              :readonly="true"
+              readonly
               :model-value="scriptToAscii(keyAsm)"
             />
             <v-text-field
@@ -102,7 +102,7 @@
               density="compact"
               label="Signature script"
               variant="outlined"
-              :readonly="true"
+              readonly
               :model-value="sigAsm"
             />
           </v-col>
@@ -112,7 +112,7 @@
     <v-btn
       v-if="keyAsm || sigAsm"
       variant="text"
-      :block="true"
+      block
       size="x-small"
       @click="expanded = !expanded"
     >
@@ -127,7 +127,7 @@ import {convertAmount} from '@/utilities';
 import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ref} from 'vue';
-import StoreLink from '@/components/common/StoreLink.vue';
+import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	isInput: {type: Boolean, required: true},

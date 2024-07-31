@@ -4,11 +4,11 @@
     :show-link="false"
   >
     <v-chip
-      :rounded="true"
+      v-bind="$attrs"
+      rounded
       color="purple"
       :size="size"
       style="cursor: pointer"
-      v-bind="$attrs"
       class="text-capitalize"
     >
       <v-icon

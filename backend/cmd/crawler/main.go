@@ -96,12 +96,12 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 	// disable HMI clustering if it is disabled per configuration
 	if !analyserConfig.IsHMIClusteringEnabled {
-		config.Modules.Clustering.HMI = false
+		config.Modules.HMI = false
 	}
 
 	// disable FMI clustering if it is disabled per configuration
 	if !analyserConfig.IsFMIClusteringEnabled {
-		config.Modules.Clustering.FMI = false
+		config.Modules.FMI.Active = false
 	}
 }
 
@@ -301,7 +301,7 @@ func main() {
 
 	// exit if no module is active (excluding the metrics module)
 	if !config.Modules.Classifier && !config.Modules.Crawler.Active &&
-		!config.Modules.Clustering.HMI && !config.Modules.Clustering.FMI &&
+		!config.Modules.HMI && !config.Modules.FMI.Active &&
 		!config.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
@@ -459,7 +459,7 @@ func main() {
 	}
 
 	// activate HMI clustering
-	if config.Modules.Clustering.HMI {
+	if config.Modules.HMI {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -475,7 +475,7 @@ func main() {
 	}
 
 	// activate FMI clustering
-	if config.Modules.Clustering.FMI {
+	if config.Modules.FMI.Active {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -484,7 +484,7 @@ func main() {
 			}()
 
 			if clusteringErr := blockiterator.StartIteration(clustering.NewFlatMultiInput(
-				appContext, graphDB)); clusteringErr != nil {
+				appContext, graphDB, config.Modules.FMI.MaxBlocks)); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -514,8 +514,8 @@ func main() {
 
 	var crawlerStopped = !config.Modules.Crawler.Active
 	var classifierStopped = !config.Modules.Classifier
-	var clusteringHMIStopped = !config.Modules.Clustering.HMI
-	var clusteringFMIStopped = !config.Modules.Clustering.FMI
+	var clusteringHMIStopped = !config.Modules.HMI
+	var clusteringFMIStopped = !config.Modules.FMI.Active
 	var interrupted bool
 
 	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped)) {

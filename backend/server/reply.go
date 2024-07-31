@@ -780,16 +780,8 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 
 	for _, c := range clusters {
 		for _, a := range c.Addresses {
-			var row []string
-			// per heuristic information
-			row = append(row, string(c.Type))
-			row = append(row, c.TransactionHash)
-			row = append(row, c.Timestamp.Format(time.RFC3339))
-			row = append(row, a.AddressHash)
-			row = append(row, strconv.Itoa(a.OutputCount))
-			row = append(row, strconv.Itoa(a.OutputCount-a.SpentOutputCount))
-
-			if err = csvWriter.Write(row); err != nil {
+			if err = csvWriter.Write([]string{string(c.Type), c.TransactionHash, c.Timestamp.Format(time.RFC3339),
+				a.AddressHash, strconv.Itoa(a.OutputCount), strconv.Itoa(a.OutputCount - a.SpentOutputCount)}); err != nil {
 				// communication with client is not possible, can only log error
 				// this is because as soon as we write the CSV header, the HTTP response status is also sent
 				warn(cliutil.NewStackError(err))
@@ -1910,7 +1902,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 		return
 	}
 
-	err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	_, err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

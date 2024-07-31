@@ -27,28 +27,11 @@ func TestNewCrawler(t *testing.T) {
 	require.NotNil(t, crawler)
 }
 
-func TestCrawler_Name(t *testing.T) {
+func TestCrawler_Props(t *testing.T) {
 	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
 	unregisterCollectors(crawler)
-	require.NotEmpty(t, crawler.Name())
-}
 
-func TestCrawler_Logger(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
-	unregisterCollectors(crawler)
-	require.NotNil(t, crawler.Logger())
-}
-
-func TestCrawler_Context(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
-	unregisterCollectors(crawler)
-	require.NotNil(t, crawler.Context())
-}
-
-func TestCrawler_DB(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
-	unregisterCollectors(crawler)
-	require.Nil(t, crawler.DB())
+	require.NotEmpty(t, crawler.Props())
 }
 
 func TestCrawler_IncrementState(t *testing.T) {
@@ -109,12 +92,6 @@ func TestCrawler_PostExecution(t *testing.T) {
 	unregisterCollectors(crawler)
 
 	require.NoError(t, crawler.PostExecution())
-}
-
-func TestCrawler_CurrentBlock(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
-	unregisterCollectors(crawler)
-	require.Zero(t, crawler.CurrentBlock())
 }
 
 func TestCrawler_NextBlock(t *testing.T) {

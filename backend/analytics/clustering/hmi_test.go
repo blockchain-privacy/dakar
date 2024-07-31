@@ -136,32 +136,11 @@ func TestHierarchicalMultiInput_Empty(t *testing.T) {
 	require.True(t, hm.Empty())
 }
 
-func TestHierarchicalMultiInput_CurrentBlock(t *testing.T) {
+func TestHierarchicalMultiInput_Props(t *testing.T) {
 	hm := NewHierarchicalMultiInput(context.Background(), nil)
 	unregisterCollectorsHM(hm)
 
-	require.Zero(t, hm.CurrentBlock())
-}
-
-func TestHierarchicalMultiInput_Logger(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
-
-	require.NotNil(t, hm.Logger())
-}
-
-func TestHierarchicalMultiInput_Context(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
-
-	require.NotNil(t, hm.Context())
-}
-
-func TestHierarchicalMultiInput_Name(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
-
-	require.NotEmpty(t, hm.Name())
+	require.NotEmpty(t, hm.Props())
 }
 
 func Test_setInitialHMIClusteringID(t *testing.T) {

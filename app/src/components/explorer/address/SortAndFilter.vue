@@ -33,7 +33,7 @@
         item-value="id"
         item-title="text"
         label="Filter"
-        :multiple="true"
+        multiple
         @update:model-value="handleSortAndFilter"
       >
         <template #selection="{ item }">

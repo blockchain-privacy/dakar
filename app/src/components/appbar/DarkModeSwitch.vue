@@ -2,7 +2,7 @@
   <!-- @click.stop so event does not bubble to parent component -->
   <v-switch
     v-model="darkModeEnabled"
-    :inset="true"
+    inset
     density="compact"
     hide-details
     :true-icon="mdiWeatherNight"

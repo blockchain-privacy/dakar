@@ -284,14 +284,30 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 		return
 	}
 
-	// merge addresses and blocks
-	toEncode := make([]any, 0, len(blockRange)+len(addressRange))
-	for _, b := range blockRange {
-		toEncode = append(toEncode, b)
+	clusterRange, err := getClusterRange(dgraph, startBlock, endBlock)
+	if err != nil {
+		warn(err, "msg", "error getting clusters")
+		return
 	}
 
-	for _, a := range addressRange {
-		toEncode = append(toEncode, a)
+	if len(clusterRange) == 0 {
+		info("no clusters to write")
+		return
+	}
+
+	// merge addresses and blocks
+	toEncode := make([]any, len(blockRange)+len(addressRange)+len(clusterRange))
+
+	for i, b := range blockRange {
+		toEncode[i] = b
+	}
+
+	for i, a := range addressRange {
+		toEncode[i+len(blockRange)] = a
+	}
+
+	for i, c := range clusterRange {
+		toEncode[i+len(blockRange)+len(addressRange)] = c
 	}
 
 	err = json.NewEncoder(file).Encode(toEncode)

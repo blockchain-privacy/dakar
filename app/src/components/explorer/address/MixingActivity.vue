@@ -14,33 +14,13 @@
             <p class="v-label me-2">
               Filter by Privacy Type
             </p>
-            <!-- selected-class="" is intentionally left blank to avoid a shadow over the chip elements -->
-            <v-chip-group
-              v-model="selectedPrivacyID"
-              :column="true"
-              :multiple="true"
-              :filter="true"
-              :mandatory="true"
+            <chip-filter
+              v-model="chipFilterModel"
+              mandatory
+              :items="privacyLabels"
               :disabled="!activities || activities.length === 0"
-              selected-class=""
-              color="primary"
-              @update:model-value="updateSvgData(false)"
-            >
-              <v-chip
-                v-for="label in privacyLabels"
-                :key="label.id"
-              >
-                <template #prepend>
-                  <v-sheet
-                    style="width:25px; height:15px"
-                    rounded
-                    :color="label.color?label.color:'black'"
-                    class="me-2"
-                  />
-                </template>
-                {{ label.text }}
-              </v-chip>
-            </v-chip-group>
+              @changed="handleChipFilterChanged"
+            />
           </v-col>
         </v-row>
         <v-row class="mt-2">
@@ -66,7 +46,7 @@
             <!-- eslint-disable vuetify/no-deprecated-props vuetify/no-deprecated-events -->
             <v-range-slider
               v-model="rangePicker.model"
-              :disabled="!activities || activities.length === 0"
+              :disabled="!activities || activities.length < 2"
               :ticks="rangePicker.events"
               class="mr-8"
               :min="rangePicker.min"
@@ -123,14 +103,14 @@
     <div v-show="activities && activities.length > 0">
       <v-tabs
         v-model="graphTabs"
-        :grow="true"
+        grow
         @update:model-value="onTabChange"
       >
         <v-tab key="histogram">
           Histogram
         </v-tab>
         <v-tab key="graph">
-          Force Graph
+          Graph
         </v-tab>
       </v-tabs>
       <v-window
@@ -140,7 +120,7 @@
       >
         <v-window-item
           key="histogram"
-          :eager="true"
+          eager
         >
           <v-card variant="text">
             <v-card-text>
@@ -181,7 +161,7 @@
         </v-window-item>
         <v-window-item
           key="graph"
-          :eager="true"
+          eager
         >
           <v-card
             v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
@@ -191,7 +171,7 @@
               <div style="text-align:center">
                 <v-alert
                   variant="text"
-                  :prominent="true"
+                  prominent
                   type="warning"
                 >
                   The mixing activity results have more than
@@ -230,10 +210,27 @@
             :privacy-type="clickedNode.privacyTypeLabel"
             :tx-hash="clickedNode.txhash"
           />
+          <div
+            v-if="showGraph"
+            class="d-flex align-center justify-center my-2"
+          >
+            <v-card variant="flat">
+              <adaptive-toolbar
+                :show-search-field="false"
+                one-line
+                :show-delete-button="false"
+                :show-workspaces-button="false"
+                disable-filter
+                @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
+                @center="nodeGraph.centerGraph()"
+                @rearrange="nodeGraph.reorderNodes()"
+              />
+            </v-card>
+          </div>
           <svg
             v-show="showGraph"
             id="mixing_activity_force_graph"
-            style="width:100%; height:500px"
+            style="width:100%; height:500px;"
           />
         </v-window-item>
       </v-window>
@@ -241,31 +238,34 @@
     <v-progress-linear
       v-if="isLoading"
       class="mt-10"
-      :indeterminate="true"
+      indeterminate
     />
   </div>
 </template>
 
 <script setup>
 import Histogram from '@/d3Documents/histogram';
-import {getColorMap, getPrivacyTypeLabel} from '@/utilities';
+import {getColorMap, getPrivacyTypeLabel, capitalize} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
 import {
-	computed, inject, nextTick, onBeforeMount, onMounted, ref, watch,
+	computed, inject, nextTick, onBeforeMount, onMounted, ref, toRaw, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
+import {useWorkspaceStore} from '@/pinia/workspace.js';
+import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
+import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
+const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 
-const allPrivacyLabels = ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'];
 const colorMap = getColorMap();
 let svgHistogram = null;
 const nodeGraph = new NodeGraph(colorMap);
@@ -274,7 +274,6 @@ let initialLoadDone = false;
 let graphMode = false;
 
 // Select all labels by default
-const selectedPrivacyID = ref([0, 1, 2, 3, 4]);
 const showHistogram = ref(false);
 const showGraph = ref(false);
 const isLoading = ref(false);
@@ -312,6 +311,8 @@ const clickedNode = ref({
 });
 const showNodeDialog = ref(false);
 const hasLoaded = ref(false);
+const privacyLabels = [...colorMap.entries()].map(d => ({text: d[0], color: d[1]}));
+const chipFilterModel = ref([...privacyLabels.keys()]);
 
 watch(() => props.addressHash, () => {
 	// Prop was changed -> pull new data
@@ -319,15 +320,8 @@ watch(() => props.addressHash, () => {
 });
 
 // Computed
-const privacyLabels = computed(() => {
-	const labels = [];
 
-	colorMap.forEach((v, k) => {
-		labels.push({text: capitalize(k), color: v, id: k});
-	});
-
-	return labels;
-});
+const selectedPrivacyLabel = computed(() => chipFilterModel.value.map(d => privacyLabels[d].text));
 
 // Returns truer if min and max or on the same calendar day
 const isSameDay = computed(() => {
@@ -338,16 +332,6 @@ const isSameDay = computed(() => {
 	day2.setHours(0, 0, 0, 0);
 	// Compare numbers
 	return day1.getTime() === day2.getTime();
-});
-
-const selectedPrivacyLabel = computed(() => {
-	const selectedLabels = [];
-
-	selectedPrivacyID.value.forEach(i => {
-		selectedLabels.push(allPrivacyLabels[i]);
-	});
-
-	return selectedLabels;
 });
 
 // Hooks
@@ -365,14 +349,25 @@ onBeforeMount(() => {
 
 onMounted(() => {
 	nodeGraph.initSvg('mixing_activity_force_graph', 1200, 500);
-	nodeGraph.setNodeClickHandler(onNodeClick);
+
+	if (!nodeGraph.setNodeClickCallback(onNodeClick)) {
+		setErrorMessage('error setting node click handler');
+		return;
+	}
+
+	if (workspaceStore.getIsWorkspaceActive) {
+		if (!nodeGraph.setLassoSelectionCallback(handleLassoSelection)) {
+			setErrorMessage('error setting lasso selection handler');
+			return;
+		}
+
+		if (!nodeGraph.setLassoResetCallback(handleLassoReset)) {
+			setErrorMessage('error setting lasso reset handler');
+		}
+	}
 });
 
 // Functions
-// Capitalize returns the first letter of each word (separated by a space) in str capitalized
-function capitalize(str) {
-	return str.split(' ').map(d => d[0].toUpperCase() + d.slice(1)).join(' ');
-}
 
 function setErrorMessage(msg) {
 	msgStore.addMessage({
@@ -432,7 +427,8 @@ function getFilteredData(withGraphData) {
 
 	const events = new Set();
 	const numActivities = activities.value.length;
-	const items = activities.value.filter(d => {
+
+	const items = activities.value.map(d => toRaw(d)).filter(d => {
 		if (selectedPrivacyLabel.value.length < 5
         && !selectedPrivacyLabel.value.includes(d.privacyTypeLabel)) {
 			return false;
@@ -514,6 +510,18 @@ function getCategories(filtered) {
 function showForceGraphDespiteWarning() {
 	overrideTooManyTransactionsWarning.value = true;
 	onTabChange(1);
+}
+
+function handleChipFilterChanged() {
+	updateSvgData(false);
+}
+
+function handleLassoSelection() {
+	workspaceStore.setWorkspaceNodes(nodeGraph.getLassoSelectedNodesData().map(d => ({id: d.uid, type: WORKSPACE_NODE_TYPE_TRANSACTION})));
+}
+
+function handleLassoReset() {
+	workspaceStore.workspaceNodes.clear();
 }
 
 function onTabChange(tab) {

@@ -7,8 +7,6 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
-	"log/slog"
-
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -20,6 +18,12 @@ type FlatMultiInput struct {
 	ctx   context.Context
 	state blockiterator.State
 
+	// how many blocks are processed in one interation at maximum
+	maxBlocks uint
+
+	// number of blocks which have been processed by the last Iterate call
+	blocksProcessed uint64
+
 	blocks         prometheus.Counter
 	transactions   prometheus.Counter
 	mergedClusters prometheus.Counter
@@ -28,10 +32,11 @@ type FlatMultiInput struct {
 }
 
 // NewFlatMultiInput creates a new flat multi-input clustering object
-func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
+func NewFlatMultiInput(ctx context.Context, dgraph external.Database, maxBlocks uint) *FlatMultiInput {
 	return &FlatMultiInput{
-		db:  dgraph,
-		ctx: ctx,
+		db:        dgraph,
+		ctx:       ctx,
+		maxBlocks: maxBlocks,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_clustering_fmi_blocks_processed_total",
 			Help: "The total number of blocks processed by the FMI clustering process",
@@ -157,12 +162,18 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate() (bool, error) {
-	if m.Empty() {
-		return false, cliutil.NewStackErrorStr("got empty state")
+	if m.maxBlocks == 0 {
+		return false, cliutil.NewStackErrorStr("max blocks must be higher than zero")
 	}
 
+	if m.Empty() {
+		return false, cliutil.NewStackErrorStr("received empty state")
+	}
+
+	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
+	toBlockID := min(m.state.Top, m.state.ID+uint64(m.maxBlocks)-1)
 	// get the transaction of the current block height
-	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, clustering.TypeFMI)
+	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, toBlockID, clustering.TypeFMI)
 	if err != nil {
 		return false, err
 	}
@@ -225,14 +236,25 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	}
 
 	// set the last clustered block
-	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, m.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
-	m.blocks.Inc()
-	m.blockHeight.Set(float64(m.state.ID))
+	m.blocksProcessed = toBlockID - m.state.ID + 1
+	m.blocks.Add(float64(m.blocksProcessed))
+	m.blockHeight.Set(float64(toBlockID))
 
 	return true, nil
+}
+
+func (m *FlatMultiInput) Props() blockiterator.Properties {
+	return blockiterator.Properties{
+		Name:                "flat multi-input clustering",
+		Context:             m.ctx,
+		Logger:              clusteringLogger,
+		CurrentBlock:        m.state.ID,
+		ProcessedBlockCount: m.blocksProcessed,
+	}
 }
 
 // NextBlock tries to increase the internal state to the next block
@@ -257,33 +279,13 @@ func (m *FlatMultiInput) PostExecution() error {
 }
 
 func (m *FlatMultiInput) IncrementState() error {
-	m.state.ID++
+	m.state.ID += m.blocksProcessed
 	return nil
 }
 
 // Empty checks if there are more blocks above the current one
 func (m *FlatMultiInput) Empty() bool {
 	return m.state.ID > m.state.Top
-}
-
-// CurrentBlock returns the height of the block which is getting clustered
-func (m *FlatMultiInput) CurrentBlock() uint64 {
-	return m.state.ID
-}
-
-// Logger returns the Logger
-func (m *FlatMultiInput) Logger() *slog.Logger {
-	return clusteringLogger
-}
-
-// Context returns the context
-func (m *FlatMultiInput) Context() context.Context {
-	return m.ctx
-}
-
-// Name returns the name
-func (m *FlatMultiInput) Name() string {
-	return "Flat Multi-Input Clustering"
 }
 
 // setInitialFMIClusteringID sets the starting FMI clustering block id to 0 if no value has been set yet
