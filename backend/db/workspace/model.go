@@ -2,7 +2,7 @@ package workspace
 
 import (
 	"backend/constants"
-	"backend/db/analytics/heuristics"
+	"backend/db"
 )
 
 const DType = "Workspace"
@@ -76,32 +76,22 @@ type connectionRequest struct {
 	} `json:"cluster_height,omitempty"`
 
 	AddressClusters []struct {
-		UID     string `json:"uid,omitempty"`
-		Cluster []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"cluster,omitempty"`
+		UID     string       `json:"uid,omitempty"`
+		Cluster []db.UIDNode `json:"cluster,omitempty"`
 	} `json:"address_cluster,omitempty"`
 
 	Transactions []struct {
 		UID     string `json:"uid,omitempty"`
 		Outputs []struct {
-			InputTransactions []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~tx_inputs,omitempty"`
-			Addresses []struct {
-				Clusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~Cluster.addresses,omitempty"`
+			InputTransactions []db.UIDNode `json:"~tx_inputs,omitempty"`
+			Addresses         []struct {
+				Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 			} `json:"~addr_outputs,omitempty"`
 		} `json:"tx_outputs,omitempty"`
 		Inputs []struct {
-			OutputTransactions []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~tx_outputs,omitempty"`
-			Addresses []struct {
-				Clusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~Cluster.addresses,omitempty"`
+			OutputTransactions []db.UIDNode `json:"~tx_outputs,omitempty"`
+			Addresses          []struct {
+				Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 			} `json:"~addr_outputs,omitempty"`
 		} `json:"tx_inputs,omitempty"`
 	} `json:"transactions,omitempty"`
@@ -113,18 +103,14 @@ type connectionRequest struct {
 				Destinations []struct {
 					Inputs []struct {
 						Addresses []struct {
-							Clusters []struct {
-								UID string `json:"uid,omitempty"`
-							} `json:"~Cluster.addresses,omitempty"`
+							Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 						} `json:"~addr_outputs,omitempty"`
 					} `json:"tx_inputs,omitempty"`
 				} `json:"HeuristicResult.destinations,omitempty"`
 				Origin struct {
 					Inputs []struct {
 						Addresses []struct {
-							Clusters []struct {
-								UID string `json:"uid,omitempty"`
-							} `json:"~Cluster.addresses,omitempty"`
+							Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 						} `json:"~addr_outputs,omitempty"`
 					} `json:"tx_inputs,omitempty"`
 				} `json:"HeuristicResult.origin,omitempty"`
@@ -136,38 +122,28 @@ type connectionRequest struct {
 		UID       string `json:"uid,omitempty"`
 		Addresses []struct {
 			Outputs []struct {
-				InputClusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~tx_inputs,omitempty"`
-				OutputClusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~tx_outputs,omitempty"`
+				InputClusters  []db.UIDNode `json:"~tx_inputs,omitempty"`
+				OutputClusters []db.UIDNode `json:"~tx_outputs,omitempty"`
 			} `json:"addr_outputs,omitempty"`
 		} `json:"Cluster.addresses,omitempty"`
 	} `json:"cluster_clusters,omitempty"`
 
 	Heuristics []struct {
-		UID                 string   `json:"uid,omitempty"`
-		Timestamp           string   `json:"ts,omitempty"`
-		Type                string   `json:"type,omitempty"`
-		Parameter           string   `json:"parameter,omitempty"`
-		ExcludeAddresses    bool     `json:"excludeAddresses"`
-		ExcludeSpendingGaps bool     `json:"excludeSpendingGaps"`
-		ClusterTypes        []string `json:"clusterTypes,omitempty"`
-		Transaction         struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"transaction,omitempty"`
-		ParentHeuristic []heuristics.HollowHeuristic `json:"parent,omitempty"`
-		ChildHeuristics []heuristics.HollowHeuristic `json:"children,omitempty"`
-		ClusterCount    *int                         `json:"clusterCount,omitempty"`
-		Clusters        []struct {
+		UID                 string       `json:"uid,omitempty"`
+		Timestamp           string       `json:"ts,omitempty"`
+		Type                string       `json:"type,omitempty"`
+		Parameter           string       `json:"parameter,omitempty"`
+		ExcludeAddresses    bool         `json:"excludeAddresses"`
+		ExcludeSpendingGaps bool         `json:"excludeSpendingGaps"`
+		ClusterTypes        []string     `json:"clusterTypes,omitempty"`
+		Transaction         db.UIDNode   `json:"transaction,omitempty"`
+		ParentHeuristic     []db.UIDNode `json:"parent,omitempty"`
+		ChildHeuristics     []db.UIDNode `json:"children,omitempty"`
+		ClusterCount        *int         `json:"clusterCount,omitempty"`
+		Clusters            []struct {
 			Results []struct {
-				Origin struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"HeuristicResult.origin,omitempty"`
-				Destinations []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"HeuristicResult.destinations,omitempty"`
+				Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
+				Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
 		} `json:"Heuristic.clusters,omitempty"`
 	} `json:"heuristics,omitempty"`
@@ -212,4 +188,9 @@ func (f Node) IsDestination() bool {
 
 func (f Node) IsLoading() bool {
 	return f.Loading != nil && *f.Loading
+}
+
+type dummyUser struct {
+	UID        string      `json:"uid,omitempty"`
+	Workspaces []Workspace `json:"User.workspaces,omitempty"`
 }

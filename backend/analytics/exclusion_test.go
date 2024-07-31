@@ -92,14 +92,14 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 				exclusions: nil,
 				userID:     "some_uid",
 			},
-			want: exclusion.User{UID: "some_uid", Exclusions: []exclusion.AddressExclusions{}},
+			want: exclusion.User{UID: "some_uid", Exclusions: []db.UIDNode{}},
 		},
 		{
 			args: args{
 				exclusions: []string{"some_other_uid1", "some_other_uid2"},
 				userID:     "some_uid",
 			},
-			want: exclusion.User{UID: "some_uid", Exclusions: []exclusion.AddressExclusions{
+			want: exclusion.User{UID: "some_uid", Exclusions: []db.UIDNode{
 				{UID: "some_other_uid1"},
 				{UID: "some_other_uid2"},
 			}},

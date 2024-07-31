@@ -2,6 +2,7 @@ package heuristics
 
 import (
 	"backend/analytics/graph"
+	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -152,7 +153,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for k, v := range allTimeLimitedOrigins {
 		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
-			Origin: heuristics.DummyNode{UID: k},
+			Origin: db.UIDNode{UID: k},
 		})
 	}
 

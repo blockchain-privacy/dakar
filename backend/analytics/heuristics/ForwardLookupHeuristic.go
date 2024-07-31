@@ -130,11 +130,11 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 
 		result := heuristics.HeuristicResult{
-			Origin: heuristics.DummyNode{UID: o.UID},
+			Origin: db.UIDNode{UID: o.UID},
 		}
 
 		for k := range uidMap {
-			result.Destinations = append(result.Destinations, heuristics.DummyNode{UID: k})
+			result.Destinations = append(result.Destinations, db.UIDNode{UID: k})
 		}
 
 		resultClusters[o.Cluster] = append(resultClusters[o.Cluster], result)

@@ -4,6 +4,7 @@ import (
 	"backend/blockiterator"
 	"backend/cmd/cliutil"
 	"backend/constants"
+	"backend/db"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
@@ -468,7 +469,7 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 		addressCount += len(i.addresses)
 		cluster.AddressCount = &addressCount
 		for address := range i.addresses {
-			cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{UID: address})
+			cluster.Addresses = append(cluster.Addresses, db.UIDNode{UID: address})
 		}
 		operations = append(operations, clustering.DBOperation{
 			NewCluster:  cluster,

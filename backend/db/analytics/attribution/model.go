@@ -1,26 +1,20 @@
 package attribution
 
+import "backend/db"
+
 const DType = "Attribution"
 
-type HollowUser struct {
-	UID string `json:"uid,omitempty"`
-}
-
-type HollowAddress struct {
-	UID string `json:"uid,omitempty"`
-}
-
 type Attribution struct {
-	UID         string         `json:"uid,omitempty"`
-	Timestamp   string         `json:"Attribution.ts,omitempty"`
-	Address     *HollowAddress `json:"Attribution.address,omitempty"`
-	Tag         string         `json:"Attribution.tag,omitempty"`
-	Description string         `json:"Attribution.description,omitempty"`
-	Source      string         `json:"Attribution.source,omitempty"`
-	Category    string         `json:"Attribution.category,omitempty"`
-	IsPublic    bool           `json:"Attribution.isPublic"`
-	User        *HollowUser    `json:"Attribution.user,omitempty"`
-	DType       []string       `json:"dgraph.type,omitempty"`
+	UID         string      `json:"uid,omitempty"`
+	Timestamp   string      `json:"Attribution.ts,omitempty"`
+	Address     *db.UIDNode `json:"Attribution.address,omitempty"`
+	Tag         string      `json:"Attribution.tag,omitempty"`
+	Description string      `json:"Attribution.description,omitempty"`
+	Source      string      `json:"Attribution.source,omitempty"`
+	Category    string      `json:"Attribution.category,omitempty"`
+	IsPublic    bool        `json:"Attribution.isPublic"`
+	User        *db.UIDNode `json:"Attribution.user,omitempty"`
+	DType       []string    `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition

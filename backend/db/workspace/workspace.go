@@ -72,11 +72,6 @@ func RenameWorkspace(ctx context.Context, c external.Database, name string,
 	}
 	w.SetDType()
 
-	type dummyUser struct {
-		UID        string      `json:"uid,omitempty"`
-		Workspaces []Workspace `json:"User.workspaces,omitempty"`
-	}
-
 	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
 	if err != nil {
 		err = serror.New(err)
@@ -101,11 +96,6 @@ func SetWorkspaceState(ctx context.Context, c external.Database, userUID string,
 		ClusterHeight:    clusterHeight,
 	}
 	w.SetDType()
-
-	type dummyUser struct {
-		UID        string      `json:"uid,omitempty"`
-		Workspaces []Workspace `json:"User.workspaces,omitempty"`
-	}
 
 	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
 	if err != nil {

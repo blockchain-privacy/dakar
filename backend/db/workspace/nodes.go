@@ -465,12 +465,8 @@ func GetConnectionClusterToCluster(ctx context.Context, c external.Database, fir
 		ClusterClusters []struct {
 			Addresses []struct {
 				Outputs []struct {
-					InputClusters []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~tx_inputs,omitempty"`
-					OutputClusters []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~tx_outputs,omitempty"`
+					InputClusters  []db.UIDNode `json:"~tx_inputs,omitempty"`
+					OutputClusters []db.UIDNode `json:"~tx_outputs,omitempty"`
 				} `json:"addr_outputs,omitempty"`
 			} `json:"Cluster.addresses,omitempty"`
 		} `json:"cluster_clusters,omitempty"`
@@ -568,12 +564,8 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 		HeuristicClusters []struct {
 			Clusters []struct {
 				Results []struct {
-					Destinations []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"HeuristicResult.destinations,omitempty"`
-					Origin struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"HeuristicResult.origin,omitempty"`
+					Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
+					Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
 				} `json:"HeuristicCluster.results,omitempty"`
 			} `json:"Heuristic.clusters,omitempty"`
 		} `json:"heuristic_clusters,omitempty"`

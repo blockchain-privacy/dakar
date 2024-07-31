@@ -1,27 +1,34 @@
 package selectors
 
-import "time"
+import (
+	"backend/db"
+	"time"
+)
 
 const DType = "Selector"
 
-var validTypes = map[string]bool{"transactionProperties": true}
-var validStates = map[string]bool{"waiting": true, "error": true, "success": true}
+const (
+	stateWaiting = "waiting"
+	stateError   = "error"
+	stateSuccess = "success"
 
-// DummyNode holds the uid of a database node
-type DummyNode struct {
-	UID string `json:"uid,omitempty"`
-}
+	typeTransactionProperties = "transactionProperties"
+)
+
+var validTypes = map[string]bool{typeTransactionProperties: true}
+
+var validStates = map[string]bool{stateWaiting: true, stateError: true, stateSuccess: true}
 
 type Selector struct {
-	UID      string      `json:"uid,omitempty"`
-	Created  string      `json:"Selector.created,omitempty"`
-	Modified string      `json:"Selector.modified,omitempty"`
-	Type     string      `json:"Selector.type,omitempty"`
-	Status   string      `json:"Selector.status,omitempty"`
-	Parent   *DummyNode  `json:"Selector.parent,omitempty"`
-	Options  string      `json:"Selector.options,omitempty"`
-	Results  []DummyNode `json:"Selector.results,omitempty"`
-	DType    []string    `json:"dgraph.type,omitempty"`
+	UID      string       `json:"uid,omitempty"`
+	Created  string       `json:"Selector.created,omitempty"`
+	Modified string       `json:"Selector.modified,omitempty"`
+	Type     string       `json:"Selector.type,omitempty"`
+	Status   string       `json:"Selector.status,omitempty"`
+	Parent   *db.UIDNode  `json:"Selector.parent,omitempty"`
+	Options  string       `json:"Selector.options,omitempty"`
+	Results  []db.UIDNode `json:"Selector.results,omitempty"`
+	DType    []string     `json:"dgraph.type,omitempty"`
 }
 
 func (s *Selector) SetDType() {

@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"fmt"
@@ -16,17 +17,12 @@ const ResultDType = "HeuristicResult"
 // ClusterDType is the dgraph database type for the HeuristicCluster type
 const ClusterDType = "HeuristicCluster"
 
-// DummyNode holds the uid of a database node
-type DummyNode struct {
-	UID string `json:"uid,omitempty"`
-}
-
 // HeuristicResult holds one result (origin) of a heuristic and
 // optionally the results of a forward lookup (destinations)
 type HeuristicResult struct {
-	Origin       DummyNode   `json:"HeuristicResult.origin,omitempty"`
-	Destinations []DummyNode `json:"HeuristicResult.destinations,omitempty"`
-	DType        []string    `json:"dgraph.type,omitempty"`
+	Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
+	Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
+	DType        []string     `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition
@@ -49,21 +45,19 @@ func (c *HeuristicCluster) SetDType() {
 
 // Heuristic is the database type representation of a heuristic
 type Heuristic struct {
-	UID                 string   `json:"uid,omitempty"`
-	HeuristicType       string   `json:"Heuristic.type,omitempty"`
-	Parameter           string   `json:"Heuristic.parameter,omitempty"`
-	ClusterTypes        []string `json:"Heuristic.clusterTypes,omitempty"`
-	ExcludeAddresses    *bool    `json:"Heuristic.excludeAddresses"`
-	ExcludeSpendingGaps *bool    `json:"Heuristic.excludeSpendingGaps"`
-	UserUID             string   `json:"~User.heuristics,omitempty"`
-	WorkspaceUID        string   `json:"~Workspace.heuristics,omitempty"`
-	Transaction         struct {
-		UID string `json:"uid,omitempty"`
-	} `json:"Heuristic.transaction,omitempty"`
-	Timestamp       string             `json:"Heuristic.ts,omitempty"`
-	ParentHeuristic []Heuristic        `json:"Heuristic.parent,omitempty"`
-	ChildHeuristics []Heuristic        `json:"~Heuristic.parent,omitempty"`
-	Clusters        []HeuristicCluster `json:"Heuristic.clusters,omitempty"`
+	UID                 string             `json:"uid,omitempty"`
+	HeuristicType       string             `json:"Heuristic.type,omitempty"`
+	Parameter           string             `json:"Heuristic.parameter,omitempty"`
+	ClusterTypes        []string           `json:"Heuristic.clusterTypes,omitempty"`
+	ExcludeAddresses    *bool              `json:"Heuristic.excludeAddresses"`
+	ExcludeSpendingGaps *bool              `json:"Heuristic.excludeSpendingGaps"`
+	UserUID             string             `json:"~User.heuristics,omitempty"`
+	WorkspaceUID        string             `json:"~Workspace.heuristics,omitempty"`
+	Transaction         db.UIDNode         `json:"Heuristic.transaction,omitempty"`
+	Timestamp           string             `json:"Heuristic.ts,omitempty"`
+	ParentHeuristic     []Heuristic        `json:"Heuristic.parent,omitempty"`
+	ChildHeuristics     []Heuristic        `json:"~Heuristic.parent,omitempty"`
+	Clusters            []HeuristicCluster `json:"Heuristic.clusters,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
@@ -128,10 +122,6 @@ type DatabaseHeuristicRequest struct {
 	Type               string  `json:"type,omitempty"`
 	ParentHeuristicUID string  `json:"parentUID,omitempty"`
 	Configuration      *Config `json:"config"`
-}
-
-type HollowHeuristic struct {
-	UID string `json:"uid,omitempty"`
 }
 
 type FrontendTransactionResult struct {

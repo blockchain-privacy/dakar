@@ -160,9 +160,7 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 					Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 				} `json:"HeuristicResult.origin,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
-			Attributions []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"HeuristicCluster.attributions,omitempty"`
+			Attributions []db.UIDNode `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -327,10 +325,8 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 			Inputs  []struct {
 				Address []struct {
-					UID     string `json:"uid,omitempty"`
-					Cluster []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~Cluster.addresses,omitempty"`
+					UID     string       `json:"uid,omitempty"`
+					Cluster []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 				} `json:"~addr_outputs,omitempty"`
 			} `json:"tx_inputs,omitempty"`
 		} `json:"q,omitempty"`
@@ -614,9 +610,7 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 			Results []struct {
 				// Origin must be declared as an array because in the query @normalize is used
 				Origin       []FrontendTransactionResult `json:"HeuristicResult.origin,omitempty"`
-				Destinations []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"HeuristicResult.destinations,omitempty"`
+				Destinations []db.UIDNode                `json:"HeuristicResult.destinations,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
 			Attributions []Attribution `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`

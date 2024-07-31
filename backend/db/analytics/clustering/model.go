@@ -1,6 +1,7 @@
 package clustering
 
 import (
+	"backend/db"
 	"strconv"
 	"time"
 )
@@ -14,30 +15,14 @@ const (
 	DType                  = "Cluster"
 )
 
-type HollowTransaction struct {
-	UID string `json:"uid,omitempty"`
-}
-
-type HollowUser struct {
-	UID string `json:"uid,omitempty"`
-}
-
-type HollowAddress struct {
-	UID string `json:"uid,omitempty"`
-}
-
-type SubCluster struct {
-	UID string `json:"uid,omitempty"`
-}
-
 type CustomCluster struct {
-	UID          string          `json:"uid,omitempty"`
-	Type         ClusterType     `json:"Cluster.type,omitempty"`
-	Timestamp    string          `json:"Cluster.ts,omitempty"`
-	AddressCount *int            `json:"Cluster.addressCount,omitempty"`
-	Addresses    []HollowAddress `json:"Cluster.addresses,omitempty"`
-	User         HollowUser      `json:"Cluster.user,omitempty"`
-	DType        []string        `json:"dgraph.type,omitempty"`
+	UID          string       `json:"uid,omitempty"`
+	Type         ClusterType  `json:"Cluster.type,omitempty"`
+	Timestamp    string       `json:"Cluster.ts,omitempty"`
+	AddressCount *int         `json:"Cluster.addressCount,omitempty"`
+	Addresses    []db.UIDNode `json:"Cluster.addresses,omitempty"`
+	User         db.UIDNode   `json:"Cluster.user,omitempty"`
+	DType        []string     `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition
@@ -46,13 +31,13 @@ func (cc *CustomCluster) SetDType() {
 }
 
 type Cluster struct {
-	UID          string            `json:"uid,omitempty"`
-	Type         ClusterType       `json:"Cluster.type,omitempty"`
-	AddressCount *int              `json:"Cluster.addressCount,omitempty"`
-	Transaction  HollowTransaction `json:"Cluster.transaction,omitempty"`
-	Children     []SubCluster      `json:"Cluster.children,omitempty"`
-	Addresses    []HollowAddress   `json:"Cluster.addresses,omitempty"`
-	DType        []string          `json:"dgraph.type,omitempty"`
+	UID          string       `json:"uid,omitempty"`
+	Type         ClusterType  `json:"Cluster.type,omitempty"`
+	AddressCount *int         `json:"Cluster.addressCount,omitempty"`
+	Transaction  db.UIDNode   `json:"Cluster.transaction,omitempty"`
+	Children     []db.UIDNode `json:"Cluster.children,omitempty"`
+	Addresses    []db.UIDNode `json:"Cluster.addresses,omitempty"`
+	DType        []string     `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition
@@ -64,7 +49,7 @@ func NewHMICluster(index int, txUID string) Cluster {
 	return Cluster{
 		UID:         "_:c" + strconv.Itoa(index),
 		Type:        TypeHMI,
-		Transaction: HollowTransaction{UID: txUID},
+		Transaction: db.UIDNode{UID: txUID},
 		DType:       []string{DType},
 	}
 }
@@ -121,15 +106,15 @@ type TransactionWithInputOutputAddressCluster struct {
 }
 
 type TransactionWithAddresses struct {
-	UID       string          `json:"uid"`
-	Addresses []HollowAddress `json:"addr,omitempty"`
+	UID       string       `json:"uid"`
+	Addresses []db.UIDNode `json:"addr,omitempty"`
 }
 
 type TransactionWithInputOutputAddresses struct {
-	UID             string          `json:"uid"`
-	PrivacyType     *int64          `json:"privacytype,omitempty"`
-	InputAddresses  []HollowAddress `json:"input_addr,omitempty"`
-	OutputAddresses []HollowAddress `json:"output_addr,omitempty"`
+	UID             string       `json:"uid"`
+	PrivacyType     *int64       `json:"privacytype,omitempty"`
+	InputAddresses  []db.UIDNode `json:"input_addr,omitempty"`
+	OutputAddresses []db.UIDNode `json:"output_addr,omitempty"`
 }
 
 // ClusterLookupRequest holds all configuration data for a cluster lookup request

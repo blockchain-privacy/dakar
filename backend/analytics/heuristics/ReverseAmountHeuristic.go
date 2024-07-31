@@ -118,7 +118,7 @@ func (h *reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			// save all transaction uids of a particular cluster to the return set
 			for _, tx := range sourceTransactionMap[clusterID] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], heuristics.HeuristicResult{
-					Origin: heuristics.DummyNode{UID: tx.UID},
+					Origin: db.UIDNode{UID: tx.UID},
 				})
 			}
 		}

@@ -71,8 +71,8 @@ func Test_buildDatabaseClusters(t *testing.T) {
 				hashToUID: map[string]string{"a": "0x1", "b": "0x2", "c": "0x3", "d": "0x4", "e": "0x5"},
 			},
 			want: []clustering.CustomCluster{
-				{Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x3"}}},
-				{Addresses: []clustering.HollowAddress{{UID: "0x2"}, {UID: "0x4"}, {UID: "0x5"}}},
+				{Addresses: []db.UIDNode{{UID: "0x1"}, {UID: "0x3"}}},
+				{Addresses: []db.UIDNode{{UID: "0x2"}, {UID: "0x4"}, {UID: "0x5"}}},
 			},
 		},
 	}

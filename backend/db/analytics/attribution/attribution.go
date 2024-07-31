@@ -242,10 +242,8 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 		Attributions []struct {
 			UID     string `json:"uid,omitempty"`
 			Address struct {
-				Hash    string `json:"addresshash,omitempty"`
-				Cluster []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~Cluster.addresses,omitempty"`
+				Hash    string       `json:"addresshash,omitempty"`
+				Cluster []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 			} `json:"Attribution.address,omitempty"`
 		} `json:"q,omitempty"`
 	}

@@ -240,9 +240,9 @@ func TestInsertSelector(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]DummyNode, len(resultUIDs))
+	results := make([]db.UIDNode, len(resultUIDs))
 	for i, result := range resultUIDs {
-		results[i] = DummyNode{UID: result}
+		results[i] = db.UIDNode{UID: result}
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -310,9 +310,9 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]DummyNode, len(resultUIDs))
+	results := make([]db.UIDNode, len(resultUIDs))
 	for i, result := range resultUIDs {
-		results[i] = DummyNode{UID: result}
+		results[i] = db.UIDNode{UID: result}
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)

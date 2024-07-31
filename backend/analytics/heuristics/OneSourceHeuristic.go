@@ -2,6 +2,7 @@ package heuristics
 
 import (
 	"backend/analytics/graph"
+	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -216,7 +217,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, tx
 		}
 
 		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
-			Origin: heuristics.DummyNode{UID: k},
+			Origin: db.UIDNode{UID: k},
 		})
 	}
 

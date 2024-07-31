@@ -641,9 +641,7 @@ func GetAllFMIClusters(c external.Database) (uids []string, err error) {
 		return
 	}
 	var r struct {
-		Clusters []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {

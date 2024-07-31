@@ -50,9 +50,7 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 	}
 
 	var r struct {
-		Exclusions []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Exclusions []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)
@@ -177,9 +175,7 @@ func GetAddressExclusionStatus(ctx context.Context, c external.Database,
 	}
 
 	var r struct {
-		Address []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Address []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)

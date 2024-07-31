@@ -30,11 +30,9 @@ func ImportAddressExclusions(ctx context.Context, dgraph external.Database, excl
 }
 
 func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusion.User {
-	dbExclusions := make([]exclusion.AddressExclusions, len(exclusions))
+	dbExclusions := make([]db.UIDNode, len(exclusions))
 	for i, e := range exclusions {
-		dbExclusions[i] = exclusion.AddressExclusions{
-			UID: e,
-		}
+		dbExclusions[i] = db.UIDNode{UID: e}
 	}
 
 	return exclusion.User{

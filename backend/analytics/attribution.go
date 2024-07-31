@@ -47,7 +47,7 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 
 	for i, a := range attributions {
 		attr := attribution.Attribution{
-			Address:     &attribution.HollowAddress{UID: hashToUID[a.AddressHash]},
+			Address:     &db.UIDNode{UID: hashToUID[a.AddressHash]},
 			Tag:         a.Tag,
 			Description: a.Description,
 			Source:      a.Source,
@@ -57,7 +57,7 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 		}
 
 		if !isPublic {
-			attr.User = &attribution.HollowUser{UID: userID}
+			attr.User = &db.UIDNode{UID: userID}
 		}
 
 		attr.SetDType()

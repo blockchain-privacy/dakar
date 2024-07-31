@@ -2,6 +2,7 @@ package clustering
 
 import (
 	"backend/blockiterator"
+	"backend/db"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
@@ -212,7 +213,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 			// add addresses
 			addressCount += len(addressesWithoutCluster)
 			for address := range addressesWithoutCluster {
-				cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{UID: address})
+				cluster.Addresses = append(cluster.Addresses, db.UIDNode{UID: address})
 			}
 
 			// set the new cluster root for all addresses in the transaction
@@ -222,7 +223,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 			// add child clusters
 			for c := range existingClusters {
-				cluster.Children = append(cluster.Children, clustering.SubCluster{UID: c})
+				cluster.Children = append(cluster.Children, db.UIDNode{UID: c})
 				// accumulate address counts from existing clusters
 				if existingCluster, ok := clusterMap[c]; ok {
 					addressCount += *existingCluster.AddressCount

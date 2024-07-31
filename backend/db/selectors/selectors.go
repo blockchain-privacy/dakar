@@ -149,9 +149,7 @@ func DoSelection(ctx context.Context, c external.Database, o Options) ([]string,
 	}
 
 	var r struct {
-		Q []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Q []db.UIDNode `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {

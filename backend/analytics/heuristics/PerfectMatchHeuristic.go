@@ -119,7 +119,7 @@ func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		if isEqualDenomination(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], heuristics.HeuristicResult{
-					Origin: heuristics.DummyNode{UID: tx.UID},
+					Origin: db.UIDNode{UID: tx.UID},
 				})
 			}
 		}

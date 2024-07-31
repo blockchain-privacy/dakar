@@ -208,23 +208,23 @@ func Test_validateClusters(t *testing.T) {
 		// error because cluster has multiple parents
 		{
 			clusters: []clustering.Cluster{
-				{Children: []clustering.SubCluster{{UID: "0x1"}}, Addresses: nil},
-				{Children: []clustering.SubCluster{{UID: "0x1"}}, Addresses: nil},
+				{Children: []db.UIDNode{{UID: "0x1"}}, Addresses: nil},
+				{Children: []db.UIDNode{{UID: "0x1"}}, Addresses: nil},
 			},
 			wantErr: true,
 		},
 		// error because address has multiple parents
 		{
 			clusters: []clustering.Cluster{
-				{Addresses: []clustering.HollowAddress{{UID: "0x1"}}, Children: nil},
-				{Addresses: []clustering.HollowAddress{{UID: "0x1"}}, Children: nil},
+				{Addresses: []db.UIDNode{{UID: "0x1"}}, Children: nil},
+				{Addresses: []db.UIDNode{{UID: "0x1"}}, Children: nil},
 			},
 			wantErr: true,
 		},
 		{
 			clusters: []clustering.Cluster{
-				{Addresses: []clustering.HollowAddress{{UID: "0x1"}}, Children: []clustering.SubCluster{{UID: "0x3"}}},
-				{Addresses: []clustering.HollowAddress{{UID: "0x2"}}, Children: []clustering.SubCluster{{UID: "0x4"}}},
+				{Addresses: []db.UIDNode{{UID: "0x1"}}, Children: []db.UIDNode{{UID: "0x3"}}},
+				{Addresses: []db.UIDNode{{UID: "0x2"}}, Children: []db.UIDNode{{UID: "0x4"}}},
 			},
 			wantErr: false,
 		},

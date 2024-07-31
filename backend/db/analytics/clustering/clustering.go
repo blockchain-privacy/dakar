@@ -522,12 +522,10 @@ func GetHMIClusters(ctx context.Context, c external.Database,
 			Transaction  struct {
 				TxHash string `json:"txhash,omitempty"`
 			} `json:"Cluster.transaction,omitempty"`
-			Children []SubCluster `json:"Cluster.children,omitempty"`
-			Parent   []SubCluster `json:"~Cluster.children,omitempty"`
+			Children []db.UIDNode `json:"Cluster.children,omitempty"`
+			Parent   []db.UIDNode `json:"~Cluster.children,omitempty"`
 		} `json:"q,omitempty"`
-		AddressCluster []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"x,omitempty"`
+		AddressCluster []db.UIDNode `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)
@@ -658,9 +656,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 	}
 
 	var r struct {
-		Clusters []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)
@@ -752,9 +748,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 	}
 
 	var r struct {
-		Clusters []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)

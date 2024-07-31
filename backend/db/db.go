@@ -41,6 +41,11 @@ var (
 	errInvalidResult        = errors.New("invalid result")
 )
 
+// UIDNode holds the uid of a database node. Useful for connecting entities.
+type UIDNode struct {
+	UID string `json:"uid,omitempty"`
+}
+
 // InitLogger creates new loggers with the given parameters.
 func InitLogger() {
 	thisLogger = slog.With(slog.String("module", "database"))

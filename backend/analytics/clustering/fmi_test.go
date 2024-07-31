@@ -250,19 +250,19 @@ func Test_calculateMetrics(t *testing.T) {
 	operations := []clustering.DBOperation{
 		{
 			NewCluster: clustering.Cluster{
-				Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x2"}, {UID: "0x3"}},
+				Addresses: []db.UIDNode{{UID: "0x1"}, {UID: "0x2"}, {UID: "0x3"}},
 			},
 			OldClusters: []string{"1", "2", "3"},
 		},
 		{
 			NewCluster: clustering.Cluster{
-				Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x2"}},
+				Addresses: []db.UIDNode{{UID: "0x1"}, {UID: "0x2"}},
 			},
 			OldClusters: []string{"1", "2"},
 		},
 		{
 			NewCluster: clustering.Cluster{
-				Addresses: []clustering.HollowAddress{{UID: "0x1"}},
+				Addresses: []db.UIDNode{{UID: "0x1"}},
 			},
 			OldClusters: []string{"1"},
 		},

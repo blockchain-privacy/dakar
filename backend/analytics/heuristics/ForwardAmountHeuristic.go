@@ -159,14 +159,14 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for _, destinations := range clusterDestinations {
-		var clusterFilteredDestinations []heuristics.DummyNode
+		var clusterFilteredDestinations []db.UIDNode
 
 		for _, tx := range destinations.txs {
 			inputDenominationCounts := getDenominationCounts(tx)
 
 			// check if the denominations of the destination transactions can be funded by the denomination of its cluster
 			if containsDenomination(inputDenominationCounts, originAmounts[destinations.cluster]) {
-				clusterFilteredDestinations = append(clusterFilteredDestinations, heuristics.DummyNode{UID: tx.UID})
+				clusterFilteredDestinations = append(clusterFilteredDestinations, db.UIDNode{UID: tx.UID})
 			}
 		}
 
@@ -180,7 +180,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 
 		resultClusters[clusterID] = append(resultClusters[clusterID], heuristics.HeuristicResult{
-			Origin:       heuristics.DummyNode{UID: originUID},
+			Origin:       db.UIDNode{UID: originUID},
 			Destinations: clusterFilteredDestinations,
 		})
 	}

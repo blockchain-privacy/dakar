@@ -140,12 +140,12 @@ func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 
 		result := heuristics.HeuristicResult{
-			Origin:       heuristics.DummyNode{UID: parentResult.UID},
-			Destinations: make([]heuristics.DummyNode, 0, len(uidMap)),
+			Origin:       db.UIDNode{UID: parentResult.UID},
+			Destinations: make([]db.UIDNode, 0, len(uidMap)),
 		}
 
 		for k := range uidMap {
-			result.Destinations = append(result.Destinations, heuristics.DummyNode{UID: k})
+			result.Destinations = append(result.Destinations, db.UIDNode{UID: k})
 		}
 
 		resultClusters[parentResult.Cluster] = append(resultClusters[parentResult.Cluster], result)

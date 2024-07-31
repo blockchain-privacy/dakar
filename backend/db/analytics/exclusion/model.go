@@ -1,10 +1,8 @@
 package exclusion
 
-type User struct {
-	UID        string              `json:"uid,omitempty"`
-	Exclusions []AddressExclusions `json:"User.addressExclusions,omitempty"`
-}
+import "backend/db"
 
-type AddressExclusions struct {
-	UID string `json:"uid,omitempty"`
+type User struct {
+	UID        string       `json:"uid,omitempty"`
+	Exclusions []db.UIDNode `json:"User.addressExclusions,omitempty"`
 }
