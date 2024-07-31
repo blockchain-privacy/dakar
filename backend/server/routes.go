@@ -18,6 +18,7 @@ const (
 	routeMixingActivity       string = "mixingActivity"
 	routeSpendingFingerprint  string = "spendingFingerprint"
 	routeIdentities           string = "identities"
+	routeSelf                 string = "self"
 	routeExclusions           string = "exclusions"
 	routeClusters             string = "clusters"
 	routeHMILookup            string = "clusters/hmi"
@@ -99,7 +100,7 @@ func getRouteGetIdentities() string {
 }
 
 func getRouteDeleteIdentity() string {
-	return buildRoutePattern(httpDELETE, routeIdentities, "")
+	return buildRoutePattern(httpDELETE, routeSelf, "")
 }
 
 func getRouteAdminDeleteIdentity() string {

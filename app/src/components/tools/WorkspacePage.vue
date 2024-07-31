@@ -218,11 +218,12 @@ async function loadWorkspaceList() {
 	try {
 		const response = await dakar.workspace.workspacesGet();
 
-		if (!response.workspaces) {
-			throw new Error('received malformed response');
+		if (response.workspaces) {
+			workspaceList.value = response.workspaces;
+		} else {
+			workspaceList.value = [];
 		}
 
-		workspaceList.value = response.workspaces;
 		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);

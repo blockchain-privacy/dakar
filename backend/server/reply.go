@@ -33,6 +33,9 @@ import (
 	"strconv"
 )
 
+// roleMap holds all possible role values
+var roleMap = map[string]bool{"admin": true, "privileged": true}
+
 // getSearchReply searches for the given query in the database
 func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	reply := searchReply{
@@ -1433,7 +1436,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 
 	// check if all roles have valid values
 	for _, ur := range frontEndUser.Roles {
-		if _, err := getRoleByName(ur); err != nil {
+		if !roleMap[ur] {
 			status = http.StatusBadRequest
 			return
 		}
@@ -1447,6 +1450,26 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	}
 
 	return
+}
+
+// extractDgraphUID tries to extract dgraph UID from the given metadata
+func extractDgraphUID(metadataPublic any) (string, error) {
+	metadata, ok := metadataPublic.(map[string]any)
+	if !ok {
+		return "", cliutil.NewStackErrorStr("identity has no admin metadata")
+	}
+
+	dgraphUIDInterface, ok := metadata["dgraph_uid"]
+	if !ok {
+		return "", cliutil.NewStackErrorStr("identity has no field 'dgraph_uid'")
+	}
+
+	dgraphUID, ok := dgraphUIDInterface.(string)
+	if !ok {
+		return "", cliutil.NewStackErrorStr("dgraph UID could not be cast from interface")
+	}
+
+	return dgraphUID, nil
 }
 
 // getDeleteIdentityReply deletes the given user
@@ -1504,7 +1527,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	}
 
 	if err := dbwork.DeleteAllWorkspaces(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + " heuristics"
+		reply.Msg = "could not delete users " + uid + " workspaces"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
@@ -1608,10 +1631,10 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 	if len(modRequest.Roles) > 0 {
 		// check if all roles exists
 		for _, role := range modRequest.Roles {
-			if _, err := getRoleByName(role); err != nil {
+			if !roleMap[role] {
 				reply.Msg = msgInvalidRole
 				status = http.StatusBadRequest
-				warn(err, "modification_request", modRequest)
+				warn(cliutil.NewStackErrorStr(msgInvalidRole), "modification_request", modRequest)
 				return
 			}
 		}

@@ -23,18 +23,6 @@ func adapt(h http.Handler, route string, adapters ...adapter) http.Handler {
 	return h
 }
 
-// writeUnauthorized sets the http.StatusUnauthorized status code and writes an error message
-func writeUnauthorized(w http.ResponseWriter, msg string) {
-	if len(msg) == 0 {
-		msg = "Malformed Token"
-	}
-
-	w.WriteHeader(http.StatusUnauthorized)
-	if _, err := w.Write([]byte(msg)); err != nil {
-		warn(cliutil.NewStackError(err))
-	}
-}
-
 // sendUnauthorizedMessage sends an unauthorized message
 func sendUnauthorizedMessage(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
@@ -42,132 +30,28 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
-// extractRoles tries to extract roles from the given metadata
-func extractRoles(metaDataPublic any) ([]string, error) {
-	metadata, ok := metaDataPublic.(map[string]any)
-	if !ok {
-		return nil, cliutil.NewStackErrorStr("identity has no public metadata")
-	}
-
-	rolesInterface, ok := metadata["roles"]
-	if !ok {
-		return nil, cliutil.NewStackErrorStr("identity has no field 'roles'")
-	}
-
-	roleInterfaces, ok := rolesInterface.([]any)
-	if !ok {
-		return nil, cliutil.NewStackErrorStr("roles could not be cast from interface")
-	}
-
-	var roles []string
-
-	for _, r := range roleInterfaces {
-		roleString, ok := r.(string)
-		if ok {
-			roles = append(roles, roleString)
-		}
-	}
-
-	return roles, nil
-}
-
-// extractDgraphUID tries to extract dgraph UID from the given metadata
-func extractDgraphUID(metadataPublic any) (string, error) {
-	metadata, ok := metadataPublic.(map[string]any)
-	if !ok {
-		return "", cliutil.NewStackErrorStr("identity has no admin metadata")
-	}
-
-	dgraphUIDInterface, ok := metadata["dgraph_uid"]
-	if !ok {
-		return "", cliutil.NewStackErrorStr("identity has no field 'dgraph_uid'")
-	}
-
-	dgraphUID, ok := dgraphUIDInterface.(string)
-	if !ok {
-		return "", cliutil.NewStackErrorStr("dgraph UID could not be cast from interface")
-	}
-
-	return dgraphUID, nil
-}
-
 func (s *Server) authorization() adapter {
-	return func(h http.Handler, route string) http.Handler {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, sessionResponse, err := s.auth.FrontendAPI.ToSession(r.Context()).
-				Cookie(r.Header.Get("Cookie")).Execute() //nolint:bodyclose
-			if err != nil {
+			kratosID := r.Header.Get("x-user")
+			if kratosID == "" {
 				sendUnauthorizedMessage(w)
-				warn(cliutil.NewStackError(err))
+				warn(cliutil.NewStackErrorStr("kratos ID not set"))
 				return
 			}
 
-			defer func(Body io.ReadCloser) {
-				_ = Body.Close()
-			}(sessionResponse.Body)
-
-			// check if session active and not expired
-			if session.Active == nil || session.ExpiresAt == nil ||
-				!*session.Active || time.Until(*session.ExpiresAt) <= 0 {
+			dakarUser := r.Header.Get("x-dakar-user")
+			if dakarUser == "" {
 				sendUnauthorizedMessage(w)
-				return
-			}
-
-			// if less than half of the token lifetime is left, it gets reissued
-			const reissueDuration = 72 * time.Hour / 2
-			if time.Until(*session.ExpiresAt) < reissueDuration {
-				_, extensionResponse, extensionErr := s.adminAuth.IdentityAPI.
-					ExtendSession(r.Context(), session.Id).Execute()
-				if extensionErr != nil {
-					sendUnauthorizedMessage(w)
-					warn(cliutil.NewStackError(extensionErr))
-					return
-				}
-				_ = extensionResponse.Body.Close()
-			}
-
-			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
-			if err != nil {
-				sendUnauthorizedMessage(w)
-				warn(err)
-				return
-			}
-
-			roles, err := extractRoles(session.Identity.MetadataPublic)
-			if err != nil {
-				sendUnauthorizedMessage(w)
-				warn(err)
-				return
-			}
-
-			// check if route is allowed and get typed role
-			routeAllowed := false
-			for _, role := range roles {
-				routeRole, roleErr := getRoleByName(role)
-				if roleErr != nil {
-					writeUnauthorized(w, "")
-					warn(roleErr)
-					return
-				}
-
-				if routeRole.IsRouteAllowed(route) {
-					routeAllowed = true
-					break
-				}
-			}
-
-			if !routeAllowed {
-				writeUnauthorized(w, "route not allowed")
-				info("tried to access restricted route: "+route, "session", session)
-
+				warn(cliutil.NewStackErrorStr("dgraph UID not set"))
 				return
 			}
 
 			// call next handler and add to the request context the identity information
 			h.ServeHTTP(w,
 				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{
-					ID:       dgraphUID,
-					KratosID: session.Identity.Id,
+					ID:       dakarUser,
+					KratosID: kratosID,
 				})))
 		})
 	}

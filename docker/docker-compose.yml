@@ -139,6 +139,36 @@ services:
     volumes:
       - ./oathkeeper:/etc/config/oathkeeper
     logging: *default-logging
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  keto:
+    image: oryd/keto:v0.12
+    container_name: keto
+    ports:
+      - "4466:4466"
+      - "4467:4467"
+    command: serve -c /home/ory/keto.yml --sqa-opt-out
+    restart: on-failure
+    volumes:
+      - ./keto/keto.yml:/home/ory/keto.yml
+      - ./keto/namespaces.ts:/home/ory/namespaces.ts
+    networks:
+      - dgraph_default
+
+  keto-init:
+    image: oryd/keto:v0.12
+    container_name: keto-init
+    depends_on:
+      - keto
+    environment:
+      - KETO_WRITE_REMOTE=keto:4467
+    volumes:
+      - ./keto/relationships.json:/home/ory/relationships.json
+    command: relation-tuple create /home/ory/relationships.json --insecure-disable-transport-security
+    restart: on-failure
+    networks:
+      - dgraph_default
 
   promtail:
     image: grafana/promtail:2.9.0

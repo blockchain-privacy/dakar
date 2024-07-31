@@ -145,7 +145,7 @@ The following command
 - and publishes it to the [Gitlab registry](https://git.gvk.idi.ntnu.no/research/blockchain/dakar/-/packages). 
 
 ```shell
-make swagger-create
+make openapi-spec && make openapi-client && make openapi-publish
 ```
 
 Make sure to have the deployment token set in your `~/.yarnrc.yml`:
@@ -163,5 +163,5 @@ npmScopes:
 Format the OpenAPI annotations using:
 
 ```shell
-make swagger-fmt
+make openapi-fmt
 ```

@@ -83,7 +83,7 @@ const shadowIdentity = ref({
 // Template ref
 const modifyIdentityForm = ref(null);
 
-const roles = ['admin', 'user', 'privileged'];
+const roles = ['admin', 'privileged'];
 const states = ['active', 'inactive'];
 const rules = {
 	roleRules: [

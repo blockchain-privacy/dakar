@@ -44,19 +44,18 @@ export default defineConfig({
 		port: 3000,
 		proxy: {
 			'/api': {
-				target: 'http://localhost:8081',
+				target: 'http://localhost:4455',
+				changeOrigin: true,
+			},
+			'/wiki': {
+				target: 'http://localhost:4455',
+				changeOrigin: true,
 			},
 			'/auth': {
 				target: 'http://localhost:4433',
 				changeOrigin: true,
 				// Remove '/auth' prefix
 				rewrite: path => path.replace(/^\/auth/, ''),
-			},
-			'/wikiapi': {
-				target: 'http://localhost:4455',
-				// Remove '/wiki' prefix
-				changeOrigin: true,
-				rewrite: path => path.replace(/^\/wikiapi/, ''),
 			},
 		},
 	},
