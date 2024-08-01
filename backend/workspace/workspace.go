@@ -277,7 +277,7 @@ func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes [
 
 		// delete the actual heuristics
 		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, userUID, workspaceUID); err != nil {
-			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+			if errors.Is(err, db.ErrNoMutationHappened) {
 				return nil, nil
 			}
 
@@ -300,7 +300,7 @@ func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes [
 		if len(children) > 0 {
 			// delete the actual heuristics
 			if err := dbHeuristic.DeleteUserHeuristics(dgraph, children, userUID, workspaceUID); err != nil {
-				if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+				if errors.Is(err, db.ErrNoMutationHappened) {
 					return nil, nil
 				}
 

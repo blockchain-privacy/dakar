@@ -319,35 +319,29 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
 		Created:  now,
 		Modified: now,
-		Type:     "transactionProperties",
-		Status:   "success",
+		Type:     typeTransactionProperties,
+		Status:   statusSuccess,
 		Options:  string(optJSON),
 		Results:  results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
 	tests := []struct {
-		selectorUID  string
-		userUID      string
-		workspaceUID string
-		wantErr      bool
+		selectorUID string
+		wantErr     bool
 	}{
 		{
-			selectorUID:  selectorUID,
-			userUID:      userUID,
-			workspaceUID: workspaceUID,
-			wantErr:      false,
+			selectorUID: selectorUID,
+			wantErr:     false,
 		},
 		{
 			// invalid selector uid
-			selectorUID:  "0x123",
-			userUID:      userUID,
-			workspaceUID: workspaceUID,
-			wantErr:      true,
+			selectorUID: "0x123",
+			wantErr:     true,
 		},
 	}
 	for _, tt := range tests {
-		selector, err := GetFrontendSelectorByUID(ctx, dbHandle, tt.selectorUID, tt.userUID, tt.workspaceUID)
+		selector, err := GetFrontendSelectorByUID(ctx, dbHandle, tt.selectorUID, userUID, workspaceUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -355,4 +349,98 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 			require.NotNil(t, selector)
 		}
 	}
+}
+
+func TestUpdateSelector(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	userUID, workspaceUID, err := createUserAndWorkspace()
+	require.NoError(t, err)
+
+	resultUIDs, optJSON, err := doSelection()
+	require.NoError(t, err)
+
+	results := make([]db.UIDNode, len(resultUIDs))
+	for i, result := range resultUIDs {
+		results[i] = db.UIDNode{UID: result}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
+		Created:  now,
+		Modified: now,
+		Type:     typeTransactionProperties,
+		Status:   statusSuccess,
+		Options:  string(optJSON),
+		Results:  results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	tests := []struct {
+		status  string
+		wantErr bool
+	}{
+		{
+			status:  statusError,
+			wantErr: false,
+		},
+		{
+			status:  statusWaiting,
+			wantErr: false,
+		},
+		{
+			status:  "invalidStatus",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		err := UpdateSelector(ctx, dbHandle, &Selector{UID: selectorUID, Status: tt.status}, userUID, workspaceUID)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+
+			selector, err := GetFrontendSelectorByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
+			require.NoError(t, err)
+			require.EqualValues(t, tt.status, selector.Status)
+		}
+	}
+}
+
+func TestDeleteUserSelectors(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	userUID, workspaceUID, err := createUserAndWorkspace()
+	require.NoError(t, err)
+
+	resultUIDs, optJSON, err := doSelection()
+	require.NoError(t, err)
+
+	results := make([]db.UIDNode, len(resultUIDs))
+	for i, result := range resultUIDs {
+		results[i] = db.UIDNode{UID: result}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
+		Created:  now,
+		Modified: now,
+		Type:     typeTransactionProperties,
+		Status:   statusSuccess,
+		Options:  string(optJSON),
+		Results:  results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	err = DeleteUserSelectors(ctx, dbHandle, []string{selectorUID}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	_, err = GetFrontendSelectorByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
+	require.Error(t, err)
 }

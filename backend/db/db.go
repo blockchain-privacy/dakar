@@ -39,6 +39,8 @@ var (
 	ErrEmptyRequestArgument = errors.New("received empty argument")
 	errInvalidTimeout       = errors.New("invalid timeout")
 	errInvalidResult        = errors.New("invalid result")
+	// ErrNoMutationHappened is returned if no mutation occurred
+	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
 // UIDNode holds the uid of a database node. Useful for connecting entities.

@@ -194,7 +194,7 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 				  }`,
 		Vars: map[string]string{"$userUID": userUID, "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
-			Cond:    "@if(gt(len(w), 0))",
+			Cond:    "@if(eq(len(w), 1))",
 			SetJson: pb,
 		}},
 		CommitNow: true,
@@ -211,6 +211,44 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 	}
 
 	return insertUID, nil
+}
+
+// UpdateSelector updates a selector
+func UpdateSelector(ctx context.Context, c external.Database, s *Selector, userUID string, workspaceUID string) error {
+	if s == nil || s.UID == "" {
+		return serror.New(ErrInvalidSelector)
+	}
+
+	if s.Type != "" && !validTypes[s.Type] {
+		return serror.New(ErrInvalidSelector)
+	}
+
+	if s.Status != "" && !validStates[s.Status] {
+		return serror.New(ErrInvalidSelector)
+	}
+
+	pb, err := json.Marshal(*s)
+	if err != nil {
+		return serror.New(err)
+	}
+
+	req := &api.Request{
+		Query: `query Q($userUID: string, $workspaceUID: string, $selectorUID: string) {
+					var(func: uid($userUID))@filter(type(User)){
+						User.workspaces@filter(uid($workspaceUID)) {
+							s as Workspace.selectors@filter(uid($selectorUID))
+						}
+					}
+				  }`,
+		Vars: map[string]string{"$userUID": userUID, "$workspaceUID": workspaceUID, "$selectorUID": s.UID},
+		Mutations: []*api.Mutation{{
+			Cond:    "@if(eq(len(s), 1))",
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 // GetFrontendSelectorByUID returns the selector for the given selectorUID, which was created by userUID
@@ -283,4 +321,39 @@ func GetFrontendSelectorByUID(ctx context.Context, c external.Database,
 		Options:  opt,
 		Results:  r.Selectors[0].Results,
 	}, nil
+}
+
+// DeleteUserSelectors deletes all given selectors of a user
+func DeleteUserSelectors(ctx context.Context, c external.Database,
+	uids []string, userUID string, workspaceUID string) error {
+	const query = `
+		query Q($userUID:string,$selectorUIDs:string,$workspaceUID:string){
+			var(func: uid($userUID)){
+				User.workspaces@filter(uid($workspaceUID)){
+					s as Workspace.selectors@filter(uid($selectorUIDs))
+				}
+			}
+		}`
+
+	req := &api.Request{
+		Query: query,
+		Vars: map[string]string{"$userUID": userUID,
+			"$selectorUIDs": db.CreateCommaArray(uids), "$workspaceUID": workspaceUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte(` uid(s) * * .
+								<` + workspaceUID + "> <Workspace.selectors> uid(s) ."),
+		}},
+		CommitNow: true,
+	}
+
+	resp, err := c.Mutate(ctx, req)
+	if err != nil {
+		return serror.New(err)
+	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
+		return serror.New(db.ErrNoMutationHappened)
+	}
+
+	return nil
 }

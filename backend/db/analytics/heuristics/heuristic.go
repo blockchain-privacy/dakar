@@ -23,8 +23,6 @@ import (
 
 var (
 	errInvalidDatabaseResponse = errors.New("error invalid response")
-	// ErrNoMutationHappened is returned if no mutation occurred
-	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
 // InsertHeuristic inserts the given heuristic
@@ -83,7 +81,7 @@ func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspac
 	return
 }
 
-// DeleteUserHeuristics deletes all given heuristic uids of a user
+// DeleteUserHeuristics deletes all given heuristic of a user
 func DeleteUserHeuristics(c external.Database, uids []string, userUID string, workspaceUID string) error {
 	const query = `
 		query Q($userUID:string,$heuristicUIDs:string,$workspaceUID:string){
@@ -117,7 +115,7 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 	}
 
 	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return serror.New(ErrNoMutationHappened)
+		return serror.New(db.ErrNoMutationHappened)
 	}
 
 	return nil

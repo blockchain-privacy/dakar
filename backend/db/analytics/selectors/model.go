@@ -8,16 +8,16 @@ import (
 const DType = "Selector"
 
 const (
-	stateWaiting = "waiting"
-	stateError   = "error"
-	stateSuccess = "success"
+	statusWaiting = "waiting"
+	statusError   = "error"
+	statusSuccess = "success"
 
 	typeTransactionProperties = "transactionProperties"
 )
 
 var validTypes = map[string]bool{typeTransactionProperties: true}
 
-var validStates = map[string]bool{stateWaiting: true, stateError: true, stateSuccess: true}
+var validStates = map[string]bool{statusWaiting: true, statusError: true, statusSuccess: true}
 
 type Selector struct {
 	UID      string       `json:"uid,omitempty"`
