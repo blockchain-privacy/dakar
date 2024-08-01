@@ -112,12 +112,12 @@ func (o Options) isValid() bool {
 }
 
 type FrontendSelector struct {
-	UID      string `json:"uid,omitempty"`
-	Created  string `json:"created,omitempty"`
-	Modified string `json:"modified,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Options  string `json:"options,omitempty"`
+	UID      string   `json:"uid,omitempty"`
+	Created  string   `json:"created,omitempty"`
+	Modified string   `json:"modified,omitempty"`
+	Type     string   `json:"type,omitempty"`
+	Status   string   `json:"status,omitempty"`
+	Options  *Options `json:"options,omitempty"`
 	Results  []struct {
 		Hash string `json:"txhash,omitempty"`
 	} `json:"results,omitempty"`

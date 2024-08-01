@@ -243,7 +243,18 @@ func GetFrontendSelectorByUID(ctx context.Context, c external.Database,
 
 	// json struct
 	var r struct {
-		Selectors []FrontendSelector `json:"q,omitempty"`
+		Selectors []struct {
+			UID      string `json:"uid,omitempty"`
+			Created  string `json:"created,omitempty"`
+			Modified string `json:"modified,omitempty"`
+			Type     string `json:"type,omitempty"`
+			Status   string `json:"status,omitempty"`
+			// Options is JSON encoded
+			Options string `json:"options,omitempty"`
+			Results []struct {
+				Hash string `json:"txhash,omitempty"`
+			} `json:"results,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -254,7 +265,22 @@ func GetFrontendSelectorByUID(ctx context.Context, c external.Database,
 		return nil, serror.FromStr("no selector returned")
 	}
 
-	r.Selectors[0].UID = selectorUID
+	// Instead of just passing the JSON string to the frontend, it is
+	// getting parsed into a variable.  While this decreases performance,
+	// it enables swaggo to create a better openAPI spec (it can use the actuall
+	// type definition instead of just "string").
+	opt := new(Options)
+	if err = json.Unmarshal([]byte(r.Selectors[0].Options), opt); err != nil {
+		return nil, serror.New(err)
+	}
 
-	return &r.Selectors[0], nil
+	return &FrontendSelector{
+		UID:      selectorUID,
+		Created:  r.Selectors[0].Created,
+		Modified: r.Selectors[0].Modified,
+		Type:     r.Selectors[0].Type,
+		Status:   r.Selectors[0].Status,
+		Options:  opt,
+		Results:  r.Selectors[0].Results,
+	}, nil
 }
