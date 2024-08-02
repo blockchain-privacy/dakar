@@ -488,6 +488,27 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 	})
 }
 
+// Add Selector godoc
+//
+//	@Summary		Adds a new selector to a workspace
+//	@Description	Adds a new selector to a workspace. The selector will be executed eventually.
+//	@Tags			workspace
+//	@Produce		json
+//	@Accept			json
+//	@Param			heuristic	body		server.getAddWorkspaceSelectorReply.request	true	"Selector properties"
+//	@Success		200			{object}	server.addWorkspaceSelectorReply
+//	@Failure		400			{object}	server.addWorkspaceSelectorReply
+//	@Failure		401			{object}	server.addWorkspaceSelectorReply
+//	@Failure		500			{object}	server.addWorkspaceSelectorReply
+//	@Router			/workspaces/selector [post]
+func (s *Server) handlerAddWorkspaceSelector() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getAddWorkspaceSelectorReply(s.db, r, s.workspaceMutex)
+
+		SendReply(w, reply, status)
+	})
+}
+
 // Execute Heuristics godoc
 //
 //	@Summary		Queues the execution of heuristics for the given transaction
@@ -920,6 +941,8 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerAddWorkspaceNodes(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceNote, ""),
 		s.adapt(s.handlerAddWorkspaceNote(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceSelector, ""),
+		s.adapt(s.handlerAddWorkspaceSelector(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspacesNode, ""),
 		s.adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, ""),

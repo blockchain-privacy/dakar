@@ -8,16 +8,24 @@ import (
 const DType = "Selector"
 
 const (
-	statusWaiting = "waiting"
-	statusError   = "error"
-	statusSuccess = "success"
+	StatusWaiting = "waiting"
+	StatusError   = "error"
+	StatusSuccess = "success"
 
-	typeTransactionProperties = "transactionProperties"
+	TypeTransactionProperties = "transactionProperties"
 )
 
-var validTypes = map[string]bool{typeTransactionProperties: true}
+var validTypes = map[string]bool{TypeTransactionProperties: true}
 
-var validStates = map[string]bool{statusWaiting: true, statusError: true, statusSuccess: true}
+var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
+
+func IsTypeValid(t string) bool {
+	return validTypes[t]
+}
+
+func IsStatusValid(s string) bool {
+	return validStates[s]
+}
 
 type Selector struct {
 	UID      string       `json:"uid,omitempty"`
@@ -36,11 +44,7 @@ func (s *Selector) SetDType() {
 }
 
 func (s *Selector) IsValid() bool {
-	if s.Created == "" || s.Modified == "" || s.Type == "" || s.Status == "" || s.Options == "" {
-		return false
-	}
-
-	return validTypes[s.Type] && validStates[s.Status]
+	return s.Options != "" && validTypes[s.Type] && validStates[s.Status]
 }
 
 type AmountRange struct {

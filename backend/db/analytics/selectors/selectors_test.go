@@ -245,7 +245,14 @@ func TestInsertSelector(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	now := time.Now().UTC().Format(time.RFC3339)
+	// for parent test
+	parentSelectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
+		Type:    TypeTransactionProperties,
+		Status:  StatusSuccess,
+		Options: string(optJSON),
+		Results: results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
 
 	tests := []struct {
 		selector     *Selector
@@ -265,22 +272,53 @@ func TestInsertSelector(t *testing.T) {
 		},
 		{
 			selector: &Selector{
-				Created:  now,
-				Modified: now,
-				Type:     "invalidType",
-				Status:   "invalidStatus",
-				Options:  string(optJSON),
+				Type:    "invalidType",
+				Status:  "invalidStatus",
+				Options: string(optJSON),
 			},
 			wantErr: true,
 		},
 		{
 			selector: &Selector{
-				Created:  now,
-				Modified: now,
-				Type:     "transactionProperties",
-				Status:   "success",
-				Options:  string(optJSON),
-				Results:  results,
+				Type:    TypeTransactionProperties,
+				Status:  StatusSuccess,
+				Options: string(optJSON),
+				Results: results,
+			},
+			userUID:      userUID,
+			workspaceUID: workspaceUID,
+			wantErr:      false,
+		},
+		// invalid parent UID
+		{
+			selector: &Selector{
+				Type:    TypeTransactionProperties,
+				Status:  StatusError,
+				Options: string(optJSON),
+				Parent:  &db.UIDNode{UID: "0x123"},
+			},
+			userUID:      userUID,
+			workspaceUID: workspaceUID,
+			wantErr:      true,
+		},
+		// empty parent UID
+		{
+			selector: &Selector{
+				Type:    TypeTransactionProperties,
+				Status:  StatusError,
+				Options: string(optJSON),
+				Parent:  &db.UIDNode{UID: ""},
+			},
+			userUID:      userUID,
+			workspaceUID: workspaceUID,
+			wantErr:      true,
+		},
+		{
+			selector: &Selector{
+				Type:    TypeTransactionProperties,
+				Status:  StatusSuccess,
+				Options: string(optJSON),
+				Parent:  &db.UIDNode{UID: parentSelectorUID},
 			},
 			userUID:      userUID,
 			workspaceUID: workspaceUID,
@@ -315,14 +353,11 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	now := time.Now().UTC().Format(time.RFC3339)
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Created:  now,
-		Modified: now,
-		Type:     typeTransactionProperties,
-		Status:   statusSuccess,
-		Options:  string(optJSON),
-		Results:  results,
+		Type:    TypeTransactionProperties,
+		Status:  StatusSuccess,
+		Options: string(optJSON),
+		Results: results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
@@ -368,14 +403,11 @@ func TestUpdateSelector(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	now := time.Now().UTC().Format(time.RFC3339)
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Created:  now,
-		Modified: now,
-		Type:     typeTransactionProperties,
-		Status:   statusSuccess,
-		Options:  string(optJSON),
-		Results:  results,
+		Type:    TypeTransactionProperties,
+		Status:  StatusSuccess,
+		Options: string(optJSON),
+		Results: results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
@@ -385,12 +417,12 @@ func TestUpdateSelector(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			status:       statusError,
-			selectorType: typeTransactionProperties,
+			status:       StatusError,
+			selectorType: TypeTransactionProperties,
 			wantErr:      false,
 		},
 		{
-			status:  statusWaiting,
+			status:  StatusWaiting,
 			wantErr: false,
 		},
 		{
@@ -440,14 +472,11 @@ func TestDeleteUserSelectors(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	now := time.Now().UTC().Format(time.RFC3339)
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Created:  now,
-		Modified: now,
-		Type:     typeTransactionProperties,
-		Status:   statusSuccess,
-		Options:  string(optJSON),
-		Results:  results,
+		Type:    TypeTransactionProperties,
+		Status:  StatusSuccess,
+		Options: string(optJSON),
+		Results: results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
@@ -477,34 +506,27 @@ func TestGetSelectorByStatus(t *testing.T) {
 	}
 
 	// create two selectors with status 'success' and one with status 'waiting'
-	now := time.Now().UTC().Format(time.RFC3339)
 	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Created:  now,
-		Modified: now,
-		Type:     typeTransactionProperties,
-		Status:   statusSuccess,
-		Options:  string(optJSON),
-		Results:  results,
+		Type:    TypeTransactionProperties,
+		Status:  StatusSuccess,
+		Options: string(optJSON),
+		Results: results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
 	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Created:  now,
-		Modified: now,
-		Type:     typeTransactionProperties,
-		Status:   statusSuccess,
-		Options:  string(optJSON),
-		Results:  results,
+		Type:    TypeTransactionProperties,
+		Status:  StatusSuccess,
+		Options: string(optJSON),
+		Results: results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
 	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Created:  now,
-		Modified: now,
-		Type:     typeTransactionProperties,
-		Status:   statusWaiting,
-		Options:  string(optJSON),
-		Results:  results,
+		Type:    TypeTransactionProperties,
+		Status:  StatusWaiting,
+		Options: string(optJSON),
+		Results: results,
 	}, userUID, workspaceUID)
 	require.NoError(t, err)
 
@@ -514,17 +536,17 @@ func TestGetSelectorByStatus(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			status:          statusWaiting,
+			status:          StatusWaiting,
 			wantReturnCount: 1,
 			wantErr:         false,
 		},
 		{
-			status:          statusSuccess,
+			status:          StatusSuccess,
 			wantReturnCount: 2,
 			wantErr:         false,
 		},
 		{
-			status:          statusError,
+			status:          StatusError,
 			wantReturnCount: 0,
 			wantErr:         false,
 		},

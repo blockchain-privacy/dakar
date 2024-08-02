@@ -12,6 +12,7 @@ const (
 	NodeTypeCluster     = "cluster"
 	NodeTypeTransaction = "transaction"
 	NodeTypeHeuristic   = "heuristic"
+	NodeTypeSelector    = "selector"
 	NodeTypeNote        = "note"
 )
 
@@ -174,6 +175,11 @@ type Node struct {
 	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
 	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
 	Timestamp           string   `json:"heuristicTs,omitempty"`
+
+	// selector
+	SelectorType        string `json:"selectorType,omitempty"`
+	SelectorStatus      string `json:"selectorStatus,omitempty"`
+	SelectorResultCount *int   `json:"selectorResultCount,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`

@@ -164,7 +164,7 @@ func DoSelection(ctx context.Context, c external.Database, o Options) ([]string,
 	return uids, nil
 }
 
-// InsertSelector inserts the given selector into the database
+// InsertSelector inserts the given selector into the database. Returns its UID.
 func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 	userUID string, workspaceUID string) (string, error) {
 	if s == nil || !s.IsValid() {
@@ -181,20 +181,46 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 		Selectors []Selector `json:"Workspace.selectors,omitempty"`
 	}
 
+	now := time.Now().UTC().Format(time.RFC3339)
+	s.Created = now
+	s.Modified = now
+
 	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Selectors: []Selector{*s}})
 	if err != nil {
 		return "", serror.New(err)
 	}
 
+	vars := map[string]string{"$userUID": userUID, "$workspaceUID": workspaceUID}
+
+	// for safety the parent UID and workspace UID needs to be checked
+	var variable string
+	var parentQuery string
+	var parentUnion string
+	cond := "@if(eq(len(w), 1))"
+	if s.Parent != nil {
+		vars["$parent"] = s.Parent.UID
+		variable = ",$parent: string"
+		// parent can either be a heuristic or a selector
+		parentQuery = `{
+							s as Workspace.selectors@filter(uid($parent))
+							h as Workspace.heuristics@filter(uid($parent))
+						}`
+		parentUnion = "p as var(func: uid(s,h))"
+
+		cond = "@if(eq(len(w), 1) and eq(len(p),1))"
+	}
+
 	req := &api.Request{
-		Query: `query Q($userUID: string, $workspaceUID: string) {
+		Query: `query Q($userUID: string, $workspaceUID: string` + variable + `) {
 					var(func: uid($userUID))@filter(type(User)){
-						w as User.workspaces@filter(uid($workspaceUID))
+						w as User.workspaces@filter(uid($workspaceUID))` + parentQuery + `
 					}
+
+					` + parentUnion + `
 				  }`,
-		Vars: map[string]string{"$userUID": userUID, "$workspaceUID": workspaceUID},
+		Vars: vars,
 		Mutations: []*api.Mutation{{
-			Cond:    "@if(eq(len(w), 1))",
+			Cond:    cond,
 			SetJson: pb,
 		}},
 		CommitNow: true,
@@ -213,9 +239,9 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 	return insertUID, nil
 }
 
-// UpdateSelector updates a selector
+// UpdateSelector updates a selector. Modifying the selector's parent is not allowed.
 func UpdateSelector(ctx context.Context, c external.Database, s *Selector, userUID string, workspaceUID string) error {
-	if s == nil || s.UID == "" {
+	if s == nil || s.UID == "" || s.Parent != nil {
 		return serror.New(ErrInvalidSelector)
 	}
 
@@ -226,6 +252,8 @@ func UpdateSelector(ctx context.Context, c external.Database, s *Selector, userU
 	if s.Status != "" && !validStates[s.Status] {
 		return serror.New(ErrInvalidSelector)
 	}
+
+	s.Modified = time.Now().UTC().Format(time.RFC3339)
 
 	pb, err := json.Marshal(*s)
 	if err != nil {

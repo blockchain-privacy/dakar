@@ -12,6 +12,7 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
+	"backend/db/analytics/selectors"
 	dbstat "backend/db/status"
 	dbwork "backend/db/workspace"
 	"backend/external"
@@ -348,8 +349,8 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *worker.Worker,
 	}
 
 	type request struct {
-		NewHeuristic dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic,omitempty"`
-		WorkspaceUID string                               `json:"workspaceUID"`
+		NewHeuristic *dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic"`
+		WorkspaceUID string                                `json:"workspaceUID"`
 	}
 
 	var heuristicRequest request
@@ -360,8 +361,49 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *worker.Worker,
 		return
 	}
 
-	reply.WorkID, err = workspace.AddHeuristic(r.Context(), dgraph, worker, workspaceMutex, heuristicRequest.NewHeuristic,
-		heuristicRequest.WorkspaceUID, tUser.ID)
+	if heuristicRequest.NewHeuristic == nil {
+		status = http.StatusBadRequest
+		warn(serror.FromStr("empty heuristic request"))
+		return
+	}
+
+	reply.WorkID, err = workspace.AddHeuristic(r.Context(), dgraph, worker, workspaceMutex,
+		*heuristicRequest.NewHeuristic, heuristicRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
+func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
+	workspaceMutex *workspace.Mutex) (reply addWorkspaceSelectorReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		Type         string             `json:"type"`
+		Parent       string             `json:"parent"`
+		Options      *selectors.Options `json:"options"`
+		WorkspaceUID string             `json:"workspaceUID"`
+	}
+
+	var selectorRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&selectorRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(serror.New(err))
+		return
+	}
+
+	reply.WorkID, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.Options,
+		selectorRequest.WorkspaceUID, selectorRequest.Type, selectorRequest.Parent, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -778,7 +820,7 @@ func getMixingActivity(dgraph external.Database, r *http.Request) (reply mixingA
 		// AddressHash is the address hash for which the lookup will be done
 		AddressHash string `json:"addressHash"`
 		// IsClusterLookup determines if all addresses of the cluster will be considered
-		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
+		IsClusterLookup bool `json:"isClusterLookup"`
 	}
 	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1696,7 +1738,7 @@ func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mute
 	}
 
 	type request struct {
-		CurrentState []dbwork.Node `json:"currentState,omitempty"`
+		CurrentState []dbwork.Node `json:"currentState"`
 		WorkspaceUID string        `json:"workspaceUID"`
 	}
 
@@ -1733,7 +1775,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 	}
 
 	type request struct {
-		NodeUIDs     []string `json:"nodeUIDs,omitempty"`
+		NodeUIDs     []string `json:"nodeUIDs"`
 		WorkspaceUID string   `json:"workspaceUID"`
 	}
 

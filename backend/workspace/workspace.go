@@ -6,6 +6,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbHeuristic "backend/db/analytics/heuristics"
+	"backend/db/analytics/selectors"
 	"backend/db/workspace"
 	"backend/external"
 	"backend/worker"
@@ -179,6 +180,75 @@ func AddHeuristic(ctx context.Context, dgraph external.Database, worker *worker.
 	}
 
 	return workID, nil
+}
+
+// AddSelector adds a new selector to the workspace. It returns the selector's UID,
+// which can be used to check its execution status.
+func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options selectors.Options,
+	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, error) {
+	if !selectors.IsTypeValid(selectorType) {
+		return "", serror.FromStrWithContext("invalid type", "type", selectorType)
+	}
+
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
+	if err != nil {
+		return "", err
+	}
+
+	parentIndex := -1
+	var parentNode *db.UIDNode
+	// find the index of the selector's parent
+	if selectorParent != "" {
+		for i, n := range w.Nodes {
+			if n.UID == selectorParent {
+				parentIndex = i
+				break
+			}
+		}
+
+		// no parent found
+		if parentIndex == -1 {
+			return "", serror.FromStrWithContext("parent of selector is not contained in workspace",
+				"options", options, "type", selectorType, "parent", selectorParent)
+		}
+
+		parentNode = &db.UIDNode{UID: selectorParent}
+	}
+
+	optionStr, err := json.Marshal(options)
+	if err != nil {
+		return "", serror.NewWithContext(err, "options", options)
+	}
+
+	selectorUID, err := selectors.InsertSelector(ctx, dgraph, &selectors.Selector{
+		Type:    selectorType,
+		Status:  selectors.StatusWaiting,
+		Parent:  parentNode,
+		Options: string(optionStr),
+	}, userUID, workspaceUID)
+	if err != nil {
+		return "", err
+	}
+
+	// add new selector uid to children of parent
+	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, selectorUID)
+
+	// add node
+	w.Nodes = append(w.Nodes, workspace.Node{
+		UID:            selectorUID,
+		Type:           workspace.NodeTypeSelector,
+		SelectorType:   selectorType,
+		SelectorStatus: selectors.StatusWaiting,
+	})
+
+	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
+		return "", err
+	}
+
+	return selectorUID, nil
 }
 
 // GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.

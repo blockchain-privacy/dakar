@@ -105,6 +105,10 @@ type heuristicExecutionReply struct {
 	WorkID string `json:"workID"`
 }
 
+type addWorkspaceSelectorReply struct {
+	WorkID string `json:"workID"`
+}
+
 type heuristicDetailsReply struct {
 	Heuristic *dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
 }
