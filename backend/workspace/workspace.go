@@ -182,7 +182,7 @@ func AddHeuristic(ctx context.Context, dgraph external.Database, worker *worker.
 	return workID, nil
 }
 
-// AddSelector adds a new selector to the workspace. It returns the selector's UID,
+// AddSelector adds a new selector to the workspace. It returns UID of the newly created selector,
 // which can be used to check its execution status.
 func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options selectors.Options,
 	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, error) {
@@ -233,8 +233,10 @@ func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *
 		return "", err
 	}
 
-	// add new selector uid to children of parent
-	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, selectorUID)
+	if parentIndex >= 0 {
+		// add new selector uid to children of parent
+		w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, selectorUID)
+	}
 
 	// add node
 	w.Nodes = append(w.Nodes, workspace.Node{

@@ -232,8 +232,6 @@ func TestInsertSelector(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
-
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
 
@@ -244,6 +242,8 @@ func TestInsertSelector(t *testing.T) {
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
+
+	ctx := context.Background()
 
 	// for parent test
 	parentSelectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
@@ -265,10 +265,8 @@ func TestInsertSelector(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			selector: &Selector{
-				Created: "",
-			},
-			wantErr: true,
+			selector: &Selector{},
+			wantErr:  true,
 		},
 		{
 			selector: &Selector{
