@@ -358,30 +358,26 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 	return nil
 }
 
-// GetSelectorByStatus returns selectors with the requested status. Limited to max items.
+// GetSelectorByStatus returns selectors with the requested status.
+// Number of results limited to maxItems. Fields 'results' and 'parent' is not included.
 func GetSelectorByStatus(ctx context.Context, c external.Database, status string, maxItems uint) ([]Selector, error) {
 	if !validStates[status] {
 		return nil, serror.FromStrWithContext("invalid status", "status", status)
 	}
 
-	query := `query Q($status:string){
-				q(func: eq(Selector.status, $status), first: ` + strconv.FormatUint(uint64(maxItems), 10) + `){
+	query := `query Q($status:string, $maxItems:int){
+				q(func: eq(Selector.status, $status), first: $maxItems){
 					uid
 					Selector.created
 					Selector.modified
 					Selector.type
 					Selector.status
 					Selector.options
-					Selector.parent {
-						uid
-					}
-					Selector.results {
-						uid
-					}
 				}
 			   }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$status": status})
+	resp, err := c.Query(ctx, query, map[string]string{"$status": status,
+		"$maxItems": strconv.FormatUint(uint64(maxItems), 10)})
 	if err != nil {
 		return nil, err
 	}
