@@ -305,7 +305,7 @@ func GetFrontendSelectorByUID(ctx context.Context, c external.Database,
 
 	// Instead of just passing the JSON string to the frontend, it is
 	// getting parsed into a variable.  While this decreases performance,
-	// it enables swaggo to create a better openAPI spec (it can use the actuall
+	// it enables swaggo to create a better openAPI spec (it can use the actual
 	// type definition instead of just "string").
 	opt := new(Options)
 	if err = json.Unmarshal([]byte(r.Selectors[0].Options), opt); err != nil {
@@ -356,4 +356,43 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 	}
 
 	return nil
+}
+
+// GetSelectorByStatus returns selectors with the requested status. Limited to max items.
+func GetSelectorByStatus(ctx context.Context, c external.Database, status string, maxItems uint) ([]Selector, error) {
+	if !validStates[status] {
+		return nil, serror.FromStrWithContext("invalid status", "status", status)
+	}
+
+	query := `query Q($status:string){
+				q(func: eq(Selector.status, $status), first: ` + strconv.FormatUint(uint64(maxItems), 10) + `){
+					uid
+					Selector.created
+					Selector.modified
+					Selector.type
+					Selector.status
+					Selector.options
+					Selector.parent {
+						uid
+					}
+					Selector.results {
+						uid
+					}
+				}
+			   }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$status": status})
+	if err != nil {
+		return nil, err
+	}
+
+	var r struct {
+		Selectors []Selector `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return r.Selectors, nil
 }

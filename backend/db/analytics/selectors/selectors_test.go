@@ -380,12 +380,14 @@ func TestUpdateSelector(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		status  string
-		wantErr bool
+		status       string
+		selectorType string
+		wantErr      bool
 	}{
 		{
-			status:  statusError,
-			wantErr: false,
+			status:       statusError,
+			selectorType: typeTransactionProperties,
+			wantErr:      false,
 		},
 		{
 			status:  statusWaiting,
@@ -395,9 +397,14 @@ func TestUpdateSelector(t *testing.T) {
 			status:  "invalidStatus",
 			wantErr: true,
 		},
+		{
+			selectorType: "invalidType",
+			wantErr:      true,
+		},
 	}
 	for _, tt := range tests {
-		err := UpdateSelector(ctx, dbHandle, &Selector{UID: selectorUID, Status: tt.status}, userUID, workspaceUID)
+		err := UpdateSelector(ctx, dbHandle, &Selector{UID: selectorUID, Status: tt.status, Type: tt.selectorType},
+			userUID, workspaceUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -405,7 +412,13 @@ func TestUpdateSelector(t *testing.T) {
 
 			selector, err := GetFrontendSelectorByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
 			require.NoError(t, err)
-			require.EqualValues(t, tt.status, selector.Status)
+
+			if tt.status != "" {
+				require.EqualValues(t, tt.status, selector.Status)
+			}
+			if tt.selectorType != "" {
+				require.EqualValues(t, tt.selectorType, selector.Type)
+			}
 		}
 	}
 }
@@ -441,6 +454,87 @@ func TestDeleteUserSelectors(t *testing.T) {
 	err = DeleteUserSelectors(ctx, dbHandle, []string{selectorUID}, userUID, workspaceUID)
 	require.NoError(t, err)
 
+	// should throw error because selector does not exist anymore
 	_, err = GetFrontendSelectorByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
 	require.Error(t, err)
+}
+
+func TestGetSelectorByStatus(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	userUID, workspaceUID, err := createUserAndWorkspace()
+	require.NoError(t, err)
+
+	resultUIDs, optJSON, err := doSelection()
+	require.NoError(t, err)
+
+	results := make([]db.UIDNode, len(resultUIDs))
+	for i, result := range resultUIDs {
+		results[i] = db.UIDNode{UID: result}
+	}
+
+	// create two selectors with status 'success' and one with status 'waiting'
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err = InsertSelector(ctx, dbHandle, &Selector{
+		Created:  now,
+		Modified: now,
+		Type:     typeTransactionProperties,
+		Status:   statusSuccess,
+		Options:  string(optJSON),
+		Results:  results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	_, err = InsertSelector(ctx, dbHandle, &Selector{
+		Created:  now,
+		Modified: now,
+		Type:     typeTransactionProperties,
+		Status:   statusSuccess,
+		Options:  string(optJSON),
+		Results:  results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	_, err = InsertSelector(ctx, dbHandle, &Selector{
+		Created:  now,
+		Modified: now,
+		Type:     typeTransactionProperties,
+		Status:   statusWaiting,
+		Options:  string(optJSON),
+		Results:  results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	tests := []struct {
+		status          string
+		wantReturnCount int
+		wantErr         bool
+	}{
+		{
+			status:          statusWaiting,
+			wantReturnCount: 1,
+			wantErr:         false,
+		},
+		{
+			status:          statusSuccess,
+			wantReturnCount: 2,
+			wantErr:         false,
+		},
+		{
+			status:  "invalidStatus",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		selectors, err := GetSelectorByStatus(ctx, dbHandle, tt.status, 5)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Len(t, selectors, tt.wantReturnCount)
+		}
+	}
 }
