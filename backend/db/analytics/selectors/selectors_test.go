@@ -524,6 +524,11 @@ func TestGetSelectorByStatus(t *testing.T) {
 			wantErr:         false,
 		},
 		{
+			status:          statusError,
+			wantReturnCount: 0,
+			wantErr:         false,
+		},
+		{
 			status:  "invalidStatus",
 			wantErr: true,
 		},
