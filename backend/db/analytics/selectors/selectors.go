@@ -245,11 +245,11 @@ func UpdateSelector(ctx context.Context, c external.Database, s *Selector, userU
 		return serror.New(ErrInvalidSelector)
 	}
 
-	if s.Type != "" && !validTypes[s.Type] {
+	if s.Type != "" && !IsTypeValid(s.Type) {
 		return serror.New(ErrInvalidSelector)
 	}
 
-	if s.Status != "" && !validStates[s.Status] {
+	if s.Status != "" && !IsStatusValid(s.Status) {
 		return serror.New(ErrInvalidSelector)
 	}
 
@@ -389,7 +389,7 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 // GetSelectorByStatus returns selectors with the requested status.
 // Number of results limited to maxItems. Fields 'results' and 'parent' is not included.
 func GetSelectorByStatus(ctx context.Context, c external.Database, status string, maxItems uint) ([]Selector, error) {
-	if !validStates[status] {
+	if !IsStatusValid(status) {
 		return nil, serror.FromStrWithContext("invalid status", "status", status)
 	}
 

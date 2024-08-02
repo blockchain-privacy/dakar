@@ -19,10 +19,12 @@ var validTypes = map[string]bool{TypeTransactionProperties: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
 
+// IsTypeValid returns true if the provided type is valid
 func IsTypeValid(t string) bool {
 	return validTypes[t]
 }
 
+// IsStatusValid returns true if the provided status is valid
 func IsStatusValid(s string) bool {
 	return validStates[s]
 }
@@ -44,7 +46,7 @@ func (s *Selector) SetDType() {
 }
 
 func (s *Selector) IsValid() bool {
-	return s.Options != "" && validTypes[s.Type] && validStates[s.Status]
+	return s.Options != "" && IsTypeValid(s.Type) && IsStatusValid(s.Status)
 }
 
 type AmountRange struct {
