@@ -33,7 +33,7 @@ func TestWorker_Start(t *testing.T) {
 	require.False(t, w.Start(ctx))
 }
 
-func TestWorker_SetLoopInterval(t *testing.T) {
+func TestWorker_SetLoopInterval(_ *testing.T) {
 	w := NewWorker(nil, nil)
 	w.SetLoopInterval(1)
 	w.SetLoopInterval(time.Second * 100)
