@@ -386,37 +386,64 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 	return nil
 }
 
-// GetSelectorByStatus returns selectors with the requested status.
-// Number of results limited to maxItems. Fields 'results' and 'parent' is not included.
-func GetSelectorByStatus(ctx context.Context, c external.Database, status string, maxItems uint) ([]Selector, error) {
-	if !IsStatusValid(status) {
-		return nil, serror.FromStrWithContext("invalid status", "status", status)
+// GetWaitingSelectors returns selectors which are waiting to be executed.
+func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint) ([]WorkItem, error) {
+	if maxItems == 0 {
+		return nil, nil
 	}
 
-	query := `query Q($status:string, $maxItems:int){
-				q(func: eq(Selector.status, $status), first: $maxItems){
+	query := `query Q($maxItems:int){
+				q(func: eq(Selector.status, ` + StatusWaiting + `), first: $maxItems){
 					uid
-					Selector.created
-					Selector.modified
 					Selector.type
-					Selector.status
 					Selector.options
+					~Workspace.selectors{
+						uid
+						~User.workspaces{uid}
+					}
 				}
 			   }`
 
-	resp, err := c.Query(ctx, query, map[string]string{"$status": status,
-		"$maxItems": strconv.FormatUint(uint64(maxItems), 10)})
+	resp, err := c.Query(ctx, query, map[string]string{"$maxItems": strconv.FormatUint(uint64(maxItems), 10)})
 	if err != nil {
 		return nil, err
 	}
 
 	var r struct {
-		Selectors []Selector `json:"q,omitempty"`
+		Selectors []struct {
+			UID       string `json:"uid,omitempty"`
+			Type      string `json:"Selector.type,omitempty"`
+			Options   string `json:"Selector.options,omitempty"`
+			Workspace []struct {
+				UID  string       `json:"uid,omitempty"`
+				User []db.UIDNode `json:"~User.workspaces,omitempty"`
+			} `json:"~Workspace.selectors,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return nil, serror.New(err)
 	}
 
-	return r.Selectors, nil
+	items := make([]WorkItem, len(r.Selectors))
+	for i, s := range r.Selectors {
+		if len(s.Workspace) != 1 || len(s.Workspace[0].User) != 1 {
+			return nil, serror.FromStr("invalid workspace or user UID")
+		}
+
+		var opt Options
+		if err := json.Unmarshal([]byte(s.Options), &opt); err != nil {
+			return nil, serror.New(err)
+		}
+
+		items[i] = WorkItem{
+			UserUID:         s.Workspace[0].User[0].UID,
+			WorkspaceUID:    s.Workspace[0].UID,
+			SelectorUID:     s.UID,
+			SelectorType:    s.Type,
+			SelectorOptions: opt,
+		}
+	}
+
+	return items, nil
 }

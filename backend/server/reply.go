@@ -16,7 +16,6 @@ import (
 	dbstat "backend/db/status"
 	dbwork "backend/db/workspace"
 	"backend/external"
-	"backend/worker"
 	"backend/workspace"
 	"context"
 	"github.com/qrest/gomisc/serror"
@@ -241,64 +240,65 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 	}, http.StatusOK
 }
 
-func getHeuristicByWorkIDReply(dgraph external.Database, worker *worker.Worker,
-	r *http.Request) (reply heuristicByWorkIDReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	type request struct {
-		ID           string `json:"id"`
-		WorkspaceUID string `json:"workspaceUID"`
-	}
-
-	var workRequest request
-
-	if err := json.NewDecoder(r.Body).Decode(&workRequest); err != nil {
-		status = http.StatusBadRequest
-		warn(err)
-		return
-	}
-
-	if workRequest.ID == "" || workRequest.WorkspaceUID == "" {
-		status = http.StatusBadRequest
-		return
-	}
-
-	// convert to integer
-	workID, err := strconv.Atoi(workRequest.ID)
-	if err != nil {
-		status = http.StatusBadRequest
-		warn(err)
-		return
-	}
-
-	uid, err := worker.GetFinishedDatabaseUID(workID, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	// heuristic not finished executing
-	if uid == "" {
-		return
-	}
-
-	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, workRequest.WorkspaceUID, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.Nodes = w.Nodes
-
-	return
-}
+//
+//func getHeuristicByWorkIDReply(dgraph external.Database, worker *worker.Worker,
+//	r *http.Request) (reply heuristicByWorkIDReply, status int) {
+//	tUser, err := extractTokenUser(r.Context())
+//	if err != nil {
+//		status = http.StatusUnauthorized
+//		warn(err)
+//		return
+//	}
+//
+//	type request struct {
+//		ID           string `json:"id"`
+//		WorkspaceUID string `json:"workspaceUID"`
+//	}
+//
+//	var workRequest request
+//
+//	if err := json.NewDecoder(r.Body).Decode(&workRequest); err != nil {
+//		status = http.StatusBadRequest
+//		warn(err)
+//		return
+//	}
+//
+//	if workRequest.ID == "" || workRequest.WorkspaceUID == "" {
+//		status = http.StatusBadRequest
+//		return
+//	}
+//
+//	// convert to integer
+//	workID, err := strconv.Atoi(workRequest.ID)
+//	if err != nil {
+//		status = http.StatusBadRequest
+//		warn(err)
+//		return
+//	}
+//
+//	uid, err := worker.GetFinishedDatabaseUID(workID, tUser.ID)
+//	if err != nil {
+//		status = http.StatusInternalServerError
+//		warn(err)
+//		return
+//	}
+//
+//	// heuristic not finished executing
+//	if uid == "" {
+//		return
+//	}
+//
+//	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, workRequest.WorkspaceUID, tUser.ID)
+//	if err != nil {
+//		status = http.StatusInternalServerError
+//		warn(err)
+//		return
+//	}
+//
+//	reply.Nodes = w.Nodes
+//
+//	return
+//}
 
 func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply heuristicDetailsReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
@@ -339,44 +339,45 @@ func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply 
 	return
 }
 
-func getHeuristicExecutionReply(dgraph external.Database, worker *worker.Worker, r *http.Request,
-	workspaceMutex *workspace.Mutex) (reply heuristicExecutionReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	type request struct {
-		NewHeuristic *dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic"`
-		WorkspaceUID string                                `json:"workspaceUID"`
-	}
-
-	var heuristicRequest request
-
-	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
-		status = http.StatusBadRequest
-		warn(serror.New(err))
-		return
-	}
-
-	if heuristicRequest.NewHeuristic == nil {
-		status = http.StatusBadRequest
-		warn(serror.FromStr("empty heuristic request"))
-		return
-	}
-
-	reply.WorkID, err = workspace.AddHeuristic(r.Context(), dgraph, worker, workspaceMutex,
-		*heuristicRequest.NewHeuristic, heuristicRequest.WorkspaceUID, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	return
-}
+//
+//func getHeuristicExecutionReply(dgraph external.Database, worker *worker.Worker, r *http.Request,
+//	workspaceMutex *workspace.Mutex) (reply heuristicExecutionReply, status int) {
+//	tUser, err := extractTokenUser(r.Context())
+//	if err != nil {
+//		status = http.StatusUnauthorized
+//		warn(err)
+//		return
+//	}
+//
+//	type request struct {
+//		NewHeuristic *dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic"`
+//		WorkspaceUID string                                `json:"workspaceUID"`
+//	}
+//
+//	var heuristicRequest request
+//
+//	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
+//		status = http.StatusBadRequest
+//		warn(serror.New(err))
+//		return
+//	}
+//
+//	if heuristicRequest.NewHeuristic == nil {
+//		status = http.StatusBadRequest
+//		warn(serror.FromStr("empty heuristic request"))
+//		return
+//	}
+//
+//	reply.WorkID, err = workspace.AddHeuristic(r.Context(), dgraph, worker, workspaceMutex,
+//		*heuristicRequest.NewHeuristic, heuristicRequest.WorkspaceUID, tUser.ID)
+//	if err != nil {
+//		status = http.StatusInternalServerError
+//		warn(err)
+//		return
+//	}
+//
+//	return
+//}
 
 func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	workspaceMutex *workspace.Mutex) (reply addWorkspaceSelectorReply, status int) {
@@ -1508,7 +1509,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 }
 
 func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
-	worker *worker.Worker, r *http.Request) (reply addWorkspaceNodesReply, status int) {
+	r *http.Request) (reply addWorkspaceNodesReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1558,7 +1559,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 		newNodes[newNode.UID] = newNode
 	}
 
-	reply.Nodes, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, worker, searchRequest.WorkspaceUID,
+	reply.Nodes, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, searchRequest.WorkspaceUID,
 		tUser.ID, cliutil.GetMapValues(newNodes))
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -1638,7 +1639,7 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 	return
 }
 
-func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mutex, worker *worker.Worker,
+func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply getWorkspaceReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -1653,8 +1654,7 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 		return
 	}
 
-	reply.Workspace, err = workspace.GetAndRefreshWorkspace(r.Context(), dgraph, worker,
-		workspaceMutex, workspaceUID, tUser.ID)
+	reply.Workspace, err = workspace.GetAndRefreshWorkspace(r.Context(), dgraph, workspaceMutex, workspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

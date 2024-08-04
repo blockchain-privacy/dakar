@@ -34,6 +34,10 @@ func (h *forwardAmountHeuristic) getParameterString() string {
 }
 
 func (h *forwardAmountHeuristic) setConfig(c heuristics.Config) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
 	hoursToLookForward, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
@@ -82,8 +86,7 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 
 // forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
-	txHash string, parentHeuristicUID string) (
+func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash
@@ -107,7 +110,8 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOriginsTimeLimited(ctx, dgraph, g, txHash, h.lookForwardTime, h.c)
+			results, attributionMap, err = getDestinationTxOriginsTimeLimited(ctx, dgraph, g,
+				h.c.TransactionHash, h.lookForwardTime, h.c)
 			if err != nil {
 				return nil, err
 			}

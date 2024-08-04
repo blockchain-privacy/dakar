@@ -30,6 +30,10 @@ func (h *perfectMatchHeuristic) getParameterString() string {
 }
 
 func (h *perfectMatchHeuristic) setConfig(c heuristics.Config) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
 	if !areClusterTypesValid(c.ClusterTypes) {
 		return serror.New(errInvalidClusterTypes)
 	}
@@ -62,7 +66,7 @@ func (h *perfectMatchHeuristic) String() string {
 // perfectMatchHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations without a perfect match for the
 //     denominations of the destination transaction
-func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash
@@ -87,7 +91,7 @@ func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOrigins(ctx, dgraph, g, txHash, h.c)
+			results, attributionMap, err = getDestinationTxOrigins(ctx, dgraph, g, h.c.TransactionHash, h.c)
 			if err != nil {
 				return nil, err
 			}
@@ -105,7 +109,7 @@ func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
+	transaction, err := heuristics.GetInputAmounts(dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}

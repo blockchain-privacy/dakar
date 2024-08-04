@@ -13,9 +13,10 @@ const (
 	StatusSuccess = "success"
 
 	TypeTransactionProperties = "transactionProperties"
+	TypeHeuristic             = "heuristic"
 )
 
-var validTypes = map[string]bool{TypeTransactionProperties: true}
+var validTypes = map[string]bool{TypeTransactionProperties: true, TypeHeuristic: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
 
@@ -127,4 +128,12 @@ type FrontendSelector struct {
 	Results  []struct {
 		Hash string `json:"txhash,omitempty"`
 	} `json:"results,omitempty"`
+}
+
+type WorkItem struct {
+	UserUID         string
+	WorkspaceUID    string
+	SelectorUID     string
+	SelectorType    string
+	SelectorOptions Options
 }

@@ -33,6 +33,10 @@ func (h *simpleForwardHeuristic) getParameterString() string {
 }
 
 func (h *simpleForwardHeuristic) setConfig(c heuristics.Config) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
 	hoursToLookForward, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
@@ -84,7 +88,7 @@ func (h *simpleForwardHeuristic) GetDescriptor() Descriptor {
 //     find all destination transactions connected to this transaction.
 //   - parent == heuristic: By traversing the mixing graph forward limited by time,
 //     find all destination transactions connected to the results of the parent heuristic.
-func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	var parentResults []heuristics.HeuristicTransaction
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
@@ -100,7 +104,7 @@ func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			return nil, err
 		}
 	} else {
-		uid, err := db.GetTransactionUID(ctx, dgraph, txHash)
+		uid, err := db.GetTransactionUID(ctx, dgraph, h.c.TransactionHash)
 		if err != nil {
 			return nil, err
 		}

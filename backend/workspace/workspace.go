@@ -9,7 +9,6 @@ import (
 	"backend/db/analytics/selectors"
 	"backend/db/workspace"
 	"backend/external"
-	"backend/worker"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,6 +21,52 @@ import (
 
 const MaxWorkspaceNameLength = 50
 
+type SelectorWork struct {
+	opt          selectors.Options
+	selectorUID  string
+	workspaceUID string
+	userUID      string
+}
+
+func NewSelectorWork(item selectors.WorkItem) SelectorWork {
+	return SelectorWork{
+		opt:          item.SelectorOptions,
+		workspaceUID: item.WorkspaceUID,
+		userUID:      item.UserUID,
+		selectorUID:  item.SelectorUID,
+	}
+}
+
+// Run processes the selector and updates it into the workspace
+func (s SelectorWork) Run(c external.Database, _ *graph.Wrapper) error {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	var err error
+	status := selectors.StatusSuccess
+	var newNodes []db.UIDNode
+	results, err := selectors.DoSelection(ctx, c, s.opt)
+	if err == nil {
+		newNodes = make([]db.UIDNode, len(results))
+		for i, result := range results {
+			newNodes[i] = db.UIDNode{UID: result}
+		}
+	} else {
+		status = selectors.StatusError
+		// todo add error message into selector
+	}
+
+	if updateErr := selectors.UpdateSelector(ctx, c, &selectors.Selector{
+		Type:    selectors.TypeTransactionProperties,
+		Status:  status,
+		Results: newNodes,
+	}, s.userUID, s.workspaceUID); updateErr != nil {
+		return updateErr
+	}
+
+	return err
+}
+
 type HeuristicWork struct {
 	executor       heuristics.Executor
 	workspaceMutex *Mutex
@@ -29,11 +74,34 @@ type HeuristicWork struct {
 	userUID        string
 }
 
+// CreateWork creates a new work package, which can be run at a later time
+func CreateWork(c external.Database) ([]Work, error) {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	selectorItems, err := selectors.GetWaitingSelectors(ctx, c, 20)
+	if err != nil {
+		return nil, err
+	}
+
+	workItems := make([]Work, len(selectorItems))
+	for i, item := range selectorItems {
+		switch item.SelectorType {
+		case selectors.TypeTransactionProperties:
+			workItems[i] = NewSelectorWork(item)
+			//case selectors.TypeHeuristic:
+			//	workItems[i] = NewHeuristicWork(item)
+		}
+	}
+
+	return workItems, nil
+}
+
 // Run processes the heuristic and inserts it into the workspace
-func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID int) (string, error) {
+func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) error {
 	newHeuristic, err := h.executor.Run(dgraph, g)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	lock := h.workspaceMutex.Lock(h.workspaceUID)
@@ -44,55 +112,44 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper, workID in
 
 	newHeuristicUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// update workspace
-
 	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, h.workspaceUID, h.userUID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
+	nodeMap, notes := separateNodes(w.Nodes)
 
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, h.userUID, h.workspaceUID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	workIDString := strconv.Itoa(workID)
+	// try to set node position
+	if newNode, ok := nodeMap[newHeuristicUID]; ok {
+		// todo set actual status
+		newNode.SelectorStatus = selectors.StatusSuccess
+		nodeMap[newHeuristicUID] = newNode
+	}
 
-	dummyHeuristics = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
-		if node.UID == workIDString {
-			// try to set node position
-			if newNode, ok := nodeMap[newHeuristicUID]; ok {
-				newNode.X = node.X
-				newNode.Y = node.Y
-				nodeMap[newHeuristicUID] = newNode
-			}
-
-			return true
-		}
-
-		return false
-	})
-
-	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
 
 	if err := encodeAndStoreWorkspaceState(ctx, dgraph, h.userUID, h.workspaceUID,
 		frontEndNodes, &clusterHeight); err != nil {
-		return "", err
+		return err
 	}
 
-	return newHeuristicUID, nil
+	return nil
 }
 
-// CreateWork creates a new work package, which can be run at a later time
-func CreateWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
-	userUID string, workspaceMutex *Mutex) (worker.Work, error) {
+// NewHeuristicWork creates a new work package, which can be run at a later time
+func NewHeuristicWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
+	userUID string, workspaceMutex *Mutex) (Work, error) {
 	if workspaceUID == "" {
-		return nil, serror.FromFormat("workspace UID not set for heuristic request: %v", heuristicRequest)
+		return nil, serror.FromStrWithContext("workspace UID not set", "heuristic request", heuristicRequest)
 	}
 
 	executor, err := heuristics.ConstructExecutors(heuristicRequest, userUID)
@@ -108,40 +165,121 @@ func CreateWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspace
 	}, err
 }
 
-// AddHeuristic adds a new heuristic to the workspace. It returns a work ID,
-// which can be used to check the execution status of the heuristic.
-func AddHeuristic(ctx context.Context, dgraph external.Database, worker *worker.Worker, workspaceMutex *Mutex,
-	heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string) (string, error) {
-	work, err := CreateWork(heuristicRequest, workspaceUID, userUID, workspaceMutex)
-	if err != nil {
-		return "", err
+//
+//// AddHeuristic adds a new heuristic to the workspace. It returns a work ID,
+//// which can be used to check the execution status of the heuristic.
+//func AddHeuristic(ctx context.Context, dgraph external.Database, worker *Worker, workspaceMutex *Mutex,
+//	heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string, userUID string) (string, error) {
+//	work, err := CreateWork(heuristicRequest, workspaceUID, userUID, workspaceMutex)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	workspaceLock := workspaceMutex.Lock(workspaceUID)
+//	defer workspaceLock.Unlock()
+//
+//	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	// sanity check
+//	if len(w.Nodes) == 0 {
+//		return "", serror.FromStr("received update for empty workspace")
+//	}
+//
+//	// find the index of the hew heuristic's parent
+//	parentIndex := -1
+//	if heuristicRequest.ParentHeuristicUID == "" {
+//		for i, n := range w.Nodes {
+//			if n.TransactionHash == heuristicRequest.TransactionHash {
+//				parentIndex = i
+//				break
+//			}
+//		}
+//	} else {
+//		for i, n := range w.Nodes {
+//			if n.UID == heuristicRequest.ParentHeuristicUID {
+//				parentIndex = i
+//				break
+//			}
+//		}
+//	}
+//
+//	// no parent found
+//	if parentIndex == -1 {
+//		return "", serror.FromStr("could not determine parent for new heuristic")
+//	}
+//
+//	clusterTypes := make([]string, len(heuristicRequest.Configuration.ClusterTypes))
+//	for i, c := range heuristicRequest.Configuration.ClusterTypes {
+//		clusterTypes[i] = string(c)
+//	}
+//
+//	yes := true
+//	workID := strconv.Itoa(worker.AddWork(userUID, work))
+//
+//	// add new heuristic uid to children of parent
+//	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, workID)
+//	// add node
+//	w.Nodes = append(w.Nodes, workspace.Node{
+//		UID:                 workID,
+//		Type:                workspace.NodeTypeHeuristic,
+//		HeuristicType:       heuristicRequest.Type,
+//		Parameter:           heuristicRequest.Configuration.Parameter,
+//		ExcludeAddresses:    &heuristicRequest.Configuration.ExcludeAddresses,
+//		ExcludeSpendingGaps: &heuristicRequest.Configuration.ExcludeSpendingGaps,
+//		ClusterTypes:        clusterTypes,
+//		Loading:             &yes,
+//	})
+//
+//	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
+//		return "", err
+//	}
+//
+//	return workID, nil
+//}
+
+type Options interface {
+	selectors.Options | dbHeuristic.Config
+}
+
+func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.UIDNode, error) {
+	parentIndex := -1
+	var parentNode *db.UIDNode
+	// find the index of the selector's parent
+	if selectorParent != "" {
+		for i, n := range nodes {
+			if n.UID == selectorParent {
+				parentIndex = i
+				break
+			}
+		}
+
+		// no parent found
+		if parentIndex == -1 {
+			return parentIndex, nil, serror.FromStr("parent of selector is not contained in workspace")
+		}
+
+		parentNode = &db.UIDNode{UID: selectorParent}
 	}
 
-	workspaceLock := workspaceMutex.Lock(workspaceUID)
-	defer workspaceLock.Unlock()
+	return parentIndex, parentNode, nil
+}
 
-	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
-	if err != nil {
-		return "", err
-	}
-
-	// sanity check
-	if len(w.Nodes) == 0 {
-		return "", serror.FromStr("received update for empty workspace")
-	}
-
+func getHeuristicParent(parentheuristicUID string, txHash string, nodes []workspace.Node) (int, *db.UIDNode, error) {
 	// find the index of the hew heuristic's parent
 	parentIndex := -1
-	if heuristicRequest.ParentHeuristicUID == "" {
-		for i, n := range w.Nodes {
-			if n.TransactionHash == heuristicRequest.TransactionHash {
+	if parentheuristicUID == "" {
+		for i, n := range nodes {
+			if n.TransactionHash == txHash {
 				parentIndex = i
 				break
 			}
 		}
 	} else {
-		for i, n := range w.Nodes {
-			if n.UID == heuristicRequest.ParentHeuristicUID {
+		for i, n := range nodes {
+			if n.UID == parentheuristicUID {
 				parentIndex = i
 				break
 			}
@@ -150,41 +288,15 @@ func AddHeuristic(ctx context.Context, dgraph external.Database, worker *worker.
 
 	// no parent found
 	if parentIndex == -1 {
-		return "", serror.FromStr("could not determine parent for new heuristic")
+		return parentIndex, nil, serror.FromStr("could not determine parent for new heuristic")
 	}
 
-	clusterTypes := make([]string, len(heuristicRequest.Configuration.ClusterTypes))
-	for i, c := range heuristicRequest.Configuration.ClusterTypes {
-		clusterTypes[i] = string(c)
-	}
-
-	yes := true
-	workID := strconv.Itoa(worker.AddWork(userUID, work))
-
-	// add new heuristic uid to children of parent
-	w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, workID)
-	// add node
-	w.Nodes = append(w.Nodes, workspace.Node{
-		UID:                 workID,
-		Type:                workspace.NodeTypeHeuristic,
-		HeuristicType:       heuristicRequest.Type,
-		Parameter:           heuristicRequest.Configuration.Parameter,
-		ExcludeAddresses:    &heuristicRequest.Configuration.ExcludeAddresses,
-		ExcludeSpendingGaps: &heuristicRequest.Configuration.ExcludeSpendingGaps,
-		ClusterTypes:        clusterTypes,
-		Loading:             &yes,
-	})
-
-	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
-		return "", err
-	}
-
-	return workID, nil
+	return parentIndex, &db.UIDNode{UID: nodes[parentIndex].UID}, nil
 }
 
 // AddSelector adds a new selector to the workspace. It returns UID of the newly created selector,
 // which can be used to check its execution status.
-func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options selectors.Options,
+func AddSelector[O Options](ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options O,
 	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, error) {
 	if !selectors.IsTypeValid(selectorType) {
 		return "", serror.FromStrWithContext("invalid type", "type", selectorType)
@@ -198,24 +310,21 @@ func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *
 		return "", err
 	}
 
-	parentIndex := -1
+	var parentIndex int
 	var parentNode *db.UIDNode
-	// find the index of the selector's parent
-	if selectorParent != "" {
-		for i, n := range w.Nodes {
-			if n.UID == selectorParent {
-				parentIndex = i
-				break
-			}
+	if selectorType == selectors.TypeHeuristic {
+
+		// todo set tx hash
+		parentIndex, parentNode, err = getHeuristicParent(selectorParent, "", w.Nodes)
+		if err != nil {
+			return "", serror.AddContext(err, "options", options)
 		}
 
-		// no parent found
-		if parentIndex == -1 {
-			return "", serror.FromStrWithContext("parent of selector is not contained in workspace",
-				"options", options, "type", selectorType, "parent", selectorParent)
+	} else {
+		parentIndex, parentNode, err = getSelectorParent(selectorParent, w.Nodes)
+		if err != nil {
+			return "", serror.AddContext(err, "options", options)
 		}
-
-		parentNode = &db.UIDNode{UID: selectorParent}
 	}
 
 	optionStr, err := json.Marshal(options)
@@ -255,7 +364,7 @@ func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *
 
 // GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.
 // This becomes necessary if connections become outdated, when new blocks are added to the blockchain.
-func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database, worker *worker.Worker,
+func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database,
 	workspaceMutex *Mutex, workspaceUID string, userUID string) (*workspace.FrontendWorkspace, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
@@ -271,13 +380,13 @@ func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database, worke
 		return nil, serror.New(err)
 	}
 
-	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
+	nodeMap, notes := separateNodes(w.Nodes)
 
 	var clusterHeight int64
 	if w.ClusterHeight != nil {
 		clusterHeight = *w.ClusterHeight
 	}
-	var updatedConnections bool
+
 	// Don't consider destination transactions with heuristic connections, because if
 	// it is the only node then the workspace can not be outdated. This is a different
 	// behaviour as when inserting node connections when adding a new node, because there
@@ -288,13 +397,7 @@ func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database, worke
 			return nil, err
 		}
 
-		updatedConnections = true
-	}
-
-	needToStore, dummyHeuristics := filterDummyNodes(worker, dummyHeuristics, userUID)
-
-	if updatedConnections || needToStore {
-		w.Nodes = slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
+		w.Nodes = append(cliutil.GetMapValues(nodeMap), notes...)
 
 		err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, &clusterHeight)
 		if err != nil {
@@ -466,7 +569,7 @@ func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []stri
 }
 
 // AddNodes adds a node to a workspace and refreshes the connections between all nodes.
-func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, worker *worker.Worker, workspaceUID string,
+func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, newNodes []*workspace.Node) ([]workspace.Node, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
@@ -476,7 +579,7 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 		return nil, err
 	}
 
-	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
+	nodeMap, notes := separateNodes(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics.
@@ -513,9 +616,7 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 		return nil, err
 	}
 
-	_, dummyHeuristics = filterDummyNodes(worker, dummyHeuristics, userUID)
-
-	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
+	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), notes)
 
 	if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
 		return nil, err
@@ -551,7 +652,7 @@ func AddNote(ctx context.Context, dgraph external.Database, workspaceMutex *Mute
 		return nil, err
 	}
 
-	nodeMap, dummyHeuristics, notes := separateNodes(w.Nodes)
+	nodeMap, notes := separateNodes(w.Nodes)
 
 	if len(nodeMap) == 0 {
 		return nil, serror.FromStr("trying to add note to an empty workspace")
@@ -575,7 +676,7 @@ func AddNote(ctx context.Context, dgraph external.Database, workspaceMutex *Mute
 	note.Type = workspace.NodeTypeNote
 
 	notes = append(notes, note)
-	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), dummyHeuristics, notes)
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
 
 	if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, nil); err != nil {
 		return nil, err
@@ -670,12 +771,10 @@ func isWorkspaceOutdated(dgraph external.Database,
 }
 
 // separateNodes separates nodes:
-// - general node: transactions, heuristics and clusters
-// - dummy heuristic node: heuristics waiting to be executed
+// - general node: transactions, heuristics, selectors and clusters
 // - notes node: notes
-func separateNodes(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node, []workspace.Node) {
+func separateNodes(nodes []workspace.Node) (map[string]workspace.Node, []workspace.Node) {
 	nodeMap := map[string]workspace.Node{}
-	var dummyHeuristics []workspace.Node
 	var notes []workspace.Node
 	for _, n := range nodes {
 		if n.UID == "" || n.Type == "" {
@@ -684,49 +783,9 @@ func separateNodes(nodes []workspace.Node) (map[string]workspace.Node, []workspa
 
 		if n.Type == workspace.NodeTypeNote {
 			notes = append(notes, n)
-		} else if n.IsLoading() {
-			dummyHeuristics = append(dummyHeuristics, n)
 		} else {
 			nodeMap[n.UID] = n
 		}
 	}
-	return nodeMap, dummyHeuristics, notes
-}
-
-// filterDummyNodes filters the given nodes based on wether they exist in the worker work log and/or
-// if they are finished executing. It returns the filtered list and two flags:
-// - removedNode: true if at least one node was removed
-// - removedFinishedNode: true if at least one was removed because it was finished executing
-func filterDummyNodes(worker *worker.Worker, dummyHeuristics []workspace.Node,
-	userID string) (changedDummies bool, filteredDummies []workspace.Node) {
-	filteredDummies = slices.DeleteFunc(dummyHeuristics, func(node workspace.Node) bool {
-		workID, err := strconv.Atoi(node.UID)
-		if err != nil {
-			// if work ID is invalid delete it as it is useless
-			return true
-		}
-
-		uid, err := worker.GetFinishedDatabaseUID(workID, userID)
-		if err != nil {
-			// workID can not be retrieved, so remove it
-			return true
-		}
-
-		// if the heuristic has finished executing, then remove it from
-		// the dummy list
-		if uid != "" {
-			return true
-		}
-
-		// remove all dummy heuristics for which no work exists.
-		// This can happen if the server was restarted before an heuristic was executed.
-		if !worker.DoesWorkExist(workID, userID) {
-			return true
-		}
-
-		return false
-	})
-	changedDummies = len(dummyHeuristics) != len(filteredDummies)
-
-	return
+	return nodeMap, notes
 }

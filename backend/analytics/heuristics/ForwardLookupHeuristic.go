@@ -33,6 +33,10 @@ func (h *forwardLookupHeuristic) getParameterString() string {
 }
 
 func (h *forwardLookupHeuristic) setConfig(c heuristics.Config) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
 	hoursToLookForward, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
@@ -81,7 +85,7 @@ func (h *forwardLookupHeuristic) GetDescriptor() Descriptor {
 
 // forwardLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	var results []heuristics.HeuristicTransaction
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
@@ -101,7 +105,7 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		} else {
 			var err error
 			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(ctx, dgraph, g,
-				txHash, h.lookForwardTime, h.c)
+				h.c.TransactionHash, h.lookForwardTime, h.c)
 			if err != nil {
 				return nil, err
 			}

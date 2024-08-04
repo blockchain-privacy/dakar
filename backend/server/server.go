@@ -3,7 +3,6 @@ package server
 import (
 	"backend/analytics/graph"
 	"backend/external"
-	"backend/worker"
 	"backend/workspace"
 	"errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -41,7 +40,7 @@ type Server struct {
 	// Dash or Bitcoin RPC client
 	client external.RPCClient
 	// worker which sequentially processes work packages (currently only used for heuristics)
-	worker *worker.Worker
+	worker *workspace.Worker
 	// in-memory transaction and address graph of all privacy transactions
 	graphWrapper *graph.Wrapper
 	// cache factory
@@ -56,7 +55,7 @@ type Server struct {
 }
 
 func NewServer(db external.Database, client external.RPCClient,
-	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
+	worker *workspace.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if worker == nil {
 		return nil, serror.FromStr("worker pointer is nil")
 	}

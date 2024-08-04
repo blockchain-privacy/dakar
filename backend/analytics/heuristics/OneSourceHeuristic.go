@@ -33,6 +33,10 @@ func (h *oneSourceHeuristic) getParameterString() string {
 }
 
 func (h *oneSourceHeuristic) setConfig(c heuristics.Config) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
 	duration, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
@@ -87,11 +91,11 @@ type txAndOrigins struct {
 //   - filter all origins of sources, which do not occur in all sets of input transaction origins
 //
 // This heuristic does not use the results from its parent heuristic
-func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
+func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, _ string) (
 	[]heuristics.HeuristicCluster, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
-	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
+	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +152,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, tx
 
 	for _, t := range allTxAndOrigins {
 		// get input denominations
-		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, txHash)
+		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, h.c.TransactionHash)
 		if getErr != nil {
 			return nil, getErr
 		}

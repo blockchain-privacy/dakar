@@ -13,7 +13,7 @@ import (
 	"backend/processor"
 	"backend/server"
 	"backend/userserver"
-	"backend/worker"
+	"backend/workspace"
 	"context"
 	"flag"
 	"fmt"
@@ -56,7 +56,7 @@ func initAllLoggers(fileHandle *os.File) {
 	processor.InitLogger()
 	server.InitLogger()
 	userserver.InitLogger()
-	worker.InitLogger()
+	workspace.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -350,11 +350,8 @@ func main() {
 	}
 
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
-	w, err := worker.NewWorker(graphWrapper)
-	if err != nil {
-		warn(err)
-		return
-	}
+	w := workspace.NewWorker(graphDB, graphWrapper)
+
 	var classifierStarted bool
 
 	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics {
@@ -389,7 +386,7 @@ func main() {
 			}
 		}()
 
-		if ok := w.Start(appContext, graphDB); !ok {
+		if ok := w.Start(appContext); !ok {
 			info("could not start worker")
 			return
 		}

@@ -50,7 +50,6 @@ func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspac
 		Heuristics []Heuristic `json:"Workspace.heuristics,omitempty"`
 	}
 
-	// set cluster height to 0, to force an update of the corresponding workspace
 	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{*h}})
 	if err != nil {
 		err = serror.New(err)

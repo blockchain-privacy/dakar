@@ -34,6 +34,10 @@ func (h *reverseLookupHeuristic) getParameterString() string {
 }
 
 func (h *reverseLookupHeuristic) setConfig(c heuristics.Config) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
 	duration, err := strconv.ParseUint(c.Parameter, 10, 32)
 	if err != nil {
 		return serror.New(err)
@@ -80,7 +84,7 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 
 // reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
@@ -105,7 +109,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	// gather input information
-	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
+	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}

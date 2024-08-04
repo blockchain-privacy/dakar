@@ -486,7 +486,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestGetSelectorByStatus(t *testing.T) {
+func TestGetWaitingSelectors(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
@@ -503,23 +503,6 @@ func TestGetSelectorByStatus(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	// create two selectors with status 'success' and one with status 'waiting'
-	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
-		Status:  StatusSuccess,
-		Options: string(optJSON),
-		Results: results,
-	}, userUID, workspaceUID)
-	require.NoError(t, err)
-
-	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
-		Status:  StatusSuccess,
-		Options: string(optJSON),
-		Results: results,
-	}, userUID, workspaceUID)
-	require.NoError(t, err)
-
 	_, err = InsertSelector(ctx, dbHandle, &Selector{
 		Type:    TypeTransactionProperties,
 		Status:  StatusWaiting,
@@ -529,32 +512,16 @@ func TestGetSelectorByStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		status          string
 		wantReturnCount int
 		wantErr         bool
 	}{
 		{
-			status:          StatusWaiting,
 			wantReturnCount: 1,
 			wantErr:         false,
 		},
-		{
-			status:          StatusSuccess,
-			wantReturnCount: 2,
-			wantErr:         false,
-		},
-		{
-			status:          StatusError,
-			wantReturnCount: 0,
-			wantErr:         false,
-		},
-		{
-			status:  "invalidStatus",
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
-		selectors, err := GetSelectorByStatus(ctx, dbHandle, tt.status, 5)
+		selectors, err := GetWaitingSelectors(ctx, dbHandle, 5)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

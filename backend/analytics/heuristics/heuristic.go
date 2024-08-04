@@ -81,7 +81,7 @@ type Descriptor struct {
 type heuristic interface {
 	fmt.Stringer
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+	exec(dgraph external.Database, g *graph.Wrapper,
 		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
@@ -311,18 +311,12 @@ func isParentHeuristicSet(parentHeuristicUID string) bool {
 
 // Executor holds information for executing on heuristic and its children
 type Executor struct {
-	rootUID         string
-	thisHeuristic   heuristic
-	transactionHash string
+	rootUID       string
+	thisHeuristic heuristic
 }
 
 // ConstructExecutors creates executors based on heuristics
 func ConstructExecutors(heuristicRequest heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
-	if heuristicRequest.TransactionHash == "" {
-		err = serror.FromFormat("transaction of heuristic request is empty: %v", heuristicRequest)
-		return
-	}
-
 	if heuristicRequest.Configuration == nil {
 		err = serror.FromFormat("heuristic configuration is nil: %v", heuristicRequest)
 		return
@@ -343,31 +337,18 @@ func ConstructExecutors(heuristicRequest heuristics.DatabaseHeuristicRequest, us
 	}
 
 	executor = Executor{
-		thisHeuristic:   clonedHeuristic,
-		rootUID:         heuristicRequest.ParentHeuristicUID,
-		transactionHash: heuristicRequest.TransactionHash,
+		thisHeuristic: clonedHeuristic,
+		rootUID:       heuristicRequest.ParentHeuristicUID,
 	}
 
 	return
 }
 
-// Run start the execution of the given heuristic executor. If parentHeuristicUID is not
-// set (e.g. "") than the Executor.rootUID is used
+// Run starts the execution of the given heuristic executor.
 func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.Heuristic, error) {
-	newHeuristic, err := exec(dgraph, g, hx.transactionHash, hx.rootUID, hx.thisHeuristic)
-	if err != nil {
-		return nil, serror.AddContext(err, "heuristic", hx.thisHeuristic)
-	}
-
-	return newHeuristic, nil
-}
-
-// exec executes the heuristic on the transaction specified by txHash for the given userUID
-func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string,
-	h heuristic) (newHeuristic *heuristics.Heuristic, err error) {
-	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
+	heuristicClusters, err := hx.thisHeuristic.exec(dgraph, g, hx.rootUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
-		return
+		return nil, err
 	}
 
 	// set DType
@@ -380,10 +361,10 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 
 	// only set parent heuristic if uid is provided
 	var pHeuristic []heuristics.Heuristic
-	if parentHeuristicUID != "" {
-		pHeuristic = []heuristics.Heuristic{{UID: parentHeuristicUID}}
+	if hx.rootUID != "" {
+		pHeuristic = []heuristics.Heuristic{{UID: hx.rootUID}}
 	}
-	heuristicConfig := h.getConfig()
+	heuristicConfig := hx.thisHeuristic.getConfig()
 	clusterTypes := make([]string, len(heuristicConfig.ClusterTypes))
 	for i, cType := range heuristicConfig.ClusterTypes {
 		clusterTypes[i] = string(cType)
@@ -392,19 +373,17 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	shouldExcludeAddresses := heuristicConfig.ExcludeAddresses
 	shouldExcludeSpendingGaps := heuristicConfig.ExcludeSpendingGaps
 
-	newHeuristic = &heuristics.Heuristic{
-		HeuristicType:       h.getType(),
+	return &heuristics.Heuristic{
+		HeuristicType:       hx.thisHeuristic.getType(),
 		ClusterTypes:        clusterTypes,
 		ExcludeAddresses:    &shouldExcludeAddresses,
 		ExcludeSpendingGaps: &shouldExcludeSpendingGaps,
 		Clusters:            heuristicClusters,
-		Parameter:           h.getParameterString(),
+		Parameter:           hx.thisHeuristic.getParameterString(),
 		ParentHeuristic:     pHeuristic,
-		TxHash:              txHash,
+		TxHash:              heuristicConfig.TransactionHash,
 		Timestamp:           time.Now().UTC().Format(time.RFC3339),
-	}
-
-	return
+	}, nil
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's

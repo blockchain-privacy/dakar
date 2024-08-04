@@ -96,6 +96,7 @@ func (h HeuristicTransaction) String() string {
 		h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
+// todo change to Options
 type Config struct {
 	Parameter string `json:"parameter,omitempty"`
 	// ClusterTypes are used to cluster the results of the heuristic.
@@ -105,20 +106,20 @@ type Config struct {
 	// ExcludeAddresses controls whether certain addresses should be excluded from the lookups
 	ExcludeAddresses bool `json:"excludeAddresses"`
 	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
-	ExcludeSpendingGaps bool `json:"excludeSpendingGaps"`
+	ExcludeSpendingGaps bool   `json:"excludeSpendingGaps"`
+	TransactionHash     string `json:"transactionHash,omitempty"`
 	// UserUID is the UID of the user who created this heuristic
 	UserUID string `json:"-"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Parameter: %s, cluster type: %v, exclude addresses: %v, exclude spending gaps: %v",
-		c.Parameter, c.ClusterTypes, c.ExcludeAddresses, c.ExcludeSpendingGaps)
+	return fmt.Sprintf("Transaction Hash: %s, Parameter: %s, cluster type: %v, exclude addresses: %v, exclude spending gaps: %v",
+		c.TransactionHash, c.Parameter, c.ClusterTypes, c.ExcludeAddresses, c.ExcludeSpendingGaps)
 }
 
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
 	UID                string  `json:"uid,omitempty"`
-	TransactionHash    string  `json:"transactionHash,omitempty"`
 	Type               string  `json:"type,omitempty"`
 	ParentHeuristicUID string  `json:"parentUID,omitempty"`
 	Configuration      *Config `json:"config"`

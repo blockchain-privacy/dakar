@@ -442,13 +442,13 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 //	@Failure		401		{object}	server.heuristicByWorkIDReply
 //	@Failure		500		{object}	server.heuristicByWorkIDReply
 //	@Router			/heuristicByWorkID/ [post]
-func (s *Server) handlerHeuristicByWorkID() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicByWorkIDReply(s.db, s.worker, r)
-
-		SendReply(w, reply, status)
-	})
-}
+//func (s *Server) handlerHeuristicByWorkID() http.Handler {
+//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		reply, status := getHeuristicByWorkIDReply(s.db, s.worker, r)
+//
+//		SendReply(w, reply, status)
+//	})
+//}
 
 // HMI clusters godoc
 //
@@ -522,13 +522,13 @@ func (s *Server) handlerAddWorkspaceSelector() http.Handler {
 //	@Failure		401			{object}	server.heuristicExecutionReply
 //	@Failure		500			{object}	server.heuristicExecutionReply
 //	@Router			/executeHeuristics/ [post]
-func (s *Server) handlerHeuristicsExecution() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicExecutionReply(s.db, s.worker, r, s.workspaceMutex)
-
-		SendReply(w, reply, status)
-	})
-}
+//func (s *Server) handlerHeuristicsExecution() http.Handler {
+//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		reply, status := getHeuristicExecutionReply(s.db, s.worker, r, s.workspaceMutex)
+//
+//		SendReply(w, reply, status)
+//	})
+//}
 
 // Shortest Transaction Path godoc
 //
@@ -658,7 +658,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 //	@Router		/workspaces/nodes/ [post]
 func (s *Server) handlerAddWorkspaceNodes() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, s.worker, r)
+		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, r)
 
 		SendReply(w, reply, status)
 	})
@@ -749,7 +749,7 @@ func (s *Server) handlerRenameWorkspace() http.Handler {
 //	@Router		/workspaces/{uid} [get]
 func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, s.worker, r)
+		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, r)
 
 		SendReply(w, reply, status)
 	})
@@ -871,12 +871,12 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
 
 	// heuristic
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
-		s.adapt(s.handlerHeuristicByWorkID(), s.authorization(), mw.MaxBody5MiB()))
+	//s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
+	//	s.adapt(s.handlerHeuristicByWorkID(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicDetails, ""),
 		s.adapt(s.handlerHeuristicsDetails(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicsExecution, ""),
-		s.adapt(s.handlerHeuristicsExecution(), s.authorization(), mw.MaxBody5MiB()))
+	//s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicsExecution, ""),
+	//	s.adapt(s.handlerHeuristicsExecution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicReport, ""),
 		s.adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
 
