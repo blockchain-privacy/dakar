@@ -10,7 +10,6 @@ import (
 	"backend/external"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/qrest/gomisc/serror"
 )
 
@@ -39,27 +38,35 @@ func NewFlatMultiInput(ctx context.Context, dgraph external.Database, maxBlocks 
 		db:        dgraph,
 		ctx:       ctx,
 		maxBlocks: maxBlocks,
-		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_fmi_blocks_processed_total",
-			Help: "The total number of blocks processed by the FMI clustering process",
-		}),
-		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_fmi_transactions_processed_total",
-			Help: "The total number of transactions processed by the FMI clustering process",
-		}),
-		mergedClusters: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_fmi_clusters_merged_total",
-			Help: "The total number of clusters merged by the FMI clustering process",
-		}),
-		newAddresses: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_fmi_new_addresses_total",
-			Help: "The total number of new addresses added to clusters by the FMI clustering process",
-		}),
-		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_clustering_fmi_last_block",
-			Help: "The last processed block by the FMI clustering process",
-		}),
 	}
+}
+
+func (m *FlatMultiInput) RegisterMetrics(req prometheus.Registerer) {
+	m.blocks = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_fmi_blocks_processed_total",
+		Help: "The total number of blocks processed by the FMI clustering process",
+	})
+	req.MustRegister(m.blocks)
+	m.transactions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_fmi_transactions_processed_total",
+		Help: "The total number of transactions processed by the FMI clustering process",
+	})
+	req.MustRegister(m.transactions)
+	m.mergedClusters = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_fmi_clusters_merged_total",
+		Help: "The total number of clusters merged by the FMI clustering process",
+	})
+	req.MustRegister(m.mergedClusters)
+	m.newAddresses = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_fmi_new_addresses_total",
+		Help: "The total number of new addresses added to clusters by the FMI clustering process",
+	})
+	req.MustRegister(m.newAddresses)
+	m.blockHeight = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "dakar_clustering_fmi_last_block",
+		Help: "The last processed block by the FMI clustering process",
+	})
+	req.MustRegister(m.blockHeight)
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing

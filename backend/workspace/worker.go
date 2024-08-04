@@ -5,7 +5,6 @@ import (
 	"backend/external"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"sync"
@@ -16,7 +15,7 @@ var thisLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "worker"))
+	thisLogger = slog.With(slog.String("module", "workspace"))
 }
 
 func info(msg string, v ...any) {
@@ -48,27 +47,43 @@ type Worker struct {
 
 	graphWrapper *graph.Wrapper
 	db           external.Database
+
+	// loopInterval is the time waited between checking if new work is available
+	loopInterval time.Duration
 }
 
 // NewWorker constructs a new Worker
 func NewWorker(c external.Database, g *graph.Wrapper) *Worker {
 	return &Worker{
-		jobsAdded: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_worker_jobs_added_total",
-			Help: "The total number of jobs added to the worker",
-		}),
-		jobsError: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_worker_jobs_error_total",
-			Help: "The total number of jobs which returned an error",
-		}),
-		jobsCompleted: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_worker_jobs_completed_total",
-			Help: "The total number of jobs completed by the worker",
-		}),
 		activeMutex:  new(sync.RWMutex),
 		graphWrapper: g,
 		db:           c,
+		loopInterval: time.Second * 5,
 	}
+}
+
+func (w *Worker) RegisterMetrics(req prometheus.Registerer) {
+	w.jobsAdded = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_worker_jobs_added_total",
+		Help: "The total number of jobs added to the worker",
+	})
+	req.MustRegister(w.jobsAdded)
+	w.jobsError = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_worker_jobs_error_total",
+		Help: "The total number of jobs which returned an error",
+	})
+	req.MustRegister(w.jobsError)
+	w.jobsCompleted = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_worker_jobs_completed_total",
+		Help: "The total number of jobs completed by the worker",
+	})
+	req.MustRegister(w.jobsCompleted)
+}
+
+// SetLoopInterval sets the amount of time to wait between each work loop.
+// A call has no effect if the worker is already active.
+func (w *Worker) SetLoopInterval(loopInterval time.Duration) {
+	w.loopInterval = loopInterval
 }
 
 // Start starts the worker. To stop the worker cancel the context or call Stop.
@@ -98,15 +113,24 @@ func (w *Worker) Stop() {
 	w.active = false
 }
 
-// Work periodically checks for new Work to be executed
+// IsActive returns true if the worker is active
+func (w *Worker) IsActive() bool {
+	w.activeMutex.RLock()
+	defer w.activeMutex.RUnlock()
+	return w.active
+}
+
+// work periodically checks for new Work to be executed
 func (w *Worker) work(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(w.loopInterval)
 	defer ticker.Stop()
 mainLoop:
 	for {
 		select {
 		case <-ctx.Done():
 			info("stopping Work")
+			// if worker was cancelled by context, it still needs to be set as not active
+			w.Stop()
 			break mainLoop
 		case <-ticker.C:
 			// check if transaction graph is ready

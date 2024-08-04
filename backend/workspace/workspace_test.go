@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"backend/analytics"
+	"backend/analytics/graph"
 	"backend/db"
 	"backend/db/analytics/selectors"
 	"backend/db/user"
@@ -15,7 +17,11 @@ import (
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
+	InitLogger()
 	db.InitLogger()
+	graph.InitLogger()
+	analytics.InitLogger()
+
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
@@ -40,8 +46,6 @@ func TestAddSelector(t *testing.T) {
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
 
-	ctx := context.Background()
-
 	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
 	require.NoError(t, err)
 	endDate1, err := time.Parse(time.RFC3339, "2021-10-22T00:00:00+01:00")
@@ -60,7 +64,7 @@ func TestAddSelector(t *testing.T) {
 	}
 
 	m := NewMutex()
-
+	ctx := context.Background()
 	parentSelector, err := AddSelector(ctx, dbHandle, m, opt,
 		selectors.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)

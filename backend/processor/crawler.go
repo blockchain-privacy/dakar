@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/qrest/gomisc/serror"
 )
 
@@ -38,19 +37,25 @@ func NewCrawler(ctx context.Context, database external.Database,
 		rpc:                   rpc,
 		ctx:                   ctx,
 		initialBlockCacheSize: initialBlockCacheSize,
-		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_crawler_blocks_processed_total",
-			Help: "The total number of blocks processed by the crawler",
-		}),
-		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_crawler_transactions_processed_total",
-			Help: "The total number of transactions processed by the crawler",
-		}),
-		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_crawler_last_block",
-			Help: "The last processed block by the crawler",
-		}),
 	}
+}
+
+func (c *Crawler) RegisterMetrics(req prometheus.Registerer) {
+	c.blocks = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_crawler_blocks_processed_total",
+		Help: "The total number of blocks processed by the crawler",
+	})
+	req.MustRegister(c.blocks)
+	c.transactions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_crawler_transactions_processed_total",
+		Help: "The total number of transactions processed by the crawler",
+	})
+	req.MustRegister(c.transactions)
+	c.blockHeight = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "dakar_crawler_last_block",
+		Help: "The last processed block by the crawler",
+	})
+	req.MustRegister(c.blockHeight)
 }
 
 func (c *Crawler) Props() blockiterator.Properties {

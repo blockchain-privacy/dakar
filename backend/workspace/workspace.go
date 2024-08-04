@@ -57,6 +57,7 @@ func (s SelectorWork) Run(c external.Database, _ *graph.Wrapper) error {
 	}
 
 	if updateErr := selectors.UpdateSelector(ctx, c, &selectors.Selector{
+		UID:     s.selectorUID,
 		Type:    selectors.TypeTransactionProperties,
 		Status:  status,
 		Results: newNodes,
@@ -313,13 +314,11 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	var parentIndex int
 	var parentNode *db.UIDNode
 	if selectorType == selectors.TypeHeuristic {
-
 		// todo set tx hash
 		parentIndex, parentNode, err = getHeuristicParent(selectorParent, "", w.Nodes)
 		if err != nil {
 			return "", serror.AddContext(err, "options", options)
 		}
-
 	} else {
 		parentIndex, parentNode, err = getSelectorParent(selectorParent, w.Nodes)
 		if err != nil {

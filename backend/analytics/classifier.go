@@ -14,7 +14,6 @@ import (
 	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // ------------------------- Private Send Example Graph -------------------------
@@ -113,19 +112,25 @@ func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *C
 		config: cfg,
 		db:     dgraph,
 		ctx:    ctx,
-		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_classifier_blocks_processed_total",
-			Help: "The total number of blocks processed by the classifier",
-		}),
-		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_classifier_transactions_processed_total",
-			Help: "The total number of transactions processed by the classifier",
-		}),
-		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_classifier_last_block",
-			Help: "The last processed block by the classifier",
-		}),
 	}
+}
+
+func (c *Classifier) RegisterMetrics(req prometheus.Registerer) {
+	c.blocks = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_classifier_blocks_processed_total",
+		Help: "The total number of blocks processed by the classifier",
+	})
+	req.MustRegister(c.blocks)
+	c.transactions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_classifier_transactions_processed_total",
+		Help: "The total number of transactions processed by the classifier",
+	})
+	req.MustRegister(c.transactions)
+	c.blockHeight = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "dakar_classifier_last_block",
+		Help: "The last processed block by the classifier",
+	})
+	req.MustRegister(c.blockHeight)
 }
 
 func (c *Classifier) Props() blockiterator.Properties {

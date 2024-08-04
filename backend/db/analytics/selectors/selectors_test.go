@@ -338,8 +338,6 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
-
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
 
@@ -350,7 +348,7 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
-
+	ctx := context.Background()
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
 		Type:    TypeTransactionProperties,
 		Status:  StatusSuccess,

@@ -11,23 +11,8 @@ import (
 	"testing"
 )
 
-// unregisterCollectors unregisters all collectors of the hierarchical multi input clusterer.
-// This is needed because collectors can not be registered twice with the same default config.
-func unregisterCollectorsHM(hm *HierarchicalMultiInput) {
-	if hm == nil {
-		return
-	}
-
-	prometheus.Unregister(hm.blocks)
-	prometheus.Unregister(hm.transactions)
-	prometheus.Unregister(hm.mergedClusters)
-	prometheus.Unregister(hm.newAddresses)
-	prometheus.Unregister(hm.blockHeight)
-}
-
 func TestNewHierarchicalMultiInput(t *testing.T) {
 	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
 	require.NotNil(t, hm)
 }
 
@@ -35,8 +20,7 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
 	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
-
+	hm.RegisterMetrics(prometheus.NewRegistry())
 	// panics because db is not set
 	require.Panics(t, func() {
 		_ = hm.CalculateInitialState()
@@ -60,7 +44,7 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
-	unregisterCollectorsHM(hm)
+	hm.RegisterMetrics(prometheus.NewRegistry())
 
 	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
 	require.NoError(t, hm.CalculateInitialState())
@@ -86,7 +70,6 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
-	unregisterCollectorsHM(hm)
 
 	// error because no status is set
 	_, err := hm.NextBlock()
@@ -110,14 +93,12 @@ func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
-	unregisterCollectorsHM(hm)
 
 	require.NoError(t, hm.PostExecution())
 }
 
 func TestHierarchicalMultiInput_IncrementState(t *testing.T) {
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
-	unregisterCollectorsHM(hm)
 
 	require.EqualValues(t, 0, hm.state.ID)
 	require.NoError(t, hm.IncrementState())
@@ -126,7 +107,6 @@ func TestHierarchicalMultiInput_IncrementState(t *testing.T) {
 
 func TestHierarchicalMultiInput_Empty(t *testing.T) {
 	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
 
 	// initially top and id are 0, so not empty
 	require.False(t, hm.Empty())
@@ -138,7 +118,6 @@ func TestHierarchicalMultiInput_Empty(t *testing.T) {
 
 func TestHierarchicalMultiInput_Props(t *testing.T) {
 	hm := NewHierarchicalMultiInput(context.Background(), nil)
-	unregisterCollectorsHM(hm)
 
 	require.NotEmpty(t, hm.Props())
 }

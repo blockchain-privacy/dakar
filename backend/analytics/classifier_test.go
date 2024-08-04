@@ -16,10 +16,6 @@ import (
 
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
-func getPointer[number any](n number) *number {
-	return &n
-}
-
 func TestMain(m *testing.M) {
 	InitLogger()
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
@@ -200,13 +196,13 @@ func TestIsCollateralPayment(t *testing.T) {
 	}
 
 	shouldWork1 := db.Transaction{
-		Fee:  getPointer[int64](minCollateral),
+		Fee:  testhelper.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: getPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
 		},
 	}
 
@@ -214,45 +210,45 @@ func TestIsCollateralPayment(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: getPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
 		},
 	}
 
 	multipleInputs := db.Transaction{
-		Fee:  getPointer[int64](minCollateral),
+		Fee:  testhelper.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getPointer[int64](minCollateral)},
-			{Amount: getPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: getPointer[int64](minCollateral)},
-			{Amount: getPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: testhelper.GetPointer[int64](minCollateral)},
 		},
 	}
 
 	bigInput := db.Transaction{
-		Fee:  getPointer[int64](minCollateral),
+		Fee:  testhelper.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getPointer[int64](500000000000)},
+			{Amount: testhelper.GetPointer[int64](500000000000)},
 		},
 		Inputs: []db.Output{
-			{Amount: getPointer[int64](500000000000)},
+			{Amount: testhelper.GetPointer[int64](500000000000)},
 		},
 	}
 
 	smallInput := db.Transaction{
-		Fee:  getPointer[int64](minCollateral),
+		Fee:  testhelper.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getPointer[int64](1)},
+			{Amount: testhelper.GetPointer[int64](1)},
 		},
 		Inputs: []db.Output{
-			{Amount: getPointer[int64](1)},
+			{Amount: testhelper.GetPointer[int64](1)},
 		},
 	}
 
@@ -347,18 +343,6 @@ func TestCountOutputDenominations(t *testing.T) {
 	}
 }
 
-// unregisterCollectors unregisters all collectors of the classifier.
-// This is needed because collectors can not be registered twice with the same default config.
-func unregisterCollectors(c *Classifier) {
-	if c == nil {
-		return
-	}
-
-	prometheus.Unregister(c.blocks)
-	prometheus.Unregister(c.transactions)
-	prometheus.Unregister(c.blockHeight)
-}
-
 func TestNewClassifier(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{
 		BlockchainName:           "Dash",
@@ -367,13 +351,12 @@ func TestNewClassifier(t *testing.T) {
 		IsHMIClusteringEnabled:   false,
 		IsFMIClusteringEnabled:   false,
 	})
-	unregisterCollectors(classifier)
+
 	require.NotNil(t, classifier)
 }
 
 func TestClassifier_IncrementState(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{})
-	unregisterCollectors(classifier)
 
 	for range 100 {
 		require.NoError(t, classifier.IncrementState())
@@ -384,7 +367,6 @@ func TestClassifier_IncrementState(t *testing.T) {
 
 func TestClassifier_Empty(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{})
-	unregisterCollectors(classifier)
 
 	require.False(t, classifier.Empty())
 	require.NoError(t, classifier.IncrementState())
@@ -396,8 +378,7 @@ func TestClassifier_CalculateInitialState(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	classifier := NewClassifier(context.Background(), nil, Config{})
-	unregisterCollectors(classifier)
-
+	classifier.RegisterMetrics(prometheus.NewRegistry())
 	require.Error(t, classifier.CalculateInitialState())
 
 	classifier.config.IsClassifyingEnabled = true
@@ -415,7 +396,7 @@ func TestClassifier_CalculateInitialState(t *testing.T) {
 	yes := true
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  &yes,
-		LastBlockID: getPointer[uint64](5),
+		LastBlockID: testhelper.GetPointer[uint64](5),
 	}))
 
 	require.NoError(t, classifier.CalculateInitialState())
@@ -519,14 +500,13 @@ func TestClassifier_NextBlock(t *testing.T) {
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  &no,
-		LastBlockID: getPointer[uint64](testhelper.BlockFileLastBlock),
+		LastBlockID: testhelper.GetPointer[uint64](testhelper.BlockFileLastBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancelFunc()
 
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
-	unregisterCollectors(classifier)
 
 	// set to first available block
 	classifier.state.ID = testhelper.BlockFileFirstBlock
@@ -540,7 +520,6 @@ func TestClassifier_NextBlock(t *testing.T) {
 
 func TestClassifier_Props(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
-	unregisterCollectors(classifier)
 
 	require.NotEmpty(t, classifier.Props())
 }
@@ -555,15 +534,14 @@ func TestClassifier_Iterate(t *testing.T) {
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: &no,
 		// first block of the file
-		LastBlockID: getPointer[uint64](firstBlock),
+		LastBlockID: testhelper.GetPointer[uint64](firstBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancelFunc()
 
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
-	unregisterCollectors(classifier)
-
+	classifier.RegisterMetrics(prometheus.NewRegistry())
 	// state is set to block 0, which does not exist in database
 	_, err := classifier.Iterate()
 	require.Error(t, err)
@@ -580,7 +558,6 @@ func TestClassifier_PostExecution(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	classifier := NewClassifier(context.Background(), dbHandle, NewDashConfig())
-	unregisterCollectors(classifier)
 
 	require.NoError(t, classifier.PostExecution())
 }
@@ -591,7 +568,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 	yes := true
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
 		IsClassifying:         &yes,
-		LastClassifiedBlockID: getPointer[uint64](700),
+		LastClassifiedBlockID: testhelper.GetPointer[uint64](700),
 	}))
 
 	tests := []struct {
@@ -769,12 +746,12 @@ func Test_newMixingTransaction(t *testing.T) {
 		{
 			uid:                   "some_uid",
 			denominationTypeIndex: 3,
-			want:                  db.Transaction{UID: "some_uid", PrivacyType: getPointer[constants.PrivacyType](constants.MixingTypes[3])},
+			want:                  db.Transaction{UID: "some_uid", PrivacyType: testhelper.GetPointer[constants.PrivacyType](constants.MixingTypes[3])},
 		},
 		{
 			uid:                   "some_uid2",
 			denominationTypeIndex: 0,
-			want:                  db.Transaction{UID: "some_uid2", PrivacyType: getPointer[constants.PrivacyType](constants.MixingTypes[0])},
+			want:                  db.Transaction{UID: "some_uid2", PrivacyType: testhelper.GetPointer[constants.PrivacyType](constants.MixingTypes[0])},
 		},
 	}
 	for _, tt := range tests {
@@ -812,10 +789,10 @@ func Test_hasValidPrivacyType(t *testing.T) {
 		want bool
 	}{
 		{tx: db.Transaction{PrivacyType: nil}, want: false},
-		{tx: db.Transaction{PrivacyType: getPointer[constants.PrivacyType](0)}, want: true},
-		{tx: db.Transaction{PrivacyType: getPointer[constants.PrivacyType](constants.PrivacyCollateralPaymentLast + 1)},
+		{tx: db.Transaction{PrivacyType: testhelper.GetPointer[constants.PrivacyType](0)}, want: true},
+		{tx: db.Transaction{PrivacyType: testhelper.GetPointer[constants.PrivacyType](constants.PrivacyCollateralPaymentLast + 1)},
 			want: false},
-		{tx: db.Transaction{PrivacyType: getPointer[constants.PrivacyType](5)}, want: true},
+		{tx: db.Transaction{PrivacyType: testhelper.GetPointer[constants.PrivacyType](5)}, want: true},
 	}
 	for _, tt := range tests {
 		require.Equal(t, tt.want, hasValidPrivacyType(tt.tx))
@@ -885,16 +862,17 @@ func TestBlockIterator(t *testing.T) {
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: &no,
 		// let's classify 2 blocks
-		LastBlockID: getPointer[uint64](firstBlock + 1),
+		LastBlockID: testhelper.GetPointer[uint64](firstBlock + 1),
 	}))
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
 		IsClassifying: &no,
 		// let's classify 3 blocks
-		LastClassifiedBlockID: getPointer[uint64](firstBlock),
+		LastClassifiedBlockID: testhelper.GetPointer[uint64](firstBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancelFunc()
-
-	require.NoError(t, blockiterator.StartIteration(NewClassifier(ctx, dbHandle, NewDashConfig())))
+	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
+	classifier.RegisterMetrics(prometheus.NewRegistry())
+	require.NoError(t, blockiterator.StartIteration(classifier))
 }
