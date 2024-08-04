@@ -65,9 +65,6 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 		// todo add error message into selector
 	}
 
-	lock := workspaceMutex.Lock(s.workspaceUID)
-	defer lock.Unlock()
-
 	if updateErr := selectors.UpdateSelector(ctx, c, &selectors.Selector{
 		UID:     s.selectorUID,
 		Type:    selectors.TypeTransactionProperties,
@@ -77,7 +74,31 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 		return updateErr
 	}
 
-	return err
+	lock := workspaceMutex.Lock(s.workspaceUID)
+	defer lock.Unlock()
+
+	// update workspace
+	w, err := workspace.GetFrontendWorkspace(ctx, c, s.workspaceUID, s.userUID)
+	if err != nil {
+		return err
+	}
+
+	nodeMap, notes := separateNodes(w.Nodes)
+
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(c, nodeMap, s.userUID, s.workspaceUID)
+	if err != nil {
+		return err
+	}
+
+	// try to set node position
+	if n, ok := nodeMap[s.selectorUID]; ok {
+		n.SelectorStatus = status
+		nodeMap[s.selectorUID] = n
+	}
+
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
+
+	return encodeAndStoreWorkspaceState(ctx, c, s.userUID, s.workspaceUID, frontEndNodes, &clusterHeight)
 }
 
 type HeuristicWork struct {
@@ -126,12 +147,7 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *g
 
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
 
-	if err := encodeAndStoreWorkspaceState(ctx, dgraph, h.userUID, h.workspaceUID,
-		frontEndNodes, &clusterHeight); err != nil {
-		return err
-	}
-
-	return nil
+	return encodeAndStoreWorkspaceState(ctx, dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight)
 }
 
 // NewHeuristicWork creates a new work package, which can be run at a later time
