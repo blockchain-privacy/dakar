@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"backend/analytics/graph"
+	"backend/db/analytics/selectors"
 	"backend/external"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,7 +30,7 @@ func warn(err error, v ...any) {
 // Work is an interface to pass a package of work to a Worker, which will process it eventually.
 type Work interface {
 	// Run processes the a Work package. It receives the database and the graph wrapper.
-	Run(external.Database, *graph.Wrapper) error
+	Run(*Mutex, external.Database, *graph.Wrapper) error
 }
 
 // Worker works on the data defined in Work
@@ -44,21 +45,26 @@ type Worker struct {
 	// activeMutex acts as a mutex for active and cancel
 	activeMutex *sync.RWMutex
 	active      bool
+	wg          *sync.WaitGroup
 
 	graphWrapper *graph.Wrapper
 	db           external.Database
 
 	// loopInterval is the time waited between checking if new work is available
 	loopInterval time.Duration
+
+	workspaceMutex *Mutex
 }
 
 // NewWorker constructs a new Worker
-func NewWorker(c external.Database, g *graph.Wrapper) *Worker {
+func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper) *Worker {
 	return &Worker{
-		activeMutex:  new(sync.RWMutex),
-		graphWrapper: g,
-		db:           c,
-		loopInterval: time.Second * 5,
+		activeMutex:    new(sync.RWMutex),
+		graphWrapper:   g,
+		db:             c,
+		loopInterval:   time.Second * 5,
+		workspaceMutex: m,
+		wg:             new(sync.WaitGroup),
 	}
 }
 
@@ -95,6 +101,7 @@ func (w *Worker) Start(ctx context.Context) bool {
 		w.active = true
 		var cancelContext context.Context
 		cancelContext, w.cancel = context.WithCancel(ctx)
+		w.wg.Add(1)
 		go w.work(cancelContext)
 		return true
 	}
@@ -103,14 +110,17 @@ func (w *Worker) Start(ctx context.Context) bool {
 
 // Stop stops the worker. The worker can also be stopped by cancelling the passed context to Start
 func (w *Worker) Stop() {
-	w.activeMutex.Lock()
-	defer w.activeMutex.Unlock()
-	if !w.active {
+	w.activeMutex.RLock()
+	active := w.active
+	w.activeMutex.RUnlock()
+	if !active {
 		return
 	}
 
-	w.cancel()
-	w.active = false
+	if w.cancel != nil {
+		w.cancel()
+		w.wg.Wait()
+	}
 }
 
 // IsActive returns true if the worker is active
@@ -122,6 +132,7 @@ func (w *Worker) IsActive() bool {
 
 // work periodically checks for new Work to be executed
 func (w *Worker) work(ctx context.Context) {
+	defer w.wg.Done()
 	ticker := time.NewTicker(w.loopInterval)
 	defer ticker.Stop()
 mainLoop:
@@ -130,7 +141,9 @@ mainLoop:
 		case <-ctx.Done():
 			info("stopping Work")
 			// if worker was cancelled by context, it still needs to be set as not active
-			w.Stop()
+			w.activeMutex.Lock()
+			w.active = false
+			w.activeMutex.Unlock()
 			break mainLoop
 		case <-ticker.C:
 			// check if transaction graph is ready
@@ -138,7 +151,7 @@ mainLoop:
 				continue
 			}
 
-			items, err := CreateWork(w.db)
+			items, err := GetWork(ctx, w.db)
 			if err != nil {
 				warn(err)
 				continue
@@ -147,7 +160,7 @@ mainLoop:
 			w.jobsAdded.Add(float64(len(items)))
 
 			for _, work := range items {
-				if err := work.Run(w.db, w.graphWrapper); err != nil {
+				if err := work.Run(w.workspaceMutex, w.db, w.graphWrapper); err != nil {
 					warn(err)
 					w.jobsError.Inc()
 				}
@@ -155,4 +168,33 @@ mainLoop:
 			}
 		}
 	}
+}
+
+// GetWork checks the database for not yet executed selectors, and constructs Work if any were found.
+func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
+	timeoutContext, cancel := context.WithTimeout(ctx, time.Minute*2)
+	defer cancel()
+
+	selectorItems, err := selectors.GetWaitingSelectors(timeoutContext, c, 20)
+	if err != nil {
+		return nil, err
+	}
+
+	workItems := make([]Work, len(selectorItems))
+	for i, item := range selectorItems {
+		switch item.SelectorType {
+		case selectors.TypeTransactionProperties:
+			workItems[i], err = NewSelectorWork(item)
+			if err != nil {
+				return nil, err
+			}
+		case selectors.TypeHeuristic:
+			//workItems[i], err = NewHeuristicWork(item)
+			//if err != nil {
+			//	return nil, err
+			//}
+		}
+	}
+
+	return workItems, nil
 }

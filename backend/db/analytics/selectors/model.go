@@ -135,5 +135,5 @@ type WorkItem struct {
 	WorkspaceUID    string
 	SelectorUID     string
 	SelectorType    string
-	SelectorOptions Options
+	SelectorOptions string
 }

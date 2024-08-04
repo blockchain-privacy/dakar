@@ -28,17 +28,26 @@ type SelectorWork struct {
 	userUID      string
 }
 
-func NewSelectorWork(item selectors.WorkItem) SelectorWork {
-	return SelectorWork{
-		opt:          item.SelectorOptions,
+func NewSelectorWork(item selectors.WorkItem) (*SelectorWork, error) {
+	if item.SelectorOptions == "" {
+		return nil, serror.FromStrWithContext("empty selector options", "item", item)
+	}
+
+	var opt selectors.Options
+	if err := json.Unmarshal([]byte(item.SelectorOptions), &opt); err != nil {
+		return nil, err
+	}
+
+	return &SelectorWork{
+		opt:          opt,
 		workspaceUID: item.WorkspaceUID,
 		userUID:      item.UserUID,
 		selectorUID:  item.SelectorUID,
-	}
+	}, nil
 }
 
 // Run processes the selector and updates it into the workspace
-func (s SelectorWork) Run(c external.Database, _ *graph.Wrapper) error {
+func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
@@ -56,6 +65,9 @@ func (s SelectorWork) Run(c external.Database, _ *graph.Wrapper) error {
 		// todo add error message into selector
 	}
 
+	lock := workspaceMutex.Lock(s.workspaceUID)
+	defer lock.Unlock()
+
 	if updateErr := selectors.UpdateSelector(ctx, c, &selectors.Selector{
 		UID:     s.selectorUID,
 		Type:    selectors.TypeTransactionProperties,
@@ -69,43 +81,19 @@ func (s SelectorWork) Run(c external.Database, _ *graph.Wrapper) error {
 }
 
 type HeuristicWork struct {
-	executor       heuristics.Executor
-	workspaceMutex *Mutex
-	workspaceUID   string
-	userUID        string
-}
-
-// CreateWork creates a new work package, which can be run at a later time
-func CreateWork(c external.Database) ([]Work, error) {
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-
-	selectorItems, err := selectors.GetWaitingSelectors(ctx, c, 20)
-	if err != nil {
-		return nil, err
-	}
-
-	workItems := make([]Work, len(selectorItems))
-	for i, item := range selectorItems {
-		switch item.SelectorType {
-		case selectors.TypeTransactionProperties:
-			workItems[i] = NewSelectorWork(item)
-			//case selectors.TypeHeuristic:
-			//	workItems[i] = NewHeuristicWork(item)
-		}
-	}
-
-	return workItems, nil
+	executor     heuristics.Executor
+	workspaceUID string
+	userUID      string
 }
 
 // Run processes the heuristic and inserts it into the workspace
-func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) error {
+func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *graph.Wrapper) error {
 	newHeuristic, err := h.executor.Run(dgraph, g)
 	if err != nil {
 		return err
 	}
 
-	lock := h.workspaceMutex.Lock(h.workspaceUID)
+	lock := workspaceMutex.Lock(h.workspaceUID)
 	defer lock.Unlock()
 
 	ctx, cancel := db.GetBackendContext()
@@ -147,8 +135,8 @@ func (h HeuristicWork) Run(dgraph external.Database, g *graph.Wrapper) error {
 }
 
 // NewHeuristicWork creates a new work package, which can be run at a later time
-func NewHeuristicWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, workspaceUID string,
-	userUID string, workspaceMutex *Mutex) (Work, error) {
+func NewHeuristicWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest,
+	workspaceUID string, userUID string) (Work, error) {
 	if workspaceUID == "" {
 		return nil, serror.FromStrWithContext("workspace UID not set", "heuristic request", heuristicRequest)
 	}
@@ -159,10 +147,9 @@ func NewHeuristicWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest, wor
 	}
 
 	return HeuristicWork{
-		executor:       executor,
-		workspaceMutex: workspaceMutex,
-		workspaceUID:   workspaceUID,
-		userUID:        userUID,
+		executor:     executor,
+		workspaceUID: workspaceUID,
+		userUID:      userUID,
 	}, err
 }
 

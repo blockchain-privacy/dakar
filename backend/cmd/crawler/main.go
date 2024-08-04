@@ -351,9 +351,10 @@ func main() {
 		}()
 	}
 
+	workspaceMutex := workspace.NewMutex()
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
 	graphWrapper.RegisterMetrics(prometheus.DefaultRegisterer)
-	w := workspace.NewWorker(graphDB, graphWrapper)
+	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper)
 	w.RegisterMetrics(prometheus.DefaultRegisterer)
 
 	var classifierStarted bool
@@ -450,7 +451,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if newConfig.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, client, w, graphWrapper)
+		apiServer, serverErr := server.NewServer(workspaceMutex, graphDB, client, w, graphWrapper)
 		if serverErr != nil {
 			warn(serverErr)
 		}
@@ -485,20 +486,25 @@ func main() {
 		case <-chSignal:
 			interrupted = true
 			terminateApp()
+			w.Stop()
 			shutdownServer(apiHTTPServer)
 			shutdownServer(userHTTPServer)
 			shutdownServer(metricsHTTPServer)
 		case <-chCrawlingStopped:
 			terminateApp()
+			w.Stop()
 			crawlerStopped = true
 		case <-chClassifyingStopped:
 			terminateApp()
+			w.Stop()
 			classifierStopped = true
 		case <-chHMIClusteringStopped:
 			terminateApp()
+			w.Stop()
 			clusteringHMIStopped = true
 		case <-chFMIClusteringStopped:
 			terminateApp()
+			w.Stop()
 			clusteringFMIStopped = true
 		}
 	}
@@ -509,6 +515,7 @@ func main() {
 		// the server is still active at this point
 
 		<-chSignal
+		w.Stop()
 		shutdownServer(apiHTTPServer)
 		shutdownServer(userHTTPServer)
 		shutdownServer(metricsHTTPServer)

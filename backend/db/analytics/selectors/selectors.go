@@ -431,17 +431,12 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 			return nil, serror.FromStr("invalid workspace or user UID")
 		}
 
-		var opt Options
-		if err := json.Unmarshal([]byte(s.Options), &opt); err != nil {
-			return nil, serror.New(err)
-		}
-
 		items[i] = WorkItem{
 			UserUID:         s.Workspace[0].User[0].UID,
 			WorkspaceUID:    s.Workspace[0].UID,
 			SelectorUID:     s.UID,
 			SelectorType:    s.Type,
-			SelectorOptions: opt,
+			SelectorOptions: s.Options,
 		}
 	}
 

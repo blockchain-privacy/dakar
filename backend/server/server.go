@@ -54,7 +54,7 @@ type Server struct {
 	handlerTimeout time.Duration
 }
 
-func NewServer(db external.Database, client external.RPCClient,
+func NewServer(m *workspace.Mutex, db external.Database, client external.RPCClient,
 	worker *workspace.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if worker == nil {
 		return nil, serror.FromStr("worker pointer is nil")
@@ -71,7 +71,7 @@ func NewServer(db external.Database, client external.RPCClient,
 		worker:         worker,
 		graphWrapper:   graphWrapper,
 		cacheFactory:   factory,
-		workspaceMutex: workspace.NewMutex(),
+		workspaceMutex: m,
 		handler:        http.NewServeMux(),
 		handlerTimeout: time.Minute * 3,
 	}, nil

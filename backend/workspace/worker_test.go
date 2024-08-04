@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewWorker(t *testing.T) {
-	w := NewWorker(nil, nil)
+	w := NewWorker(NewMutex(), nil, nil)
 	require.NotNil(t, w)
 	require.NotNil(t, w.activeMutex)
 }
@@ -25,7 +25,7 @@ func TestWorker_Start(t *testing.T) {
 	defer cancel()
 
 	wrapper := graph.NewWrapper(ctx, dbHandle)
-	w := NewWorker(dbHandle, wrapper)
+	w := NewWorker(NewMutex(), dbHandle, wrapper)
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	require.True(t, w.Start(ctx))
@@ -34,7 +34,7 @@ func TestWorker_Start(t *testing.T) {
 }
 
 func TestWorker_SetLoopInterval(_ *testing.T) {
-	w := NewWorker(nil, nil)
+	w := NewWorker(NewMutex(), nil, nil)
 	w.SetLoopInterval(1)
 	w.SetLoopInterval(time.Second * 100)
 }
@@ -45,8 +45,12 @@ func TestWorker_Stop(t *testing.T) {
 	defer cancel()
 
 	wrapper := graph.NewWrapper(ctx, dbHandle)
-	w := NewWorker(dbHandle, wrapper)
+	w := NewWorker(NewMutex(), dbHandle, wrapper)
 	w.RegisterMetrics(prometheus.NewRegistry())
+
+	// stop without start
+	w.Stop()
+
 	require.True(t, w.Start(ctx))
 	w.Stop()
 	require.False(t, w.IsActive())
@@ -100,7 +104,7 @@ func TestWorker_work(t *testing.T) {
 	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
 	require.NoError(t, wrapper.LoadGraphs())
 
-	w := NewWorker(dbHandle, wrapper)
+	w := NewWorker(NewMutex(), dbHandle, wrapper)
 	w.RegisterMetrics(prometheus.NewRegistry())
 	w.SetLoopInterval(1)
 	require.True(t, w.Start(ctx))
