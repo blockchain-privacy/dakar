@@ -538,7 +538,8 @@ func TestGetSelectorStatus(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	_, err = GetSelectorStatus(ctx, dbHandle, "invalidUID", workspaceUID, userUID)
+	// selector uid does not exist
+	_, err = GetSelectorStatus(ctx, dbHandle, "0x123", workspaceUID, userUID)
 	require.Error(t, err)
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
