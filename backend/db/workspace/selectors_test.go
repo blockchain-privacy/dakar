@@ -230,7 +230,7 @@ func TestInsertSelector(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]db.UIDNode, len(resultUIDs))
+	results := make([]any, len(resultUIDs))
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
@@ -336,7 +336,7 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]db.UIDNode, len(resultUIDs))
+	results := make([]any, len(resultUIDs))
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
@@ -386,7 +386,7 @@ func TestUpdateSelector(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]db.UIDNode, len(resultUIDs))
+	results := make([]any, len(resultUIDs))
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
@@ -455,7 +455,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]db.UIDNode, len(resultUIDs))
+	results := make([]any, len(resultUIDs))
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
@@ -488,7 +488,7 @@ func TestGetWaitingSelectors(t *testing.T) {
 	resultUIDs, optJSON, err := doSelection()
 	require.NoError(t, err)
 
-	results := make([]db.UIDNode, len(resultUIDs))
+	results := make([]any, len(resultUIDs))
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}

@@ -340,7 +340,7 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 }
 
 // Run starts the execution of the given heuristic executor.
-func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.Heuristic, error) {
+func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
 	heuristicClusters, err := hx.thisHeuristic.exec(dgraph, g, hx.rootUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return nil, err
@@ -354,31 +354,7 @@ func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.
 		}
 	}
 
-	// only set parent heuristic if uid is provided
-	var pHeuristic []heuristics.Heuristic
-	if hx.rootUID != "" {
-		pHeuristic = []heuristics.Heuristic{{UID: hx.rootUID}}
-	}
-	heuristicConfig := hx.thisHeuristic.getConfig()
-	clusterTypes := make([]string, len(heuristicConfig.ClusterTypes))
-	for i, cType := range heuristicConfig.ClusterTypes {
-		clusterTypes[i] = string(cType)
-	}
-
-	shouldExcludeAddresses := heuristicConfig.ExcludeAddresses
-	shouldExcludeSpendingGaps := heuristicConfig.ExcludeSpendingGaps
-
-	return &heuristics.Heuristic{
-		HeuristicType:       hx.thisHeuristic.getType(),
-		ClusterTypes:        clusterTypes,
-		ExcludeAddresses:    &shouldExcludeAddresses,
-		ExcludeSpendingGaps: &shouldExcludeSpendingGaps,
-		Clusters:            heuristicClusters,
-		Parameter:           hx.thisHeuristic.getParameterString(),
-		ParentHeuristic:     pHeuristic,
-		TxHash:              heuristicConfig.TransactionHash,
-		Timestamp:           time.Now().UTC().Format(time.RFC3339),
-	}, nil
+	return heuristicClusters, nil
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's

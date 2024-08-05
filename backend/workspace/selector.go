@@ -50,12 +50,11 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	defer cancel()
 
 	// 1. Do work
-	var err error
 	status := workspace.StatusSuccess
-	var newNodes []db.UIDNode
+	var newNodes []any
 	results, err := workspace.DoSelection(ctx, c, s.opt)
 	if err == nil {
-		newNodes = make([]db.UIDNode, len(results))
+		newNodes = make([]any, len(results))
 		for i, result := range results {
 			newNodes[i] = db.UIDNode{UID: result}
 		}
@@ -75,10 +74,10 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 		return updateErr
 	}
 
+	// 3. Update workspace
 	lock := workspaceMutex.Lock(s.workspaceUID)
 	defer lock.Unlock()
 
-	// 3. Update workspace
 	w, err := workspace.GetFrontendWorkspace(ctx, c, s.workspaceUID, s.userUID)
 	if err != nil {
 		return err
@@ -210,21 +209,37 @@ type HeuristicWork struct {
 
 // Run processes the heuristic and inserts it into the workspace
 func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *graph.Wrapper) error {
-	newHeuristic, err := h.executor.Run(dgraph, g)
-	if err != nil {
-		return err
+	// 1. Do work
+	status := workspace.StatusSuccess
+	results, err := h.executor.Run(dgraph, g)
+	var newNodes []any
+	if err == nil {
+		newNodes = make([]any, len(results))
+		for i, result := range results {
+			newNodes[i] = result
+		}
+	} else {
+		// despite the error, we don't return here because we want to store the error state in the db
+		status = workspace.StatusError
+		warn(err)
 	}
 
-	lock := workspaceMutex.Lock(h.workspaceUID)
-	defer lock.Unlock()
-
+	// 2. Store work
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	newHeuristicUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
-	if err != nil {
-		return err
+	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
+		UID:     h.selectorUID,
+		Type:    workspace.TypeTransactionProperties,
+		Status:  status,
+		Results: newNodes,
+	}, h.userUID, h.workspaceUID); updateErr != nil {
+		return updateErr
 	}
+
+	// 3. Update workspace
+	lock := workspaceMutex.Lock(h.workspaceUID)
+	defer lock.Unlock()
 
 	// update workspace
 	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, h.workspaceUID, h.userUID)
@@ -240,10 +255,9 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *g
 	}
 
 	// try to set node position
-	if newNode, ok := nodeMap[newHeuristicUID]; ok {
-		// todo set actual status
-		newNode.SelectorStatus = workspace.StatusSuccess
-		nodeMap[newHeuristicUID] = newNode
+	if newNode, ok := nodeMap[h.selectorUID]; ok {
+		newNode.SelectorStatus = status
+		nodeMap[h.selectorUID] = newNode
 	}
 
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)

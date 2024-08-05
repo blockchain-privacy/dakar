@@ -31,15 +31,15 @@ func IsStatusValid(s string) bool {
 }
 
 type Selector struct {
-	UID      string       `json:"uid,omitempty"`
-	Created  string       `json:"Selector.created,omitempty"`
-	Modified string       `json:"Selector.modified,omitempty"`
-	Type     string       `json:"Selector.type,omitempty"`
-	Status   string       `json:"Selector.status,omitempty"`
-	Parent   *db.UIDNode  `json:"Selector.parent,omitempty"`
-	Options  string       `json:"Selector.options,omitempty"`
-	Results  []db.UIDNode `json:"Selector.results,omitempty"`
-	DType    []string     `json:"dgraph.type,omitempty"`
+	UID      string      `json:"uid,omitempty"`
+	Created  string      `json:"Selector.created,omitempty"`
+	Modified string      `json:"Selector.modified,omitempty"`
+	Type     string      `json:"Selector.type,omitempty"`
+	Status   string      `json:"Selector.status,omitempty"`
+	Parent   *db.UIDNode `json:"Selector.parent,omitempty"`
+	Options  string      `json:"Selector.options,omitempty"`
+	Results  []any       `json:"Selector.results,omitempty"`
+	DType    []string    `json:"dgraph.type,omitempty"`
 }
 
 func (s *Selector) SetDType() {
