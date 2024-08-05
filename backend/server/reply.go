@@ -388,22 +388,33 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	}
 
 	type request struct {
-		Type         string          `json:"type"`
-		Parent       string          `json:"parent"`
-		Options      *dbwork.Options `json:"options"`
-		WorkspaceUID string          `json:"workspaceUID"`
+		Type             string              `json:"type"`
+		Parent           string              `json:"parent"`
+		HeuristicOptions *dbHeuristic.Config `json:"heuristicOptions,omitempty"`
+		SelectorOptions  *dbwork.Options     `json:"options,omitempty"`
+		WorkspaceUID     string              `json:"workspaceUID"`
 	}
 
 	var selectorRequest request
-
 	if err := json.NewDecoder(r.Body).Decode(&selectorRequest); err != nil {
 		status = http.StatusBadRequest
 		warn(serror.New(err))
 		return
 	}
 
-	reply.WorkID, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.Options,
-		selectorRequest.WorkspaceUID, selectorRequest.Type, selectorRequest.Parent, tUser.ID)
+	if selectorRequest.SelectorOptions == nil && selectorRequest.HeuristicOptions == nil {
+		status = http.StatusBadRequest
+		return
+	}
+
+	if selectorRequest.SelectorOptions != nil {
+		reply.SelectorUID, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.SelectorOptions,
+			selectorRequest.WorkspaceUID, selectorRequest.Type, selectorRequest.Parent, tUser.ID)
+	} else {
+		reply.SelectorUID, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.HeuristicOptions,
+			selectorRequest.WorkspaceUID, selectorRequest.Type, selectorRequest.Parent, tUser.ID)
+	}
+
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

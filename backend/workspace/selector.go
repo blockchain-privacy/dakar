@@ -56,8 +56,9 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 			newNodes[i] = db.UIDNode{UID: result}
 		}
 	} else {
+		// despite the error, we don't return here because we want to store the error state in the db
 		status = workspace.StatusError
-		// todo add error message into selector
+		warn(err, "options", s.opt)
 	}
 
 	if updateErr := workspace.UpdateSelector(ctx, c, &workspace.Selector{
@@ -138,16 +139,26 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	var parentIndex int
 	var parentNode *db.UIDNode
 	if selectorType == workspace.TypeHeuristic {
-		// todo set tx hash
-		parentIndex, parentNode, err = getHeuristicParent(selectorParent, "", w.Nodes)
+		opt, ok := any(options).(dbHeuristic.Config)
+		if !ok {
+			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
+		}
+
+		parentIndex, parentNode, err = getHeuristicParent(selectorParent, opt.TransactionHash, w.Nodes)
 		if err != nil {
 			return "", serror.AddContext(err, "options", options)
 		}
-	} else {
+	} else if selectorType == workspace.TypeTransactionProperties {
+		if _, ok := any(options).(workspace.Options); !ok {
+			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
+		}
+
 		parentIndex, parentNode, err = getSelectorParent(selectorParent, w.Nodes)
 		if err != nil {
 			return "", serror.AddContext(err, "options", options)
 		}
+	} else {
+		return "", serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
 	}
 
 	optionStr, err := json.Marshal(options)

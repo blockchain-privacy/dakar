@@ -106,7 +106,7 @@ type heuristicExecutionReply struct {
 }
 
 type addWorkspaceSelectorReply struct {
-	WorkID string `json:"workID"`
+	SelectorUID string `json:"selectorUID"`
 }
 
 type heuristicDetailsReply struct {
