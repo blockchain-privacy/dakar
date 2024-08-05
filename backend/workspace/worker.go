@@ -2,7 +2,7 @@ package workspace
 
 import (
 	"backend/analytics/graph"
-	"backend/db/analytics/selectors"
+	"backend/db/workspace"
 	"backend/external"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
@@ -175,7 +175,7 @@ func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
 	timeoutContext, cancel := context.WithTimeout(ctx, time.Minute*2)
 	defer cancel()
 
-	selectorItems, err := selectors.GetWaitingSelectors(timeoutContext, c, 20)
+	selectorItems, err := workspace.GetWaitingSelectors(timeoutContext, c, 20)
 	if err != nil {
 		return nil, err
 	}
@@ -183,12 +183,12 @@ func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
 	workItems := make([]Work, len(selectorItems))
 	for i, item := range selectorItems {
 		switch item.SelectorType {
-		case selectors.TypeTransactionProperties:
+		case workspace.TypeTransactionProperties:
 			workItems[i], err = NewSelectorWork(item)
 			if err != nil {
 				return nil, err
 			}
-		case selectors.TypeHeuristic:
+		case workspace.TypeHeuristic:
 			//workItems[i], err = NewHeuristicWork(item)
 			//if err != nil {
 			//	return nil, err

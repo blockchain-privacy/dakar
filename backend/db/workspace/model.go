@@ -119,6 +119,17 @@ type connectionRequest struct {
 		} `json:"Heuristic.clusters,omitempty"`
 	} `json:"heuristic_clusters,omitempty"`
 
+	SelectorClusters []struct {
+		UID     string `json:"uid,omitempty"`
+		Results []struct {
+			Inputs []struct {
+				Addresses []struct {
+					Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"results,omitempty"`
+	} `json:"selector_clusters,omitempty"`
+
 	ClusterClusters []struct {
 		UID       string `json:"uid,omitempty"`
 		Addresses []struct {
@@ -148,6 +159,19 @@ type connectionRequest struct {
 			} `json:"HeuristicCluster.results,omitempty"`
 		} `json:"Heuristic.clusters,omitempty"`
 	} `json:"heuristics,omitempty"`
+
+	Selectors []struct {
+		UID         string       `json:"uid,omitempty"`
+		Created     string       `json:"created,omitempty"`
+		Modified    string       `json:"modified,omitempty"`
+		Type        string       `json:"type,omitempty"`
+		Status      string       `json:"status,omitempty"`
+		Options     string       `json:"options,omitempty"`
+		Parent      []db.UIDNode `json:"parent,omitempty"`
+		Children    []db.UIDNode `json:"children,omitempty"`
+		ResultCount *int         `json:"resultCount,omitempty"`
+		Results     []db.UIDNode `json:"results,omitempty"`
+	} `json:"selectors,omitempty"`
 }
 
 // Node is the data model of a workspace node
@@ -177,9 +201,12 @@ type Node struct {
 	Timestamp           string   `json:"heuristicTs,omitempty"`
 
 	// selector
-	SelectorType        string `json:"selectorType,omitempty"`
-	SelectorStatus      string `json:"selectorStatus,omitempty"`
-	SelectorResultCount *int   `json:"selectorResultCount,omitempty"`
+	SelectorCreated     string   `json:"selectorCreated,omitempty"`
+	SelectorModified    string   `json:"selectorModified,omitempty"`
+	SelectorType        string   `json:"selectorType,omitempty"`
+	SelectorStatus      string   `json:"selectorStatus,omitempty"`
+	SelectorResultCount *int     `json:"selectorResultCount,omitempty"`
+	SelectorOptions     *Options `json:"selectorOptions,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`

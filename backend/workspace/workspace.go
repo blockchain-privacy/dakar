@@ -6,7 +6,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbHeuristic "backend/db/analytics/heuristics"
-	"backend/db/analytics/selectors"
 	"backend/db/workspace"
 	"backend/external"
 	"context"
@@ -22,18 +21,18 @@ import (
 const MaxWorkspaceNameLength = 50
 
 type SelectorWork struct {
-	opt          selectors.Options
+	opt          workspace.Options
 	selectorUID  string
 	workspaceUID string
 	userUID      string
 }
 
-func NewSelectorWork(item selectors.WorkItem) (*SelectorWork, error) {
+func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
 	if item.SelectorOptions == "" {
 		return nil, serror.FromStrWithContext("empty selector options", "item", item)
 	}
 
-	var opt selectors.Options
+	var opt workspace.Options
 	if err := json.Unmarshal([]byte(item.SelectorOptions), &opt); err != nil {
 		return nil, err
 	}
@@ -52,22 +51,22 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	defer cancel()
 
 	var err error
-	status := selectors.StatusSuccess
+	status := workspace.StatusSuccess
 	var newNodes []db.UIDNode
-	results, err := selectors.DoSelection(ctx, c, s.opt)
+	results, err := workspace.DoSelection(ctx, c, s.opt)
 	if err == nil {
 		newNodes = make([]db.UIDNode, len(results))
 		for i, result := range results {
 			newNodes[i] = db.UIDNode{UID: result}
 		}
 	} else {
-		status = selectors.StatusError
+		status = workspace.StatusError
 		// todo add error message into selector
 	}
 
-	if updateErr := selectors.UpdateSelector(ctx, c, &selectors.Selector{
+	if updateErr := workspace.UpdateSelector(ctx, c, &workspace.Selector{
 		UID:     s.selectorUID,
-		Type:    selectors.TypeTransactionProperties,
+		Type:    workspace.TypeTransactionProperties,
 		Status:  status,
 		Results: newNodes,
 	}, s.userUID, s.workspaceUID); updateErr != nil {
@@ -141,7 +140,7 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *g
 	// try to set node position
 	if newNode, ok := nodeMap[newHeuristicUID]; ok {
 		// todo set actual status
-		newNode.SelectorStatus = selectors.StatusSuccess
+		newNode.SelectorStatus = workspace.StatusSuccess
 		nodeMap[newHeuristicUID] = newNode
 	}
 
@@ -245,7 +244,7 @@ func NewHeuristicWork(heuristicRequest dbHeuristic.DatabaseHeuristicRequest,
 //}
 
 type Options interface {
-	selectors.Options | dbHeuristic.Config
+	workspace.Options | dbHeuristic.Config
 }
 
 func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.UIDNode, error) {
@@ -302,7 +301,7 @@ func getHeuristicParent(parentheuristicUID string, txHash string, nodes []worksp
 // which can be used to check its execution status.
 func AddSelector[O Options](ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options O,
 	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, error) {
-	if !selectors.IsTypeValid(selectorType) {
+	if !workspace.IsTypeValid(selectorType) {
 		return "", serror.FromStrWithContext("invalid type", "type", selectorType)
 	}
 
@@ -316,7 +315,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 
 	var parentIndex int
 	var parentNode *db.UIDNode
-	if selectorType == selectors.TypeHeuristic {
+	if selectorType == workspace.TypeHeuristic {
 		// todo set tx hash
 		parentIndex, parentNode, err = getHeuristicParent(selectorParent, "", w.Nodes)
 		if err != nil {
@@ -334,9 +333,9 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return "", serror.NewWithContext(err, "options", options)
 	}
 
-	selectorUID, err := selectors.InsertSelector(ctx, dgraph, &selectors.Selector{
+	selectorUID, err := workspace.InsertSelector(ctx, dgraph, &workspace.Selector{
 		Type:    selectorType,
-		Status:  selectors.StatusWaiting,
+		Status:  workspace.StatusWaiting,
 		Parent:  parentNode,
 		Options: string(optionStr),
 	}, userUID, workspaceUID)
@@ -354,7 +353,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		UID:            selectorUID,
 		Type:           workspace.NodeTypeSelector,
 		SelectorType:   selectorType,
-		SelectorStatus: selectors.StatusWaiting,
+		SelectorStatus: workspace.StatusWaiting,
 	})
 
 	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
@@ -702,7 +701,7 @@ func encodeAndStoreWorkspaceState(ctx context.Context, dgraph external.Database,
 // Also inserts found heuristics into the node map
 func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[string]workspace.Node,
 	userUID string, workspaceUID string) (int64, map[string]workspace.Node, error) {
-	connections, nodeHeuristics, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
+	connections, nodeHeuristics, nodeSelectors, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
 		cliutil.GetMapKeys(nodeMap), userUID, workspaceUID)
 	if err != nil {
 		return 0, nil, err
@@ -729,6 +728,17 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 		}
 
 		newNodeMap[h.UID] = h
+	}
+
+	// add selector nodes to map
+	for _, s := range nodeSelectors {
+		// set coordinates
+		if oldSelector, ok := nodeMap[s.UID]; ok {
+			s.X = oldSelector.X
+			s.Y = oldSelector.Y
+		}
+
+		newNodeMap[s.UID] = s
 	}
 
 	return clusterHeight, newNodeMap, nil

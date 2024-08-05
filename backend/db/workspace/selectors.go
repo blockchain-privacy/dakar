@@ -1,4 +1,4 @@
-package selectors
+package workspace
 
 import (
 	"backend/constants"

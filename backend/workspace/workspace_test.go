@@ -4,7 +4,6 @@ import (
 	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/db"
-	"backend/db/analytics/selectors"
 	"backend/db/user"
 	"backend/db/workspace"
 	"backend/testhelper"
@@ -55,22 +54,22 @@ func TestAddSelector(t *testing.T) {
 	valPoint01 := int64(1000000)
 	valPoint1 := int64(10000000)
 
-	opt := selectors.Options{
+	opt := workspace.Options{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
-		InputSum:    &selectors.AmountRange{Min: &val1},
-		InputRange:  &selectors.AmountRange{Min: &valPoint01, Max: &valPoint1},
-		OutputRange: &selectors.AmountRange{Min: &val1, Max: &valPoint1},
+		InputSum:    &workspace.AmountRange{Min: &val1},
+		InputRange:  &workspace.AmountRange{Min: &valPoint01, Max: &valPoint1},
+		OutputRange: &workspace.AmountRange{Min: &val1, Max: &valPoint1},
 	}
 
 	m := NewMutex()
 	ctx := context.Background()
 	parentSelector, err := AddSelector(ctx, dbHandle, m, opt,
-		selectors.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	tests := []struct {
-		options      selectors.Options
+		options      workspace.Options
 		selectorType string
 		parent       string
 		wantErr      bool
@@ -80,12 +79,12 @@ func TestAddSelector(t *testing.T) {
 		},
 		{
 			options:      opt,
-			selectorType: selectors.TypeTransactionProperties,
+			selectorType: workspace.TypeTransactionProperties,
 			wantErr:      false,
 		},
 		{
 			options:      opt,
-			selectorType: selectors.TypeTransactionProperties,
+			selectorType: workspace.TypeTransactionProperties,
 			parent:       parentSelector,
 			wantErr:      false,
 		},

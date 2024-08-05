@@ -13,13 +13,13 @@ import (
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
-	connections []NodeConnections, heuristicNodes []Node, clusterHeight int64, err error) {
+	connections []NodeConnections, heuristicNodes []Node, selectorNodes []Node, clusterHeight int64, err error) {
 	result, err := getWorkspaceConnectionsRaw(c, uids, userUID, workspaceUID)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
-	transactions, clusters, heuristicNodes, clusterHeight, err := parseConnectionResult(result)
+	transactions, clusters, heuristicNodes, selectorNodes, clusterHeight, err := parseConnectionResult(result)
 	if err != nil {
 		return
 	}
@@ -54,7 +54,14 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 					var(func: uid($userUID)){
 						User.workspaces@filter(uid($workspaceUID)){
 							h as Workspace.heuristics
+							s as Workspace.selectors
 						}
+					}
+
+					# find fmi cluster for each address
+					address_cluster(func: uid(uids))@filter(has(addresshash)){
+						uid
+						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){uid}
 					}
 
 					heuristic_clusters(func: uid(h)){
@@ -62,35 +69,30 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 						Heuristic.clusters{
 							HeuristicCluster.results{
 								HeuristicResult.destinations{
-									...fGetHeuristicCluster
+									...fTxCluster
 								}
 								HeuristicResult.origin{
-									...fGetHeuristicCluster
+									...fTxCluster
 								}
 							}
 						}
 					}
 
-					# find fmi cluster for each address
-					address_cluster(func: uid(uids))@filter(has(addresshash)){
+					selector_clusters(func: uid(s)){
 						uid
-						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
-							uid
+						results: Selector.results{
+							...fTxCluster
 						}
 					}
 					
 					transactions(func: uid(t)){
 						uid
 						tx_outputs{
-							~tx_inputs@filter(uid(t)){
-								uid
-							}
+							~tx_inputs@filter(uid(t)){uid}
 							...fGetCluster
 						}
 						tx_inputs {
-							~tx_outputs@filter(uid(t)){
-								uid
-							}
+							~tx_outputs@filter(uid(t)){uid}
 							...fGetCluster
 						}
 					}
@@ -109,44 +111,41 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 									}
 								}
 								~tx_outputs@normalize{
-									tx_inputs(first:1){
-										~addr_outputs{
-											~Cluster.addresses@filter(uid(c)){
-												uid:uid
-											}
-										}
-									}
+									...fTxCluster
 								}
 							}
 						}
 					}
 
+					selectors(func: uid(s)){
+						uid
+						created: Selector.created
+						modified: Selector.modified
+						type: Selector.type
+						status: Selector.status
+						parent: Selector.parent {uid}
+						children: ~Selector.parent{uid}
+						options: Selector.options
+						resultCount: count(Selector.results)
+						results: Selector.results {uid}
+					}
+
 					heuristics(func: uid(h)){
 						uid
-						transaction:Heuristic.transaction{
-							uid
-						}
+						transaction:Heuristic.transaction{uid}
 						ts:Heuristic.ts
 						type:Heuristic.type
 						parameter:Heuristic.parameter
 						clusterTypes:Heuristic.clusterTypes
 						excludeAddresses:Heuristic.excludeAddresses
 						excludeSpendingGaps:Heuristic.excludeSpendingGaps
-						parent:Heuristic.parent{
-							uid
-						}
-						children:~Heuristic.parent{
-							uid
-						}
+						parent:Heuristic.parent{uid}
+						children:~Heuristic.parent{uid}
 						clusterCount: count(Heuristic.clusters)
 						Heuristic.clusters{
 							HeuristicCluster.results{
-								HeuristicResult.origin@filter(uid(t)){
-									uid
-								}
-								HeuristicResult.destinations@filter(uid(t)){
-									uid
-								}
+								HeuristicResult.origin@filter(uid(t)){uid}
+								HeuristicResult.destinations@filter(uid(t)){uid}
 							}
 						}
 					}
@@ -161,7 +160,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 				}
 				
 				# only select the transaction creator
-				fragment fGetHeuristicCluster {
+				fragment fTxCluster {
 					tx_inputs(first:1){
 						...fGetCluster
 					}
@@ -187,7 +186,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 //
 //nolint:gocyclo
 func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
-	heuristics []Node, clusterHeight int64, err error) {
+	heuristics []Node, selectorNodes []Node, clusterHeight int64, err error) {
 	if len(r.ClusterHeight) != 1 {
 		err = serror.FromFormat("invalid number of cluster height results: %d", len(r.ClusterHeight))
 		return
@@ -276,6 +275,60 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			ClusterTypes:        h.ClusterTypes,
 			ClusterCount:        h.ClusterCount,
 			Timestamp:           h.Timestamp,
+		})
+	}
+
+	selectorToClusters := map[string]map[string]bool{}
+	for _, s := range r.SelectorClusters {
+		selectorCluster := map[string]bool{}
+		for _, result := range s.Results {
+			for _, input := range result.Inputs {
+				for _, address := range input.Addresses {
+					for _, cluster := range address.Clusters {
+						// find corresponding address UID and set it connected to this transaction
+						if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+							selectorCluster[addressUID] = true
+						}
+					}
+				}
+			}
+		}
+
+		selectorToClusters[s.UID] = selectorCluster
+	}
+
+	for _, s := range r.Selectors {
+		children := make([]string, len(s.Children))
+		for i, c := range s.Children {
+			children[i] = c.UID
+		}
+
+		// add connections between heuristics and their found origins
+		for _, result := range s.Results {
+			children = append(children, result.UID)
+		}
+
+		// add cluster reachable from this heuristic as children
+		for selectorClusters := range selectorToClusters[s.UID] {
+			children = append(children, selectorClusters)
+		}
+
+		var opt Options
+		if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
+			err = serror.NewWithContext(err, "opt", s.Options)
+			return
+		}
+
+		heuristics = append(heuristics, Node{
+			UID:                 s.UID,
+			Type:                "selector",
+			Children:            children,
+			SelectorType:        s.Type,
+			SelectorStatus:      s.Status,
+			SelectorResultCount: s.ResultCount,
+			SelectorCreated:     s.Created,
+			SelectorModified:    s.Modified,
+			SelectorOptions:     &opt,
 		})
 	}
 

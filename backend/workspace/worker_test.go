@@ -3,8 +3,8 @@ package workspace
 import (
 	"backend/analytics/graph"
 	"backend/db"
-	"backend/db/analytics/selectors"
 	"backend/db/status"
+	"backend/db/workspace"
 	"backend/testhelper"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
@@ -73,12 +73,12 @@ func TestWorker_work(t *testing.T) {
 	valPoint01 := int64(1000000)
 	valPoint1 := int64(10000000)
 
-	opt := selectors.Options{
+	opt := workspace.Options{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
-		InputSum:    &selectors.AmountRange{Min: &val1},
-		InputRange:  &selectors.AmountRange{Min: &valPoint01, Max: &valPoint1},
-		OutputRange: &selectors.AmountRange{Min: &val1, Max: &valPoint1},
+		InputSum:    &workspace.AmountRange{Min: &val1},
+		InputRange:  &workspace.AmountRange{Min: &valPoint01, Max: &valPoint1},
+		OutputRange: &workspace.AmountRange{Min: &val1, Max: &valPoint1},
 	}
 
 	m := NewMutex()
@@ -87,15 +87,15 @@ func TestWorker_work(t *testing.T) {
 
 	// insert 3 selectors into db
 	_, err = AddSelector(ctx, dbHandle, m, opt,
-		selectors.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, err = AddSelector(ctx, dbHandle, m, opt,
-		selectors.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, err = AddSelector(ctx, dbHandle, m, opt,
-		selectors.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	wrapper := graph.NewWrapper(ctx, dbHandle)
@@ -113,7 +113,7 @@ func TestWorker_work(t *testing.T) {
 	now := time.Now()
 	for {
 		time.Sleep(time.Millisecond * 100)
-		selectorsWaiting, err := selectors.GetWaitingSelectors(ctx, dbHandle, 20)
+		selectorsWaiting, err := workspace.GetWaitingSelectors(ctx, dbHandle, 20)
 		require.NoError(t, err)
 
 		if len(selectorsWaiting) == 0 {

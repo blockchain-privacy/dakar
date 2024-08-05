@@ -1,9 +1,8 @@
-package selectors
+package workspace
 
 import (
 	"backend/db"
 	"backend/db/user"
-	"backend/db/workspace"
 	"backend/testhelper"
 	"context"
 	"encoding/json"
@@ -11,13 +10,6 @@ import (
 	"testing"
 	"time"
 )
-
-var dbHandle = &testhelper.TestDB{IsDirty: true}
-
-func TestMain(m *testing.M) {
-	db.InitLogger()
-	testhelper.RunDgraphTests(m, &dbHandle.DB)
-}
 
 func TestDoSelection(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
@@ -185,7 +177,7 @@ func createUserAndWorkspace() (string, string, error) {
 		return "", "", err
 	}
 
-	workspaceUID, err := workspace.AddWorkspace(context.Background(), dbHandle, "test", userUID)
+	workspaceUID, err := AddWorkspace(context.Background(), dbHandle, "test", userUID)
 	if err != nil {
 		return "", "", err
 	}

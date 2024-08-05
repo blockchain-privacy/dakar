@@ -12,7 +12,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
-	"backend/db/analytics/selectors"
 	dbstat "backend/db/status"
 	dbwork "backend/db/workspace"
 	"backend/external"
@@ -389,10 +388,10 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	}
 
 	type request struct {
-		Type         string             `json:"type"`
-		Parent       string             `json:"parent"`
-		Options      *selectors.Options `json:"options"`
-		WorkspaceUID string             `json:"workspaceUID"`
+		Type         string          `json:"type"`
+		Parent       string          `json:"parent"`
+		Options      *dbwork.Options `json:"options"`
+		WorkspaceUID string          `json:"workspaceUID"`
 	}
 
 	var selectorRequest request
