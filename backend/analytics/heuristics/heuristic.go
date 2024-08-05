@@ -305,8 +305,13 @@ func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
 	return heuristics.GetTransactionsWithInputAmount(dgraph, cliutil.GetMapKeys(uidMap))
 }
 
-func isParentHeuristicSet(parentHeuristicUID string) bool {
-	return parentHeuristicUID != ""
+func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {
+	parentType, err := db.GetTypeByUID(ctx, c, parentUID)
+	if err != nil {
+		return false, err
+	}
+
+	return parentType == heuristics.DType, nil
 }
 
 // Executor holds information for executing on heuristic and its children

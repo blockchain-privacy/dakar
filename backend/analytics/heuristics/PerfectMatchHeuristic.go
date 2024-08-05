@@ -80,7 +80,10 @@ func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
-		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
+		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+		if err != nil {
+			return nil, err
+		}
 
 		if parentHeuristicSet {
 			// get origins from parent heuristic

@@ -90,7 +90,13 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	originLimit := make(map[string]bool)
 	// parentAttributionMap maps a clusterUID to a slice of attribution UIDs
 	var parentAttributionMap map[heuristics.ClusterUID][]string
-	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
 	if parentHeuristicSet {
 		// get origins from parent heuristic
 		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)

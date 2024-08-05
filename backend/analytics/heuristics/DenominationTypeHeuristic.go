@@ -84,8 +84,10 @@ func (h *denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrap
 
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
-		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
-
+		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+		if err != nil {
+			return nil, err
+		}
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error

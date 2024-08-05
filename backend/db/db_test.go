@@ -3,6 +3,7 @@ package db
 import (
 	"backend/external"
 	"backend/testhelper"
+	"context"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -248,4 +249,22 @@ func TestCreateClient(t *testing.T) {
 	_, c, err := external.CreateClient(name + ":9080")
 	require.NoError(t, err)
 	require.NoError(t, c.Close())
+}
+
+func TestGetTypeByUID(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	SetupDBWithoutData(t, dbHandle)
+
+	// empty db
+	_, err := GetTypeByUID(context.Background(), dbHandle, "0x123")
+	require.Error(t, err)
+
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	ctx := context.Background()
+	txUID, err := GetTransactionUID(ctx, dbHandle, "91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb")
+	require.NoError(t, err)
+
+	typeString, err := GetTypeByUID(ctx, dbHandle, txUID)
+	require.NoError(t, err)
+	require.Equal(t, "Transaction", typeString)
 }

@@ -4,6 +4,7 @@ import (
 	"backend/external"
 	"backend/testhelper"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -336,4 +337,38 @@ func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
 	require.NoError(t, SetupSchema(database))
 
 	database.IsDirty = true
+}
+
+func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string, error) {
+	if uid == "" {
+		return "", serror.New(ErrEmptyRequestArgument)
+	}
+
+	const query = `query Q($uid:string){
+				q(func: uid($uid)){
+					dgraph.type
+				}
+			  }`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": uid})
+	if err != nil {
+		return "", serror.New(err)
+	}
+
+	// json struct
+	var r struct {
+		Type []struct {
+			Type []string `json:"dgraph.type,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return "", serror.New(err)
+	}
+
+	if len(r.Type) != 1 || len(r.Type[0].Type) != 1 {
+		return "", serror.New(errInvalidResult)
+	}
+
+	return r.Type[0].Type[0], nil
 }

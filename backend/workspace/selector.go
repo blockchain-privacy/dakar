@@ -140,29 +140,22 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return "", err
 	}
 
-	var parentIndex int
-	var parentNode *db.UIDNode
+	// check selector types and their corresponding options
 	if selectorType == workspace.TypeHeuristic {
-		opt, ok := any(options).(dbHeuristic.Options)
-		if !ok {
+		if _, ok := any(options).(dbHeuristic.Options); !ok {
 			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
-		}
-
-		parentIndex, parentNode, err = getHeuristicParent(selectorParent, opt.TransactionHash, w.Nodes)
-		if err != nil {
-			return "", serror.AddContext(err, "options", options)
 		}
 	} else if selectorType == workspace.TypeTransactionProperties {
 		if _, ok := any(options).(workspace.Options); !ok {
 			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
-
-		parentIndex, parentNode, err = getSelectorParent(selectorParent, w.Nodes)
-		if err != nil {
-			return "", serror.AddContext(err, "options", options)
-		}
 	} else {
 		return "", serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
+	}
+
+	parentIndex, parentNode, err := getSelectorParent(selectorParent, w.Nodes)
+	if err != nil {
+		return "", serror.AddContext(err, "options", options)
 	}
 
 	optionStr, err := json.Marshal(options)
@@ -286,31 +279,4 @@ func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
 		userUID:      item.UserUID,
 		selectorUID:  item.SelectorUID,
 	}, nil
-}
-
-func getHeuristicParent(parentheuristicUID string, txHash string, nodes []workspace.Node) (int, *db.UIDNode, error) {
-	// find the index of the hew heuristic's parent
-	parentIndex := -1
-	if parentheuristicUID == "" {
-		for i, n := range nodes {
-			if n.TransactionHash == txHash {
-				parentIndex = i
-				break
-			}
-		}
-	} else {
-		for i, n := range nodes {
-			if n.UID == parentheuristicUID {
-				parentIndex = i
-				break
-			}
-		}
-	}
-
-	// no parent found
-	if parentIndex == -1 {
-		return parentIndex, nil, serror.FromStr("could not determine parent for new heuristic")
-	}
-
-	return parentIndex, &db.UIDNode{UID: nodes[parentIndex].UID}, nil
 }

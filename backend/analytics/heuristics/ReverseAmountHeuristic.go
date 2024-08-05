@@ -78,8 +78,12 @@ func (h *reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	defer cancel()
 
 	{ // separate enclosure so the results slice can be garbage collected
+		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+		if err != nil {
+			return nil, err
+		}
 		var results []heuristics.HeuristicTransaction
-		if isParentHeuristicSet(parentHeuristicUID) {
+		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
 			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)

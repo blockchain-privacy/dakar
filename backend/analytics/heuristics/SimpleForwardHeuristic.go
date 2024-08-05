@@ -96,7 +96,13 @@ func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	if isParentHeuristicSet(parentHeuristicUID) {
+
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if parentHeuristicSet {
 		// get transactions from parent heuristic
 		var err error
 		parentResults, resultAttributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)

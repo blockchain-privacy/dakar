@@ -3,6 +3,7 @@ package workspace
 import (
 	"backend/constants"
 	"backend/db"
+	dbHeuristic "backend/db/analytics/heuristics"
 )
 
 const DType = "Workspace"
@@ -116,7 +117,7 @@ type connectionRequest struct {
 					} `json:"tx_inputs,omitempty"`
 				} `json:"HeuristicResult.origin,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
-		} `json:"Heuristic.clusters,omitempty"`
+		} `json:"results,omitempty"`
 	} `json:"heuristic_clusters,omitempty"`
 
 	SelectorClusters []struct {
@@ -141,23 +142,21 @@ type connectionRequest struct {
 	} `json:"cluster_clusters,omitempty"`
 
 	Heuristics []struct {
-		UID                 string       `json:"uid,omitempty"`
-		Timestamp           string       `json:"ts,omitempty"`
-		Type                string       `json:"type,omitempty"`
-		Parameter           string       `json:"parameter,omitempty"`
-		ExcludeAddresses    bool         `json:"excludeAddresses"`
-		ExcludeSpendingGaps bool         `json:"excludeSpendingGaps"`
-		ClusterTypes        []string     `json:"clusterTypes,omitempty"`
-		Transaction         db.UIDNode   `json:"transaction,omitempty"`
-		ParentHeuristic     []db.UIDNode `json:"parent,omitempty"`
-		ChildHeuristics     []db.UIDNode `json:"children,omitempty"`
-		ClusterCount        *int         `json:"clusterCount,omitempty"`
-		Clusters            []struct {
+		UID         string       `json:"uid,omitempty"`
+		Created     string       `json:"created,omitempty"`
+		Modified    string       `json:"modified,omitempty"`
+		Type        string       `json:"type,omitempty"`
+		Status      string       `json:"status,omitempty"`
+		Options     string       `json:"options,omitempty"`
+		Parent      *db.UIDNode  `json:"parent,omitempty"`
+		Children    []db.UIDNode `json:"children,omitempty"`
+		ResultCount *int         `json:"resultCount,omitempty"`
+		Clusters    []struct {
 			Results []struct {
 				Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
 				Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
-		} `json:"Heuristic.clusters,omitempty"`
+		} `json:"results,omitempty"`
 	} `json:"heuristics,omitempty"`
 
 	Selectors []struct {
@@ -167,7 +166,7 @@ type connectionRequest struct {
 		Type        string       `json:"type,omitempty"`
 		Status      string       `json:"status,omitempty"`
 		Options     string       `json:"options,omitempty"`
-		Parent      []db.UIDNode `json:"parent,omitempty"`
+		Parent      *db.UIDNode  `json:"parent,omitempty"`
 		Children    []db.UIDNode `json:"children,omitempty"`
 		ResultCount *int         `json:"resultCount,omitempty"`
 		Results     []db.UIDNode `json:"results,omitempty"`
@@ -191,23 +190,14 @@ type Node struct {
 	TransactionHash string `json:"transactionHash,omitempty"`
 	PrivacyType     *int   `json:"privacyType,omitempty"`
 
-	// todo remove
-	// heuristic
-	HeuristicType       string   `json:"heuristicType,omitempty"`
-	Parameter           string   `json:"heuristicParameter,omitempty"`
-	ExcludeAddresses    *bool    `json:"heuristicExcludeAddresses,omitempty"`
-	ExcludeSpendingGaps *bool    `json:"heuristicExcludeSpendingGaps,omitempty"`
-	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
-	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
-	Timestamp           string   `json:"heuristicTs,omitempty"`
-
 	// selector
-	SelectorCreated     string   `json:"selectorCreated,omitempty"`
-	SelectorModified    string   `json:"selectorModified,omitempty"`
-	SelectorType        string   `json:"selectorType,omitempty"`
-	SelectorStatus      string   `json:"selectorStatus,omitempty"`
-	SelectorResultCount *int     `json:"selectorResultCount,omitempty"`
-	SelectorOptions     *Options `json:"selectorOptions,omitempty"`
+	SelectorCreated     string               `json:"selectorCreated,omitempty"`
+	SelectorModified    string               `json:"selectorModified,omitempty"`
+	SelectorType        string               `json:"selectorType,omitempty"`
+	SelectorStatus      string               `json:"selectorStatus,omitempty"`
+	SelectorResultCount *int                 `json:"selectorResultCount,omitempty"`
+	SelectorOptions     *Options             `json:"selectorOptions,omitempty"`
+	HeuristicOptions    *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`
