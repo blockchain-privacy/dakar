@@ -9,6 +9,7 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+	"sync"
 	"testing"
 	"time"
 )
@@ -16,44 +17,12 @@ import (
 func TestNewWorker(t *testing.T) {
 	w := NewWorker(NewMutex(), nil, nil)
 	require.NotNil(t, w)
-	require.NotNil(t, w.activeMutex)
-}
-
-func TestWorker_Start(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	wrapper := graph.NewWrapper(ctx, dbHandle)
-	w := NewWorker(NewMutex(), dbHandle, wrapper)
-	w.RegisterMetrics(prometheus.NewRegistry())
-
-	require.True(t, w.Start(ctx))
-	// worker already active
-	require.False(t, w.Start(ctx))
 }
 
 func TestWorker_SetLoopInterval(_ *testing.T) {
 	w := NewWorker(NewMutex(), nil, nil)
 	w.SetLoopInterval(1)
 	w.SetLoopInterval(time.Second * 100)
-}
-
-func TestWorker_Stop(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	wrapper := graph.NewWrapper(ctx, dbHandle)
-	w := NewWorker(NewMutex(), dbHandle, wrapper)
-	w.RegisterMetrics(prometheus.NewRegistry())
-
-	// stop without start
-	w.Stop()
-
-	require.True(t, w.Start(ctx))
-	w.Stop()
-	require.False(t, w.IsActive())
 }
 
 func TestWorker_work(t *testing.T) {
@@ -107,7 +76,14 @@ func TestWorker_work(t *testing.T) {
 	w := NewWorker(NewMutex(), dbHandle, wrapper)
 	w.RegisterMetrics(prometheus.NewRegistry())
 	w.SetLoopInterval(1)
-	require.True(t, w.Start(ctx))
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		w.Start(ctx)
+	}()
 
 	// if the number of waiting selectors is 0, then the worker has finsihed
 	now := time.Now()

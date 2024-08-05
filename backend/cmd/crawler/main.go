@@ -392,10 +392,11 @@ func main() {
 			}
 		}()
 
-		if ok := w.Start(appContext); !ok {
-			info("worker is already active")
-			return
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w.Start(appContext)
+		}()
 	}
 
 	// activate classifier
@@ -486,25 +487,20 @@ func main() {
 		case <-chSignal:
 			interrupted = true
 			terminateApp()
-			w.Stop()
 			shutdownServer(apiHTTPServer)
 			shutdownServer(userHTTPServer)
 			shutdownServer(metricsHTTPServer)
 		case <-chCrawlingStopped:
 			terminateApp()
-			w.Stop()
 			crawlerStopped = true
 		case <-chClassifyingStopped:
 			terminateApp()
-			w.Stop()
 			classifierStopped = true
 		case <-chHMIClusteringStopped:
 			terminateApp()
-			w.Stop()
 			clusteringHMIStopped = true
 		case <-chFMIClusteringStopped:
 			terminateApp()
-			w.Stop()
 			clusteringFMIStopped = true
 		}
 	}
@@ -515,7 +511,6 @@ func main() {
 		// the server is still active at this point
 
 		<-chSignal
-		w.Stop()
 		shutdownServer(apiHTTPServer)
 		shutdownServer(userHTTPServer)
 		shutdownServer(metricsHTTPServer)

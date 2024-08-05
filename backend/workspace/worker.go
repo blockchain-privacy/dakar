@@ -8,7 +8,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
-	"sync"
 	"time"
 )
 
@@ -39,14 +38,6 @@ type Worker struct {
 	jobsError     prometheus.Counter
 	jobsCompleted prometheus.Counter
 
-	// cancel stops the go routine started by Start
-	cancel context.CancelFunc
-
-	// activeMutex acts as a mutex for active and cancel
-	activeMutex *sync.RWMutex
-	active      bool
-	wg          *sync.WaitGroup
-
 	graphWrapper *graph.Wrapper
 	db           external.Database
 
@@ -59,12 +50,10 @@ type Worker struct {
 // NewWorker constructs a new Worker
 func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper) *Worker {
 	return &Worker{
-		activeMutex:    new(sync.RWMutex),
 		graphWrapper:   g,
 		db:             c,
 		loopInterval:   time.Second * 5,
 		workspaceMutex: m,
-		wg:             new(sync.WaitGroup),
 	}
 }
 
@@ -92,47 +81,8 @@ func (w *Worker) SetLoopInterval(loopInterval time.Duration) {
 	w.loopInterval = loopInterval
 }
 
-// Start starts the worker. To stop the worker cancel the context or call Stop.
-// Returns false if the worker was already started.
-func (w *Worker) Start(ctx context.Context) bool {
-	w.activeMutex.Lock()
-	defer w.activeMutex.Unlock()
-	if !w.active {
-		w.active = true
-		var cancelContext context.Context
-		cancelContext, w.cancel = context.WithCancel(ctx)
-		w.wg.Add(1)
-		go w.work(cancelContext)
-		return true
-	}
-	return false
-}
-
-// Stop stops the worker. The worker can also be stopped by cancelling the passed context to Start
-func (w *Worker) Stop() {
-	w.activeMutex.RLock()
-	active := w.active
-	w.activeMutex.RUnlock()
-	if !active {
-		return
-	}
-
-	if w.cancel != nil {
-		w.cancel()
-		w.wg.Wait()
-	}
-}
-
-// IsActive returns true if the worker is active
-func (w *Worker) IsActive() bool {
-	w.activeMutex.RLock()
-	defer w.activeMutex.RUnlock()
-	return w.active
-}
-
-// work periodically checks for new Work to be executed
-func (w *Worker) work(ctx context.Context) {
-	defer w.wg.Done()
+// Start starts the worker. To stop the worker cancel the context.
+func (w *Worker) Start(ctx context.Context) {
 	ticker := time.NewTicker(w.loopInterval)
 	defer ticker.Stop()
 mainLoop:
@@ -140,10 +90,6 @@ mainLoop:
 		select {
 		case <-ctx.Done():
 			info("stopping Work")
-			// if worker was cancelled by context, it still needs to be set as not active
-			w.activeMutex.Lock()
-			w.active = false
-			w.activeMutex.Unlock()
 			break mainLoop
 		case <-ticker.C:
 			// check if transaction graph is ready
