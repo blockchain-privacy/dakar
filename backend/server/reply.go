@@ -239,65 +239,55 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 	}, http.StatusOK
 }
 
-// todo remove
-//func getHeuristicByWorkIDReply(dgraph external.Database, worker *worker.Worker,
-//	r *http.Request) (reply heuristicByWorkIDReply, status int) {
-//	tUser, err := extractTokenUser(r.Context())
-//	if err != nil {
-//		status = http.StatusUnauthorized
-//		warn(err)
-//		return
-//	}
-//
-//	type request struct {
-//		ID           string `json:"id"`
-//		WorkspaceUID string `json:"workspaceUID"`
-//	}
-//
-//	var workRequest request
-//
-//	if err := json.NewDecoder(r.Body).Decode(&workRequest); err != nil {
-//		status = http.StatusBadRequest
-//		warn(err)
-//		return
-//	}
-//
-//	if workRequest.ID == "" || workRequest.WorkspaceUID == "" {
-//		status = http.StatusBadRequest
-//		return
-//	}
-//
-//	// convert to integer
-//	workID, err := strconv.Atoi(workRequest.ID)
-//	if err != nil {
-//		status = http.StatusBadRequest
-//		warn(err)
-//		return
-//	}
-//
-//	uid, err := worker.GetFinishedDatabaseUID(workID, tUser.ID)
-//	if err != nil {
-//		status = http.StatusInternalServerError
-//		warn(err)
-//		return
-//	}
-//
-//	// heuristic not finished executing
-//	if uid == "" {
-//		return
-//	}
-//
-//	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, workRequest.WorkspaceUID, tUser.ID)
-//	if err != nil {
-//		status = http.StatusInternalServerError
-//		warn(err)
-//		return
-//	}
-//
-//	reply.Nodes = w.Nodes
-//
-//	return
-//}
+func getSelectorStatus(dgraph external.Database, r *http.Request) (reply selectorStatusReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		SelectorUID  string `json:"selectorUID"`
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var workRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&workRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(err)
+		return
+	}
+
+	if workRequest.SelectorUID == "" || workRequest.WorkspaceUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	selectorStatus, err := dbwork.GetSelectorStatus(r.Context(), dgraph,
+		workRequest.SelectorUID, workRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	if selectorStatus == dbwork.StatusWaiting {
+		return
+	}
+
+	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, workRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.Nodes = w.Nodes
+
+	return
+}
 
 func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply heuristicDetailsReply, status int) {
 	tUser, err := extractTokenUser(r.Context())

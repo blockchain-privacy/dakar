@@ -49,7 +49,6 @@ type Server struct {
 	workspaceMutex *workspace.Mutex
 	// HTTP mux
 	handler *http.ServeMux
-	// todo make handler timeout configurable
 	// duration after which every handler timesout
 	handlerTimeout time.Duration
 }

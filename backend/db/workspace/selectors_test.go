@@ -520,3 +520,36 @@ func TestGetWaitingSelectors(t *testing.T) {
 		}
 	}
 }
+
+func TestGetSelectorStatus(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	userUID, workspaceUID, err := createUserAndWorkspace()
+	require.NoError(t, err)
+
+	resultUIDs, optJSON, err := doSelection()
+	require.NoError(t, err)
+
+	results := make([]any, len(resultUIDs))
+	for i, result := range resultUIDs {
+		results[i] = db.UIDNode{UID: result}
+	}
+
+	_, err = GetSelectorStatus(ctx, dbHandle, "invalidUID", workspaceUID, userUID)
+	require.Error(t, err)
+
+	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
+		Type:    TypeTransactionProperties,
+		Status:  StatusWaiting,
+		Options: string(optJSON),
+		Results: results,
+	}, userUID, workspaceUID)
+	require.NoError(t, err)
+
+	status, err := GetSelectorStatus(ctx, dbHandle, selectorUID, workspaceUID, userUID)
+	require.NoError(t, err)
+	require.EqualValues(t, StatusWaiting, status)
+}

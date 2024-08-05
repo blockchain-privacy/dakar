@@ -407,7 +407,7 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 
 	resp, err := c.Query(ctx, query, map[string]string{"$maxItems": strconv.FormatUint(uint64(maxItems), 10)})
 	if err != nil {
-		return nil, err
+		return nil, serror.New(err)
 	}
 
 	var r struct {
@@ -449,4 +449,44 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 	}
 
 	return items, nil
+}
+
+// GetSelectorStatus returns the status of the given selector. If the selector does not exist, an error is returned.
+func GetSelectorStatus(ctx context.Context, c external.Database, selectorUID string,
+	workspaceUID string, userUID string) (string, error) {
+	const query = `
+		query Q($userUID:string,$selectorUID:string,$workspaceUID:string){
+			var(func: uid($userUID)){
+				User.workspaces@filter(uid($workspaceUID)){
+					s as Workspace.selectors@filter(uid($selectorUID))
+				}
+			}
+
+			q(func: uid(s)){
+				uid
+				Selector.status
+			}
+		}`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$selectorUID": selectorUID, "$workspaceUID": workspaceUID, "$userUID": userUID})
+	if err != nil {
+		return "", serror.New(err)
+	}
+
+	var r struct {
+		Selectors []struct {
+			UID    string `json:"uid,omitempty"`
+			Status string `json:"Selector.Status,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return "", serror.New(err)
+	}
+
+	if len(r.Selectors) != 1 {
+		return "", serror.New(ErrInvalidSelector)
+	}
+
+	return r.Selectors[0].Status, nil
 }

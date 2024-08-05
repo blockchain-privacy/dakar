@@ -430,25 +430,25 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 	})
 }
 
-// Heuristic by Work ID godoc
+// Selector Status godoc
 //
-//	@Summary		Get a specific heuristic by work ID
-//	@Description	Get a specific heuristic by work ID
-//	@Tags			heuristic
+//	@Summary		Checks if the given selector is finished executing
+//	@Description	Checks if the given selector is finished executing. Returns the updated workspace in that case.
+//	@Tags			workspace
 //	@Produce		json
-//	@Param			work	body		server.getHeuristicByWorkIDReply.request	true	"work item"
-//	@Success		200		{object}	server.heuristicByWorkIDReply
-//	@Failure		400		{object}	server.heuristicByWorkIDReply
-//	@Failure		401		{object}	server.heuristicByWorkIDReply
-//	@Failure		500		{object}	server.heuristicByWorkIDReply
-//	@Router			/heuristicByWorkID/ [post]
-//func (s *Server) handlerHeuristicByWorkID() http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		reply, status := getHeuristicByWorkIDReply(s.db, s.worker, r)
-//
-//		SendReply(w, reply, status)
-//	})
-//}
+//	@Param			work	body		server.getSelectorStatus.request	true	"work item"
+//	@Success		200		{object}	server.selectorStatusReply
+//	@Failure		400		{object}	server.selectorStatusReply
+//	@Failure		401		{object}	server.selectorStatusReply
+//	@Failure		500		{object}	server.selectorStatusReply
+//	@Router			/workspaces/selector/status [post]
+func (s *Server) handlerSelectorByUID() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getSelectorStatus(s.db, r)
+
+		SendReply(w, reply, status)
+	})
+}
 
 // HMI clusters godoc
 //
@@ -508,27 +508,6 @@ func (s *Server) handlerAddWorkspaceSelector() http.Handler {
 		SendReply(w, reply, status)
 	})
 }
-
-// Execute Heuristics godoc
-//
-//	@Summary		Queues the execution of heuristics for the given transaction
-//	@Description	This call queues the given heuristics for the given transaction. Does not wait until the heuristic execution is finished.
-//	@Tags			heuristic
-//	@Produce		json
-//	@Accept			json
-//	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
-//	@Success		200			{object}	server.heuristicExecutionReply
-//	@Failure		400			{object}	server.heuristicExecutionReply
-//	@Failure		401			{object}	server.heuristicExecutionReply
-//	@Failure		500			{object}	server.heuristicExecutionReply
-//	@Router			/executeHeuristics/ [post]
-//func (s *Server) handlerHeuristicsExecution() http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		reply, status := getHeuristicExecutionReply(s.db, s.worker, r, s.workspaceMutex)
-//
-//		SendReply(w, reply, status)
-//	})
-//}
 
 // Shortest Transaction Path godoc
 //
@@ -871,12 +850,8 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
 
 	// heuristic
-	//s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
-	//	s.adapt(s.handlerHeuristicByWorkID(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicDetails, ""),
 		s.adapt(s.handlerHeuristicsDetails(), s.authorization(), mw.MaxBody5MiB()))
-	//s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicsExecution, ""),
-	//	s.adapt(s.handlerHeuristicsExecution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicReport, ""),
 		s.adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
 
@@ -943,6 +918,8 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerAddWorkspaceNote(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceSelector, ""),
 		s.adapt(s.handlerAddWorkspaceSelector(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorStatus, ""),
+		s.adapt(s.handlerSelectorByUID(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspacesNode, ""),
 		s.adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, ""),
