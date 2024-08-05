@@ -58,8 +58,8 @@ const checkBoxModel = ref(false);
 
 // Computed
 const isWorkspaceMode = computed(() => workspaceStore.getIsWorkspaceActive
-  && (props.to.name === ROUTE_NAME_TRANSACTION_PAGE || props.to.name === ROUTE_NAME_ADDRESS_PAGE)
-  && Boolean(props.to.params?.id));
+	&& (props.to.name === ROUTE_NAME_TRANSACTION_PAGE || props.to.name === ROUTE_NAME_ADDRESS_PAGE)
+	&& Boolean(props.to.params?.id));
 
 // Watchers
 // keep state of checkbox in sync with store

@@ -439,7 +439,7 @@ async function deleteIdentity(identity) {
 	closeDeletionDialog();
 }
 
-function 	closeDeletionDialog() {
+function closeDeletionDialog() {
 	showDeleteIdentityDialog.value = false;
 	identityToDelete.value = null;
 }

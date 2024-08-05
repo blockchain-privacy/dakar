@@ -277,7 +277,7 @@ const contextMenuModel = ref({
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
 			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC
-        || nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
+			|| nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},

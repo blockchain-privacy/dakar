@@ -195,9 +195,11 @@ function onAddEntity() {
 }
 
 function onFilterChanged() {
-	emit('filterChanged',
+	emit(
+		'filterChanged',
 		nodeFilters.value.map(d => props.nodeTypeItems[d].text),
-		privacyFilters.value.map(d => props.privacyTypeItems[d].text));
+		privacyFilters.value.map(d => props.privacyTypeItems[d].text),
+	);
 }
 
 </script>

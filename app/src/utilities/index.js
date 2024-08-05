@@ -35,7 +35,7 @@ export function getLocalSettings() {
 export function shortenHash(hash) {
 	const elementLen = 17;
 
-	if (hash.length < elementLen * 2 + 3) {
+	if (hash.length < (elementLen * 2) + 3) {
 		return hash;
 	}
 
@@ -153,8 +153,8 @@ export function isValidQuery(str) {
 
 function isRole(session, roleName) {
 	return Boolean(session && session.identity && session.identity.metadata_public
-    && session.identity.metadata_public.roles
-    && session.identity.metadata_public.roles.some(d => d === roleName));
+		&& session.identity.metadata_public.roles
+		&& session.identity.metadata_public.roles.some(d => d === roleName));
 }
 
 export function isPrivilegedIdentity(session) {

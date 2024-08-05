@@ -231,9 +231,9 @@ const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
 	databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
 	databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
-    + 'Clustering is ongoing if the icon is green.',
+	+ 'Clustering is ongoing if the icon is green.',
 	databaseClusteringFMI: 'Percentage of flat multi-input clustered blocks in the database. '
-    + 'Clustering is ongoing if the icon is green.',
+	+ 'Clustering is ongoing if the icon is green.',
 	rpcDifficulty: 'Current mining difficulty',
 	rpcPruned: 'Whether the RPC client prunes blocks',
 	rpcVerificationProgress: 'Estimate of verification progress of the RPC client',

@@ -11,7 +11,7 @@ import {format} from 'd3-format';
 // AddPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
 	const newDate = new Date(date);
-	newDate.setTime(newDate.getTime() + duration * percentage);
+	newDate.setTime(newDate.getTime() + (duration * percentage));
 	return newDate;
 }
 

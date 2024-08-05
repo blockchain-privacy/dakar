@@ -191,24 +191,24 @@ onUpdated(async () => {
 		if (
 		// Cluster <-> cluster
 			(connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-      && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
-      // Cluster <-> transaction
-      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
-      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
-      // Cluster <-> transaction
-      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
-      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
-      // Heuristic <-> transaction
-      || (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
-        && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+			// Cluster <-> transaction
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
+			// Cluster <-> transaction
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+			// Heuristic <-> transaction
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		) {
 			await getConnectionData();
 		} else if (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
-      && connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+		&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 			await getTransactionData();
 		} else {
 			showEmptyText.value = true;
@@ -330,8 +330,7 @@ async function getTransactionData() {
 	transactions.value = null;
 
 	try {
-		const response = await dakar.data.blockchainTransactionsHashGet(
-			{hash: connectionSource.value.transactionHash});
+		const response = await dakar.data.blockchainTransactionsHashGet({hash: connectionSource.value.transactionHash});
 
 		if (response.transactions) {
 			transactions.value = response.transactions;

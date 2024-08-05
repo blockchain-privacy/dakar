@@ -93,7 +93,7 @@ function dragEnded(event, context) {
 
 	// Call callback only if dragged at least the minimum distance
 	if (context.dragEndCallback !== null
-    && (Math.abs(context.dragStartX - event.x) > 3 || Math.abs(context.dragStartY - event.y) > 3)) {
+		&& (Math.abs(context.dragStartX - event.x) > 3 || Math.abs(context.dragStartY - event.y) > 3)) {
 		context.dragEndCallback();
 	}
 }
@@ -676,8 +676,8 @@ export default class NodeGraph {
 
 		const width = maxX - minX;
 		const height = maxY - minY;
-		const centerX = minX + width / 2;
-		const centerY = minY + height / 2;
+		const centerX = minX + (width / 2);
+		const centerY = minY + (height / 2);
 
 		this.#rootSvg.transition().duration(250).call(this.#zoom.translateTo, centerX, centerY);
 	}
@@ -696,21 +696,21 @@ export default class NodeGraph {
 		const textHeight = 12;
 		const iconWidth = 12;
 		const iconMargin = 1;
-		const iconY = this.#nodeRadius + textHeight + textAreaMargin * 2;
+		const iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
 
 		// Remove all children
 		iconGroup.selectAll('*').remove();
 
 		icons.forEach((icon, i) => {
 			iconGroup.append('path')
-				.attr('transform', `translate(${iconWidth * i + iconMargin * i},${iconY}) scale(0.45,0.45)`)
+				.attr('transform', `translate(${(iconWidth * i) + (iconMargin * i)},${iconY}) scale(0.45,0.45)`)
 				.attr('fill', 'currentColor')
 				.attr('d', icon);
 		});
 
 		if (parameter) {
 			iconGroup.append('text')
-				.attr('transform', `translate(${iconWidth * icons.length + iconMargin * icons.length},${iconY + 9})`)
+				.attr('transform', `translate(${(iconWidth * icons.length) + (iconMargin * icons.length)},${iconY + 9})`)
 				.attr('font-size', 10)
 				.style('cursor', 'default')
 				.attr('fill', 'currentColor')
@@ -729,10 +729,14 @@ export default class NodeGraph {
 			entityGroup = groupElement.append('g');
 		}
 
-		this.drawNodes(groupElement.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
-			entityGroup.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE));
-		this.drawNotes(groupElement.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
-			entityGroup.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE));
+		this.drawNodes(
+			groupElement.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
+		);
+		this.drawNotes(
+			groupElement.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
+		);
 	}
 
 	drawNotes(groupElement, entityGroup) {
@@ -754,7 +758,7 @@ export default class NodeGraph {
 				const nodeRect = this.getBBox();
 				d.bbHeight = nodeRect.height;
 				d.bbWidth = nodeRect.width;
-				d3Select(this).attr('y', -nodeRect.height / 2 - 2);
+				d3Select(this).attr('y', -(nodeRect.height / 2) - 2);
 			});
 
 		entityGroup.append('rect')
@@ -1120,8 +1124,7 @@ export default class NodeGraph {
 				dragEnded(e, self);
 			})
 			.filter(e => !e.ctrlKey && !e.shiftKey && !e.button)
-			.clickDistance(3),
-		);
+			.clickDistance(3));
 	}
 
 	// Draws the state of the graph, returns all newly added nodes
@@ -1200,20 +1203,22 @@ export default class NodeGraph {
 		const node = this.#nodeGroup
 			.selectAll('.nodeContainer')
 			.data(nodes, d => d.uid)
-			.join(enter => {
-				const g = enter.append('g');
-				this.drawEntities(g);
-				this.#newNodes = g;
-				return g;
-			},
-			update => {
-				if (this.#changedData.size > 0) {
+			.join(
+				enter => {
+					const g = enter.append('g');
+					this.drawEntities(g);
+					this.#newNodes = g;
+					return g;
+				},
+				update => {
+					if (this.#changedData.size > 0) {
 					// Do drawing only for actually updated nodes
-					this.drawEntities(update.filter(d => this.#changedData.has(d.uid)));
-				}
+						this.drawEntities(update.filter(d => this.#changedData.has(d.uid)));
+					}
 
-				return update;
-			})
+					return update;
+				},
+			)
 			.classed('nodeContainer', true)
 			.each(d => {
 				// Exclude every node from force simulation
@@ -1254,7 +1259,7 @@ export default class NodeGraph {
 		const scaleHeight = (svgBoundingRect.height - 120) / rgBoundingRect.height;
 		const scaleWidth = (svgBoundingRect.width - 100) / rgBoundingRect.width;
 
-		this.#rootSvg.call(this.#zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
+		this.#rootSvg.call(this.#zoom.translateTo, rgBoundingBox.x + (rgBoundingBox.width / 2), rgBoundingBox.y + (rgBoundingBox.height / 2));
 
 		const scaleBy = Math.min(scaleHeight, scaleWidth);
 
