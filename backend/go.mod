@@ -5,7 +5,6 @@ go 1.22.4
 require (
 	github.com/btcsuite/btcd v0.24.2
 	github.com/dgraph-io/dgo/v230 v230.0.1
-	github.com/dgraph-io/ristretto v0.1.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/qrest/gomisc v0.0.10
 	github.com/stretchr/testify v1.9.0
@@ -23,6 +22,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.2.2 // indirect
