@@ -22,7 +22,7 @@ type SelectorWork struct {
 }
 
 type Options interface {
-	workspace.Options | dbHeuristic.Config
+	workspace.Options | dbHeuristic.Options
 }
 
 func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
@@ -144,7 +144,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	var parentIndex int
 	var parentNode *db.UIDNode
 	if selectorType == workspace.TypeHeuristic {
-		opt, ok := any(options).(dbHeuristic.Config)
+		opt, ok := any(options).(dbHeuristic.Options)
 		if !ok {
 			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
@@ -256,7 +256,7 @@ func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
 		return nil, serror.FromStrWithContext("empty selector options", "item", item)
 	}
 
-	var opt dbHeuristic.Config
+	var opt dbHeuristic.Options
 	if err := json.Unmarshal([]byte(item.SelectorOptions), &opt); err != nil {
 		return nil, err
 	}

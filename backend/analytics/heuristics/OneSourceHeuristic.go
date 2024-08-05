@@ -17,7 +17,7 @@ type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookBackTime         time.Duration
-	c                    heuristics.Config
+	c                    heuristics.Options
 }
 
 func newOneSourceHeuristic() heuristic {
@@ -32,7 +32,7 @@ func (h *oneSourceHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *oneSourceHeuristic) setConfig(c heuristics.Config) error {
+func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -53,7 +53,7 @@ func (h *oneSourceHeuristic) setConfig(c heuristics.Config) error {
 	return nil
 }
 
-func (h *oneSourceHeuristic) getConfig() heuristics.Config {
+func (h *oneSourceHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 

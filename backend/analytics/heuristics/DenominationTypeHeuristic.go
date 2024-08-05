@@ -14,7 +14,7 @@ import (
 type denominationTypeHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	c                    heuristics.Config
+	c                    heuristics.Options
 }
 
 func newDenominationTypeHeuristic() heuristic {
@@ -29,7 +29,7 @@ func (h *denominationTypeHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *denominationTypeHeuristic) setConfig(c heuristics.Config) error {
+func (h *denominationTypeHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -43,7 +43,7 @@ func (h *denominationTypeHeuristic) setConfig(c heuristics.Config) error {
 	return nil
 }
 
-func (h *denominationTypeHeuristic) getConfig() heuristics.Config {
+func (h *denominationTypeHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 

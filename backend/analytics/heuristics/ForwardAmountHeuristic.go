@@ -15,7 +15,7 @@ import (
 
 // forwardAmountHeuristic - see exec for description
 type forwardAmountHeuristic struct {
-	c                    heuristics.Config
+	c                    heuristics.Options
 	heuristicType        string
 	parameterDescription string
 	lookForwardTime      time.Duration
@@ -33,7 +33,7 @@ func (h *forwardAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *forwardAmountHeuristic) setConfig(c heuristics.Config) error {
+func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -54,7 +54,7 @@ func (h *forwardAmountHeuristic) setConfig(c heuristics.Config) error {
 	return nil
 }
 
-func (h *forwardAmountHeuristic) getConfig() heuristics.Config {
+func (h *forwardAmountHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 

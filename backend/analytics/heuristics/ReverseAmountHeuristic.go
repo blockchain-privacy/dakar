@@ -14,7 +14,7 @@ import (
 type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	c                    heuristics.Config
+	c                    heuristics.Options
 }
 
 func newReverseAmountHeuristic() heuristic {
@@ -29,7 +29,7 @@ func (h *reverseAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *reverseAmountHeuristic) setConfig(c heuristics.Config) error {
+func (h *reverseAmountHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -43,7 +43,7 @@ func (h *reverseAmountHeuristic) setConfig(c heuristics.Config) error {
 	return nil
 }
 
-func (h *reverseAmountHeuristic) getConfig() heuristics.Config {
+func (h *reverseAmountHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 

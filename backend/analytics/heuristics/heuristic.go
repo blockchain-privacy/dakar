@@ -89,9 +89,9 @@ type heuristic interface {
 	// This string is saved in the database.
 	getParameterString() string
 	// setConfig applies the provided configuration values
-	setConfig(heuristics.Config) error
+	setConfig(heuristics.Options) error
 	// getConfig returns the configuration of the heuristic
-	getConfig() heuristics.Config
+	getConfig() heuristics.Options
 	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
 	GetDescriptor() Descriptor
 }
@@ -200,7 +200,7 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration, exclusions []string, c heuristics.Config) (
+	lookBackTime time.Duration, exclusions []string, c heuristics.Options) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, c.ExcludeSpendingGaps)
@@ -216,7 +216,7 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 // getDestinationTxOrigins returns all origins of the given
 // transaction, limited to a look back time of 90 days.
 func getDestinationTxOrigins(ctx context.Context, dgraph external.Database,
-	g *graph.Wrapper, txHash string, c heuristics.Config) ([]heuristics.HeuristicTransaction,
+	g *graph.Wrapper, txHash string, c heuristics.Options) ([]heuristics.HeuristicTransaction,
 	map[heuristics.ClusterUID][]string, error) {
 	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(ctx, dgraph, g, txHash, time.Hour*24*90, c)
 	if err != nil {
@@ -228,7 +228,7 @@ func getDestinationTxOrigins(ctx context.Context, dgraph external.Database,
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
 func getDestinationTxOriginsTimeLimited(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	txHash string, dur time.Duration, c heuristics.Config) (
+	txHash string, dur time.Duration, c heuristics.Options) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// get uid for txhash
 	uid, err := db.GetTransactionUID(ctx, dgraph, txHash)
@@ -316,7 +316,7 @@ type Executor struct {
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(config heuristics.Config, userUID string, parentUID string) (executor Executor, err error) {
+func ConstructExecutors(config heuristics.Options, userUID string, parentUID string) (executor Executor, err error) {
 	constructor, ok := ConstructorMap[config.Type]
 	if !ok {
 		err = serror.New(errHeuristicNotValid)

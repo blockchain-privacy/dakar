@@ -96,8 +96,7 @@ func (h HeuristicTransaction) String() string {
 		h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
-// todo change to Options
-type Config struct {
+type Options struct {
 	// Type is the type of the heuristic
 	Type      string `json:"type,omitempty"`
 	Parameter string `json:"parameter,omitempty"`
@@ -114,17 +113,17 @@ type Config struct {
 	UserUID string `json:"-"`
 }
 
-func (c Config) String() string {
+func (c Options) String() string {
 	return fmt.Sprintf("Transaction Hash: %s, Parameter: %s, cluster type: %v, exclude addresses: %v, exclude spending gaps: %v",
 		c.TransactionHash, c.Parameter, c.ClusterTypes, c.ExcludeAddresses, c.ExcludeSpendingGaps)
 }
 
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
-	UID                string  `json:"uid,omitempty"`
-	Type               string  `json:"type,omitempty"`
-	ParentHeuristicUID string  `json:"parentUID,omitempty"`
-	Configuration      *Config `json:"config"`
+	UID                string   `json:"uid,omitempty"`
+	Type               string   `json:"type,omitempty"`
+	ParentHeuristicUID string   `json:"parentUID,omitempty"`
+	Configuration      *Options `json:"config"`
 }
 
 type FrontendTransactionResult struct {

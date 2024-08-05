@@ -17,7 +17,7 @@ import (
 type reverseLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	c                    heuristics.Config
+	c                    heuristics.Options
 	lookBackTime         time.Duration
 }
 
@@ -33,7 +33,7 @@ func (h *reverseLookupHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *reverseLookupHeuristic) setConfig(c heuristics.Config) error {
+func (h *reverseLookupHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -54,7 +54,7 @@ func (h *reverseLookupHeuristic) setConfig(c heuristics.Config) error {
 	return nil
 }
 
-func (h *reverseLookupHeuristic) getConfig() heuristics.Config {
+func (h *reverseLookupHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 

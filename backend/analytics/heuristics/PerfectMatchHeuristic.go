@@ -14,7 +14,7 @@ import (
 type perfectMatchHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	c                    heuristics.Config
+	c                    heuristics.Options
 }
 
 func newPerfectMatchHeuristic() heuristic {
@@ -29,7 +29,7 @@ func (h *perfectMatchHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *perfectMatchHeuristic) setConfig(c heuristics.Config) error {
+func (h *perfectMatchHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -43,7 +43,7 @@ func (h *perfectMatchHeuristic) setConfig(c heuristics.Config) error {
 	return nil
 }
 
-func (h *perfectMatchHeuristic) getConfig() heuristics.Config {
+func (h *perfectMatchHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 

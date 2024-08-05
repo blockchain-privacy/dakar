@@ -388,11 +388,11 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	}
 
 	type request struct {
-		Type             string              `json:"type"`
-		Parent           string              `json:"parent"`
-		HeuristicOptions *dbHeuristic.Config `json:"heuristicOptions,omitempty"`
-		SelectorOptions  *dbwork.Options     `json:"selectorOptions,omitempty"`
-		WorkspaceUID     string              `json:"workspaceUID"`
+		Type             string               `json:"type"`
+		Parent           string               `json:"parent"`
+		HeuristicOptions *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
+		SelectorOptions  *dbwork.Options      `json:"selectorOptions,omitempty"`
+		WorkspaceUID     string               `json:"workspaceUID"`
 	}
 
 	var selectorRequest request
