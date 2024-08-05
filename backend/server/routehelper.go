@@ -97,13 +97,14 @@ type metaReply struct {
 	Blocks *int64                 `json:"blocks,omitempty"`
 }
 
-type heuristicByWorkIDReply struct {
-	Nodes []workspace.Node `json:"nodes,omitempty"`
-}
-
-type heuristicExecutionReply struct {
-	WorkID string `json:"workID"`
-}
+// todo remove
+//type heuristicByWorkIDReply struct {
+//	Nodes []workspace.Node `json:"nodes,omitempty"`
+//}
+//
+//type heuristicExecutionReply struct {
+//	WorkID string `json:"workID"`
+//}
 
 type addWorkspaceSelectorReply struct {
 	SelectorUID string `json:"selectorUID"`

@@ -191,6 +191,7 @@ type Node struct {
 	TransactionHash string `json:"transactionHash,omitempty"`
 	PrivacyType     *int   `json:"privacyType,omitempty"`
 
+	// todo remove
 	// heuristic
 	HeuristicType       string   `json:"heuristicType,omitempty"`
 	Parameter           string   `json:"heuristicParameter,omitempty"`

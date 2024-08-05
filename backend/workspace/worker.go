@@ -135,10 +135,10 @@ func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
 				return nil, err
 			}
 		case workspace.TypeHeuristic:
-			//workItems[i], err = NewHeuristicWork(item)
-			//if err != nil {
-			//	return nil, err
-			//}
+			workItems[i], err = NewHeuristicWork(item)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

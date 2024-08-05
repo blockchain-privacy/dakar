@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"backend/analytics/graph"
+	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbHeuristic "backend/db/analytics/heuristics"
@@ -17,6 +18,7 @@ type SelectorWork struct {
 	selectorUID  string
 	workspaceUID string
 	userUID      string
+	parentUID    string
 }
 
 type Options interface {
@@ -38,6 +40,7 @@ func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
 		workspaceUID: item.WorkspaceUID,
 		userUID:      item.UserUID,
 		selectorUID:  item.SelectorUID,
+		parentUID:    item.ParentUID,
 	}, nil
 }
 
@@ -46,6 +49,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
+	// 1. Do work
 	var err error
 	status := workspace.StatusSuccess
 	var newNodes []db.UIDNode
@@ -61,6 +65,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 		warn(err, "options", s.opt)
 	}
 
+	// 2. Store work
 	if updateErr := workspace.UpdateSelector(ctx, c, &workspace.Selector{
 		UID:     s.selectorUID,
 		Type:    workspace.TypeTransactionProperties,
@@ -73,7 +78,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	lock := workspaceMutex.Lock(s.workspaceUID)
 	defer lock.Unlock()
 
-	// update workspace
+	// 3. Update workspace
 	w, err := workspace.GetFrontendWorkspace(ctx, c, s.workspaceUID, s.userUID)
 	if err != nil {
 		return err
@@ -194,4 +199,104 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	}
 
 	return selectorUID, nil
+}
+
+type HeuristicWork struct {
+	executor     heuristics.Executor
+	workspaceUID string
+	selectorUID  string
+	userUID      string
+}
+
+// Run processes the heuristic and inserts it into the workspace
+func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *graph.Wrapper) error {
+	newHeuristic, err := h.executor.Run(dgraph, g)
+	if err != nil {
+		return err
+	}
+
+	lock := workspaceMutex.Lock(h.workspaceUID)
+	defer lock.Unlock()
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	newHeuristicUID, err := dbHeuristic.InsertHeuristic(dgraph, newHeuristic, h.userUID, h.workspaceUID)
+	if err != nil {
+		return err
+	}
+
+	// update workspace
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, h.workspaceUID, h.userUID)
+	if err != nil {
+		return err
+	}
+
+	nodeMap, notes := separateNodes(w.Nodes)
+
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, h.userUID, h.workspaceUID)
+	if err != nil {
+		return err
+	}
+
+	// try to set node position
+	if newNode, ok := nodeMap[newHeuristicUID]; ok {
+		// todo set actual status
+		newNode.SelectorStatus = workspace.StatusSuccess
+		nodeMap[newHeuristicUID] = newNode
+	}
+
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
+
+	return encodeAndStoreWorkspaceState(ctx, dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight)
+}
+
+func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
+	if item.SelectorOptions == "" {
+		return nil, serror.FromStrWithContext("empty selector options", "item", item)
+	}
+
+	var opt dbHeuristic.Config
+	if err := json.Unmarshal([]byte(item.SelectorOptions), &opt); err != nil {
+		return nil, err
+	}
+
+	executor, err := heuristics.ConstructExecutors(opt, item.UserUID, item.ParentUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &HeuristicWork{
+		executor:     executor,
+		workspaceUID: item.WorkspaceUID,
+		userUID:      item.UserUID,
+		selectorUID:  item.SelectorUID,
+	}, nil
+}
+
+func getHeuristicParent(parentheuristicUID string, txHash string, nodes []workspace.Node) (int, *db.UIDNode, error) {
+	// find the index of the hew heuristic's parent
+	parentIndex := -1
+	if parentheuristicUID == "" {
+		for i, n := range nodes {
+			if n.TransactionHash == txHash {
+				parentIndex = i
+				break
+			}
+		}
+	} else {
+		for i, n := range nodes {
+			if n.UID == parentheuristicUID {
+				parentIndex = i
+				break
+			}
+		}
+	}
+
+	// no parent found
+	if parentIndex == -1 {
+		return parentIndex, nil, serror.FromStr("could not determine parent for new heuristic")
+	}
+
+	return parentIndex, &db.UIDNode{UID: nodes[parentIndex].UID}, nil
 }

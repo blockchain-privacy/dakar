@@ -98,6 +98,8 @@ func (h HeuristicTransaction) String() string {
 
 // todo change to Options
 type Config struct {
+	// Type is the type of the heuristic
+	Type      string `json:"type,omitempty"`
 	Parameter string `json:"parameter,omitempty"`
 	// ClusterTypes are used to cluster the results of the heuristic.
 	// If cluster types are set to nil, the result will not be clustered.

@@ -491,7 +491,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 // Add Selector godoc
 //
 //	@Summary		Adds a new selector to a workspace
-//	@Description	Adds a new selector to a workspace. The selector will be executed eventually.
+//	@Description	Adds a new selector to a workspace. The selector will be executed eventually and the results stored in the database. Only one options parameter may be set.
 //	@Tags			workspace
 //	@Produce		json
 //	@Accept			json

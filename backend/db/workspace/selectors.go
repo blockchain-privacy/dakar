@@ -397,6 +397,7 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 					uid
 					Selector.type
 					Selector.options
+					Selector.parent{uid}
 					~Workspace.selectors{
 						uid
 						~User.workspaces{uid}
@@ -411,9 +412,10 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 
 	var r struct {
 		Selectors []struct {
-			UID       string `json:"uid,omitempty"`
-			Type      string `json:"Selector.type,omitempty"`
-			Options   string `json:"Selector.options,omitempty"`
+			UID       string      `json:"uid,omitempty"`
+			Type      string      `json:"Selector.type,omitempty"`
+			Options   string      `json:"Selector.options,omitempty"`
+			Parent    *db.UIDNode `json:"Selector.parent,omitempty"`
 			Workspace []struct {
 				UID  string       `json:"uid,omitempty"`
 				User []db.UIDNode `json:"~User.workspaces,omitempty"`
@@ -431,9 +433,15 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 			return nil, serror.FromStr("invalid workspace or user UID")
 		}
 
+		var parentUID string
+		if s.Parent != nil {
+			parentUID = s.Parent.UID
+		}
+
 		items[i] = WorkItem{
 			UserUID:         s.Workspace[0].User[0].UID,
 			WorkspaceUID:    s.Workspace[0].UID,
+			ParentUID:       parentUID,
 			SelectorUID:     s.UID,
 			SelectorType:    s.Type,
 			SelectorOptions: s.Options,

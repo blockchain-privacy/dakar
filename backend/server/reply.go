@@ -239,7 +239,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 	}, http.StatusOK
 }
 
-//
+// todo remove
 //func getHeuristicByWorkIDReply(dgraph external.Database, worker *worker.Worker,
 //	r *http.Request) (reply heuristicByWorkIDReply, status int) {
 //	tUser, err := extractTokenUser(r.Context())
@@ -391,7 +391,7 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 		Type             string              `json:"type"`
 		Parent           string              `json:"parent"`
 		HeuristicOptions *dbHeuristic.Config `json:"heuristicOptions,omitempty"`
-		SelectorOptions  *dbwork.Options     `json:"options,omitempty"`
+		SelectorOptions  *dbwork.Options     `json:"selectorOptions,omitempty"`
 		WorkspaceUID     string              `json:"workspaceUID"`
 	}
 

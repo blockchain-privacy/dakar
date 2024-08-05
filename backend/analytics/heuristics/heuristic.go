@@ -316,13 +316,8 @@ type Executor struct {
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(heuristicRequest heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
-	if heuristicRequest.Configuration == nil {
-		err = serror.FromFormat("heuristic configuration is nil: %v", heuristicRequest)
-		return
-	}
-
-	constructor, ok := ConstructorMap[heuristicRequest.Type]
+func ConstructExecutors(config heuristics.Config, userUID string, parentUID string) (executor Executor, err error) {
+	constructor, ok := ConstructorMap[config.Type]
 	if !ok {
 		err = serror.New(errHeuristicNotValid)
 		return
@@ -330,15 +325,15 @@ func ConstructExecutors(heuristicRequest heuristics.DatabaseHeuristicRequest, us
 
 	// copy parameters from heuristic request into newly created heuristic
 	clonedHeuristic := constructor()
-	c := heuristicRequest.Configuration
+	c := config
 	c.UserUID = userUID
-	if err = clonedHeuristic.setConfig(*c); err != nil {
+	if err = clonedHeuristic.setConfig(c); err != nil {
 		return
 	}
 
 	executor = Executor{
 		thisHeuristic: clonedHeuristic,
-		rootUID:       heuristicRequest.ParentHeuristicUID,
+		rootUID:       parentUID,
 	}
 
 	return
