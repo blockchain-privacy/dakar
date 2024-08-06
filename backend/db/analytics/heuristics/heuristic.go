@@ -99,8 +99,8 @@ func DeleteAllHeuristics(c external.Database) error {
 	return nil
 }
 
-// GetHeuristicResults returns the connected transactions of heuristic
-func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction,
+// GetHeuristicTransactions returns the connected transactions of heuristic
+func GetHeuristicTransactions(c external.Database, heuristicUID string) (results []HeuristicTransaction,
 	attributionMap map[ClusterUID][]string, err error) {
 	const query = `query Q($uid:string) {
 				var (func: uid($uid)){ x as Heuristic.clusters }
@@ -108,11 +108,9 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 				q(func: uid(x)){
 					uid
 					HeuristicCluster.results{
-						HeuristicResult.origin{
-							uid
-							tx_outputs{
-								amount
-							}
+						uid
+						tx_outputs{
+							amount
 						}
 					}
 					HeuristicCluster.attributions{
@@ -131,10 +129,8 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 		Clusters []struct {
 			UID     ClusterUID `json:"uid,omitempty"`
 			Results []struct {
-				Origin struct {
-					UID     string            `json:"uid,omitempty"`
-					Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-				} `json:"HeuristicResult.origin,omitempty"`
+				UID     string            `json:"uid,omitempty"`
+				Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
 			Attributions []db.UIDNode `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`
@@ -151,9 +147,9 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 		thisClusterID := ClusterUID(strconv.FormatInt(clusterCounter, 10))
 		for _, result := range cluster.Results {
 			results = append(results, HeuristicTransaction{
-				UID:     result.Origin.UID,
+				UID:     result.UID,
 				Cluster: thisClusterID,
-				Outputs: result.Origin.Outputs,
+				Outputs: result.Outputs,
 			})
 		}
 

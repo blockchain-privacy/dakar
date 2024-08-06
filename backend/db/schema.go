@@ -14,7 +14,7 @@ import (
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the the schema version.
-const SchemaVersion uint64 = 7
+const SchemaVersion uint64 = 8
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -117,36 +117,6 @@ func SetupSchema(c external.Database) error {
 			type CFMIStatus {
 				isclustering
 				lastclusteredid
-			}
-
-			Heuristic.type: string @index(hash) .
-			Heuristic.parameter: string .
-			Heuristic.transaction: uid @reverse .
-			Heuristic.clusters: [uid] @count @reverse .
-			Heuristic.parent: [uid] @reverse .
-			Heuristic.ts: dateTime @index(day) .
-			Heuristic.clusterTypes: [string] .
-			Heuristic.excludeAddresses: bool .
-			Heuristic.excludeSpendingGaps: bool .
-
-			type Heuristic {
-				Heuristic.type
-				Heuristic.parameter
-				Heuristic.transaction
-				Heuristic.clusters
-				Heuristic.ts
-				Heuristic.parent
-				Heuristic.clusterTypes
-				Heuristic.excludeAddresses
-				Heuristic.excludeSpendingGaps
-			}
-
-			HeuristicResult.origin: uid @reverse .
-			HeuristicResult.destinations: [uid] @reverse .
-
-			type HeuristicResult {
-				HeuristicResult.origin
-				HeuristicResult.destinations
 			}
 
 			HeuristicCluster.results: [uid] @reverse .

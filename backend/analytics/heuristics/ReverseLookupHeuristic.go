@@ -99,7 +99,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 	if parentHeuristicSet {
 		// get origins from parent heuristic
-		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, err
 		}

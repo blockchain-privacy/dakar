@@ -251,4 +251,28 @@ func main() {
 		return
 	}
 	info("increased schema version")
+
+	info("deleting Heuristic type starting ...")
+	err = db.DropTypeHeuristic(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("deleting Heuristic type finished")
+
+	info("deleting HeuristicResult type starting ...")
+	err = db.DropTypeHeuristicResult(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("deleting HeuristicResult type finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 8)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
 }

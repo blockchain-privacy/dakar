@@ -103,7 +103,7 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
-			results, resultAttributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, resultAttributionMap, err = heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, err
 			}

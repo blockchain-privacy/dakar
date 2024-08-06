@@ -125,3 +125,46 @@ func AlterSchemaRemoveUserHeuristics(c external.Database) error {
 			}`,
 	})
 }
+
+func DropTypeHeuristic(c external.Database) error {
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.type"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.parameter"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.transaction"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.clusters"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.parent"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.ts"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.clusterTypes"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.excludeAddresses"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.excludeSpendingGaps"}); err != nil {
+		return err
+	}
+
+	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "Heuristic"})
+}
+
+func DropTypeHeuristicResult(c external.Database) error {
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "HeuristicResult.origin"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "HeuristicResult.destinations"}); err != nil {
+		return err
+	}
+
+	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "HeuristicResult"})
+}
