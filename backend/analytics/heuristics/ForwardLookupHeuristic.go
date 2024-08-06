@@ -130,7 +130,7 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for _, o := range results {
 		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime,
 			exclusions, h.c.ExcludeSpendingGaps)
@@ -138,15 +138,12 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			return nil, err
 		}
 
-		result := heuristics.HeuristicResult{
-			Origin: db.UIDNode{UID: o.UID},
-		}
-
+		result := make([]db.UIDNode, 0, len(uidMap))
 		for k := range uidMap {
-			result.Destinations = append(result.Destinations, db.UIDNode{UID: k})
+			result = append(result, db.UIDNode{UID: k})
 		}
 
-		resultClusters[o.Cluster] = append(resultClusters[o.Cluster], result)
+		resultClusters[o.Cluster] = result
 	}
 
 	return createHeuristicClusters(resultClusters, resultAttributionMap), nil

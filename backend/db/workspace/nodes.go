@@ -72,12 +72,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 						uid
 						results: Selector.results{
 							HeuristicCluster.results{
-								HeuristicResult.destinations{
-									...fTxCluster
-								}
-								HeuristicResult.origin{
-									...fTxCluster
-								}
+								...fTxCluster
 							}
 						}
 					}
@@ -145,10 +140,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 						options: Selector.options
 						resultCount: count(Selector.results)
 						results: Selector.results{
-							HeuristicCluster.results{
-								HeuristicResult.origin@filter(uid(t)){uid}
-								HeuristicResult.destinations@filter(uid(t)){uid}
-							}
+							HeuristicCluster.results@filter(uid(t)){uid}
 						}
 					}
 				}
@@ -222,14 +214,12 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		heuristicClusters := map[string]bool{}
 		for _, heuristicCluster := range heuristic.Clusters {
 			for _, result := range heuristicCluster.Results {
-				for _, tx := range append(result.Destinations, result.Origin) {
-					for _, input := range tx.Inputs {
-						for _, address := range input.Addresses {
-							for _, cluster := range address.Clusters {
-								// find corresponding address UID and set it connected to this transaction
-								if addressUID, ok := clusterToAddress[cluster.UID]; ok {
-									heuristicClusters[addressUID] = true
-								}
+				for _, input := range result.Inputs {
+					for _, address := range input.Addresses {
+						for _, cluster := range address.Clusters {
+							// find corresponding address UID and set it connected to this transaction
+							if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+								heuristicClusters[addressUID] = true
 							}
 						}
 					}
@@ -257,10 +247,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		// add connections between heuristics and their found origins
 		for _, cluster := range h.Clusters {
 			for _, result := range cluster.Results {
-				children = append(children, result.Origin.UID)
-				for _, destination := range result.Destinations {
-					children = append(children, destination.UID)
-				}
+				children = append(children, result.UID)
 			}
 		}
 
@@ -574,32 +561,21 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.heuristics@filter(uid($heuristic))
+					h as Workspace.selectors@filter(uid($heuristic))
 				}
 			}
 			
 			# find fmi cluster for address
 			var(func: uid($cluster))@filter(has(addresshash)){
-				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
-					uid
-				}
+				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 			}
 			
 			heuristic_clusters(func: uid(h)){
 				Heuristic.clusters{
-					HeuristicCluster.results{
-						# todo show only transaction which connects to cluster
-						HeuristicResult.destinations@cascade{
-							uid
-							tx_inputs(first:1){
-								...fGetCluster
-							}
-						}
-						HeuristicResult.origin@cascade{
-							uid
-							tx_inputs(first:1){
-								...fGetCluster
-							}
+					HeuristicCluster.results@cascade{
+						uid
+						tx_inputs(first:1){
+							...fGetCluster
 						}
 					}
 				}
@@ -626,10 +602,7 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 	var r struct {
 		HeuristicClusters []struct {
 			Clusters []struct {
-				Results []struct {
-					Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
-					Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
-				} `json:"HeuristicCluster.results,omitempty"`
+				Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
 			} `json:"Heuristic.clusters,omitempty"`
 		} `json:"heuristic_clusters,omitempty"`
 	}
@@ -651,10 +624,7 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 
 	transactionMap := map[string]bool{}
 	for _, results := range r.HeuristicClusters[0].Clusters[0].Results {
-		for _, destination := range results.Destinations {
-			transactionMap[destination.UID] = true
-		}
-		transactionMap[results.Origin.UID] = true
+		transactionMap[results.UID] = true
 	}
 
 	if len(transactionMap) > 0 {
@@ -849,7 +819,7 @@ func GetConnectionHeuristicToTransaction(ctx context.Context, c external.Databas
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.heuristics@filter(uid($heuristic))
+					h as Workspace.selectors@filter(uid($heuristic))
 				}
 			}
 
@@ -858,27 +828,15 @@ func GetConnectionHeuristicToTransaction(ctx context.Context, c external.Databas
 			# get all cluster of heuristic
 			var(func: uid(h)){
 				Heuristic.clusters{
-					HeuristicCluster.results{
-						# todo show only transaction which connects to cluster
-						HeuristicResult.destinations@filter(uid(t)){
-							tx_inputs(first:1){
-								~addr_outputs{
-									c1 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
-								}
-							}
-						}
-						HeuristicResult.origin@filter(uid(t)){
-							tx_inputs(first:1){
-								~addr_outputs{
-									c2 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
-								}
+					HeuristicCluster.results@filter(uid(t)){
+						tx_inputs(first:1){
+							~addr_outputs{
+								c as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 							}
 						}
 					}
 				}
 			}
-
-			c as var(func: uid(c1,c2))
 
 			q(func: uid(t)){
 				txhash

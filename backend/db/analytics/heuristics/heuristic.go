@@ -552,14 +552,9 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 
 				q(func: uid(c)){
 					HeuristicCluster.results{
-						HeuristicResult.origin@normalize{
-							txhash:txhash
-							~transactions{
-								ts:ts
-							}
-						}
-						HeuristicResult.destinations{
-							uid
+						txhash:txhash
+						~transactions{
+							ts:ts
 						}
 					}
 					HeuristicCluster.attributions {
@@ -579,12 +574,8 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 	// json struct
 	var r struct {
 		Clusters []struct {
-			Results []struct {
-				// Origin must be declared as an array because in the query @normalize is used
-				Origin       []FrontendTransactionResult `json:"HeuristicResult.origin,omitempty"`
-				Destinations []db.UIDNode                `json:"HeuristicResult.destinations,omitempty"`
-			} `json:"HeuristicCluster.results,omitempty"`
-			Attributions []Attribution `json:"HeuristicCluster.attributions,omitempty"`
+			Results      []FrontendTransactionResult `json:"HeuristicCluster.results,omitempty"`
+			Attributions []Attribution               `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -594,26 +585,8 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 	}
 
 	for _, cluster := range r.Clusters {
-		var origins []FrontendTransactionResult
-		destinationMap := make(map[string]bool)
-		for _, result := range cluster.Results {
-			if len(result.Origin) != 1 {
-				err = serror.FromStr("invalid response from database")
-				return
-			}
-
-			result.Origin[0].DestinationCount = len(result.Destinations)
-
-			origins = append(origins, result.Origin[0])
-
-			// collect destinations of all results in map
-			for _, destination := range result.Destinations {
-				destinationMap[destination.UID] = true
-			}
-		}
-
 		frontendHeuristic.Clusters = append(frontendHeuristic.Clusters, FrontendHeuristicCluster{
-			Transactions: origins,
+			Transactions: cluster.Results,
 			Attributions: cluster.Attributions,
 		})
 	}

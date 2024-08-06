@@ -166,10 +166,9 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	originAmounts := buildSourceAmounts(origins)
 
-	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for _, destinations := range clusterDestinations {
 		var clusterFilteredDestinations []db.UIDNode
-
 		for _, tx := range destinations.txs {
 			inputDenominationCounts := getDenominationCounts(tx)
 
@@ -179,19 +178,14 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		}
 
-		// get properties of a random origin of this cluster
-		var originUID string
+		// get cluster ID of a random origin of this cluster
 		var clusterID heuristics.ClusterUID
 		for _, v := range clusterOrigins[destinations.cluster] {
-			originUID = v.UID
 			clusterID = v.Cluster
 			break
 		}
 
-		resultClusters[clusterID] = append(resultClusters[clusterID], heuristics.HeuristicResult{
-			Origin:       db.UIDNode{UID: originUID},
-			Destinations: clusterFilteredDestinations,
-		})
+		resultClusters[clusterID] = clusterFilteredDestinations
 	}
 
 	return createHeuristicClusters(resultClusters, attributionMap), nil

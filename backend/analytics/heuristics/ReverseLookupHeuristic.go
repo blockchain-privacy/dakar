@@ -160,11 +160,9 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k, v := range allTimeLimitedOrigins {
-		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
-			Origin: db.UIDNode{UID: k},
-		})
+		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], db.UIDNode{UID: k})
 	}
 
 	if parentHeuristicSet {

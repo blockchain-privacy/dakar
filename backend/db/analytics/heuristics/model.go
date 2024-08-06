@@ -8,32 +8,13 @@ import (
 	"time"
 )
 
-// DType is the dgraph database type for the Heuristic type
-const DType = "Heuristic"
-
-// ResultDType is the dgraph database type for the HeuristicResult type
-const ResultDType = "HeuristicResult"
-
 // ClusterDType is the dgraph database type for the HeuristicCluster type
 const ClusterDType = "HeuristicCluster"
-
-// HeuristicResult holds one result (origin) of a heuristic and
-// optionally the results of a forward lookup (destinations)
-type HeuristicResult struct {
-	Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
-	Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
-	DType        []string     `json:"dgraph.type,omitempty"`
-}
-
-// SetDType sets the DType for dgraph type recognition
-func (r *HeuristicResult) SetDType() {
-	r.DType = []string{ResultDType}
-}
 
 // HeuristicCluster holds a set of results (origins) of a heuristic
 // which belong to the same cluster (or merged cluster) and its attributions
 type HeuristicCluster struct {
-	Results      []HeuristicResult         `json:"HeuristicCluster.results,omitempty"`
+	Results      []db.UIDNode              `json:"HeuristicCluster.results,omitempty"`
 	Attributions []attribution.Attribution `json:"HeuristicCluster.attributions,omitempty"`
 	DType        []string                  `json:"dgraph.type,omitempty"`
 }
@@ -101,9 +82,8 @@ type DatabaseHeuristicRequest struct {
 }
 
 type FrontendTransactionResult struct {
-	Timestamp        string `json:"ts,omitempty"`
-	Hash             string `json:"txhash,omitempty"`
-	DestinationCount int    `json:"destinationCount,omitempty"`
+	Timestamp string `json:"ts,omitempty"`
+	Hash      string `json:"txhash,omitempty"`
 }
 
 // FrontendHeuristicCluster holds the results counts of a heuristic per cluster

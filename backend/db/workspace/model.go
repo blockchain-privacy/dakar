@@ -102,20 +102,11 @@ type connectionRequest struct {
 		UID      string `json:"uid,omitempty"`
 		Clusters []struct {
 			Results []struct {
-				Destinations []struct {
-					Inputs []struct {
-						Addresses []struct {
-							Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
-						} `json:"~addr_outputs,omitempty"`
-					} `json:"tx_inputs,omitempty"`
-				} `json:"HeuristicResult.destinations,omitempty"`
-				Origin struct {
-					Inputs []struct {
-						Addresses []struct {
-							Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
-						} `json:"~addr_outputs,omitempty"`
-					} `json:"tx_inputs,omitempty"`
-				} `json:"HeuristicResult.origin,omitempty"`
+				Inputs []struct {
+					Addresses []struct {
+						Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
+					} `json:"~addr_outputs,omitempty"`
+				} `json:"tx_inputs,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
 		} `json:"results,omitempty"`
 	} `json:"heuristic_clusters,omitempty"`
@@ -152,10 +143,7 @@ type connectionRequest struct {
 		Children    []db.UIDNode `json:"children,omitempty"`
 		ResultCount *int         `json:"resultCount,omitempty"`
 		Clusters    []struct {
-			Results []struct {
-				Origin       db.UIDNode   `json:"HeuristicResult.origin,omitempty"`
-				Destinations []db.UIDNode `json:"HeuristicResult.destinations,omitempty"`
-			} `json:"HeuristicCluster.results,omitempty"`
+			Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
 		} `json:"results,omitempty"`
 	} `json:"heuristics,omitempty"`
 

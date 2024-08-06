@@ -712,8 +712,7 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
 
-	header := []string{"cluster ID", "attributions", "origin transaction hash",
-		"origin timestamp", "destination count"}
+	header := []string{"cluster ID", "attributions", "origin transaction hash", "origin timestamp"}
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -735,8 +734,7 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 		}
 
 		for _, transaction := range c.Transactions {
-			row := []string{strconv.Itoa(clusterCount), attributions, transaction.Hash,
-				transaction.Timestamp, strconv.Itoa(transaction.DestinationCount)}
+			row := []string{strconv.Itoa(clusterCount), attributions, transaction.Hash, transaction.Timestamp}
 
 			if err = csvWriter.Write(row); err != nil {
 				// communication with client is not possible, can only log error

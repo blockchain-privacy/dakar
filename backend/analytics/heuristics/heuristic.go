@@ -9,6 +9,7 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
+	"backend/db/workspace"
 	"backend/external"
 	"context"
 	"errors"
@@ -311,7 +312,7 @@ func isParentAHeuristic(ctx context.Context, c external.Database, parentUID stri
 		return false, err
 	}
 
-	return parentType == heuristics.DType, nil
+	return parentType == workspace.SelectorDType, nil
 }
 
 // Executor holds information for executing on heuristic and its children
@@ -354,16 +355,13 @@ func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) ([]heuristics
 	// set DType
 	for i := range heuristicClusters {
 		heuristicClusters[i].SetDType()
-		for y := range heuristicClusters[i].Results {
-			heuristicClusters[i].Results[y].SetDType()
-		}
 	}
 
 	return heuristicClusters, nil
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's
-func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.HeuristicResult,
+func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode,
 	attributionMap map[heuristics.ClusterUID][]string) []heuristics.HeuristicCluster {
 	resultCluster := make([]heuristics.HeuristicCluster, 0, len(clusterMap))
 	for clusterID, results := range clusterMap {
