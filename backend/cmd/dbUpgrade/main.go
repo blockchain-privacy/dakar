@@ -5,6 +5,7 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/heuristics"
 	"backend/db/status"
 	"backend/external"
 	"backend/processor"
@@ -213,6 +214,38 @@ func main() {
 
 	info("increasing schema version ...")
 	err = status.SetSchemaVersion(dgraph, 6)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
+
+	info("dropping user heuristics ...")
+	err = db.DropPredicateUserHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("dropping user heuristics finished")
+
+	info("removing user heuristics from type starting ...")
+	err = db.AlterSchemaRemoveUserHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("removing user heuristics from type finished")
+
+	info("deleting all heuristics starting ...")
+	err = heuristics.DeleteAllHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("deleting all heuristics finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 7)
 	if err != nil {
 		warn(err)
 		return

@@ -108,3 +108,20 @@ func AlterSchemaAddSelectors(c external.Database) error {
 			}`,
 	})
 }
+
+func DropPredicateUserHeuristics(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{DropAttr: "User.heuristics"})
+}
+
+func AlterSchemaRemoveUserHeuristics(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			User.addressExclusions: [uid] @count @reverse .
+			User.workspaces: [uid] @reverse .
+
+			type User {
+				User.addressExclusions
+				User.workspaces
+			}`,
+	})
+}

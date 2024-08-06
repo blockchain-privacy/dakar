@@ -25,61 +25,6 @@ var (
 	errInvalidDatabaseResponse = errors.New("error invalid response")
 )
 
-// InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspaceUID string) (insertUID string, err error) {
-	h.SetDType()
-
-	const newHeuristicDummyUID = "new_h"
-	h.UID = "_:" + newHeuristicDummyUID
-
-	var query string
-
-	// if TxHash is not empty we have to search for the transaction uid
-	if h.TxHash != "" {
-		h.Transaction.UID = "uid(tx)"
-		query = `query Q($txhash: string, $userUID: string, $workspaceUID: string) {
-					tx as var(func: eq(txhash, $txhash))
-					var(func: uid($userUID))@filter(type(User)){
-						w as User.workspaces@filter(uid($workspaceUID))
-					}
-				  }`
-	}
-
-	type dummyWorkspace struct {
-		UID        string      `json:"uid,omitempty"`
-		Heuristics []Heuristic `json:"Workspace.heuristics,omitempty"`
-	}
-
-	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{*h}})
-	if err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	req := &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$txhash": h.TxHash, "$userUID": userUID, "$workspaceUID": workspaceUID},
-		Mutations: []*api.Mutation{{
-			Cond:    "@if(gt(len(w), 0))",
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
-
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	if err != nil {
-		return
-	}
-
-	insertUID, ok := resp.GetUids()[newHeuristicDummyUID]
-	if !ok {
-		err = serror.FromStr("no new heuristic created")
-		return
-	}
-
-	return
-}
-
 // DeleteUserHeuristics deletes all given heuristic of a user
 func DeleteUserHeuristics(c external.Database, uids []string, userUID string, workspaceUID string) error {
 	const query = `
@@ -104,6 +49,40 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 								uid(hc) * * .
 								uid(h) * * .
 								<` + workspaceUID + "> <Workspace.heuristics> uid(h) ."),
+		}},
+		CommitNow: true,
+	}
+
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
+	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
+		return serror.New(db.ErrNoMutationHappened)
+	}
+
+	return nil
+}
+
+// DeleteAllHeuristics deletes all heuristics in the database
+func DeleteAllHeuristics(c external.Database) error {
+	const query = `
+		{
+			var(func: type(Heuristic)){
+				h as uid
+				hc as Heuristic.clusters{
+					hr as HeuristicCluster.results
+				}
+			}
+		}`
+
+	req := &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte(` uid(hr) * * .
+								uid(hc) * * .
+								uid(h) * * .`),
 		}},
 		CommitNow: true,
 	}

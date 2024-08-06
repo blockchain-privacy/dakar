@@ -43,32 +43,6 @@ func (c *HeuristicCluster) SetDType() {
 	c.DType = []string{ClusterDType}
 }
 
-// Heuristic is the database type representation of a heuristic
-type Heuristic struct {
-	UID                 string             `json:"uid,omitempty"`
-	HeuristicType       string             `json:"Heuristic.type,omitempty"`
-	Parameter           string             `json:"Heuristic.parameter,omitempty"`
-	ClusterTypes        []string           `json:"Heuristic.clusterTypes,omitempty"`
-	ExcludeAddresses    *bool              `json:"Heuristic.excludeAddresses"`
-	ExcludeSpendingGaps *bool              `json:"Heuristic.excludeSpendingGaps"`
-	UserUID             string             `json:"~User.heuristics,omitempty"`
-	WorkspaceUID        string             `json:"~Workspace.heuristics,omitempty"`
-	Transaction         db.UIDNode         `json:"Heuristic.transaction,omitempty"`
-	Timestamp           string             `json:"Heuristic.ts,omitempty"`
-	ParentHeuristic     []Heuristic        `json:"Heuristic.parent,omitempty"`
-	ChildHeuristics     []Heuristic        `json:"~Heuristic.parent,omitempty"`
-	Clusters            []HeuristicCluster `json:"Heuristic.clusters,omitempty"`
-
-	DType []string `json:"dgraph.type,omitempty"`
-	// only included for finding the tx uid in the upsert step
-	TxHash string `json:"-"`
-}
-
-// SetDType sets the DType for dgraph type recognition
-func (h *Heuristic) SetDType() {
-	h.DType = []string{DType}
-}
-
 type ClusterUID string
 
 // HeuristicTransaction holds all data a heuristic needs for a specific transaction
