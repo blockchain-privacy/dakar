@@ -194,4 +194,28 @@ func main() {
 		return
 	}
 	info("increased schema version")
+
+	info("removing workspace heuristics ...")
+	err = db.DropPredicateWorkspaceHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("removing workspace heuristics finished")
+
+	info("adding selectors starting ...")
+	err = db.AlterSchemaAddSelectors(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("adding selectors finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 6)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
 }

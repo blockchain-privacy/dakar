@@ -72,3 +72,39 @@ func AlterSchemaRemoveHex(c external.Database) error {
 			}`,
 	})
 }
+
+func DropPredicateWorkspaceHeuristics(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{DropAttr: "Workspace.heuristics"})
+}
+
+func AlterSchemaAddSelectors(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Workspace.selectors: [uid] @reverse . # selectors which are managed by this workspace
+			type Workspace {
+				Workspace.name
+				Workspace.ts
+				Workspace.state
+				Workspace.clusterHeight
+				Workspace.selectors
+			}
+			
+			Selector.created: dateTime @index(day) .  # creation date of the selector
+			Selector.modified: dateTime @index(day) .  # modification date of the selector
+			Selector.type: string @index(hash) . # type of the selector
+			Selector.status: string @index(hash) . # status of the selector (waiting, error, success)
+			Selector.parent: uid @reverse . # parent node from which a selector can use data
+			Selector.options: string . # JSON encoded options of the selector
+			Selector.results: [uid] @reverse . # results of the selector
+
+			type Selector {
+				Selector.created
+				Selector.modified
+				Selector.type
+				Selector.status
+				Selector.parent
+				Selector.options
+				Selector.results
+			}`,
+	})
+}
