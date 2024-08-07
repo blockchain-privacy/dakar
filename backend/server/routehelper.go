@@ -102,7 +102,7 @@ type selectorStatusReply struct {
 }
 
 type addWorkspaceSelectorReply struct {
-	SelectorUID string `json:"selectorUID"`
+	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 
 type heuristicDetailsReply struct {

@@ -127,9 +127,9 @@ func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.
 // AddSelector adds a new selector to the workspace. It returns UID of the newly created selector,
 // which can be used to check its execution status.
 func AddSelector[O Options](ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options O,
-	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, error) {
+	selectorType string, selectorParent string, workspaceUID string, userUID string) ([]workspace.Node, error) {
 	if !workspace.IsTypeValid(selectorType) {
-		return "", serror.FromStrWithContext("invalid type", "type", selectorType)
+		return nil, serror.FromStrWithContext("invalid type", "type", selectorType)
 	}
 
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
@@ -137,30 +137,30 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 
 	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// check selector types and their corresponding options
 	if selectorType == workspace.TypeHeuristic {
 		if _, ok := any(options).(dbHeuristic.Options); !ok {
-			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
+			return nil, serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
 	} else if selectorType == workspace.TypeTransactionProperties {
 		if _, ok := any(options).(workspace.Options); !ok {
-			return "", serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
+			return nil, serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
 	} else {
-		return "", serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
+		return nil, serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
 	}
 
 	parentIndex, parentNode, err := getSelectorParent(selectorParent, w.Nodes)
 	if err != nil {
-		return "", serror.AddContext(err, "options", options)
+		return nil, serror.AddContext(err, "options", options)
 	}
 
 	optionStr, err := json.Marshal(options)
 	if err != nil {
-		return "", serror.NewWithContext(err, "options", options)
+		return nil, serror.NewWithContext(err, "options", options)
 	}
 
 	selectorUID, err := workspace.InsertSelector(ctx, dgraph, &workspace.Selector{
@@ -170,7 +170,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		Options: string(optionStr),
 	}, userUID, workspaceUID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if parentIndex >= 0 {
@@ -187,10 +187,10 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	})
 
 	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return selectorUID, nil
+	return w.Nodes, nil
 }
 
 type HeuristicWork struct {
