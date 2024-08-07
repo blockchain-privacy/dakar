@@ -257,7 +257,7 @@ import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
-const dakar = inject('dakar');
+const kratosAdmin = inject('kratosadmin');
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
@@ -346,7 +346,7 @@ function setErrorMessage(msg) {
 async function loadUserList() {
 	isLoading.value = true;
 	try {
-		const response = await dakar.identity.identitiesGet();
+		const response = await kratosAdmin.identitiesGet();
 
 		identities.value = response.identities;
 		sessions.value = response.sessions;
@@ -407,7 +407,7 @@ function showCreateDialog() {
 	showCreateIdentityDialog.value = true;
 }
 
-function 	showDeleteDialog(identity) {
+function showDeleteDialog(identity) {
 	if (isLoading.value) {
 		return;
 	}
@@ -429,7 +429,7 @@ async function deleteIdentity(identity) {
 	isLoading.value = true;
 
 	try {
-		await dakar.identity.identitiesUidDelete({uid: identity.id});
+		await kratosAdmin.identitiesUidDelete({uid: identity.id});
 		await refreshUsers();
 	} catch (e) {
 		setErrorMessage(e);

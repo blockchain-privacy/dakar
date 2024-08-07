@@ -6,12 +6,11 @@ require (
 	github.com/btcsuite/btcd v0.24.2
 	github.com/dgraph-io/dgo/v230 v230.0.1
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/ory/kratos-client-go v1.2.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/qrest/gomisc v0.0.7
 	github.com/stretchr/testify v1.9.0
 	gonum.org/v1/gonum v0.15.0
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.65.0
 )
 
 require (

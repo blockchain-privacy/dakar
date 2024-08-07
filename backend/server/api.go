@@ -22,7 +22,7 @@ func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getSearchReply(s.db, r.PathValue("query"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -41,7 +41,7 @@ func (s *Server) handlerAddress() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddressReply(s.db, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -61,7 +61,7 @@ func (s *Server) handlerBlock() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getBlockReply(r, s.db, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -80,7 +80,7 @@ func (s *Server) handlerTransaction() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getTransactionReply(s.db, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -100,7 +100,7 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddressOutputRangeReply(r, s.db, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -116,7 +116,7 @@ func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		reply, status := getMetaReply(s.db, s.client)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -168,7 +168,7 @@ func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddClusterReply(s.db, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -187,7 +187,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteClusterReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -204,7 +204,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteAllClustersReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -221,7 +221,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getClusterOverviewReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -238,7 +238,7 @@ func (s *Server) handlerAttributionList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAttributionOverviewReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -259,7 +259,7 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddAttributionReply(r, s.db, false)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -280,7 +280,7 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddAttributionReply(r, s.db, true)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -299,7 +299,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteAttributionReply(r, s.db, false)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -318,7 +318,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteAttributionReply(r, s.db, true)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -335,7 +335,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteAllAttributionsReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -354,7 +354,7 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAttributionSearchReply(r, s.db, r.PathValue("query"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -373,7 +373,7 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddAddressExclusionsReply(s.db, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -392,7 +392,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getDeleteAddressExclusionReply(r, s.db)
 
-		sendReply(w, "", status)
+		SendReply(w, "", status)
 	})
 }
 
@@ -409,7 +409,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getDeleteAllAddressExclusionsReply(r, s.db)
 
-		sendReply(w, "", status)
+		SendReply(w, "", status)
 	})
 }
 
@@ -426,7 +426,7 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddressExclusionOverviewReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -446,7 +446,7 @@ func (s *Server) handlerHeuristicByWorkID() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHeuristicByWorkIDReply(r, s.db, s.worker)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -464,7 +464,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHMILookupReply(s.db, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -484,7 +484,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHeuristicDetailsReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -505,98 +505,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHeuristicExecutionReply(r, s.db, s.worker, s.workspaceMutex)
 
-		sendReply(w, reply, status)
-	})
-}
-
-// Create Identity godoc
-//
-//	@Summary	Create a new identity.
-//	@Tags		identity
-//	@Produce	json
-//	@Accept		json
-//	@Param		identity	body		server.getCreateIdentityReply.request	true	"Identity details"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
-//	@Router		/identities/ [post]
-func (s *Server) handlerCreateIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getCreateIdentityReply(s.db, s.adminAuth, r)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Delete Arbitrary Identity godoc
-//
-//	@Summary	Delete an arbitrary kratos identity and dgraph user.
-//	@Tags		identity
-//	@Produce	json
-//	@Param		uid	path		string	true	"Identity UID"
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/identities/{uid} [delete]
-func (s *Server) handlerAdminDeleteIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, true)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Delete Identity godoc
-//
-//	@Summary	Delete the kratos identity and dgraph user of the caller
-//	@Tags		identity
-//	@Produce	json
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/self/ [delete]
-func (s *Server) handlerDeleteIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, false)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Modify Identity godoc
-//
-//	@Summary	Modify an arbitrary identity.
-//	@Tags		identity
-//	@Produce	json
-//	@Accept		json
-//	@Param		identity	body		server.getModifyIdentityReply.request	true	"Identity modification details"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
-//	@Router		/identities/ [put]
-func (s *Server) handlerModifyIdentity() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getModifyIdentityReply(s.adminAuth, r)
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Get Identities godoc
-//
-//	@Summary	Get all identities.
-//	@Tags		identity
-//	@Produce	json
-//	@Success	200	{object}	server.identitiesReply
-//	@Failure	500	{object}	server.identitiesReply
-//	@Router		/identities/ [get]
-func (s *Server) handlerGetIdentities() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getIdentitiesReply(s.adminAuth, r)
-
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -615,7 +524,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getShortestTransactionPathReply(s.db, r.Body)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -636,7 +545,7 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r.PathValue("hash"), r.URL)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -655,7 +564,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getClusterLookupReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -674,7 +583,7 @@ func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getMixingActivity(s.db, r.Body)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -693,7 +602,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddressExclusionStatusReply(r, s.db, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -711,7 +620,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getSpendingFingerprintReply(s.db, s.graphWrapper, r.PathValue("hash"))
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -730,7 +639,7 @@ func (s *Server) handlerAddWorkspaceNodes() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, s.worker, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -750,7 +659,7 @@ func (s *Server) handlerAddWorkspaceNote() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddWorkspaceNoteReply(s.db, s.workspaceMutex, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -767,7 +676,7 @@ func (s *Server) handlerWorkspaces() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getWorkspacesReply(s.db, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -785,7 +694,7 @@ func (s *Server) handlerAddWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getAddWorkspaceReply(s.db, r)
 
-		sendReply(w, "", status)
+		SendReply(w, "", status)
 	})
 }
 
@@ -803,7 +712,7 @@ func (s *Server) handlerRenameWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getRenameWorkspaceReply(s.db, r)
 
-		sendReply(w, "", status)
+		SendReply(w, "", status)
 	})
 }
 
@@ -821,7 +730,7 @@ func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, s.worker, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -840,7 +749,7 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := getUpdateWorkspace(s.db, s.workspaceMutex, r)
 
-		sendReply(w, "", status)
+		SendReply(w, "", status)
 	})
 }
 
@@ -858,7 +767,7 @@ func (s *Server) handlerDeleteWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteWorkspaceNodeReply(s.db, s.workspaceMutex, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -876,7 +785,7 @@ func (s *Server) handlerWorkspaceConnection() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getWorkspaceConnectionReply(s.db, r)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -896,7 +805,7 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteWorkspaceReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
@@ -915,128 +824,116 @@ func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteAllWorkspacesReply(r, s.db)
 
-		sendReply(w, reply, status)
+		SendReply(w, reply, status)
 	})
 }
 
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
-	s.handler.Handle(buildPattern(http.MethodGet, routeSearch, "query"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeSearch, "query"),
 		mw.Adapt(s.handlerSearch(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Common data
-	s.handler.Handle(buildPattern(http.MethodGet, routeTransaction, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeTransaction, "hash"),
 		// transaction data never changes so set cache time to infinte
 		mw.Adapt(s.handlerTransaction(), s.cacheFactory(time.Duration(0)), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeBlock, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeBlock, "hash"),
 		mw.Adapt(s.handlerBlock(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeAddress, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeAddress, "hash"),
 		mw.Adapt(s.handlerAddress(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
 		mw.Adapt(s.handlerAddressOutputRange(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Meta
-	s.handler.Handle(buildPattern(http.MethodGet, routeMeta, ""),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeMeta, ""),
 		mw.Adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
 
 	// heuristic
-	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
 		mw.Adapt(s.handlerHeuristicByWorkID(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicDetails, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicDetails, ""),
 		mw.Adapt(s.handlerHeuristicsDetails(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicsExecution, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicsExecution, ""),
 		mw.Adapt(s.handlerHeuristicsExecution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicReport, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicReport, ""),
 		mw.Adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Analytics
-	s.handler.Handle(buildPattern(http.MethodPost, routeShortestTxPath, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeShortestTxPath, ""),
 		mw.Adapt(s.handlerShortestTransactionPath(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeConnectionLookup, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeConnectionLookup, "hash"),
 		mw.Adapt(s.handlerConnectionLookup(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeMixingActivity, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeMixingActivity, ""),
 		mw.Adapt(s.handlerMixingActivity(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),
 		mw.Adapt(s.handlerSpendingFingerprint(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Clusters
-	s.handler.Handle(buildPattern(http.MethodGet, routeClusters, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, "hash"),
 		mw.Adapt(s.handlerClusterLookup(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeClustersHmi, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeClustersHmi, "hash"),
 		mw.Adapt(s.handlerHMILookup(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeClustersReport, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeClustersReport, "hash"),
 		mw.Adapt(s.handlerClusterReport(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeClusters, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeClusters, ""),
 		mw.Adapt(s.handlerAddCluster(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeClusters, "uid"),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeClusters, "uid"),
 		mw.Adapt(s.handlerDeleteCluster(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeClusters, ""),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeClusters, ""),
 		mw.Adapt(s.handlerDeleteAllClusters(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeClusters, ""),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, ""),
 		mw.Adapt(s.handlerClusterOverview(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Attributions
-	s.handler.Handle(buildPattern(http.MethodPost, routeAttributions, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributions, ""),
 		mw.Adapt(s.handlerAddPrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeAttributionsPublic, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributionsPublic, ""),
 		mw.Adapt(s.handlerAddPublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeAttributions, ""),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributions, ""),
 		mw.Adapt(s.handlerAttributionList(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeAttributions, "uid"),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, "uid"),
 		mw.Adapt(s.handlerDeletePrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeAttributionsPublic, "uid"),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributionsPublic, "uid"),
 		mw.Adapt(s.handlerDeletePublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeAttributions, ""),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, ""),
 		mw.Adapt(s.handlerDeleteAllPrivateAttributions(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeAttributionsSearch, "query"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributionsSearch, "query"),
 		mw.Adapt(s.handlerSearchAttributions(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Address Exclusions
-	s.handler.Handle(buildPattern(http.MethodPost, routeExclusions, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeExclusions, ""),
 		mw.Adapt(s.handlerAddAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeExclusions, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeExclusions, "hash"),
 		mw.Adapt(s.handlerDeleteAddressExclusion(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeExclusions, ""),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeExclusions, ""),
 		mw.Adapt(s.handlerDeleteAllAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeExclusions, ""),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeExclusions, ""),
 		mw.Adapt(s.handlerAddressExclusionList(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeExclusions, "hash"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeExclusions, "hash"),
 		mw.Adapt(s.handlerGetAddressExclusionStatus(), s.authorization(), mw.MaxBody5MiB()))
 
-	// User
-	s.handler.Handle(buildPattern(http.MethodGet, routeIdentities, ""),
-		mw.Adapt(s.handlerGetIdentities(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeIdentities, ""),
-		mw.Adapt(s.handlerCreateIdentity(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeIdentities, "uid"),
-		mw.Adapt(s.handlerAdminDeleteIdentity(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeSelf, ""),
-		mw.Adapt(s.handlerDeleteIdentity(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPut, routeIdentities, ""),
-		mw.Adapt(s.handlerModifyIdentity(), s.authorization(), mw.MaxBody5MiB()))
-
 	// Workspace
-	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspaceRename, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceRename, ""),
 		mw.Adapt(s.handlerRenameWorkspace(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspacesNodes, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesNodes, ""),
 		mw.Adapt(s.handlerAddWorkspaceNodes(), s.authorization(), mw.MaxBody(50)))
-	s.handler.Handle(buildPattern(http.MethodPost, routeAddWorkspaceNote, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceNote, ""),
 		mw.Adapt(s.handlerAddWorkspaceNote(), s.authorization(), mw.MaxBody(50)))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspacesNode, ""),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspacesNode, ""),
 		mw.Adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), mw.MaxBody(50)))
-	s.handler.Handle(buildPattern(http.MethodGet, routeWorkspaces, ""),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, ""),
 		mw.Adapt(s.handlerWorkspaces(), s.authorization()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspaces, "name"),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaces, "name"),
 		mw.Adapt(s.handlerAddWorkspace(), s.authorization()))
-	s.handler.Handle(buildPattern(http.MethodGet, routeWorkspaces, "uid"),
+	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, "uid"),
 		mw.Adapt(s.handlerGetWorkspace(), s.authorization()))
-	s.handler.Handle(buildPattern(http.MethodPut, routeWorkspaces, ""),
+	s.handler.Handle(BuildPattern(http.MethodPut, routeWorkspaces, ""),
 		mw.Adapt(s.handlerUpdateWorkspace(), s.authorization(), mw.MaxBody(50)))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspaces, "uid"),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, "uid"),
 		mw.Adapt(s.handlerDeleteWorkspace(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspaces, ""),
+	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, ""),
 		mw.Adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspacesConnection, ""),
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesConnection, ""),
 		mw.Adapt(s.handlerWorkspaceConnection(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 }

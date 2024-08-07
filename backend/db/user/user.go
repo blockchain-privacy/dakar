@@ -3,12 +3,10 @@ package user
 import (
 	"backend/db"
 	"backend/external"
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v230/protos/api"
-	ory "github.com/ory/kratos-client-go"
 	"github.com/qrest/gomisc/serror"
 	"time"
 )
@@ -135,38 +133,6 @@ func DeleteUser(c external.Database, uid string) (err error) {
 	return db.TxWithRetry(c, time.Minute*5, req)
 }
 
-// CreateDgraphAndKratosUser creates a dgraph user and ory kratos identity.
-// The UID of the dgraph user is written the metadata_admin of the new kratos identity.
-// The credentials are set if not nil.
-// state has to be either "active" or "inactive" (as per ory kratos documentation)
-func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAuth *ory.APIClient,
-	email string, credentials *ory.IdentityWithCredentials, roles []string, state string) error {
-	// check state
-	if !IsStateValid(state) {
-		return serror.FromStr("invalid identity state: " + state)
-	}
-
-	// create dgraph user
-	newUserUID, userCreationError := CreateNewUser(c)
-	if userCreationError != nil {
-		return userCreationError
-	}
-
-	// create kratos identity
-	_, _, err := adminAuth.IdentityAPI.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
-		SchemaId:       "default_v0",
-		Traits:         map[string]interface{}{"email": email},
-		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": newUserUID},
-		Credentials:    credentials,
-		State:          &state,
-	}).Execute()
-	if err != nil {
-		return serror.New(err)
-	}
-
-	return nil
-}
-
 // generateRandomPassword returns a random string if fixed length of 22
 func generateRandomPassword() (string, error) {
 	// Generate a Salt
@@ -176,43 +142,4 @@ func generateRandomPassword() (string, error) {
 	}
 
 	return base64.RawStdEncoding.EncodeToString(pwByte), nil
-}
-
-// CreateAdminUser creates a new admin account with a random password
-func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string) (string, error) {
-	pw, err := generateRandomPassword()
-	if err != nil {
-		return "", err
-	}
-
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*2)
-	defer cancelFunc()
-
-	// get ory handle and also create password
-	err = CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.IdentityWithCredentials{
-		Password: &ory.IdentityWithCredentialsPassword{
-			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
-	}, []string{"admin"}, "active")
-	if err != nil {
-		return "", err
-	}
-
-	return pw, nil
-}
-
-// CreatePrivilegedUser creates a new privileged user account with the given password
-func CreatePrivilegedUser(c external.Database, adminAuth *ory.APIClient, email string, pw string) error {
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*2)
-	defer cancelFunc()
-
-	// get ory handle and also create password
-	err := CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.IdentityWithCredentials{
-		Password: &ory.IdentityWithCredentialsPassword{
-			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
-	}, []string{"privileged"}, "active")
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

@@ -17,8 +17,6 @@ const (
 	routeConnectionLookup     string = "connectionLookup"
 	routeMixingActivity       string = "mixingActivity"
 	routeSpendingFingerprint  string = "spendingFingerprint"
-	routeIdentities           string = "identities"
-	routeSelf                 string = "self"
 	routeExclusions           string = "exclusions"
 	routeClusters             string = "clusters"
 	routeClustersHmi          string = "clusters/hmi"
@@ -35,8 +33,8 @@ const (
 	routeMetrics              string = "/metrics"
 )
 
-// buildPattern buils a route pattern which can be used with the stdlib http package
-func buildPattern(httpMethod string, r string, query string) string {
+// BuildPattern buils a route pattern which can be used with the stdlib http package
+func BuildPattern(httpMethod string, r string, query string) string {
 	base := httpMethod + " " + routePrefix + r + "/"
 
 	if query != "" {

@@ -21,13 +21,6 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 func (s *Server) authorization() mw.Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			kratosID := r.Header.Get("x-user")
-			if kratosID == "" {
-				sendUnauthorizedMessage(w)
-				warn(serror.FromStr("kratos ID not set"))
-				return
-			}
-
 			dakarUser := r.Header.Get("x-dakar-user")
 			if dakarUser == "" {
 				sendUnauthorizedMessage(w)
@@ -37,10 +30,7 @@ func (s *Server) authorization() mw.Adapter {
 
 			// call next handler and add to the request context the identity information
 			h.ServeHTTP(w,
-				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{
-					ID:       dakarUser,
-					KratosID: kratosID,
-				})))
+				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{ID: dakarUser})))
 		})
 	}
 }

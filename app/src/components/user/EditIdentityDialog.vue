@@ -65,7 +65,7 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
 const route = useRoute();
-const dakar = inject('dakar');
+const kratosAdmin = inject('kratosadmin');
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
@@ -124,7 +124,7 @@ async function saveIdentity() {
 	isLoading.value = true;
 	if (props.createNewUser) {
 		try {
-			const response = await dakar.identity.identitiesPostRaw({
+			const response = await kratosAdmin.identitiesPost({
 				identity: {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
@@ -141,7 +141,7 @@ async function saveIdentity() {
 		}
 	} else {
 		try {
-			const response = await dakar.identity.identitiesPut({
+			const response = await kratosAdmin.identitiesPut({
 				identity: {
 					uid: shadowIdentity.value.id,
 					email: shadowIdentity.value.email,

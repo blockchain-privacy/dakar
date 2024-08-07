@@ -53,6 +53,10 @@ export default defineConfig({
 				// Replace '/wikiapi' prefix with '/wiki'
 				rewrite: path => path.replace(/^\/wikiapi/, '/wiki'),
 			},
+			'/kratosadmin': {
+				target: 'http://localhost:4455',
+				changeOrigin: true,
+			},
 			'/auth': {
 				target: 'http://localhost:4433',
 				changeOrigin: true,

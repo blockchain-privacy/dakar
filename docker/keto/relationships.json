@@ -1,9 +1,21 @@
 [
   {
     "namespace": "Service",
-    "object": "dakar_identity",
+    "object": "kratosadmin_admin",
     "relation": "callers",
     "subject_id": "admin"
+  },
+  {
+    "namespace": "Service",
+    "object": "kratosadmin_protected",
+    "relation": "callers",
+    "subject_id": "admin"
+  },
+  {
+    "namespace": "Service",
+    "object": "kratosadmin_protected",
+    "relation": "callers",
+    "subject_id": "privileged"
   },
   {
     "namespace": "Service",

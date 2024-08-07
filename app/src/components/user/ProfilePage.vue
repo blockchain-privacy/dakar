@@ -141,7 +141,7 @@ import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 
 const ory = inject('ory');
-const dakar = inject('dakar');
+const kratosAdmin = inject('kratosadmin');
 const route = useRoute();
 const router = useRouter();
 const localStore = useLocalStore();
@@ -241,7 +241,7 @@ function setErrorMessage(msg) {
 
 async function deleteIdentity() {
 	try {
-		await dakar.identity.selfDelete();
+		await kratosAdmin.selfDelete();
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
