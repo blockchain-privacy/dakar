@@ -436,11 +436,11 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 //	@Description	Checks if the given selector is finished executing. Returns the updated workspace in that case.
 //	@Tags			workspace
 //	@Produce		json
-//	@Param			work	body		server.getSelectorStatus.request	true	"work item"
-//	@Success		200		{object}	server.selectorStatusReply
-//	@Failure		400		{object}	server.selectorStatusReply
-//	@Failure		401		{object}	server.selectorStatusReply
-//	@Failure		500		{object}	server.selectorStatusReply
+//	@Param			selector	body		server.getSelectorStatus.request	true	"selector identifier"
+//	@Success		200			{object}	server.selectorStatusReply
+//	@Failure		400			{object}	server.selectorStatusReply
+//	@Failure		401			{object}	server.selectorStatusReply
+//	@Failure		500			{object}	server.selectorStatusReply
 //	@Router			/workspaces/selector/status [post]
 func (s *Server) handlerSelectorByUID() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -491,11 +491,13 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 // Add Selector godoc
 //
 //	@Summary		Adds a new selector to a workspace
-//	@Description	Adds a new selector to a workspace. The selector will be executed eventually and the results stored in the database. Only one options parameter may be set.
+//	@Description	Adds a new selector to a workspace. The selector will be executed eventually
+//	@Description	and the results stored in the database. Only one options parameter may be set.
+//	@Description	Returns the updated workspace.
 //	@Tags			workspace
 //	@Produce		json
 //	@Accept			json
-//	@Param			heuristic	body		server.getAddWorkspaceSelectorReply.request	true	"Selector properties"
+//	@Param			selector	body		server.getAddWorkspaceSelectorReply.request	true	"Selector properties"
 //	@Success		200			{object}	server.addWorkspaceSelectorReply
 //	@Failure		400			{object}	server.addWorkspaceSelectorReply
 //	@Failure		401			{object}	server.addWorkspaceSelectorReply
