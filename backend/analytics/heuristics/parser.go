@@ -1,10 +1,10 @@
 package heuristics
 
 import (
-	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"errors"
+	"github.com/qrest/gomisc/serror"
 )
 
 // ValidHeuristicTypes includes all heuristics which are possible to receive from the frontend.
@@ -53,7 +53,7 @@ func buildHeuristicTreeElement(hMap map[string]heuristic, h heuristics.DatabaseH
 			heuristic:          newHeuristic,
 		}
 	} else {
-		err = cliutil.NewStackError(errHeuristicTypeNotFound)
+		err = serror.New(errHeuristicTypeNotFound)
 		return
 	}
 

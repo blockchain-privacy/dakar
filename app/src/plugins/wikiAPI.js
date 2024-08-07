@@ -8,7 +8,7 @@ import {useLocalStore} from '@/pinia/local';
 
 function newConfig(v) {
 	return new Configuration({
-		basePath: '/wiki',
+		basePath: '/wikiapi',
 		credentials: 'include',
 		middleware: [{
 			async post(d) {

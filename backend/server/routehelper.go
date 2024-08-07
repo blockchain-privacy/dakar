@@ -2,7 +2,6 @@ package server
 
 import (
 	"backend/analytics/heuristics"
-	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
@@ -11,11 +10,10 @@ import (
 	dbstat "backend/db/status"
 	"backend/db/workspace"
 	"backend/external"
-	"encoding/json"
-	"time"
-
 	"context"
+	"encoding/json"
 	"errors"
+	"github.com/qrest/gomisc/serror"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -25,6 +23,10 @@ import (
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
 var isValidInput = regexp.MustCompile(`^[a-zA-Z\d]*$`).MatchString
+
+// isValidEmail is a regex filter which checks if the input conforms to an email string
+var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
+	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
 
 // isValid checks if user input is valid.
 // Should be used to check address, transaction and block hashes, as well as block ids.
@@ -50,14 +52,6 @@ func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
 }
 
-// setCacheHeader sets the client side caching to a third of the server side cache
-func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
-	if duration == time.Duration(0) {
-		duration = time.Hour * 24
-	}
-	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
-}
-
 // sendReply encodes the given reply into JSON and sends it
 func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 	setCORSHeaders(w)
@@ -68,7 +62,7 @@ func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 	replyBuffer, err := json.Marshal(reply)
 	if err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(cliutil.NewStackError(err))
+		warn(serror.New(err))
 		return
 	}
 
@@ -85,7 +79,7 @@ func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 
 	if _, err := w.Write(replyBuffer); err != nil {
 		// not possible to send response to client, so just log error
-		warn(cliutil.NewStackError(err))
+		warn(serror.New(err))
 	}
 }
 
@@ -177,15 +171,6 @@ type SearchResult struct {
 	result     interface{}
 }
 
-// buildKey build a key from the given arguments
-func buildKey(requestURI string, body []byte) string {
-	if len(body) > 0 {
-		requestURI += string(body)
-	}
-
-	return requestURI
-}
-
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
 func GetBlock(dgraph external.Database, query string) (SearchResult, bool, error) {
 	return GetBlockWithOptions(dgraph, query, 0)
@@ -252,13 +237,13 @@ type tokenUser struct {
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
-		err = cliutil.NewStackErrorStr("could not extract token user from context")
+		err = serror.FromStr("could not extract token user from context")
 		return
 	}
 
 	tUser, ok := userInfo.(tokenUser)
 	if !ok || len(tUser.ID) == 0 {
-		err = cliutil.NewStackErrorStr("invalid user extracted from context")
+		err = serror.FromStr("invalid user extracted from context")
 		return
 	}
 
@@ -325,7 +310,3 @@ type transactionReply struct {
 type addressReply struct {
 	Address *db.FrontendAddress `json:"address"`
 }
-
-// isValidEmail is a regex filter which checks if the input conforms to an email string
-var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
-	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString

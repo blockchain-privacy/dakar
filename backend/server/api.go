@@ -1,6 +1,7 @@
 package server
 
 import (
+	mw "github.com/qrest/gomisc/middleware"
 	"net/http"
 	"time"
 )
@@ -921,119 +922,121 @@ func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
-	s.handler.Handle(getRouteSearch(),
-		adapt(s.handlerSearch(), getRouteSearch(), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeSearch, "query"),
+		mw.Adapt(s.handlerSearch(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Common data
-	s.handler.Handle(getRouteTransaction(),
-		adapt(s.handlerTransaction(), getRouteTransaction(), s.useCache(time.Second*0), maxBody()))
-	// setting block cache time to 10 Minutes because blocks at
-	// the tip get updated via adding the 'next block' reference
-	s.handler.Handle(getRouteBlock(),
-		adapt(s.handlerBlock(), getRouteBlock(), s.useCache(time.Second*10), maxBody()))
-	s.handler.Handle(getRouteAddress(),
-		adapt(s.handlerAddress(), getRouteAddress(), s.useCache(time.Second*10), maxBody()))
-	s.handler.Handle(getRouteAddressOutputRange(),
-		adapt(s.handlerAddressOutputRange(), getRouteAddressOutputRange(), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeTransaction, "hash"),
+		// transaction data never changes so set cache time to infinte
+		mw.Adapt(s.handlerTransaction(), s.cacheFactory(time.Duration(0)), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeBlock, "hash"),
+		mw.Adapt(s.handlerBlock(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeAddress, "hash"),
+		mw.Adapt(s.handlerAddress(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
+		mw.Adapt(s.handlerAddressOutputRange(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Meta
-	s.handler.Handle(getRouteMeta(),
-		adapt(s.handlerMeta(), getRouteMeta(), s.authorization(), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeMeta, ""),
+		mw.Adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
 
 	// heuristic
-	s.handler.Handle(getRouteHeuristicByWorkID(),
-		adapt(s.handlerHeuristicByWorkID(), getRouteHeuristicByWorkID(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicDetails(),
-		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicsExecution(),
-		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicReport(),
-		adapt(s.handlerHeuristicsReport(), getRouteHeuristicReport(), s.authorization(), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
+		mw.Adapt(s.handlerHeuristicByWorkID(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicDetails, ""),
+		mw.Adapt(s.handlerHeuristicsDetails(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicsExecution, ""),
+		mw.Adapt(s.handlerHeuristicsExecution(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeHeuristicReport, ""),
+		mw.Adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Analytics
-	s.handler.Handle(getRouteShortestTransactionPath(),
-		adapt(s.handlerShortestTransactionPath(), getRouteShortestTransactionPath(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
-	s.handler.Handle(getRouteConnectionLookup(),
-		adapt(s.handlerConnectionLookup(), getRouteConnectionLookup(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
-	s.handler.Handle(getRouteMixingActivity(),
-		adapt(s.handlerMixingActivity(), getRouteMixingActivity(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
-	s.handler.Handle(getRouteSpendingFingerprint(),
-		adapt(s.handlerSpendingFingerprint(), getRouteSpendingFingerprint(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeShortestTxPath, ""),
+		mw.Adapt(s.handlerShortestTransactionPath(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeConnectionLookup, "hash"),
+		mw.Adapt(s.handlerConnectionLookup(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeMixingActivity, ""),
+		mw.Adapt(s.handlerMixingActivity(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),
+		mw.Adapt(s.handlerSpendingFingerprint(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Clusters
-	s.handler.Handle(getRouteClusterLookup(),
-		adapt(s.handlerClusterLookup(), getRouteClusterLookup(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHMILookup(),
-		adapt(s.handlerHMILookup(), getRouteHMILookup(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteClusterReport(),
-		adapt(s.handlerClusterReport(), getRouteClusterReport(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAddCluster(),
-		adapt(s.handlerAddCluster(), getRouteAddCluster(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteCluster(),
-		adapt(s.handlerDeleteCluster(), getRouteDeleteCluster(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteAllClusters(),
-		adapt(s.handlerDeleteAllClusters(), getRouteDeleteAllClusters(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteClusterOverview(),
-		adapt(s.handlerClusterOverview(), getRouteClusterOverview(), s.authorization(), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeClusters, "hash"),
+		mw.Adapt(s.handlerClusterLookup(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeClustersHmi, "hash"),
+		mw.Adapt(s.handlerHMILookup(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeClustersReport, "hash"),
+		mw.Adapt(s.handlerClusterReport(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeClusters, ""),
+		mw.Adapt(s.handlerAddCluster(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeClusters, "uid"),
+		mw.Adapt(s.handlerDeleteCluster(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeClusters, ""),
+		mw.Adapt(s.handlerDeleteAllClusters(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeClusters, ""),
+		mw.Adapt(s.handlerClusterOverview(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Attributions
-	s.handler.Handle(getRouteAddPrivateAttribution(),
-		adapt(s.handlerAddPrivateAttribution(), getRouteAddPrivateAttribution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAddPublicAttribution(),
-		adapt(s.handlerAddPublicAttribution(), getRouteAddPublicAttribution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAttributionList(),
-		adapt(s.handlerAttributionList(), getRouteAttributionList(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeletePrivateAttribution(),
-		adapt(s.handlerDeletePrivateAttribution(), getRouteDeletePrivateAttribution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeletePublicAttribution(),
-		adapt(s.handlerDeletePublicAttribution(), getRouteDeletePublicAttribution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteAllPrivateAttributions(),
-		adapt(s.handlerDeleteAllPrivateAttributions(), getRouteDeleteAllPrivateAttributions(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteSearchAttributions(),
-		adapt(s.handlerSearchAttributions(), getRouteSearchAttributions(), s.authorization(), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeAttributions, ""),
+		mw.Adapt(s.handlerAddPrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeAttributionsPublic, ""),
+		mw.Adapt(s.handlerAddPublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeAttributions, ""),
+		mw.Adapt(s.handlerAttributionList(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeAttributions, "uid"),
+		mw.Adapt(s.handlerDeletePrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeAttributionsPublic, "uid"),
+		mw.Adapt(s.handlerDeletePublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeAttributions, ""),
+		mw.Adapt(s.handlerDeleteAllPrivateAttributions(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeAttributionsSearch, "query"),
+		mw.Adapt(s.handlerSearchAttributions(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Address Exclusions
-	s.handler.Handle(getRouteAddAddressExclusions(),
-		adapt(s.handlerAddAddressExclusions(), getRouteAddAddressExclusions(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteAddressExclusion(),
-		adapt(s.handlerDeleteAddressExclusion(), getRouteDeleteAddressExclusion(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteAllAddressExclusions(),
-		adapt(s.handlerDeleteAllAddressExclusions(), getRouteDeleteAllAddressExclusions(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAddressExclusionList(),
-		adapt(s.handlerAddressExclusionList(), getRouteAddressExclusionList(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAddressExclusionStatus(),
-		adapt(s.handlerGetAddressExclusionStatus(), getRouteAddressExclusionStatus(), s.authorization(), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeExclusions, ""),
+		mw.Adapt(s.handlerAddAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeExclusions, "hash"),
+		mw.Adapt(s.handlerDeleteAddressExclusion(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeExclusions, ""),
+		mw.Adapt(s.handlerDeleteAllAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeExclusions, ""),
+		mw.Adapt(s.handlerAddressExclusionList(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeExclusions, "hash"),
+		mw.Adapt(s.handlerGetAddressExclusionStatus(), s.authorization(), mw.MaxBody5MiB()))
 
 	// User
-	s.handler.Handle(getRouteGetIdentities(),
-		adapt(s.handlerGetIdentities(), getRouteGetIdentities(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteCreateIdentity(),
-		adapt(s.handlerCreateIdentity(), getRouteCreateIdentity(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAdminDeleteIdentity(),
-		adapt(s.handlerAdminDeleteIdentity(), getRouteAdminDeleteIdentity(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteIdentity(),
-		adapt(s.handlerDeleteIdentity(), getRouteDeleteIdentity(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteModifyIdentity(),
-		adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeIdentities, ""),
+		mw.Adapt(s.handlerGetIdentities(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeIdentities, ""),
+		mw.Adapt(s.handlerCreateIdentity(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeIdentities, "uid"),
+		mw.Adapt(s.handlerAdminDeleteIdentity(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeSelf, ""),
+		mw.Adapt(s.handlerDeleteIdentity(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPut, routeIdentities, ""),
+		mw.Adapt(s.handlerModifyIdentity(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Workspace
-	s.handler.Handle(getRouteRenameWorkspace(),
-		adapt(s.handlerRenameWorkspace(), getRouteRenameWorkspace(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteWorkspaceAddNodes(),
-		adapt(s.handlerAddWorkspaceNodes(), getRouteWorkspaceAddNodes(), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteWorkspaceAddNote(),
-		adapt(s.handlerAddWorkspaceNote(), getRouteWorkspaceAddNote(), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteWorkspaceDeleteNode(),
-		adapt(s.handlerDeleteWorkspaceNode(), getRouteWorkspaceDeleteNode(), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(), s.authorization()))
-	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(), s.authorization()))
-	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(), s.authorization()))
-	s.handler.Handle(getRouteUpdateWorkspace(),
-		adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteDeleteWorkspace(),
-		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteAllWorkspaces(),
-		adapt(s.handlerDeleteAllWorkspaces(), getRouteDeleteAllWorkspaces(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteWorkspacesConnection(),
-		adapt(s.handlerWorkspaceConnection(), getRouteWorkspacesConnection(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspaceRename, ""),
+		mw.Adapt(s.handlerRenameWorkspace(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspacesNodes, ""),
+		mw.Adapt(s.handlerAddWorkspaceNodes(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(buildPattern(http.MethodPost, routeAddWorkspaceNote, ""),
+		mw.Adapt(s.handlerAddWorkspaceNote(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspacesNode, ""),
+		mw.Adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(buildPattern(http.MethodGet, routeWorkspaces, ""),
+		mw.Adapt(s.handlerWorkspaces(), s.authorization()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspaces, "name"),
+		mw.Adapt(s.handlerAddWorkspace(), s.authorization()))
+	s.handler.Handle(buildPattern(http.MethodGet, routeWorkspaces, "uid"),
+		mw.Adapt(s.handlerGetWorkspace(), s.authorization()))
+	s.handler.Handle(buildPattern(http.MethodPut, routeWorkspaces, ""),
+		mw.Adapt(s.handlerUpdateWorkspace(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspaces, "uid"),
+		mw.Adapt(s.handlerDeleteWorkspace(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodDelete, routeWorkspaces, ""),
+		mw.Adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(buildPattern(http.MethodPost, routeWorkspacesConnection, ""),
+		mw.Adapt(s.handlerWorkspaceConnection(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 }

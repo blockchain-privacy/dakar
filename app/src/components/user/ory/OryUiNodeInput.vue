@@ -82,6 +82,12 @@
       {{ metaLabel }}
     </v-btn>
   </div>
+  <v-btn
+    v-else-if="attributes.type === 'button' && attributes.onclick"
+    @click="(event) => evalScript(event, attributes.onclick)"
+  >
+    {{ metaLabel }}
+  </v-btn>
 </template>
 
 <script setup>
@@ -140,6 +146,16 @@ function emitSubmitEvent(event, btnName) {
 	nextTick(() => {
 		emit('submit', btnName);
 	});
+}
+
+function evalScript(event, script) {
+	event.preventDefault();
+	event.stopPropagation();
+
+	// Eval is bad practice, but this the offical way to call ory kratos script
+	// eslint-disable-next-line no-new-func
+	const evalScript = new Function(script);
+	evalScript();
 }
 
 </script>

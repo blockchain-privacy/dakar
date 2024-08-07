@@ -1,8 +1,8 @@
 package db
 
 import (
-	"backend/cmd/cliutil"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 
 	"context"
 	"encoding/json"
@@ -230,7 +230,7 @@ func IsSchemaSet(c external.Database) (exists bool, err error) {
 	// as this is the most basic type and thus should exist in all schemas
 	resp, err := c.Query(ctx, "schema(type: Block){}", nil)
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -243,7 +243,7 @@ func IsSchemaSet(c external.Database) (exists bool, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 

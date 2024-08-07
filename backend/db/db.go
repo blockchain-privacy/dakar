@@ -1,12 +1,12 @@
 package db
 
 import (
-	"backend/cmd/cliutil"
 	"backend/external"
 	"backend/testhelper"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"log"
 	"log/slog"
 	"strings"
@@ -53,7 +53,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cliutil.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 // GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
@@ -69,11 +69,11 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, cliutil.NewStackError(errInvalidTimeout)
+		return nil, serror.New(errInvalidTimeout)
 	}
 
 	if req == nil {
-		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
+		return nil, serror.New(ErrEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -81,7 +81,7 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 
 	resp, err := db.Mutate(ctx, req)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return resp, nil
@@ -90,11 +90,11 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, cliutil.NewStackError(errInvalidTimeout)
+		return nil, serror.New(errInvalidTimeout)
 	}
 
 	if req == nil {
-		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
+		return nil, serror.New(ErrEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -102,7 +102,7 @@ func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Reque
 
 	resp, err := tx.Do(ctx, req)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return resp, nil
@@ -158,11 +158,11 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, cliutil.NewStackError(errInvalidTimeout)
+		return nil, serror.New(errInvalidTimeout)
 	}
 
 	if q == "" {
-		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
+		return nil, serror.New(ErrEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -170,7 +170,7 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 
 	resp, err := db.Query(ctx, q, vars)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	return resp, nil
@@ -213,7 +213,7 @@ func DropAll(db external.Database) error {
 		DropAll: true,
 	})
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return nil

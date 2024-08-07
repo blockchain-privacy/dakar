@@ -2,14 +2,14 @@ package server
 
 import (
 	"backend/analytics/graph"
-	"backend/cmd/cliutil"
 	"backend/external"
 	"backend/worker"
 	"backend/workspace"
 	"errors"
-	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	mw "github.com/qrest/gomisc/middleware"
+	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -33,7 +33,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cliutil.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 type Server struct {
@@ -45,8 +45,8 @@ type Server struct {
 	worker *worker.Worker
 	// in-memory transaction and address graph of all privacy transactions
 	graphWrapper *graph.Wrapper
-	// web request cache
-	cache *ristretto.Cache
+	// cache factory
+	cacheFactory func(duration time.Duration) mw.Adapter
 	// mutex map which synchronizes access to workspaces
 	workspaceMutex *workspace.Mutex
 	// ory kratos authentifaction handle
@@ -60,21 +60,16 @@ type Server struct {
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
 	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if adminAuth == nil || auth == nil {
-		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
+		return nil, serror.FromStr("authentication handles are not set")
 	}
 
 	if worker == nil {
-		return nil, cliutil.NewStackErrorStr("worker pointer is nil")
+		return nil, serror.FromStr("worker pointer is nil")
 	}
 
-	// init cache
-	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
-		MaxCost:     1 << 30, // maximum cost of cache (1 GB).
-		BufferItems: 64,      // number of keys per Get buffer.
-	})
+	factory, err := mw.NewCacheFactory(1024, thisLogger)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	return &Server{
@@ -82,7 +77,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		client:         client,
 		worker:         worker,
 		graphWrapper:   graphWrapper,
-		cache:          cache,
+		cacheFactory:   factory,
 		auth:           auth,
 		adminAuth:      adminAuth,
 		workspaceMutex: workspace.NewMutex(),
@@ -105,7 +100,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			warn(cliutil.NewStackError(err))
+			warn(serror.New(err))
 		}
 		wg.Done()
 	}()
@@ -118,7 +113,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 // StartMetrics creates a metrics server on the given port
 func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	handler := http.NewServeMux()
-	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), getRouteMetrics(), maxBody()))
+	handler.Handle(http.MethodGet+" "+routeMetrics, mw.Adapt(promhttp.Handler(), mw.MaxBody5MiB()))
 
 	// create server
 	srv := &http.Server{
@@ -130,7 +125,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			warn(cliutil.NewStackError(err))
+			warn(serror.New(err))
 		}
 		wg.Done()
 	}()

@@ -1,9 +1,9 @@
 package db
 
 import (
-	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
 	"fmt"
@@ -60,7 +60,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	var amountInputs int64
 	for _, e := range t.Inputs {
 		if e.Amount == nil {
-			return cliutil.NewStackErrorStr("amount is not set")
+			return serror.FromStr("amount is not set")
 		}
 		amountInputs += *e.Amount
 	}
@@ -68,7 +68,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	var amountOutputs int64
 	for _, e := range t.Outputs {
 		if e.Amount == nil {
-			return cliutil.NewStackErrorStr("amount is not set")
+			return serror.FromStr("amount is not set")
 		}
 		amountOutputs += *e.Amount
 	}
@@ -161,12 +161,12 @@ type OutputTransactionMapping struct {
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	transaction []OutputTransactionMapping, err error) {
 	if len(transactionHashes) == 0 {
-		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
+		return nil, serror.New(ErrEmptyRequestArgument)
 	}
 
 	for _, t := range transactionHashes {
 		if !isValidQueryInput(t) {
-			return nil, cliutil.NewStackErrorStr("invalid transaction hash")
+			return nil, serror.FromStr("invalid transaction hash")
 		}
 	}
 
@@ -190,12 +190,12 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(transactionHashes) != len(r.Transactions) {
-		err = cliutil.NewStackErrorStr("number of returned transactions does not match number of requested transactions")
+		err = serror.FromStr("number of returned transactions does not match number of requested transactions")
 		return
 	}
 
@@ -237,12 +237,12 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 
 	var r transactionQuery
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Q) == 0 {
-		err = cliutil.NewStackErrorf("block: %d: %w", blockID, ErrTransactionNotFound)
+		err = serror.FromFormat("block: %d: %w", blockID, ErrTransactionNotFound)
 		return
 	}
 
@@ -254,7 +254,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 // GetTransaction returns the transaction specified by the transaction hash
 func GetTransaction(c external.Database, txHash string) (transaction Transaction, err error) {
 	if txHash == "" {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -286,12 +286,12 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 
 	var r transactionQuery
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Q) == 0 {
-		err = cliutil.NewStackError(ErrTransactionNotFound)
+		err = serror.New(ErrTransactionNotFound)
 		return
 	}
 
@@ -304,7 +304,7 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 // with the inputs and outputs of the transaction uid
 func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
 	if uid == "" {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -345,17 +345,17 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Input) == 0 || len(r.Output) == 0 {
-		err = cliutil.NewStackError(ErrTransactionNotFound)
+		err = serror.New(ErrTransactionNotFound)
 		return
 	}
 
 	if len(r.Input) > 1 || len(r.Output) > 1 {
-		err = cliutil.NewStackError(errInvalidResult)
+		err = serror.New(errInvalidResult)
 		return
 	}
 
@@ -368,7 +368,7 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 // GetFrontendTransaction gets transaction information for the frontend
 func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
 	if txHash == "" {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 	const query = `query Q($hash: string){
@@ -401,7 +401,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -422,18 +422,18 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Transaction) == 0 {
-		err = cliutil.NewStackError(ErrTransactionNotFound)
+		err = serror.New(ErrTransactionNotFound)
 		return
 	}
 
 	for _, t := range r.Transaction {
 		if len(t.Block) == 0 || len(t.Block) != 1 {
-			err = cliutil.NewStackError(errInvalidResult)
+			err = serror.New(errInvalidResult)
 			return
 		}
 
@@ -467,7 +467,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 // GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
 func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
 	if len(txUids) == 0 {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -489,7 +489,7 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -499,7 +499,7 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -520,7 +520,7 @@ type AmountTransaction struct {
 // GetFrontendTransactionAmounts returns summed up amount values per transaction
 func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []AmountTransaction, err error) {
 	if len(txUids) == 0 {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -555,7 +555,7 @@ func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -574,13 +574,13 @@ func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 	txs = make([]AmountTransaction, len(r.Transactions))
 	for i, tx := range r.Transactions {
 		if len(tx.Block) != 1 {
-			err = cliutil.NewStackErrorf("multiple blocks returned for transaction %s", tx.Hash)
+			err = serror.FromFormat("multiple blocks returned for transaction %s", tx.Hash)
 			return
 		}
 		txs[i] = AmountTransaction{
@@ -599,7 +599,7 @@ func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []
 // GetTransactionUIDMapping returns for each transaction a mapping between transaction UID and transaction hash
 func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Transaction, err error) {
 	if len(txUids) == 0 {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -616,7 +616,7 @@ func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Trans
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -626,7 +626,7 @@ func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Trans
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -639,7 +639,7 @@ func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Trans
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
 func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
 	if txHash == "" {
-		err = cliutil.NewStackError(ErrEmptyRequestArgument)
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -655,7 +655,7 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -667,12 +667,12 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Transaction) == 0 {
-		err = cliutil.NewStackError(ErrTransactionNotFound)
+		err = serror.New(ErrTransactionNotFound)
 		return
 	}
 
@@ -689,18 +689,18 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 // The transaction uids must be set.
 func UpdateTransactions(c external.Database, transactions []Transaction) error {
 	if len(transactions) == 0 {
-		return cliutil.NewStackError(ErrEmptyRequestArgument)
+		return serror.New(ErrEmptyRequestArgument)
 	}
 
 	for _, tx := range transactions {
 		if tx.UID == "" {
-			return cliutil.NewStackErrorStr("uid is not set for transaction " + tx.String())
+			return serror.FromStr("uid is not set for transaction " + tx.String())
 		}
 	}
 
 	pb, err := json.Marshal(transactions)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return TxWithRetry(c, time.Minute*5, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true})
@@ -709,7 +709,7 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 // GetTransactionUID returns the uid of the given transaction
 func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
 	if txHash == "" {
-		return "", cliutil.NewStackError(ErrEmptyRequestArgument)
+		return "", serror.New(ErrEmptyRequestArgument)
 	}
 
 	const query = `query Q($tx:string) {
@@ -729,12 +729,12 @@ func GetTransactionUID(c external.Database, txHash string) (uid string, err erro
 		} `json:"q"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Q) == 0 {
-		err = cliutil.NewStackError(ErrTransactionNotFound)
+		err = serror.New(ErrTransactionNotFound)
 		return
 	}
 
@@ -774,7 +774,7 @@ func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transa
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 

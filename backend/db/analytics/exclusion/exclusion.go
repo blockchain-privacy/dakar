@@ -1,23 +1,23 @@
 package exclusion
 
 import (
-	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/qrest/gomisc/serror"
 	"time"
 )
 
 // AddAddressExclusions adds the given address exclusions to the database
 func AddAddressExclusions(c external.Database, user User) error {
 	if len(user.Exclusions) == 0 {
-		return cliutil.NewStackErrorStr("nothing to add")
+		return serror.FromStr("nothing to add")
 	}
 
 	pb, err := json.Marshal(user)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return serror.New(err)
 	}
 
 	return db.TxWithRetry(c, time.Minute*5, &api.Request{
@@ -51,7 +51,7 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
@@ -91,12 +91,12 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 		} `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 
 	if len(r.Count) != 1 {
-		err = cliutil.NewStackErrorStr("invalid response from database")
+		err = serror.FromStr("invalid response from database")
 		return
 	}
 
@@ -130,7 +130,7 @@ func DeleteAddressExclusion(c external.Database, userID string, addressHash stri
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return cliutil.NewStackErrorStr("nothing was deleted")
+		return serror.FromStr("nothing was deleted")
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func DeleteAllAddressExclusions(c external.Database, userID string) error {
 	}
 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return cliutil.NewStackErrorStr("nothing was deleted")
+		return serror.FromStr("nothing was deleted")
 	}
 
 	return nil
@@ -176,14 +176,14 @@ func GetAddressExclusionStatus(c external.Database, addressHash string, userID s
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return
 	}
 	if len(r.Address) == 0 {
 		isExcluded = false
 		return
 	} else if len(r.Address) > 1 {
-		err = cliutil.NewStackErrorStr("invalid response from database")
+		err = serror.FromStr("invalid response from database")
 		return
 	}
 

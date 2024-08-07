@@ -5,16 +5,17 @@ import (
 	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 )
 
 // ImportAddressExclusions writes the given address relations into the database
 func ImportAddressExclusions(dgraph external.Database, exclusions []string, userID string) error {
 	if userID == "" {
-		return cliutil.NewStackErrorStr("user ID is not set")
+		return serror.FromStr("user ID is not set")
 	}
 
 	if len(exclusions) == 0 {
-		return cliutil.NewStackErrorStr("address exclusion list is empty")
+		return serror.FromStr("address exclusion list is empty")
 	}
 
 	uids, err := validateExclusionAddresses(dgraph, exclusions)
@@ -48,11 +49,11 @@ func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusio
 func validateExclusionAddresses(dgraph external.Database, exclusions []string) ([]string, error) {
 	// check maximum number of items
 	if len(exclusions) > 10000 {
-		return nil, cliutil.NewStackError(ErrTooManyAddresses)
+		return nil, serror.New(ErrTooManyAddresses)
 	}
 
 	if len(exclusions) == 0 {
-		return nil, cliutil.NewStackErrorStr("empty argument")
+		return nil, serror.FromStr("empty argument")
 	}
 
 	addresses := map[string]bool{}
@@ -72,7 +73,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 			delete(addresses, a.Hash)
 		}
 
-		return nil, cliutil.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.FromFormat("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping
@@ -80,7 +81,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	uids := make([]string, len(dbAddresses))
 	for i, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, cliutil.NewStackErrorf("address invalid: %v", dbAddress)
+			return nil, serror.FromFormat("address invalid: %v", dbAddress)
 		}
 		uids[i] = dbAddress.UID
 	}

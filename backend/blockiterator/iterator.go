@@ -1,9 +1,9 @@
 package blockiterator
 
 import (
-	"backend/cmd/cliutil"
 	"context"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"time"
 )
@@ -69,7 +69,7 @@ func info(iterator BlockIterator, msg string, v ...interface{}) {
 func StartIteration(iterator BlockIterator) (err error) {
 	props := iterator.Props()
 	if l := props.Logger; l == nil {
-		return cliutil.NewStackErrorStr(props.Name + " logger is nil")
+		return serror.FromStr(props.Name + " logger is nil")
 	}
 
 	defer func() {

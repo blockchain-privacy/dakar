@@ -1,12 +1,19 @@
 BUILD_DIR := "build"
 CRAWLER_DIR := "./cmd/crawler"
 
-.PHONY: dep all build clean test lint tidy update_dependencies docker openapi-fmt openapi-spec openapi-client openapi-publish push-tag
+GREEN  = $(shell tput -Txterm setaf 2)
+YELLOW = $(shell tput -Txterm setaf 3)
+WHITE  = $(shell tput -Txterm setaf 7)
+CYAN   = $(shell tput -Txterm setaf 6)
+RESET  = $(shell tput -Txterm sgr0)
 
+.PHONY: dep all build clean test lint tidy update_dependencies docker
+.PHONY: openapi-fmt openapi-spec openapi-client openapi-publish push-tag
 
 all: crawler
 build: crawler
 
+## Test:
 lint: # Lint the files
 	golangci-lint run
 
@@ -16,21 +23,25 @@ test: ## Run unittests, '-p 1' makes tests not run in parallel;
 vet: ## Run vet
 	go vet ./...
 
-update_dependencies:
+## Dependencies:
+update_dependencies: ## Update Golang dependencies
 	@go get -u ./...
-
-crawler: ## Build the crawler binary
-	go build -v -o $(BUILD_DIR)/crawler $(CRAWLER_DIR)
-
-docker: ## Build Docker image for the crawler binary
-	docker build -t dakar .
 
 tidy: ## Run go mod tidy on the default go.mod file
 	@go mod tidy
 
+## Build:
+crawler: ## Build the crawler binary
+	go build -v -o $(BUILD_DIR)/crawler $(CRAWLER_DIR)
+
 clean: ## Remove previous build
 	@rm -rf $(BUILD_DIR)
 
+## Docker:
+docker: ## Build Docker image for the crawler binary
+	docker build -t dakar .
+
+## Open API:
 openapi-fmt: ## Formats swagger annotations
 	./swag fmt -d cmd/crawler,server
 
@@ -43,8 +54,18 @@ openapi-client: ## Creates a javascript client based on the openapi spec
 openapi-publish: ## Publishes an existing client to the configured repository
 	(cd openapi/client/typescript-fetch && yarn npm publish)
 
+## Git:
 push-tag: ## increment the most recent tag and push it and any local commits
 	bash createTag.sh
 
-help: ## Display this help screen
-	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+## Help:
+help: ## Show this help.
+	@echo ''
+	@echo 'Usage:'
+	@echo '  ${YELLOW}make${RESET} ${GREEN}<target>${RESET}'
+	@echo ''
+	@echo 'Targets:'
+	@awk 'BEGIN {FS = ":.*?## "} { \
+		if (/^[a-zA-Z_-]+:.*?##.*$$/) {printf "    ${YELLOW}%-20s${GREEN}%s${RESET}\n", $$1, $$2} \
+		else if (/^## .*$$/) {printf "  ${CYAN}%s${RESET}\n", substr($$1,4)} \
+		}' $(MAKEFILE_LIST)

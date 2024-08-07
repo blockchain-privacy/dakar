@@ -1,10 +1,10 @@
 package analytics
 
 import (
-	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
 	"backend/external"
+	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
 	"fmt"
@@ -83,7 +83,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, serror.New(err)
 	}
 
 	// filter duplicate transaction hashes (due to one hash per output)

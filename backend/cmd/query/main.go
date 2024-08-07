@@ -12,6 +12,8 @@ import (
 	"backend/worker"
 	"flag"
 	"fmt"
+	"github.com/qrest/gomisc/config"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"log"
 	"log/slog"
@@ -46,7 +48,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cli.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 type UniqueAddressesModule struct {
@@ -182,7 +184,7 @@ func main() {
 	defaultConfigName := "config.yml"
 	var filePath string
 	var createConfigFile bool
-	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
+	config.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
 
 	////// CONFIGURATION FILE HANDLING //////
@@ -190,7 +192,7 @@ func main() {
 	if createConfigFile {
 		fmt.Println("Generating configuration file ...")
 
-		err := cli.WriteConfig(defaultConfigName, defaultConfig)
+		err := config.WriteConfig(defaultConfigName, defaultConfig)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -200,17 +202,17 @@ func main() {
 		return
 	}
 
-	var config Config
-	if err := cli.ReadConfig(filePath, &config); err != nil {
+	var newConfig Config
+	if err := config.ReadConfig(filePath, &newConfig); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// setup Logging
 	var f *os.File
-	if len(config.Logfile) > 0 {
+	if len(newConfig.Logfile) > 0 {
 		var err error
-		if f, err = cli.GetLogfile(config.Logfile); err == nil {
+		if f, err = config.GetLogfile(newConfig.Logfile); err == nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.SetOutput(io.MultiWriter(os.Stdout, f))
 			defer func() {
@@ -225,7 +227,7 @@ func main() {
 
 	initAllLoggers(f)
 
-	endpoint, err := cli.BuildEndpoint(config.DBHost, config.DBPort)
+	endpoint, err := cli.BuildEndpoint(newConfig.DBHost, newConfig.DBPort)
 	if err != nil {
 		warn(err)
 		return
@@ -243,22 +245,22 @@ func main() {
 		}
 	}()
 
-	if config.PrivacyCharts.Active {
-		exportTransactionData(dgraph, config.PrivacyCharts.Directory)
+	if newConfig.PrivacyCharts.Active {
+		exportTransactionData(dgraph, newConfig.PrivacyCharts.Directory)
 	}
 
-	if config.UniqueAddresses.Active {
-		doUniqueAddressAnalysis(dgraph, config.UniqueAddresses.Option, "uniqueAddresses")
+	if newConfig.UniqueAddresses.Active {
+		doUniqueAddressAnalysis(dgraph, newConfig.UniqueAddresses.Option, "uniqueAddresses")
 	}
 
 	var g *graph.ReversibleGraph
 
-	if config.TimestampAnalytics.ExportMixingTransactions ||
-		config.TimestampAnalytics.ExportDestinationTransactions ||
-		config.TimestampAnalytics.ExportReverseLookup.Active ||
-		config.ExclusionSimulations.Active ||
-		config.OriginGap.Active ||
-		config.DestinationCount.Active {
+	if newConfig.TimestampAnalytics.ExportMixingTransactions ||
+		newConfig.TimestampAnalytics.ExportDestinationTransactions ||
+		newConfig.TimestampAnalytics.ExportReverseLookup.Active ||
+		newConfig.ExclusionSimulations.Active ||
+		newConfig.OriginGap.Active ||
+		newConfig.DestinationCount.Active {
 		g, err = graph.LoadTransactionGraph(dgraph, 0)
 		if err != nil {
 			warn(err)
@@ -266,44 +268,44 @@ func main() {
 		}
 	}
 
-	if config.TimestampAnalytics.ExportDestinationTransactions {
+	if newConfig.TimestampAnalytics.ExportDestinationTransactions {
 		doDestinationTimestampAnalysis(g)
 	}
 
-	if config.TimestampAnalytics.ExportMixingTransactions {
+	if newConfig.TimestampAnalytics.ExportMixingTransactions {
 		exportMixingTimestamps(g, true)
 	}
 
-	if config.TimestampAnalytics.ExportReverseLookup.Active {
-		exportReverseLookup(g, config.TimestampAnalytics.ExportReverseLookup.NodeID,
-			config.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours,
+	if newConfig.TimestampAnalytics.ExportReverseLookup.Active {
+		exportReverseLookup(g, newConfig.TimestampAnalytics.ExportReverseLookup.NodeID,
+			newConfig.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours,
 			nil, false, false)
 	}
 
-	if config.ExclusionSimulations.Active {
-		doSimulation(dgraph, g, config.ExclusionSimulations.NodeID,
-			config.ExclusionSimulations.UserUID, config.ExclusionSimulations.LookBackTimeHours)
+	if newConfig.ExclusionSimulations.Active {
+		doSimulation(dgraph, g, newConfig.ExclusionSimulations.NodeID,
+			newConfig.ExclusionSimulations.UserUID, newConfig.ExclusionSimulations.LookBackTimeHours)
 	}
 
-	if config.OriginGap.Active {
-		doOriginGapAnalysis(g, time.Hour*time.Duration(config.OriginGap.MinGapHours), config.OriginGap.Filename)
+	if newConfig.OriginGap.Active {
+		doOriginGapAnalysis(g, time.Hour*time.Duration(newConfig.OriginGap.MinGapHours), newConfig.OriginGap.Filename)
 	}
 
-	if config.ExportBlocks.Active {
-		doExportBlocks(dgraph, config.ExportBlocks.Filename, config.ExportBlocks.StartBlock, config.ExportBlocks.EndBlock)
+	if newConfig.ExportBlocks.Active {
+		doExportBlocks(dgraph, newConfig.ExportBlocks.Filename, newConfig.ExportBlocks.StartBlock, newConfig.ExportBlocks.EndBlock)
 	}
 
-	if config.ExportPrivacyTransactions.Active {
-		doExportPrivacyTransactions(dgraph, config.ExportPrivacyTransactions.Filename,
-			config.ExportPrivacyTransactions.StartTransaction)
+	if newConfig.ExportPrivacyTransactions.Active {
+		doExportPrivacyTransactions(dgraph, newConfig.ExportPrivacyTransactions.Filename,
+			newConfig.ExportPrivacyTransactions.StartTransaction)
 	}
 
-	if config.DestinationCount.Active {
-		doDestinationCountAnalysis(dgraph, g, config.DestinationCount.Filename)
+	if newConfig.DestinationCount.Active {
+		doDestinationCountAnalysis(dgraph, g, newConfig.DestinationCount.Filename)
 	}
 
-	if config.ExportClusterActivity.Active {
-		doExportClusterActivity(dgraph, config.ExportClusterActivity.Filename)
+	if newConfig.ExportClusterActivity.Active {
+		doExportClusterActivity(dgraph, newConfig.ExportClusterActivity.Filename)
 	}
 }
 

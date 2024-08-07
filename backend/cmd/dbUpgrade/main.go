@@ -12,6 +12,8 @@ import (
 	"backend/worker"
 	"flag"
 	"fmt"
+	"github.com/qrest/gomisc/config"
+	"github.com/qrest/gomisc/serror"
 	"io"
 	"log/slog"
 	"os"
@@ -44,7 +46,7 @@ func info(msg string, v ...any) {
 }
 
 func warn(err error, v ...any) {
-	cli.LogError(thisLogger, err, v...)
+	serror.Log(thisLogger, err, v...)
 }
 
 type Config struct {
@@ -66,7 +68,7 @@ func main() {
 	defaultConfigName := "config.yml"
 	var filePath string
 	var createConfigFile bool
-	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
+	config.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
 
 	////// CONFIGURATION FILE HANDLING //////
@@ -74,7 +76,7 @@ func main() {
 	if createConfigFile {
 		fmt.Println("Generating configuration file ...")
 
-		err := cli.WriteConfig(defaultConfigName, defaultConfig)
+		err := config.WriteConfig(defaultConfigName, defaultConfig)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -84,28 +86,28 @@ func main() {
 		return
 	}
 
-	var config Config
-	if err := cli.ReadConfig(filePath, &config); err != nil {
+	var newConfig Config
+	if err := config.ReadConfig(filePath, &newConfig); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// setup Logging
-	f, err := cli.GetLogfile(config.Logfile)
+	f, err := config.GetLogfile(newConfig.Logfile)
 	if err == nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-	} else if len(config.Logfile) > 0 {
-		fmt.Println("Could not create logfile", config.Logfile)
+	} else if len(newConfig.Logfile) > 0 {
+		fmt.Println("Could not create logfile", newConfig.Logfile)
 		return
 	}
 
 	initLogger(f)
 
-	endpoint, err := cli.BuildEndpoint(config.Host, config.Port)
+	endpoint, err := cli.BuildEndpoint(newConfig.Host, newConfig.Port)
 	if err != nil {
 		warn(err)
 		return

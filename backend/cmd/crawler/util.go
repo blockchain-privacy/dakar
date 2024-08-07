@@ -1,13 +1,13 @@
 package main
 
 import (
-	"backend/cmd/cliutil"
 	database "backend/db"
 	"backend/db/status"
 	"backend/external"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/qrest/gomisc/serror"
 	"net/http"
 	"net/http/cookiejar"
 	"runtime"
@@ -50,7 +50,7 @@ type APIModule struct {
 // check returns an error if the module has invalid values
 func (c APIModule) check() error {
 	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
-		return cliutil.NewStackErrorStr("http module config invalid, not all fields are filled")
+		return serror.FromStr("http module config invalid, not all fields are filled")
 	}
 
 	return nil
@@ -134,7 +134,7 @@ func isCrawling(db external.Database) (bool, error) {
 
 		return true, err
 	} else if dbStatus.IsCrawling == nil {
-		return true, cliutil.NewStackErrorStr("was not able to get crawling status successfully")
+		return true, serror.FromStr("was not able to get crawling status successfully")
 	}
 
 	return *dbStatus.IsCrawling, nil
@@ -157,7 +157,7 @@ func waitForRPCClient(client external.RPCClient) error {
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			return cliutil.NewStackErrorf("Authentication error: %w", err)
+			return serror.FromFormat("Authentication error: %w", err)
 		}
 
 		if !printedErrMessage {
@@ -169,7 +169,7 @@ func waitForRPCClient(client external.RPCClient) error {
 			time.Sleep(retrySleepDuration)
 		}
 	}
-	return cliutil.NewStackErrorStr("RPC client is not ready to receive requests")
+	return serror.FromStr("RPC client is not ready to receive requests")
 }
 
 // shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
@@ -186,7 +186,7 @@ func shutdownServer(srv *http.Server) {
 	}()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		warn(cliutil.NewStackErrorf("Server was shutdown and returned error: %w", err))
+		warn(serror.FromFormat("Server was shutdown and returned error: %w", err))
 	}
 }
 
@@ -244,7 +244,7 @@ func checkMeta(db external.Database, blockchainMode string) bool {
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	if endpoint == "" {
-		return nil, cliutil.NewStackErrorf("endpoint is invalid: %s", endpoint)
+		return nil, serror.FromFormat("endpoint is invalid: %s", endpoint)
 	}
 
 	cj, err := cookiejar.New(nil)
@@ -273,7 +273,7 @@ func isKratosAlive(auth *ory.APIClient) bool {
 	_, resp, err := auth.MetadataAPI.IsAlive(ctx1).Execute()
 	if resp != nil {
 		if err := resp.Body.Close(); err != nil {
-			warn(cliutil.NewStackError(err))
+			warn(serror.New(err))
 		}
 	}
 	return err == nil
@@ -322,12 +322,12 @@ func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClien
 
 	// check if public endpoint is alive
 	if !waitForKratos(auth) {
-		return nil, nil, cliutil.NewStackErrorStr("kratos public endpoint is not ready to receive requests")
+		return nil, nil, serror.FromStr("kratos public endpoint is not ready to receive requests")
 	}
 
 	// check if public endpoint is alive
 	if !waitForKratos(adminAuth) {
-		return nil, nil, cliutil.NewStackErrorStr("kratos admin endpoint is not ready to receive requests")
+		return nil, nil, serror.FromStr("kratos admin endpoint is not ready to receive requests")
 	}
 
 	return auth, adminAuth, nil

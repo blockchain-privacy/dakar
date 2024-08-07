@@ -1,10 +1,10 @@
 package external
 
 import (
-	"backend/cmd/cliutil"
 	"context"
 	"github.com/dgraph-io/dgo/v230"
 	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/qrest/gomisc/serror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"time"
@@ -44,7 +44,7 @@ func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
 	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 	if err != nil {
-		err = cliutil.NewStackError(err)
+		err = serror.New(err)
 		return nil, conn, err
 	}
 

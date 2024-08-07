@@ -1,7 +1,7 @@
 package status
 
 import (
-	"backend/cmd/cliutil"
+	"github.com/qrest/gomisc/serror"
 
 	"errors"
 	"fmt"
@@ -194,12 +194,12 @@ func (c crawlerStatusQuery) payload() (status CrawlerStatus, err error) {
 	lenQ := len(c.Q)
 
 	if lenQ == 0 {
-		err = cliutil.NewStackError(ErrStatusNotFound)
+		err = serror.New(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = cliutil.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	}
 
@@ -215,12 +215,12 @@ func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = cliutil.NewStackError(ErrStatusNotFound)
+		err = serror.New(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = cliutil.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	}
 
@@ -236,12 +236,12 @@ func (a clusteringHMIStatusQuery) payload() (status ClusteringHierarchicalMultiI
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = cliutil.NewStackError(ErrStatusNotFound)
+		err = serror.New(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = cliutil.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	}
 
@@ -257,12 +257,12 @@ func (a clusteringFMIStatusQuery) payload() (status ClusteringFlatMultiInputStat
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = cliutil.NewStackError(ErrStatusNotFound)
+		err = serror.New(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = cliutil.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	}
 
@@ -297,12 +297,12 @@ func (m metaQuery) payload() (meta Meta, err error) {
 	lenQ := len(m.Q)
 
 	if lenQ == 0 {
-		err = cliutil.NewStackError(ErrStatusNotFound)
+		err = serror.New(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = cliutil.NewStackError(errInvalidNumber)
+		err = serror.New(errInvalidNumber)
 		return
 	}
 
