@@ -57,3 +57,12 @@ export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
 export const WORKSPACE_NODE_TYPE_CLUSTER = 'cluster';
 export const WORKSPACE_NODE_TYPE_HEURISTIC = 'heuristic';
 export const WORKSPACE_NODE_TYPE_NOTE = 'note';
+
+// Selector type
+export const SELECTOR_TYPE_HEURISTIC = 'heuristic';
+export const SELECTOR_TYPE_TX_PROP = 'transactionProperties';
+
+// Selector status
+export const SELECTOR_STATUS_WAITING = 'waiting';
+export const SELECTOR_STATUS_ERROR = 'error';
+export const SELECTOR_STATUS_SUCCESS = 'success';
