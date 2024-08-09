@@ -441,7 +441,7 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 //	@Failure		400			{object}	server.selectorStatusReply
 //	@Failure		401			{object}	server.selectorStatusReply
 //	@Failure		500			{object}	server.selectorStatusReply
-//	@Router			/workspaces/selector/status [post]
+//	@Router			/workspaces/selector/status/ [post]
 func (s *Server) handlerSelectorByUID() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getSelectorStatus(s.db, r)
@@ -502,7 +502,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Failure		400			{object}	server.addWorkspaceSelectorReply
 //	@Failure		401			{object}	server.addWorkspaceSelectorReply
 //	@Failure		500			{object}	server.addWorkspaceSelectorReply
-//	@Router			/workspaces/selector [post]
+//	@Router			/workspaces/selector/ [post]
 func (s *Server) handlerAddWorkspaceSelector() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddWorkspaceSelectorReply(s.db, r, s.workspaceMutex)
