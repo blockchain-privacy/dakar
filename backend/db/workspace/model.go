@@ -189,17 +189,10 @@ type Node struct {
 
 	// note
 	Text string `json:"text,omitempty"`
-
-	// Loading is true if a new heuristic has been created, which is not yet finished executing
-	Loading *bool `json:"loading,omitempty"`
 }
 
 func (f Node) IsDestination() bool {
 	return f.Type == NodeTypeTransaction && f.PrivacyType != nil && constants.PrivacyType(*f.PrivacyType).IsDestination()
-}
-
-func (f Node) IsLoading() bool {
-	return f.Loading != nil && *f.Loading
 }
 
 type dummyUser struct {
