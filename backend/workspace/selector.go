@@ -140,6 +140,13 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return nil, err
 	}
 
+	newNode := workspace.Node{
+
+		Type:           workspace.NodeTypeSelector,
+		SelectorType:   selectorType,
+		SelectorStatus: workspace.StatusWaiting,
+	}
+
 	// check selector types and their corresponding options
 	if selectorType == workspace.TypeHeuristic {
 		opt, ok := any(options).(dbHeuristic.Options)
@@ -149,6 +156,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		if !opt.IsValid() {
 			return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
 		}
+		newNode.HeuristicOptions = &opt
 	} else if selectorType == workspace.TypeTransactionProperties {
 		opt, ok := any(options).(workspace.Options)
 		if !ok {
@@ -158,6 +166,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		if !opt.IsValid() {
 			return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
 		}
+		newNode.SelectorOptions = &opt
 	} else {
 		return nil, serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
 	}
@@ -172,7 +181,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return nil, serror.NewWithContext(err, "options", options)
 	}
 
-	selectorUID, err := workspace.InsertSelector(ctx, dgraph, &workspace.Selector{
+	newNode.UID, err = workspace.InsertSelector(ctx, dgraph, &workspace.Selector{
 		Type:    selectorType,
 		Status:  workspace.StatusWaiting,
 		Parent:  parentNode,
@@ -184,16 +193,11 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 
 	if parentIndex >= 0 {
 		// add new selector uid to children of parent
-		w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, selectorUID)
+		w.Nodes[parentIndex].Children = append(w.Nodes[parentIndex].Children, newNode.UID)
 	}
 
 	// add node
-	w.Nodes = append(w.Nodes, workspace.Node{
-		UID:            selectorUID,
-		Type:           workspace.NodeTypeSelector,
-		SelectorType:   selectorType,
-		SelectorStatus: workspace.StatusWaiting,
-	})
+	w.Nodes = append(w.Nodes, newNode)
 
 	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
 		return nil, err
