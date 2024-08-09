@@ -38,11 +38,11 @@
             color="primary"
             variant="tonal"
             class="me-2"
-            :prepend-icon="mdiShapeCirclePlus"
+            :prepend-icon="mdiFilterPlus"
             :disabled="disableAddingNodes || auxiliaryData?.loading"
-            @click="handleAddHeuristicClick"
+            @click="handleAddSelectorClick"
           >
-            Add Heuristic
+            Add Selector
           </v-chip>
         </template>
         <fingerprint-chip
@@ -130,7 +130,7 @@ import {
 	mdiCardBulletedOutline,
 	mdiChartBar,
 	mdiDelete,
-	mdiFileDownloadOutline,
+	mdiFileDownloadOutline, mdiFilterPlus,
 	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
@@ -165,7 +165,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addSelector', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -444,8 +444,8 @@ function deselectAllAddresses() {
 		.map(d => d.id));
 }
 
-function handleAddHeuristicClick() {
-	emit('addHeuristic');
+function handleAddSelectorClick() {
+	emit('addSelector');
 }
 
 </script>
