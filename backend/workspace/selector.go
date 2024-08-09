@@ -142,12 +142,21 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 
 	// check selector types and their corresponding options
 	if selectorType == workspace.TypeHeuristic {
-		if _, ok := any(options).(dbHeuristic.Options); !ok {
+		opt, ok := any(options).(dbHeuristic.Options)
+		if !ok {
 			return nil, serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
+		if !opt.IsValid() {
+			return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
+		}
 	} else if selectorType == workspace.TypeTransactionProperties {
-		if _, ok := any(options).(workspace.Options); !ok {
+		opt, ok := any(options).(workspace.Options)
+		if !ok {
 			return nil, serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
+		}
+
+		if !opt.IsValid() {
+			return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
 		}
 	} else {
 		return nil, serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)

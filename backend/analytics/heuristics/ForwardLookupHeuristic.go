@@ -87,6 +87,9 @@ func (h *forwardLookupHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
+	if h.lookForwardTime == 0 {
+		return nil, nil
+	}
 	var results []heuristics.HeuristicTransaction
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
 	var resultAttributionMap map[heuristics.ClusterUID][]string

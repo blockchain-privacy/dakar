@@ -93,6 +93,10 @@ type txAndOrigins struct {
 // This heuristic does not use the results from its parent heuristic
 func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, _ string) (
 	[]heuristics.HeuristicCluster, error) {
+	if h.lookBackTime == 0 {
+		return nil, nil
+	}
+
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)

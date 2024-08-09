@@ -88,6 +88,9 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
 func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
+	if h.lookForwardTime == 0 {
+		return nil, nil
+	}
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash
 	origins := make(map[string]heuristics.HeuristicTransaction)

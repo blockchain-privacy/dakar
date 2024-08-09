@@ -70,7 +70,7 @@ type Options struct {
 	OutputRange                *AmountRange `json:"outputRange,omitempty"`
 }
 
-func (o Options) isValid() bool {
+func (o Options) IsValid() bool {
 	// both dates must be set
 	if o.StartDate == nil || o.EndDate == nil {
 		return false

@@ -68,9 +68,13 @@ type Options struct {
 	UserUID string `json:"-"`
 }
 
-func (c Options) String() string {
+func (o Options) IsValid() bool {
+	return o.Type != "" && o.TransactionHash != ""
+}
+
+func (o Options) String() string {
 	return fmt.Sprintf("Transaction Hash: %s, Parameter: %s, cluster type: %v, exclude addresses: %v, exclude spending gaps: %v",
-		c.TransactionHash, c.Parameter, c.ClusterTypes, c.ExcludeAddresses, c.ExcludeSpendingGaps)
+		o.TransactionHash, o.Parameter, o.ClusterTypes, o.ExcludeAddresses, o.ExcludeSpendingGaps)
 }
 
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user

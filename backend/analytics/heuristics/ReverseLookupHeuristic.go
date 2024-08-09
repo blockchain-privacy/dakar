@@ -86,6 +86,10 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
+	if h.lookBackTime == 0 {
+		return nil, nil
+	}
+
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 	// parentAttributionMap maps a clusterUID to a slice of attribution UIDs

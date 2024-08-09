@@ -90,6 +90,9 @@ func (h *simpleForwardHeuristic) GetDescriptor() Descriptor {
 //     find all destination transactions connected to the results of the parent heuristic.
 func (h *simpleForwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
+	if h.lookForwardTime == 0 {
+		return nil, nil
+	}
 	var parentResults []heuristics.HeuristicTransaction
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
 	var resultAttributionMap map[heuristics.ClusterUID][]string
