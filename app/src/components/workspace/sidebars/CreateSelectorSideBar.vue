@@ -50,19 +50,15 @@
               >
                 {{ heuristicTypeModel.description }}
               </div>
-              <v-form
+              <v-text-field
                 v-if="heuristicTypeModel.parameter !== undefined"
-                v-model="heuristicTypeModel.parameter.valid"
-              >
-                <v-text-field
-                  v-model="heuristicOptions.parameter"
-                  :rules="parameterRules.get(heuristicTypeModel.parameter.type)"
-                  :label="heuristicTypeModel.parameter.description"
-                  required
-                  :placeholder="heuristicTypeModel.parameter.value"
-                  hide-details
-                />
-              </v-form>
+                v-model="heuristicOptions.parameter"
+                :rules="parameterRules.get(heuristicTypeModel.parameter.type)"
+                :label="heuristicTypeModel.parameter.description"
+                required
+                :placeholder="heuristicTypeModel.parameter.value"
+                hide-details
+              />
               <v-checkbox
                 v-model="heuristicOptions.clusterTypes"
                 label="Use custom clusters"
