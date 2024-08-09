@@ -12,8 +12,11 @@ import {
 import forceLimit from '@/d3Documents/forceLimit';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_NOTE,
-	WORKSPACE_NODE_TYPE_TRANSACTION, SELECTOR_STATUS_WAITING,
+	WORKSPACE_NODE_TYPE_SELECTOR,
+	WORKSPACE_NODE_TYPE_NOTE,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+	SELECTOR_STATUS_WAITING,
+	SELECTOR_TYPE_HEURISTIC,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
 
@@ -1010,10 +1013,15 @@ export default class NodeGraph {
 				}
 
 				if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-					const title = this.#heuristicTypeMap.get(d.heuristicType);
-					if (title !== undefined) {
-						return title;
+					if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
+						const title = this.#heuristicTypeMap.get(d.heuristicOptions.type);
+						if (title !== undefined) {
+							return title;
+						}
 					}
+					// Else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
+					//
+					// }
 				}
 
 				return d.uid;
@@ -1068,28 +1076,28 @@ export default class NodeGraph {
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorType !== SELECTOR_TYPE_HEURISTIC || !d.heuristicOptions) {
 					return;
 				}
 
 				const icons = [];
-				if (d.heuristicExcludeAddresses) {
+				if (d.heuristicOptions.excludeAddresses) {
 					icons.push(mdiPlaylistRemove);
 				}
 
-				if (d.heuristicClusterTypes?.length > 0) {
+				if (d.heuristicOptions.clusterTypes?.length > 0) {
 					icons.push(mdiMerge);
 				}
 
-				if (d.heuristicExcludeSpendingGaps) {
+				if (d.heuristicOptions.excludeSpendingGaps) {
 					icons.push(mdiClockAlertOutline);
 				}
 
-				if (d.heuristicParameter) {
+				if (d.heuristicOptions.parameter) {
 					icons.push(mdiTune);
 				}
 
-				self.drawIcons(d3Select(this), icons, d.heuristicParameter);
+				self.drawIcons(d3Select(this), icons, d.heuristicOptions.parameter);
 			});
 	}
 
