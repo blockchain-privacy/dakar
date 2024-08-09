@@ -184,7 +184,7 @@ import {
 	APPLICATION_NAME,
 	ROUTE_NAME_WORKSPACE_PAGE,
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
@@ -218,13 +218,13 @@ const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const colorMap = getColorMap();
-colorMap.set(WORKSPACE_NODE_TYPE_HEURISTIC, '#4CAF50');
+colorMap.set(WORKSPACE_NODE_TYPE_SELECTOR, '#4CAF50');
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
 
 const nodeTypeLabels = [
-	{text: WORKSPACE_NODE_TYPE_HEURISTIC, color: '#4CAF50'},
+	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#4CAF50'},
 	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#CDDC39'},
 	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
 ];
@@ -266,7 +266,7 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiFilterPlus,
-			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC
+			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_SELECTOR
 			|| nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
 			disabled: () => nodeGraph.getContextNode()?.loading,
@@ -439,18 +439,18 @@ function isEditEnabled(contextNode) {
 // Checks if a node can be deleted. If a heuristic or a node
 // in a heuristic sub graph is loading it return false.
 function isDeleteEnabled(contextNode) {
-	if (!contextNode || contextNode.loading) {
+	if (!contextNode || contextNode.selectorStatus === SELECTOR_STATUS_WAITING) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
 		return true;
 	}
 
 	if (contextNode.children) {
 		for (const child of contextNode.children) {
 			const childNode = nodeGraph.getNode(child);
-			if (!childNode || childNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+			if (!childNode || childNode.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
 				continue;
 			}
 
@@ -724,7 +724,7 @@ function getHeuristicTransaction(nodes, uid) {
 		return node.transactionHash;
 	}
 
-	if (node.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
+	if (node.type === WORKSPACE_NODE_TYPE_SELECTOR) {
 		// Find parent and do recursive call
 		const parent = nodes.find(v => v.children?.includes(uid));
 
@@ -779,7 +779,7 @@ function openEntitySideBar(nodeData) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
+		case WORKSPACE_NODE_TYPE_SELECTOR:
 			// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
 				let displayType = '';

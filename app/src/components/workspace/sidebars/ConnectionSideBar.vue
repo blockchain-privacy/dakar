@@ -115,7 +115,7 @@ import {
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
 import {
-	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import {convertAmount, getPrivacyTypeLabel} from '../../../utilities/index.js';
@@ -193,17 +193,17 @@ onUpdated(async () => {
 			(connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			// Cluster <-> transaction
-			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_SELECTOR
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_HEURISTIC)
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_SELECTOR)
 			// Cluster <-> transaction
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 			// Heuristic <-> transaction
-			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_HEURISTIC
+			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_SELECTOR
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		) {
 			await getConnectionData();

@@ -29,11 +29,11 @@
       </v-chip>
       <template v-if="!isLoading && entityData">
         <template
-          v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
+          v-if="type === WORKSPACE_NODE_TYPE_SELECTOR ||
             (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
         >
           <v-chip
-            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
+            v-if="type === WORKSPACE_NODE_TYPE_SELECTOR || isDestination(entityData[0].privacytype)"
             rounded
             color="primary"
             variant="tonal"
@@ -59,7 +59,7 @@
           :address-hash="entityData.addresshash"
         />
         <v-chip
-          v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
+          v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && entityData?.clusterCount > 0"
           rounded
           color="primary"
           variant="tonal"
@@ -113,7 +113,7 @@
             :show-title-bar="false"
           />
           <heuristic-details
-            v-else-if="entityData.heuristicUid && type === WORKSPACE_NODE_TYPE_HEURISTIC"
+            v-else-if="entityData.heuristicUid && type === WORKSPACE_NODE_TYPE_SELECTOR"
             :heuristic-data="entityData"
           />
           <div v-else>
@@ -151,7 +151,7 @@ import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.v
 import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
@@ -191,7 +191,7 @@ const title = computed(() => {
 			return `Transaction ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
+		case WORKSPACE_NODE_TYPE_SELECTOR:
 			return 'Heuristic Properties';
 		default:
 			return 'unknown entity type';
@@ -212,7 +212,7 @@ onUpdated(async () => {
 			await getTransactionData();
 		} else if (props.type === WORKSPACE_NODE_TYPE_CLUSTER) {
 			await getAddressData();
-		} else if (props.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
+		} else if (props.type === WORKSPACE_NODE_TYPE_SELECTOR) {
 			await getHeuristicData();
 		}
 
@@ -229,7 +229,7 @@ const sideBarIcon = computed(() => {
 			return mdiTransfer;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
+		case WORKSPACE_NODE_TYPE_SELECTOR:
 			return mdiChartBar;
 		default:
 			return mdiShapeCirclePlus;
@@ -281,7 +281,7 @@ function setSelectableEntities() {
 			showSelectAddresses.value = false;
 
 			break;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
+		case WORKSPACE_NODE_TYPE_SELECTOR:
 			for (const cluster of entityData.value.clusters) {
 				for (const tx of cluster.txs) {
 					if (tx.txhash) {

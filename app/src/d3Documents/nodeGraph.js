@@ -12,8 +12,8 @@ import {
 import forceLimit from '@/d3Documents/forceLimit';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_NOTE,
-	WORKSPACE_NODE_TYPE_TRANSACTION,
+	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_NOTE,
+	WORKSPACE_NODE_TYPE_TRANSACTION, SELECTOR_STATUS_WAITING,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
 
@@ -932,7 +932,7 @@ export default class NodeGraph {
 		const gapString = `${gap} ${gap}`;
 
 		entityGroup.each(function (d) {
-			if (!d.loading) {
+			if (d.selectorStatus !== SELECTOR_STATUS_WAITING) {
 				return;
 			}
 
@@ -1009,7 +1009,7 @@ export default class NodeGraph {
 					return d.transactionHash;
 				}
 
-				if (d.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
+				if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
 					const title = this.#heuristicTypeMap.get(d.heuristicType);
 					if (title !== undefined) {
 						return title;
@@ -1059,7 +1059,7 @@ export default class NodeGraph {
 			.attr('font-size', 12)
 			.attr('y', 1)
 			.text(d => {
-				if (d.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
 					return '';
 				}
 
@@ -1068,7 +1068,7 @@ export default class NodeGraph {
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
 					return;
 				}
 

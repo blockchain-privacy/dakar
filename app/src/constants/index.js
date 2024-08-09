@@ -55,7 +55,7 @@ export const PRIVACY_TYPE_MIXING = 'mixing';
 // Workspace node type
 export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
 export const WORKSPACE_NODE_TYPE_CLUSTER = 'cluster';
-export const WORKSPACE_NODE_TYPE_HEURISTIC = 'heuristic';
+export const WORKSPACE_NODE_TYPE_SELECTOR = 'selector';
 export const WORKSPACE_NODE_TYPE_NOTE = 'note';
 
 // Selector type
