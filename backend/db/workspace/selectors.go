@@ -37,7 +37,7 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 }
 
 func DoSelection(ctx context.Context, c external.Database, o Options) ([]string, error) {
-	if !o.isValid() {
+	if !o.IsValid() {
 		return nil, serror.New(ErrInvalidOptions)
 	}
 
@@ -202,10 +202,10 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 		variable = ",$parent: string"
 		// parent can either be a heuristic or a selector
 		parentQuery = `{
-							s as Workspace.selectors@filter(uid($parent))
 							h as Workspace.heuristics@filter(uid($parent))
 						}`
-		parentUnion = "p as var(func: uid(s,h))"
+		parentUnion = ` t as var(func: uid($parent))@filter(type(Transaction))
+						p as var(func: uid(t,h))`
 
 		cond = "@if(eq(len(w), 1) and eq(len(p),1))"
 	}
