@@ -7,7 +7,7 @@ import {
 	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
 } from '@/d3Documents/util';
 import {
-	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
+	mdiClockAlertOutline, mdiExclamationThick, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
@@ -16,7 +16,8 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	SELECTOR_STATUS_WAITING,
-	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_STATUS_ERROR,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
 
@@ -928,36 +929,44 @@ export default class NodeGraph {
 				self.setMouseOverAnimation(self, this, false);
 			});
 
-		// Add loading circle
+		// Add node symbol
 		const loadingRadius = this.#nodeRadius - 6;
 		const gap = 2 * Math.PI * loadingRadius / 4;
 
 		const gapString = `${gap} ${gap}`;
 
 		entityGroup.each(function (d) {
-			if (d.selectorStatus !== SELECTOR_STATUS_WAITING) {
-				return;
+			switch (d.selectorStatus) {
+				case SELECTOR_STATUS_WAITING:
+					d3Select(this).append('circle')
+						.attr('r', loadingRadius)
+						.attr('cursor', 'pointer')
+						.attr('stroke-width', 3)
+						.attr('stroke', '#fff')
+						.attr('stroke-dasharray', gapString)
+						.attr('fill', 'none')
+						.attr('stroke-linecap', 'round')
+						.append('animateTransform')
+						.attr('attributeName', 'transform')
+						.attr('type', 'rotate')
+						.attr('repeatCount', 'indefinite')
+						.attr('dur', '2.941176470588235s')
+						.attr('keyTimes', '0;1')
+						.attr('values', '0 0 0;360 0 0');
+					break;
+				case SELECTOR_STATUS_ERROR:
+					d3Select(this)
+						.append('path')
+						.attr('transform', 'translate(-12,-12) scale(1,1)')
+						.attr('fill', 'white')
+						.attr('d', mdiExclamationThick);
+					break;
+				default:
 			}
-
-			d3Select(this).append('circle')
-				.attr('r', loadingRadius)
-				.attr('cursor', 'pointer')
-				.attr('stroke-width', 3)
-				.attr('stroke', '#fff')
-				.attr('stroke-dasharray', gapString)
-				.attr('fill', 'none')
-				.attr('stroke-linecap', 'round')
-				.append('animateTransform')
-				.attr('attributeName', 'transform')
-				.attr('type', 'rotate')
-				.attr('repeatCount', 'indefinite')
-				.attr('dur', '2.941176470588235s')
-				.attr('keyTimes', '0;1')
-				.attr('values', '0 0 0;360 0 0');
 		});
 
 		// Add node descriptions
-		const textAreaWidth = 100;
+		const textAreaWidth = 120;
 		const textAreaMargin = 3;
 		const textHeight = 12;
 		const fontSize = textHeight - 2;
@@ -1018,10 +1027,13 @@ export default class NodeGraph {
 						if (title !== undefined) {
 							return title;
 						}
+					} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
+						const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
+						const startDateStr = new Date(d.selectorOptions.startDate).toLocaleDateString(undefined, dateOptions);
+						const endDateStr = new Date(d.selectorOptions.endDate).toLocaleDateString(undefined, dateOptions);
+
+						return `${startDateStr} - ${endDateStr}`;
 					}
-					// Else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
-					//
-					// }
 				}
 
 				return d.uid;
@@ -1049,16 +1061,15 @@ export default class NodeGraph {
 		// 	})
 		// 	.each(elide);
 
-		// Heuristic properties
-		// Cluster count
-		let nodeClusterCount = entityGroup.select('.clusterCount');
-		if (nodeClusterCount.empty()) {
-			nodeClusterCount = entityGroup.append('text').classed('clusterCount', true);
+		// Symbol or text which is centered on the node
+		let resultCount = entityGroup.select('.resultCount');
+		if (resultCount.empty()) {
+			resultCount = entityGroup.append('text').classed('resultCount', true);
 		}
 
-		nodeClusterCount.raise();
+		resultCount.raise();
 
-		nodeClusterCount
+		resultCount
 			.attr('text-anchor', 'middle')
 			.style('cursor', 'pointer')
 			.style('font-weight', 'bold')
@@ -1067,11 +1078,11 @@ export default class NodeGraph {
 			.attr('font-size', 12)
 			.attr('y', 1)
 			.text(d => {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
 					return '';
 				}
 
-				return abbreviateNumber(d.heuristicClusterCount);
+				return abbreviateNumber(d.selectorResultCount);
 			});
 
 		textContainer
