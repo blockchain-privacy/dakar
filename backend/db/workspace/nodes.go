@@ -553,15 +553,15 @@ func GetConnectionClusterToCluster(ctx context.Context, c external.Database, fir
 	return
 }
 
-// GetConnectionClusterToHeuristic returns the transaction UIDs which connects a cluster to an heuristic.
+// GetConnectionClusterToSelector returns the transaction UIDs which connects a cluster to a selector.
 // The provided cluster UID must be of a cluster address.
-func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, clusterUID string,
-	heuristicUID string, userUID string, workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
-	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
+func GetConnectionClusterToSelector(ctx context.Context, c external.Database, clusterUID string,
+	selectorUID string, userUID string, workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
+	const query = `query Q($cluster:string,$selector:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.selectors@filter(uid($heuristic))
+					s as Workspace.selectors@filter(uid($selector))
 				}
 			}
 			
@@ -570,8 +570,8 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 			}
 			
-			heuristic_clusters(func: uid(h)){
-				Heuristic.clusters{
+			selector_clusters(func: uid(s)){
+				Selector.results{
 					HeuristicCluster.results@cascade{
 						uid
 						tx_inputs(first:1){
@@ -591,7 +591,7 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 		}`
 
 	resp, err := c.Query(ctx, query, map[string]string{"$cluster": clusterUID,
-		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+		"$selector": selectorUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -600,11 +600,11 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 	// json struct
 	// while the query also returns the cluster uids, only the transaction hashes are collected
 	var r struct {
-		HeuristicClusters []struct {
+		SelectorClusters []struct {
 			Clusters []struct {
 				Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
-			} `json:"Heuristic.clusters,omitempty"`
-		} `json:"heuristic_clusters,omitempty"`
+			} `json:"Selector.results,omitempty"`
+		} `json:"selector_clusters,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -612,18 +612,18 @@ func GetConnectionClusterToHeuristic(ctx context.Context, c external.Database, c
 		return
 	}
 
-	if len(r.HeuristicClusters) != 1 {
-		err = serror.FromFormat("invalid number of heuristic results returned: %d", len(r.HeuristicClusters))
+	if len(r.SelectorClusters) != 1 {
+		err = serror.FromFormat("invalid number of selector results returned: %d", len(r.SelectorClusters))
 		return
 	}
 
-	if len(r.HeuristicClusters[0].Clusters) != 1 {
-		err = serror.FromFormat("invalid number of cluster results returned: %d", len(r.HeuristicClusters[0].Clusters))
+	if len(r.SelectorClusters[0].Clusters) != 1 {
+		err = serror.FromFormat("invalid number of cluster results returned: %d", len(r.SelectorClusters[0].Clusters))
 		return
 	}
 
 	transactionMap := map[string]bool{}
-	for _, results := range r.HeuristicClusters[0].Clusters[0].Results {
+	for _, results := range r.SelectorClusters[0].Clusters[0].Results {
 		transactionMap[results.UID] = true
 	}
 
@@ -811,23 +811,23 @@ func GetConnectionClusterToTransaction(ctx context.Context, c external.Database,
 	return
 }
 
-// GetConnectionHeuristicToTransaction returns the given transaction, with each output
-// having a flag if it belongs to one of the heuristic's clusters addresses.
-func GetConnectionHeuristicToTransaction(ctx context.Context, c external.Database, heuristicUID string,
+// GetConnectionSelectorToTransaction returns the given transaction, with each output
+// having a flag if it belongs to one of the selector's clusters addresses.
+func GetConnectionSelectorToTransaction(ctx context.Context, c external.Database, selectorUID string,
 	transactionUID string, userUID string, workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
-	const query = `query Q($transaction:string,$heuristic:string,$userUID:string,$workspaceUID:string){
+	const query = `query Q($transaction:string,$selector:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.selectors@filter(uid($heuristic))
+					s as Workspace.selectors@filter(uid($selector))
 				}
 			}
 
 			t as var(func: uid($transaction))
 
-			# get all cluster of heuristic
-			var(func: uid(h)){
-				Heuristic.clusters{
+			# get all clusters of selector
+			var(func: uid(s)){
+				Selector.results{
 					HeuristicCluster.results@filter(uid(t)){
 						tx_inputs(first:1){
 							~addr_outputs{
@@ -859,7 +859,7 @@ func GetConnectionHeuristicToTransaction(ctx context.Context, c external.Databas
 		}`
 
 	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID,
-		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+		"$selector": selectorUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -932,20 +932,20 @@ func GetConnectionHeuristicToTransaction(ctx context.Context, c external.Databas
 	return
 }
 
-// FindDescendantHeuristicUIDs returns the given node uid and all node uids which can
+// FindDescendantSelectorUIDs returns the given node uid and all node uids which can
 // be found by recursively traversing their children. Only heuristics are considered.
-func FindDescendantHeuristicUIDs(nodes map[string]Node, nodeUID string) []string {
+func FindDescendantSelectorUIDs(nodes map[string]Node, nodeUID string) []string {
 	var descendants []string
 
 	n, ok := nodes[nodeUID]
-	if !ok || n.Type != NodeTypeHeuristic {
+	if !ok || n.Type != NodeTypeSelector {
 		return descendants
 	}
 
 	descendants = append(descendants, n.UID)
 
 	for _, childNode := range n.Children {
-		descendants = append(descendants, FindDescendantHeuristicUIDs(nodes, childNode)...)
+		descendants = append(descendants, FindDescendantSelectorUIDs(nodes, childNode)...)
 	}
 	return descendants
 }

@@ -12,7 +12,6 @@ const DType = "Workspace"
 const (
 	NodeTypeCluster     = "cluster"
 	NodeTypeTransaction = "transaction"
-	NodeTypeHeuristic   = "heuristic"
 	NodeTypeSelector    = "selector"
 	NodeTypeNote        = "note"
 )

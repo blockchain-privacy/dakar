@@ -3,7 +3,6 @@ package workspace
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
-	dbHeuristic "backend/db/analytics/heuristics"
 	"backend/db/workspace"
 	"backend/external"
 	"context"
@@ -95,19 +94,19 @@ func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, worksp
 		w.Nodes, w.ClusterHeight)
 }
 
-func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes []workspace.Node,
+func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.Node, workspaceNodes []workspace.Node,
 	userUID string, workspaceUID string) ([]string, error) {
 	var deletedNodes []string
-	if node.Type == workspace.NodeTypeHeuristic {
+	if node.Type == workspace.NodeTypeSelector {
 		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
 		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
 		}
 
-		uids := workspace.FindDescendantHeuristicUIDs(nodeMap, node.UID)
+		uids := workspace.FindDescendantSelectorUIDs(nodeMap, node.UID)
 
-		// delete the actual heuristics
-		if err := dbHeuristic.DeleteUserHeuristics(dgraph, uids, userUID, workspaceUID); err != nil {
+		// delete the actual selectors
+		if err := workspace.DeleteUserSelectors(ctx, dgraph, uids, userUID, workspaceUID); err != nil {
 			if errors.Is(err, db.ErrNoMutationHappened) {
 				return nil, nil
 			}
@@ -125,12 +124,12 @@ func deleteNode(dgraph external.Database, node *workspace.Node, workspaceNodes [
 		// collect all heuristic UIDs
 		var children []string
 		for _, child := range node.Children {
-			children = append(children, workspace.FindDescendantHeuristicUIDs(nodeMap, child)...)
+			children = append(children, workspace.FindDescendantSelectorUIDs(nodeMap, child)...)
 		}
 
 		if len(children) > 0 {
 			// delete the actual heuristics
-			if err := dbHeuristic.DeleteUserHeuristics(dgraph, children, userUID, workspaceUID); err != nil {
+			if err := workspace.DeleteUserSelectors(ctx, dgraph, children, userUID, workspaceUID); err != nil {
 				if errors.Is(err, db.ErrNoMutationHappened) {
 					return nil, nil
 				}
@@ -183,7 +182,7 @@ func DeleteNodes(ctx context.Context, dgraph external.Database, workspaceMutex *
 
 	deleteNodesMap := map[string]bool{}
 	for _, n := range nodesToDelete {
-		nodes, err := deleteNode(dgraph, n, w.Nodes, userUID, workspaceUID)
+		nodes, err := deleteNode(ctx, dgraph, n, w.Nodes, userUID, workspaceUID)
 		if err != nil {
 			return nil, err
 		}

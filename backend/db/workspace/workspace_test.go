@@ -103,26 +103,26 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 	}
 }
 
-func TestFindDescandantHeuristicUIDs(t *testing.T) {
+func TestFindDescandantSelectorUIDs(t *testing.T) {
 	filledMap := map[string]Node{
 		"0x1": {
 			UID:      "0x1",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: nil,
 		},
 		"0x2": {
 			UID:      "0x2",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: nil,
 		},
 		"0x3": {
 			UID:      "0x3",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: nil,
 		},
 		"0x4": {
 			UID:      "0x4",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: []string{"0x2", "0x3"},
 		},
 	}
@@ -153,7 +153,7 @@ func TestFindDescandantHeuristicUIDs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.want, FindDescendantHeuristicUIDs(tt.nodes, tt.nodeUID))
+		require.EqualValues(t, tt.want, FindDescendantSelectorUIDs(tt.nodes, tt.nodeUID))
 	}
 }
 

@@ -358,7 +358,9 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 		query Q($userUID:string,$selectorUIDs:string,$workspaceUID:string){
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					s as Workspace.selectors@filter(uid($selectorUIDs))
+					s as Workspace.selectors@filter(uid($selectorUIDs)){
+						hc as Selector.results@filter(type(HeuristicCluster))
+					}
 				}
 			}
 		}`
@@ -368,7 +370,8 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 		Vars: map[string]string{"$userUID": userUID,
 			"$selectorUIDs": db.CreateCommaArray(uids), "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(s) * * .
+			DelNquads: []byte(` uid(hc) * * .
+								uid(s) * * .
 								<` + workspaceUID + "> <Workspace.selectors> uid(s) ."),
 		}},
 		CommitNow: true,

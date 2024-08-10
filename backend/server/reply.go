@@ -1896,8 +1896,8 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			warn(err)
 			return
 		}
-	} else if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeHeuristic ||
-		req.FirstNode.Type == dbwork.NodeTypeHeuristic && req.SecondNode.Type == dbwork.NodeTypeCluster {
+	} else if req.FirstNode.Type == dbwork.NodeTypeCluster && req.SecondNode.Type == dbwork.NodeTypeSelector ||
+		req.FirstNode.Type == dbwork.NodeTypeSelector && req.SecondNode.Type == dbwork.NodeTypeCluster {
 		clusterUID := req.FirstNode.UID
 		heuristicUID := req.SecondNode.UID
 
@@ -1906,7 +1906,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			heuristicUID = req.FirstNode.UID
 		}
 
-		reply.AmountTransactions, err = dbwork.GetConnectionClusterToHeuristic(r.Context(), dgraph, clusterUID,
+		reply.AmountTransactions, err = dbwork.GetConnectionClusterToSelector(r.Context(), dgraph, clusterUID,
 			heuristicUID, tUser.ID, req.WorkspaceUID)
 		if err != nil {
 			status = http.StatusInternalServerError
@@ -1929,17 +1929,17 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			warn(err)
 			return
 		}
-	} else if req.FirstNode.Type == dbwork.NodeTypeHeuristic && req.SecondNode.Type == dbwork.NodeTypeTransaction ||
-		req.FirstNode.Type == dbwork.NodeTypeTransaction && req.SecondNode.Type == dbwork.NodeTypeHeuristic {
-		heuristicUID := req.FirstNode.UID
+	} else if req.FirstNode.Type == dbwork.NodeTypeSelector && req.SecondNode.Type == dbwork.NodeTypeTransaction ||
+		req.FirstNode.Type == dbwork.NodeTypeTransaction && req.SecondNode.Type == dbwork.NodeTypeSelector {
+		selectorUID := req.FirstNode.UID
 		transactionUID := req.SecondNode.UID
 
 		if req.FirstNode.Type == dbwork.NodeTypeTransaction {
-			heuristicUID = req.SecondNode.UID
+			selectorUID = req.SecondNode.UID
 			transactionUID = req.FirstNode.UID
 		}
 
-		reply.FrontendTransactions, err = dbwork.GetConnectionHeuristicToTransaction(r.Context(), dgraph, heuristicUID,
+		reply.FrontendTransactions, err = dbwork.GetConnectionSelectorToTransaction(r.Context(), dgraph, selectorUID,
 			transactionUID, tUser.ID, req.WorkspaceUID)
 		if err != nil {
 			status = http.StatusInternalServerError

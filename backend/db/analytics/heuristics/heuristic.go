@@ -25,46 +25,6 @@ var (
 	errInvalidDatabaseResponse = errors.New("error invalid response")
 )
 
-// DeleteUserHeuristics deletes all given heuristic of a user
-func DeleteUserHeuristics(c external.Database, uids []string, userUID string, workspaceUID string) error {
-	const query = `
-		query Q($userUID:string,$heuristicUIDs:string,$workspaceUID:string){
-			var(func: uid($userUID)){
-				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.heuristics@filter(uid($heuristicUIDs)){
-						hc as Heuristic.clusters{
-							hr as HeuristicCluster.results
-						}
-					}
-				}
-			}
-		}`
-
-	req := &api.Request{
-		Query: query,
-		Vars: map[string]string{"$userUID": userUID,
-			"$heuristicUIDs": db.CreateCommaArray(uids), "$workspaceUID": workspaceUID},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .
-								<` + workspaceUID + "> <Workspace.heuristics> uid(h) ."),
-		}},
-		CommitNow: true,
-	}
-
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if err != nil {
-		return err
-	}
-
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return serror.New(db.ErrNoMutationHappened)
-	}
-
-	return nil
-}
-
 // DeleteAllHeuristics deletes all heuristics in the database
 func DeleteAllHeuristics(c external.Database) error {
 	const query = `
