@@ -84,10 +84,14 @@
               <date-input
                 v-model="selectorOptions.startDate"
                 :rules="parameterRules.get('date')"
+                :error="startDateError"
+                label="From"
               />
               <date-input
                 v-model="selectorOptions.endDate"
                 :rules="parameterRules.get('date')"
+                :error="endDateError"
+                label="To"
               />
             </div>
             <div class="d-flex justify-center my-2 text-subtitle-1">
@@ -238,6 +242,8 @@ const heuristicOptions = ref({
 	type: null,
 });
 
+const startDateError = ref(false);
+const endDateError = ref(false);
 const parameterRules = new Map([
 	['int', [v => {
 		if (!/^\d+$/.test(v)) {
@@ -267,6 +273,9 @@ onUpdated(() => {
 		heuristicTypeModel.value = heuristicTypes.value.find(d => !d.divider);
 		heuristicOptions.value.type = heuristicTypeModel.value.type;
 	}
+
+	startDateError.value = false;
+	endDateError.value = false;
 });
 
 // Functions
@@ -296,6 +305,11 @@ function getHeuristicTypes() {
 	return selectorItems;
 }
 
+function isRangeEmpty(obj) {
+	return obj.min === undefined && obj.max === undefined;
+}
+
+// eslint-disable-next-line complexity
 async function addNewSelectorAction(event) {
 	const res = await event;
 	if (!res.valid) {
@@ -304,40 +318,64 @@ async function addNewSelectorAction(event) {
 
 	let options = null;
 
-	if (selectorTypeModel.value === SELECTOR_TYPE_HEURISTIC) {
-		if (!heuristicOptions.value.type) {
-			setErrorMessage('invalid heuristic type');
+	switch (selectorTypeModel.value) {
+		case SELECTOR_TYPE_HEURISTIC:
+			if (!heuristicOptions.value.type) {
+				setErrorMessage('invalid heuristic type');
+				return;
+			}
+
+			options = structuredClone(toRaw(heuristicOptions.value));
+			options.clusterTypes = heuristicOptions.value.clusterTypes ? [CLUSTER_TYPE_CUSTOM] : [];
+
+			// Int to string
+			options.paramter &&= `${options.paramter}`;
+			break;
+		case SELECTOR_TYPE_TX_PROP:
+			options = structuredClone(toRaw(selectorOptions.value));
+
+			if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
+				startDateError.value = true;
+				endDateError.value = true;
+				return;
+			}
+
+			startDateError.value = false;
+			endDateError.value = false;
+
+			options.startDate = options.startDate.toISOString();
+			options.endDate = options.endDate.toISOString();
+
+			options.inputSum.min &&= parseFloat(options.inputSum.min);
+			options.inputSum.max &&= parseFloat(options.inputSum.max);
+			options.outputSum.min &&= parseFloat(options.outputSum.min);
+			options.outputSum.max &&= parseFloat(options.outputSum.max);
+
+			options.inputRange.min &&= parseFloat(options.inputRange.min);
+			options.inputRange.max &&= parseFloat(options.inputRange.max);
+			options.outputRange.min &&= parseFloat(options.outputRange.min);
+			options.outputRange.max &&= parseFloat(options.outputRange.max);
+
+			if (isRangeEmpty(options.inputSum)) {
+				delete options.inputSum;
+			}
+
+			if (isRangeEmpty(options.outputSum)) {
+				delete options.outputSum;
+			}
+
+			if (isRangeEmpty(options.inputRange)) {
+				delete options.inputRange;
+			}
+
+			if (isRangeEmpty(options.outputRange)) {
+				delete options.outputRange;
+			}
+
+			break;
+		default:
+			setErrorMessage('invalid selector type');
 			return;
-		}
-
-		options = structuredClone(toRaw(heuristicOptions.value));
-		options.clusterTypes = heuristicOptions.value.clusterTypes ? [CLUSTER_TYPE_CUSTOM] : [];
-
-		// Int to string
-		options.paramter &&= `${options.paramter}`;
-	} else if (selectorTypeModel.value === SELECTOR_TYPE_TX_PROP) {
-		options = structuredClone(toRaw(selectorOptions.value));
-
-		if (!options.startDate || !options.endDate) {
-			setErrorMessage('invalid date range');
-			return;
-		}
-
-		options.startDate = options.startDate.toISOString();
-		options.endDate = options.endDate.toISOString();
-
-		options.inputSum.min &&= parseFloat(options.inputSum.min);
-		options.inputSum.max &&= parseFloat(options.inputSum.max);
-		options.outputSum.min &&= parseFloat(options.outputSum.min);
-		options.outputSum.max &&= parseFloat(options.outputSum.max);
-
-		options.inputRange.min &&= parseFloat(options.inputRange.min);
-		options.inputRange.max &&= parseFloat(options.inputRange.max);
-		options.outputRange.min &&= parseFloat(options.outputRange.min);
-		options.outputRange.max &&= parseFloat(options.outputRange.max);
-	} else {
-		setErrorMessage('invalid selector type');
-		return;
 	}
 
 	emit('add-selector', selectorTypeModel.value, options);

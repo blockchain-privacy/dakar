@@ -8,17 +8,18 @@
       <v-text-field
         v-bind="a.props"
         readonly
-        label="From"
+        :label="label"
         :model-value="model?.toLocaleDateString()"
         hide-details
         class="me-2"
         :rules="rules"
+        :error="error"
       />
     </template>
     <v-card>
       <v-date-picker
         v-model="model"
-        landscape
+        hide-header
       />
       <v-card-actions>
         <v-btn
@@ -35,7 +36,11 @@
 <script setup>
 import {ref} from 'vue';
 
-defineProps({rules: {type: Array, required: false, default: undefined}});
+defineProps({
+	label: {type: String, required: false, default: 'Date'},
+	rules: {type: Array, required: false, default: undefined},
+	error: {type: Boolean, required: false, default: false},
+});
 
 const model = defineModel({type: Date});
 const menuModel = ref(false);
