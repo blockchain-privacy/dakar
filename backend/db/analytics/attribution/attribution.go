@@ -100,7 +100,7 @@ func DeletePrivateAttribution(ctx context.Context, c external.Database, userID s
 	}
 
 	// check if there was actually something mutated
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 
@@ -125,7 +125,7 @@ func DeletePublicAttribution(ctx context.Context, c external.Database, attributi
 	}
 
 	// check if there was actually something mutated
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 

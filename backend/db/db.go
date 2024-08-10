@@ -372,3 +372,10 @@ func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string,
 
 	return r.Type[0].Type[0], nil
 }
+
+// HasMutationCost returns true if the response has a mutation cost attached.
+// This happens if a request mutated data in the database.
+func HasMutationCost(resp *api.Response) bool {
+	v, ok := resp.Metrics.NumUids["mutation_cost"]
+	return ok && v > 0
+}

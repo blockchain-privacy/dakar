@@ -689,7 +689,7 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) error 
 		return err
 	}
 
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 

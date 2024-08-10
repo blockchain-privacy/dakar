@@ -132,7 +132,7 @@ func DeleteAddressExclusion(ctx context.Context, c external.Database, userID str
 	}
 
 	// check if there was actually something mutated
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 
@@ -152,7 +152,7 @@ func DeleteAllAddressExclusions(ctx context.Context, c external.Database, userID
 		return err
 	}
 
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 

@@ -52,7 +52,7 @@ func DeleteAllHeuristics(c external.Database) error {
 		return err
 	}
 
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.New(db.ErrNoMutationHappened)
 	}
 
