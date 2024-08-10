@@ -159,8 +159,7 @@ func DeleteNodes(ctx context.Context, dgraph external.Database, workspaceMutex *
 	}
 
 	if len(w.Nodes) == 0 {
-		return nil, serror.FromFormat(
-			"node deletion request for empty workspace. workspace: %s", workspaceUID)
+		return nil, serror.FromFormat("node deletion request for empty workspace. workspace: %s", workspaceUID)
 	}
 
 	nodesToDelete := make(map[string]*workspace.Node, len(nodeUIDs))
