@@ -178,3 +178,37 @@ func TestDeleteNodes(t *testing.T) {
 		require.EqualValues(t, tt.want, DeleteNodes(tt.nodes, tt.uids))
 	}
 }
+
+func TestDeleteWorkspace(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	ctx := context.Background()
+	// create dgraph user and workspace for tests
+	userUID, err := user.CreateNewUser(dbHandle)
+	require.NoError(t, err)
+	workspaceUID, err := AddWorkspace(ctx, dbHandle, "test", userUID)
+	require.NoError(t, err)
+
+	tests := []struct {
+		workspaceUID string
+		wantErr      bool
+	}{
+		{
+			// invalid UID
+			workspaceUID: "0x123",
+			wantErr:      true,
+		},
+		{
+			// invalid UID
+			workspaceUID: workspaceUID,
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		if err := DeleteWorkspace(ctx, dbHandle, userUID, tt.workspaceUID); tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
