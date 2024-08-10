@@ -69,7 +69,6 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	// 2. Store work
 	if updateErr := workspace.UpdateSelector(ctx, c, &workspace.Selector{
 		UID:     s.selectorUID,
-		Type:    workspace.TypeTransactionProperties,
 		Status:  status,
 		Results: newNodes,
 	}, s.userUID, s.workspaceUID); updateErr != nil {
@@ -92,7 +91,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 		return err
 	}
 
-	// try to set node position
+	// try to set node status
 	if n, ok := nodeMap[s.selectorUID]; ok {
 		n.SelectorStatus = status
 		nodeMap[s.selectorUID] = n
@@ -234,7 +233,6 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *g
 
 	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
 		UID:     h.selectorUID,
-		Type:    workspace.TypeTransactionProperties,
 		Status:  status,
 		Results: newNodes,
 	}, h.userUID, h.workspaceUID); updateErr != nil {
@@ -258,7 +256,7 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *g
 		return err
 	}
 
-	// try to set node position
+	// try to set node status
 	if newNode, ok := nodeMap[h.selectorUID]; ok {
 		newNode.SelectorStatus = status
 		nodeMap[h.selectorUID] = newNode
