@@ -159,6 +159,14 @@ func TestDoSelection(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			// start date after end date
+			o: Options{
+				StartDate: &endDate1,
+				EndDate:   &startDate1,
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		selection, err := DoSelection(context.Background(), dbHandle, tt.o)
