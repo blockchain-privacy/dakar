@@ -51,8 +51,8 @@ func (s *Selector) IsValid() bool {
 }
 
 type AmountRange struct {
-	Min *int64
-	Max *int64
+	Min *int64 `json:"min,omitempty"`
+	Max *int64 `json:"max,omitempty"`
 }
 
 func (a AmountRange) IsValid() bool {
