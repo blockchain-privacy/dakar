@@ -76,6 +76,11 @@ func (o Options) IsValid() bool {
 		return false
 	}
 
+	// start date must be smaller than end date
+	if o.StartDate.Compare(*o.EndDate) > 0 {
+		return false
+	}
+
 	// at least one option must be set
 	if o.OutputSum == nil && o.InputSum == nil &&
 		o.InputRange == nil && o.OutputRange == nil &&
