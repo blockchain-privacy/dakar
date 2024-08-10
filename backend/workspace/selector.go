@@ -169,7 +169,8 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	}
 
 	parentIndex, parentNode, err := getSelectorParent(selectorParent, w.Nodes)
-	if err != nil {
+	if err != nil && selectorType == workspace.TypeHeuristic {
+		// only heuristic are required to have a parent
 		return "", nil, serror.AddContext(err, "options", options)
 	}
 
