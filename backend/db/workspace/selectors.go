@@ -202,7 +202,7 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 		variable = ",$parent: string"
 		// parent can either be a heuristic or a selector
 		parentQuery = `{
-							h as Workspace.heuristics@filter(uid($parent))
+							h as Workspace.selectors@filter(uid($parent))
 						}`
 		parentUnion = ` t as var(func: uid($parent))@filter(type(Transaction))
 						p as var(func: uid(t,h))`
