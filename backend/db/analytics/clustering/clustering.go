@@ -711,7 +711,16 @@ func DeleteAllClusters(ctx context.Context, c external.Database, userID string) 
 		CommitNow: true,
 	}
 
-	return db.MutationWithRetry(ctx, c, req)
+	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
+	if err != nil {
+		return err
+	}
+
+	if !db.HasMutationCost(resp) {
+		return serror.New(db.ErrNoMutationHappened)
+	}
+
+	return nil
 }
 
 // GetRelatedClusters returns the UIDs of clusters which can be reached from the given cluster

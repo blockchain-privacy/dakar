@@ -1816,7 +1816,7 @@ func getDeleteWorkspaceReply(dgraph external.Database, r *http.Request) (reply m
 	}
 
 	if err := dbwork.DeleteWorkspace(r.Context(), dgraph, tUser.ID, workspaceUID); err != nil {
-		if errors.Is(err, dbwork.ErrNoMutationHappened) {
+		if errors.Is(err, db.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction might not have any workspaces."
 			status = http.StatusNotFound
 		} else {
@@ -1839,7 +1839,7 @@ func getDeleteAllWorkspacesReply(dgraph external.Database, r *http.Request) (rep
 	}
 
 	if err := dbwork.DeleteAllWorkspaces(r.Context(), dgraph, tUser.ID); err != nil {
-		if errors.Is(err, dbwork.ErrNoMutationHappened) {
+		if errors.Is(err, db.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The user might not have any workspaces."
 			status = http.StatusNotFound
 		} else {

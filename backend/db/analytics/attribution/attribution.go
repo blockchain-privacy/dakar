@@ -147,7 +147,16 @@ func DeleteAllAttributions(ctx context.Context, c external.Database, userID stri
 		CommitNow: true,
 	}
 
-	return db.MutationWithRetry(ctx, c, req)
+	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
+	if err != nil {
+		return err
+	}
+
+	if !db.HasMutationCost(resp) {
+		return serror.New(db.ErrNoMutationHappened)
+	}
+
+	return nil
 }
 
 // SearchAttributions returns the attributions that match the query string

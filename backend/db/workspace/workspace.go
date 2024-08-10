@@ -5,16 +5,10 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 	"time"
-)
-
-var (
-	// ErrNoMutationHappened is returned if no mutation occurred
-	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
 // AddWorkspace creates a new workspace
@@ -215,7 +209,8 @@ func DeleteAllWorkspaces(ctx context.Context, c external.Database, userUID strin
 	return DeleteWorkspace(ctx, c, userUID, "")
 }
 
-// DeleteWorkspace deletes a user's workspace
+// DeleteWorkspace deletes a user's workspace including all their selectors.
+// If the workspace UID is not set, all workspaces of the user are deleted.
 func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, workspaceUID string) error {
 	var filterWorkspaces string
 
@@ -227,26 +222,31 @@ func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, w
 		Query: `query Q($user:string, $workspace:string){
 				var(func: uid($user)){
 					w as User.workspaces` + filterWorkspaces + `{
-						h as Workspace.heuristics{
-							hc as Heuristic.clusters{
-								hr as HeuristicCluster.results
-							}
+						s as Workspace.selectors{
+							hc as Selector.results@filter(type(HeuristicCluster))
 						}
 					}
 				}
 			  }`,
 		Vars: map[string]string{"$user": userUID, "$workspace": workspaceUID},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .
+			DelNquads: []byte(` uid(hc) * * .
+								uid(s) * * .
 								uid(w) * * .
 								<` + userUID + "> <User.workspaces> uid(w) ."),
 		}},
 		CommitNow: true,
 	}
+	response, err := db.MutationWithRetryAndResponse(ctx, c, req)
+	if err != nil {
+		return err
+	}
 
-	return db.MutationWithRetry(ctx, c, req)
+	if !db.HasMutationCost(response) {
+		return serror.New(db.ErrNoMutationHappened)
+	}
+
+	return nil
 }
 
 func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []string) (isOutdated bool, err error) {
