@@ -11,15 +11,7 @@
         @submit.prevent="addNewSelectorAction"
       >
         <v-card-text>
-          <v-select
-            v-model="selectorTypeModel"
-            class="mb-3"
-            :items="selectorTypes"
-            label="Selector Type"
-            mandatory
-            hide-details
-          />
-          <template v-if="selectorTypeModel === SELECTOR_TYPE_HEURISTIC">
+          <template v-if="selectorType === SELECTOR_TYPE_HEURISTIC">
             <v-select
               v-model="heuristicTypeModel"
               class="mb-3"
@@ -76,7 +68,7 @@
               />
             </template>
           </template>
-          <template v-else-if="selectorTypeModel === SELECTOR_TYPE_TX_PROP">
+          <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Time Range
             </div>
@@ -207,19 +199,16 @@ import {onUpdated, ref, toRaw} from 'vue';
 import {CLUSTER_TYPE_CUSTOM, SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP} from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
-const props = defineProps({descriptors: {type: Array, required: true}});
+
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
 const msgStore = useMsgStore();
 const route = useRoute();
 
-// Switch model
-const selectorTypeModel = ref(SELECTOR_TYPE_HEURISTIC);
-// Switch items
-const selectorTypes = [
-	{title: 'Transaction Heuristic', value: SELECTOR_TYPE_HEURISTIC},
-	{title: 'Transaction Properties', value: SELECTOR_TYPE_TX_PROP},
-];
+const props = defineProps({
+	selectorType: {type: String, required: true},
+	descriptors: {type: Array, required: true},
+});
 
 // Heuristic select model
 const heuristicTypeModel = ref([]);
@@ -318,7 +307,7 @@ async function addNewSelectorAction(event) {
 
 	let options = null;
 
-	switch (selectorTypeModel.value) {
+	switch (props.selectorType) {
 		case SELECTOR_TYPE_HEURISTIC:
 			if (!heuristicOptions.value.type) {
 				setErrorMessage('invalid heuristic type');
@@ -378,7 +367,7 @@ async function addNewSelectorAction(event) {
 			return;
 	}
 
-	emit('add-selector', selectorTypeModel.value, options);
+	emit('add-selector', props.selectorType, options);
 	model.value = false;
 }
 

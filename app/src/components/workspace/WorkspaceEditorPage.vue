@@ -72,6 +72,7 @@
         <create-selector-side-bar
           v-model="isCreateSelectorSheetOpen"
           :descriptors="heuristicDescriptors"
+          :selector-type="selectorCreationType"
           @add-selector="addNewSelector"
         />
         <entity-side-bar
@@ -81,7 +82,7 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-selector="openCreateSelectorSheet"
+          @add-selector="openCreateSelectorSheet(true)"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
@@ -243,6 +244,7 @@ const workspaceName = ref('');
 const isCreateSelectorSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
+const selectorCreationType = ref('');
 const isShortestPathSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
@@ -629,15 +631,19 @@ function setErrorMessage(msg) {
 // Sends the new selector to the backend
 async function addNewSelector(type, options) {
 	const currentNode = nodeGraph.getContextNode();
-	if (!currentNode || !currentNode.uid) {
-		setErrorMessage('could not determine parent node');
-		return;
-	}
 
+	let parent;
 	let heuristicOptions;
 	let selectorOptions;
 
 	if (type === SELECTOR_TYPE_HEURISTIC) {
+		if (!currentNode || !currentNode.uid) {
+			setErrorMessage('could not determine parent node');
+			return;
+		}
+
+		parent = currentNode.uid;
+
 		heuristicOptions = options;
 		const nodes = nodeGraph.getNodes();
 		const txHash = getHeuristicTransaction(nodes, currentNode.uid);
@@ -648,22 +654,22 @@ async function addNewSelector(type, options) {
 
 		heuristicOptions.transactionHash = txHash;
 	} else if (type === SELECTOR_TYPE_TX_PROP) {
+		if (currentNode?.uid) {
+			parent = currentNode.uid;
+		}
+
 		selectorOptions = options;
 	} else {
 		setErrorMessage('invalid selector type');
 		return;
 	}
 
-	console.log('received add selector', type, options);
-	console.log('heuristic options', heuristicOptions);
-	console.log('selector options', selectorOptions);
-
 	await lockAutosave();
 
 	try {
 		const response = await dakar.workspace.workspacesSelectorPost({
 			selector: {
-				parent: currentNode.uid, type, heuristicOptions, selectorOptions, workspaceUID: workspaceUID.value,
+				parent, type, heuristicOptions, selectorOptions, workspaceUID: workspaceUID.value,
 			},
 		});
 
@@ -744,7 +750,7 @@ function contextMenuOpenTypeSelection(node) {
 		return;
 	}
 
-	openCreateSelectorSheet();
+	openCreateSelectorSheet(true);
 }
 
 function openConnectionSheet(d) {
@@ -759,7 +765,13 @@ function openConnectionSheet(d) {
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
-function openCreateSelectorSheet() {
+function openCreateSelectorSheet(isHeuristic) {
+	if (isHeuristic) {
+		selectorCreationType.value = SELECTOR_TYPE_HEURISTIC;
+	} else {
+		selectorCreationType.value = SELECTOR_TYPE_TX_PROP;
+	}
+
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isCreateSelectorSheetOpen.value = true;
