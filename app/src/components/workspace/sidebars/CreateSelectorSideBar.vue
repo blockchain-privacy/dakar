@@ -315,7 +315,7 @@ async function addNewSelectorAction(event) {
 			}
 
 			options = structuredClone(toRaw(heuristicOptions.value));
-			options.clusterTypes = heuristicOptions.value.clusterTypes ? [CLUSTER_TYPE_CUSTOM] : [];
+			options.clusterTypes = heuristicOptions.value.clusterTypes?.length > 0 ? [CLUSTER_TYPE_CUSTOM] : [];
 
 			// Int to string
 			options.paramter &&= `${options.paramter}`;
