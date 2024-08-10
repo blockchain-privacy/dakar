@@ -55,15 +55,15 @@ func TestWorker_work(t *testing.T) {
 	defer cancel()
 
 	// insert 3 selectors into db
-	_, err = AddSelector(ctx, dbHandle, m, opt,
+	_, _, err = AddSelector(ctx, dbHandle, m, opt,
 		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
-	_, err = AddSelector(ctx, dbHandle, m, opt,
+	_, _, err = AddSelector(ctx, dbHandle, m, opt,
 		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
-	_, err = AddSelector(ctx, dbHandle, m, opt,
+	_, _, err = AddSelector(ctx, dbHandle, m, opt,
 		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 

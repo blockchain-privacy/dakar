@@ -398,10 +398,10 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	}
 
 	if selectorRequest.SelectorOptions != nil {
-		reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.SelectorOptions,
+		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.SelectorOptions,
 			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
 	} else {
-		reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.HeuristicOptions,
+		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.HeuristicOptions,
 			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
 	}
 

@@ -64,7 +64,7 @@ func TestAddSelector(t *testing.T) {
 
 	m := NewMutex()
 	ctx := context.Background()
-	parentSelector, err := AddSelector(ctx, dbHandle, m, opt,
+	parentSelector, _, err := AddSelector(ctx, dbHandle, m, opt,
 		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
@@ -90,7 +90,7 @@ func TestAddSelector(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		selector, err := AddSelector(ctx, dbHandle, m, tt.options, tt.selectorType, tt.parent, workspaceUID, userUID)
+		selector, _, err := AddSelector(ctx, dbHandle, m, tt.options, tt.selectorType, tt.parent, workspaceUID, userUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
