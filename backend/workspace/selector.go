@@ -23,6 +23,9 @@ type SelectorWork struct {
 
 type Options interface {
 	workspace.Options | dbHeuristic.Options
+
+	// IsValid returns true if the Options are valid
+	IsValid() bool
 }
 
 func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
@@ -147,27 +150,25 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		SelectorStatus: workspace.StatusWaiting,
 	}
 
-	// check selector types and their corresponding options
-	if selectorType == workspace.TypeHeuristic {
+	if !options.IsValid() {
+		return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
+	}
+
+	// check  if selector type and options match
+	switch selectorType {
+	case workspace.TypeHeuristic:
 		opt, ok := any(options).(dbHeuristic.Options)
 		if !ok {
 			return nil, serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
-		if !opt.IsValid() {
-			return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
-		}
 		newNode.HeuristicOptions = &opt
-	} else if selectorType == workspace.TypeTransactionProperties {
+	case workspace.TypeTransactionProperties:
 		opt, ok := any(options).(workspace.Options)
 		if !ok {
 			return nil, serror.FromStrWithContext("options type mismatch", "options", options, "type", selectorType)
 		}
-
-		if !opt.IsValid() {
-			return nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
-		}
 		newNode.SelectorOptions = &opt
-	} else {
+	default:
 		return nil, serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
 	}
 
