@@ -290,7 +290,7 @@ function setSelectableEntities() {
 			break;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
 			for (const cluster of entityData.value.clusters) {
-				for (const tx of cluster.txs) {
+				for (const tx of cluster.transactions) {
 					if (tx.txhash) {
 						selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
 					}

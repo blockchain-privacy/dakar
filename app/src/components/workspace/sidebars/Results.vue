@@ -68,7 +68,7 @@
             />
             <result-item
               :max-items="5"
-              :items="cluster.raw.txs"
+              :items="cluster.raw.transactions"
             />
           </v-card>
           <v-divider
@@ -160,7 +160,7 @@ const clusters = computed(() => {
 	// Filter items based on search query and set counts
 	return sortedResults.filter(cluster => {
 		// Check if any transaction hash contains the search query
-		for (const tx of cluster.txs) {
+		for (const tx of cluster.transactions) {
 			if (tx.txhash.includes(query)) {
 				return true;
 			}
@@ -197,8 +197,8 @@ function setAdditionalAttributes() {
 
 		// Set transaction count
 		cluster.transactionCount = 0;
-		if (cluster.txs) {
-			cluster.transactionCount = cluster.txs.length;
+		if (cluster.transactions) {
+			cluster.transactionCount = cluster.transactions.length;
 		}
 
 		// Set attribution count

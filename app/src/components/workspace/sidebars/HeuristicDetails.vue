@@ -179,7 +179,7 @@ const transactionCount = computed(() => {
 	let count = 0;
 
 	props.heuristicData.clusters.forEach(cluster => {
-		count += cluster.txs.length;
+		count += cluster.transactions.length;
 	});
 	return count;
 });
@@ -208,7 +208,7 @@ function updateData(graphData) {
 	// Flatten
 	const detailArray = [];
 	graphData.forEach(d => {
-		detailArray.push(...d.txs);
+		detailArray.push(...d.transactions);
 	});
 
 	svgHistogram.draw(detailArray);
