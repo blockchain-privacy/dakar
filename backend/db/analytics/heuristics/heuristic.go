@@ -504,14 +504,14 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
-						Workspace.heuristics@filter(uid($heuristicUID)){
-							c as Heuristic.clusters
+						Workspace.selectors@filter(uid($heuristicUID)){
+							r as Selector.results
 						}
 					}
 				}
 
-				q(func: uid(c)){
-					HeuristicCluster.results{
+				q(func: uid(r)){
+					HeuristicCluster.results@normalize{
 						txhash:txhash
 						~transactions{
 							ts:ts
