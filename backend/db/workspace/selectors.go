@@ -134,11 +134,11 @@ func DoSelection(ctx context.Context, c external.Database, o Options) ([]string,
 					}
 				}
 
-				withSums as var(func: uid(t)){
+				withSums as var(func: uid(t), first: 50){
 					` + queryBody + `
 				}
 				
-				q(func: uid(withSums))` + queryFilter + `{
+				q(func: uid(withSums), first: 50)` + queryFilter + `{
 					uid
 				}
 			  }`
