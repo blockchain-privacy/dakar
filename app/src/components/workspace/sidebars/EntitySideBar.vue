@@ -359,18 +359,18 @@ async function getHeuristicData() {
 	}
 
 	try {
-		const response = await dakar.heuristic.heuristicDetailsPost({
-			heuristic: {
+		const response = await dakar.workspace.workspacesSelectorResultsPost({
+			selector: {
 				heuristicUID: props.identifier,
 				workspaceUID: props.workspaceUid,
 			},
 		});
 
-		if (!response.heuristic) {
+		if (!response.selector?.clusters?.length === 0) {
 			throw new Error('response contains no heuristics');
 		}
 
-		tmp.clusters = response.heuristic.clusters;
+		tmp.clusters = response.selector.clusters;
 		entityData.value = tmp;
 		cacheStore.setValue(props.identifier, tmp);
 	} catch (e) {
