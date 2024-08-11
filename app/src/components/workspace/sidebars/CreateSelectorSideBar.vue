@@ -199,6 +199,7 @@ import {onUpdated, ref, toRaw} from 'vue';
 import {CLUSTER_TYPE_CUSTOM, SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP} from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
+import {amountToIntegers} from '@/utilities/index.js';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
@@ -335,15 +336,15 @@ async function addNewSelectorAction(event) {
 			options.startDate = options.startDate.toISOString();
 			options.endDate = options.endDate.toISOString();
 
-			options.inputSum.min &&= parseFloat(options.inputSum.min);
-			options.inputSum.max &&= parseFloat(options.inputSum.max);
-			options.outputSum.min &&= parseFloat(options.outputSum.min);
-			options.outputSum.max &&= parseFloat(options.outputSum.max);
+			options.inputSum.min &&= amountToIntegers(parseFloat(options.inputSum.min));
+			options.inputSum.max &&= amountToIntegers(parseFloat(options.inputSum.max));
+			options.outputSum.min &&= amountToIntegers(parseFloat(options.outputSum.min));
+			options.outputSum.max &&= amountToIntegers(parseFloat(options.outputSum.max));
 
-			options.inputRange.min &&= parseFloat(options.inputRange.min);
-			options.inputRange.max &&= parseFloat(options.inputRange.max);
-			options.outputRange.min &&= parseFloat(options.outputRange.min);
-			options.outputRange.max &&= parseFloat(options.outputRange.max);
+			options.inputRange.min &&= amountToIntegers(parseFloat(options.inputRange.min));
+			options.inputRange.max &&= amountToIntegers(parseFloat(options.inputRange.max));
+			options.outputRange.min &&= amountToIntegers(parseFloat(options.outputRange.min));
+			options.outputRange.max &&= amountToIntegers(parseFloat(options.outputRange.max));
 
 			if (isRangeEmpty(options.inputSum)) {
 				delete options.inputSum;
