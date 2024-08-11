@@ -476,7 +476,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 //	@Tags			workspace
 //	@Produce		json
 //	@Accept			json
-//	@Param			seletor	body		server.getSelectorResultsReply.request	true	"Selector request"
+//	@Param			selector	body		server.getSelectorResultsReply.request	true	"Selector request"
 //	@Success		200		{object}	server.selectorResultsReply
 //	@Failure		400		{object}	server.selectorResultsReply
 //	@Failure		401		{object}	server.selectorResultsReply

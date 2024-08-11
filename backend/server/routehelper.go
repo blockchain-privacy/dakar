@@ -105,7 +105,7 @@ type addWorkspaceSelectorReply struct {
 }
 
 type selectorResultsReply struct {
-	Results workspace.FrontendSelectorResults `json:"heuristic,omitempty"`
+	Results workspace.FrontendSelectorResults `json:"selector,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
