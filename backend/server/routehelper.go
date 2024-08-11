@@ -106,7 +106,7 @@ type addWorkspaceSelectorReply struct {
 }
 
 type heuristicDetailsReply struct {
-	Heuristic *dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
+	Results []dbh.FrontendHeuristicCluster `json:"heuristic,omitempty"`
 }
 
 type shortestTransactionPathReply struct {

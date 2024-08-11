@@ -101,12 +101,6 @@ type Attribution struct {
 	IsPublic bool   `json:"isPublic"`
 }
 
-// FrontendHeuristicShort holds all result counts of a heuristic
-type FrontendHeuristicShort struct {
-	UID      string                     `json:"uid,omitempty"`
-	Clusters []FrontendHeuristicCluster `json:"clusters,omitempty"`
-}
-
 type mergedClusterItem struct {
 	clusterHash string
 	clusterUIDs map[string]bool

@@ -315,7 +315,7 @@ func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	heuristic, err := dbHeuristic.GetFrontendHeuristicByUID(r.Context(), dgraph,
+	results, err := dbHeuristic.GetHeuristicReulstByUID(r.Context(), dgraph,
 		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -323,7 +323,7 @@ func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	reply.Heuristic = &heuristic
+	reply.Results = results
 
 	return
 }
@@ -692,16 +692,11 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 		return
 	}
 
-	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(r.Context(), dgraph,
+	heuristicResults, err := dbHeuristic.GetHeuristicReulstByUID(r.Context(), dgraph,
 		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		http.Error(w, errReport, http.StatusInternalServerError)
 		warn(err)
-		return
-	}
-
-	if cHeuristic.UID == "" {
-		http.Error(w, errReport, http.StatusNotFound)
 		return
 	}
 
@@ -721,7 +716,7 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 	}
 
 	var clusterCount int
-	for _, c := range cHeuristic.Clusters {
+	for _, c := range heuristicResults {
 		clusterCount++
 		var attributions string
 

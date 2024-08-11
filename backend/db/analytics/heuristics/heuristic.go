@@ -498,9 +498,9 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	return
 }
 
-// GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID, which was created by userUID
-func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
-	heuristicUID string, userUID string, workspaceUID string) (frontendHeuristic FrontendHeuristicShort, err error) {
+// GetHeuristicReulstByUID returns the results for the given heuristicUID
+func GetHeuristicReulstByUID(ctx context.Context, c external.Database,
+	heuristicUID string, userUID string, workspaceUID string) ([]FrontendHeuristicCluster, error) {
 	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
@@ -527,8 +527,7 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID,
 		"$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
-		err = serror.New(err)
-		return
+		return nil, serror.New(err)
 	}
 
 	// json struct
@@ -540,18 +539,16 @@ func GetFrontendHeuristicByUID(ctx context.Context, c external.Database,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.New(err)
-		return
+		return nil, serror.New(err)
 	}
 
-	for _, cluster := range r.Clusters {
-		frontendHeuristic.Clusters = append(frontendHeuristic.Clusters, FrontendHeuristicCluster{
+	results := make([]FrontendHeuristicCluster, len(r.Clusters))
+	for i, cluster := range r.Clusters {
+		results[i] = FrontendHeuristicCluster{
 			Transactions: cluster.Results,
 			Attributions: cluster.Attributions,
-		})
+		}
 	}
 
-	frontendHeuristic.UID = heuristicUID
-
-	return
+	return results, nil
 }
