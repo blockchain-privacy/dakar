@@ -9,6 +9,9 @@
         :rounded="$vuetify.display.xs?'0':undefined"
         :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
       >
+        <v-btn @click="openCreateSelectorSheet(false)">
+          Add Selector
+        </v-btn>
         <adaptive-toolbar
           :name="workspaceName"
           :selected-item-count="lassoSelectedNodes.length"
