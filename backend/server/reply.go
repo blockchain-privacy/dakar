@@ -298,7 +298,7 @@ func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply s
 	}
 
 	type request struct {
-		HeuristicUID string `json:"heuristicUID"`
+		SelectorUID  string `json:"selectorUID"`
 		WorkspaceUID string `json:"workspaceUID"`
 	}
 
@@ -310,13 +310,13 @@ func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply s
 		return
 	}
 
-	if heuristicRequest.HeuristicUID == "" || heuristicRequest.WorkspaceUID == "" {
+	if heuristicRequest.SelectorUID == "" || heuristicRequest.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
 	results, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
-		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
+		heuristicRequest.SelectorUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
