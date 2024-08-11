@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	dbh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	"backend/db/workspace"
 	"backend/external"
@@ -105,8 +104,8 @@ type addWorkspaceSelectorReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 
-type heuristicDetailsReply struct {
-	Results []dbh.FrontendHeuristicCluster `json:"heuristic,omitempty"`
+type selectorResultsReply struct {
+	Results workspace.FrontendSelectorResults `json:"heuristic,omitempty"`
 }
 
 type shortestTransactionPathReply struct {

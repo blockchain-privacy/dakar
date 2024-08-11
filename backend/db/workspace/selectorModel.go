@@ -123,18 +123,6 @@ func (o Options) IsValid() bool {
 	return true
 }
 
-type FrontendSelector struct {
-	UID      string   `json:"uid,omitempty"`
-	Created  string   `json:"created,omitempty"`
-	Modified string   `json:"modified,omitempty"`
-	Type     string   `json:"type,omitempty"`
-	Status   string   `json:"status,omitempty"`
-	Options  *Options `json:"options,omitempty"`
-	Results  []struct {
-		Hash string `json:"txhash,omitempty"`
-	} `json:"results,omitempty"`
-}
-
 type WorkItem struct {
 	UserUID         string
 	WorkspaceUID    string
@@ -142,4 +130,26 @@ type WorkItem struct {
 	SelectorType    string
 	SelectorOptions string
 	ParentUID       string
+}
+
+type FrontendSelectorResults struct {
+	// set if not a heuristic
+	Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
+	// set if a heuristic
+	Clusters []HeuristicCluster `json:"clusters,omitempty"`
+}
+
+type TransactionWithTimestamp struct {
+	Timestamp string `json:"ts,omitempty"`
+	Hash      string `json:"txhash,omitempty"`
+}
+
+type HeuristicCluster struct {
+	Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
+	Attributions []Attribution              `json:"attributions,omitempty"`
+}
+
+type Attribution struct {
+	Tag      string `json:"tag,omitempty"`
+	IsPublic bool   `json:"isPublic"`
 }

@@ -7,7 +7,6 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/external"
-	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -496,59 +495,4 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	}
 
 	return
-}
-
-// GetHeuristicReulstByUID returns the results for the given heuristicUID
-func GetHeuristicReulstByUID(ctx context.Context, c external.Database,
-	heuristicUID string, userUID string, workspaceUID string) ([]FrontendHeuristicCluster, error) {
-	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
-				var(func: uid($userUID)){
-					User.workspaces@filter(uid($workspaceUID)){
-						Workspace.selectors@filter(uid($heuristicUID)){
-							r as Selector.results
-						}
-					}
-				}
-
-				q(func: uid(r)){
-					HeuristicCluster.results@normalize{
-						txhash:txhash
-						~transactions{
-							ts:ts
-						}
-					}
-					HeuristicCluster.attributions {
-						tag:Attribution.tag
-						isPublic:Attribution.isPublic
-					}
-				}
-			   }`
-
-	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID,
-		"$userUID": userUID, "$workspaceUID": workspaceUID})
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	// json struct
-	var r struct {
-		Clusters []struct {
-			Results      []FrontendTransactionResult `json:"HeuristicCluster.results,omitempty"`
-			Attributions []Attribution               `json:"HeuristicCluster.attributions,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.New(err)
-	}
-
-	results := make([]FrontendHeuristicCluster, len(r.Clusters))
-	for i, cluster := range r.Clusters {
-		results[i] = FrontendHeuristicCluster{
-			Transactions: cluster.Results,
-			Attributions: cluster.Attributions,
-		}
-	}
-
-	return results, nil
 }

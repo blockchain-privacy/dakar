@@ -334,7 +334,7 @@ func TestInsertSelector(t *testing.T) {
 	}
 }
 
-func TestGetFrontendSelectorByUID(t *testing.T) {
+func TestGetSelectorResultsByUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
@@ -372,12 +372,13 @@ func TestGetFrontendSelectorByUID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		selector, err := GetFrontendSelectorByUID(ctx, dbHandle, tt.selectorUID, userUID, workspaceUID)
+		selector, err := GetSelectorResultsByUID(ctx, dbHandle, tt.selectorUID, userUID, workspaceUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
 			require.NotNil(t, selector)
+			require.NotEmpty(t, selector.Transactions)
 		}
 	}
 }
@@ -437,16 +438,6 @@ func TestUpdateSelector(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-
-			selector, err := GetFrontendSelectorByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
-			require.NoError(t, err)
-
-			if tt.status != "" {
-				require.EqualValues(t, tt.status, selector.Status)
-			}
-			if tt.selectorType != "" {
-				require.EqualValues(t, tt.selectorType, selector.Type)
-			}
 		}
 	}
 }
@@ -480,7 +471,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 	require.NoError(t, err)
 
 	// should throw error because selector does not exist anymore
-	_, err = GetFrontendSelectorByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
+	_, err = GetSelectorResultsByUID(ctx, dbHandle, selectorUID, userUID, workspaceUID)
 	require.Error(t, err)
 }
 

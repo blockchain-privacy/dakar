@@ -468,21 +468,23 @@ func (s *Server) handlerHMILookup() http.Handler {
 	})
 }
 
-// Heuristic Details godoc
+// Selector Results godoc
 //
-//	@Summary	Get the details of a heuristic
-//	@Tags		heuristic
-//	@Produce	json
-//	@Accept		json
-//	@Param		heuristic	body		server.getHeuristicDetailsReply.request	true	"Heuristic UID"
-//	@Success	200			{object}	server.heuristicDetailsReply
-//	@Failure	400			{object}	server.heuristicDetailsReply
-//	@Failure	401			{object}	server.heuristicDetailsReply
-//	@Failure	500			{object}	server.heuristicDetailsReply
-//	@Router		/heuristicDetails/ [post]
-func (s *Server) handlerHeuristicsDetails() http.Handler {
+//	@Summary		Get the results of a selector.
+//	@Description	Get the rsults of a selector.
+//	@Description	Depending on the selector type the one of the result properties is filled.
+//	@Tags			workspace
+//	@Produce		json
+//	@Accept			json
+//	@Param			seletor	body		server.getSelectorResultsReply.request	true	"Selector request"
+//	@Success		200		{object}	server.selectorResultsReply
+//	@Failure		400		{object}	server.selectorResultsReply
+//	@Failure		401		{object}	server.selectorResultsReply
+//	@Failure		500		{object}	server.selectorResultsReply
+//	@Router			/workspaces/selector/results/ [post]
+func (s *Server) handlerSelectorDetails() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicDetailsReply(s.db, r)
+		reply, status := getSelectorResultsReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -839,33 +841,31 @@ func (s *Server) setupHandlers() {
 	// Common data
 	s.handler.Handle(BuildPattern(http.MethodGet, routeTransaction, "hash"),
 		// transaction data never changes so set cache time to infinte
-		s.adapt(s.handlerTransaction(), s.cacheFactory(time.Duration(0)), mw.MaxBody5MiB()))
+		s.adapt(s.handlerTransaction(), mw.MaxBody5MiB(), s.cacheFactory(time.Duration(0))))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeBlock, "hash"),
-		s.adapt(s.handlerBlock(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerBlock(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeAddress, "hash"),
-		s.adapt(s.handlerAddress(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddress(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
-		s.adapt(s.handlerAddressOutputRange(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddressOutputRange(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 
 	// Meta
 	s.handler.Handle(BuildPattern(http.MethodGet, routeMeta, ""),
-		s.adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerMeta(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Second*10)))
 
 	// heuristic
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicDetails, ""),
-		s.adapt(s.handlerHeuristicsDetails(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicReport, ""),
 		s.adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Analytics
 	s.handler.Handle(BuildPattern(http.MethodPost, routeShortestTxPath, ""),
-		s.adapt(s.handlerShortestTransactionPath(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerShortestTransactionPath(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeConnectionLookup, "hash"),
-		s.adapt(s.handlerConnectionLookup(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerConnectionLookup(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeMixingActivity, ""),
-		s.adapt(s.handlerMixingActivity(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerMixingActivity(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),
-		s.adapt(s.handlerSpendingFingerprint(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerSpendingFingerprint(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 
 	// Clusters
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, "hash"),
@@ -937,5 +937,7 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, ""),
 		s.adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesConnection, ""),
-		s.adapt(s.handlerWorkspaceConnection(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerWorkspaceConnection(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorResults, ""),
+		s.adapt(s.handlerSelectorDetails(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 }

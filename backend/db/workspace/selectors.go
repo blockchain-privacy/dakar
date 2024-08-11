@@ -279,24 +279,37 @@ func UpdateSelector(ctx context.Context, c external.Database, s *Selector, userU
 	return db.MutationWithRetry(ctx, c, req)
 }
 
-// GetFrontendSelectorByUID returns the selector for the given selectorUID, which was created by userUID
-func GetFrontendSelectorByUID(ctx context.Context, c external.Database,
-	selectorUID string, userUID string, workspaceUID string) (*FrontendSelector, error) {
+// GetSelectorResultsByUID returns the selector for the given selectorUID, which was created by userUID
+func GetSelectorResultsByUID(ctx context.Context, c external.Database,
+	selectorUID string, userUID string, workspaceUID string) (*FrontendSelectorResults, error) {
 	const query = `query Q($selectorUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
-						s as Workspace.selectors@filter(uid($selectorUID))
+						Workspace.selectors@filter(uid($selectorUID)){
+							r as Selector.results
+						}
 					}
 				}
 
-				q(func: uid(s)){
-					created: Selector.created
-					modified: Selector.modified
-					type: Selector.type
-					status: Selector.status
-					options: Selector.options
-					results: Selector.results {
-						txhash
+
+
+				transactions(func: uid(r))@filter(type(Transaction))@normalize{
+					txhash:txhash
+					~transactions{
+						ts:ts
+					}
+				}
+
+				clusters(func: uid(r))@filter(type(HeuristicCluster)){
+					HeuristicCluster.results@normalize{
+						txhash:txhash
+						~transactions{
+							ts:ts
+						}
+					}
+					HeuristicCluster.attributions {
+						tag:Attribution.tag
+						isPublic:Attribution.isPublic
 					}
 				}
 			   }`
@@ -308,47 +321,17 @@ func GetFrontendSelectorByUID(ctx context.Context, c external.Database,
 	}
 
 	// json struct
-	var r struct {
-		Selectors []struct {
-			UID      string `json:"uid,omitempty"`
-			Created  string `json:"created,omitempty"`
-			Modified string `json:"modified,omitempty"`
-			Type     string `json:"type,omitempty"`
-			Status   string `json:"status,omitempty"`
-			// Options is JSON encoded
-			Options string `json:"options,omitempty"`
-			Results []struct {
-				Hash string `json:"txhash,omitempty"`
-			} `json:"results,omitempty"`
-		} `json:"q,omitempty"`
-	}
+	var r FrontendSelectorResults
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return nil, serror.New(err)
 	}
 
-	if len(r.Selectors) == 0 {
-		return nil, serror.FromStr("no selector returned")
+	if len(r.Clusters) == 0 && len(r.Transactions) == 0 {
+		return nil, serror.FromStr("no results returned")
 	}
 
-	// Instead of just passing the JSON string to the frontend, it is
-	// getting parsed into a variable.  While this decreases performance,
-	// it enables swaggo to create a better openAPI spec (it can use the actual
-	// type definition instead of just "string").
-	opt := new(Options)
-	if err = json.Unmarshal([]byte(r.Selectors[0].Options), opt); err != nil {
-		return nil, serror.New(err)
-	}
-
-	return &FrontendSelector{
-		UID:      selectorUID,
-		Created:  r.Selectors[0].Created,
-		Modified: r.Selectors[0].Modified,
-		Type:     r.Selectors[0].Type,
-		Status:   r.Selectors[0].Status,
-		Options:  opt,
-		Results:  r.Selectors[0].Results,
-	}, nil
+	return &r, nil
 }
 
 // DeleteUserSelectors deletes all given selectors of a user

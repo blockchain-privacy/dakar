@@ -289,7 +289,7 @@ func getSelectorStatus(dgraph external.Database, r *http.Request) (reply selecto
 	return
 }
 
-func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply heuristicDetailsReply, status int) {
+func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply selectorResultsReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -315,7 +315,7 @@ func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	results, err := dbHeuristic.GetHeuristicReulstByUID(r.Context(), dgraph,
+	results, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
 		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -323,7 +323,7 @@ func getHeuristicDetailsReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	reply.Results = results
+	reply.Results = *results
 
 	return
 }
@@ -692,7 +692,7 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 		return
 	}
 
-	heuristicResults, err := dbHeuristic.GetHeuristicReulstByUID(r.Context(), dgraph,
+	heuristicResults, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
 		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		http.Error(w, errReport, http.StatusInternalServerError)
@@ -716,7 +716,7 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 	}
 
 	var clusterCount int
-	for _, c := range heuristicResults {
+	for _, c := range heuristicResults.Clusters {
 		clusterCount++
 		var attributions string
 

@@ -85,22 +85,6 @@ type DatabaseHeuristicRequest struct {
 	Configuration      *Options `json:"config"`
 }
 
-type FrontendTransactionResult struct {
-	Timestamp string `json:"ts,omitempty"`
-	Hash      string `json:"txhash,omitempty"`
-}
-
-// FrontendHeuristicCluster holds the results counts of a heuristic per cluster
-type FrontendHeuristicCluster struct {
-	Transactions []FrontendTransactionResult `json:"txs,omitempty"`
-	Attributions []Attribution               `json:"attributions,omitempty"`
-}
-
-type Attribution struct {
-	Tag      string `json:"tag,omitempty"`
-	IsPublic bool   `json:"isPublic"`
-}
-
 type mergedClusterItem struct {
 	clusterHash string
 	clusterUIDs map[string]bool
