@@ -301,13 +301,13 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 				}
 
 				clusters(func: uid(r))@filter(type(HeuristicCluster)){
-					HeuristicCluster.results@normalize{
+					transactions: HeuristicCluster.results@normalize{
 						txhash:txhash
 						~transactions{
 							ts:ts
 						}
 					}
-					HeuristicCluster.attributions {
+					attributions: HeuristicCluster.attributions {
 						tag:Attribution.tag
 						isPublic:Attribution.isPublic
 					}
