@@ -192,7 +192,7 @@ const title = computed(() => {
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			return 'Heuristic Properties';
+			return 'Selector Properties';
 		default:
 			return 'unknown entity type';
 	}
@@ -330,21 +330,22 @@ async function getAddressData() {
 }
 
 async function getHeuristicData() {
-	if (!props.identifier || !props.workspaceUid) {
+	if (!props.identifier || !props.workspaceUid || !props.auxiliaryData?.heuristicOptions) {
 		return;
 	}
 
 	entityData.value = null;
+	const opt = props.auxiliaryData.heuristicOptions;
 
 	const tmp = {
-		heuristicParameter: props.auxiliaryData.heuristicParameter,
-		heuristicExcludeAddresses: props.auxiliaryData.heuristicExcludeAddresses,
-		heuristicExcludeSpendingGaps: props.auxiliaryData.heuristicExcludeSpendingGaps,
-		heuristicCustomClusters: props.auxiliaryData.heuristicClusterTypes?.length > 0,
+		heuristicParameter: opt.parameter,
+		heuristicExcludeAddresses: opt.excludeAddresses,
+		heuristicExcludeSpendingGaps: opt.excludeSpendingGaps,
+		heuristicCustomClusters: opt.clusterTypes?.length > 0,
 		heuristicTypeTitle: props.auxiliaryData.displayType,
-		clusterCount: props.auxiliaryData.heuristicClusterCount,
+		clusterCount: props.auxiliaryData.selectorResultCount,
 		heuristicUid: props.auxiliaryData.uid,
-		heuristicTimestamp: new Date(props.auxiliaryData.heuristicTs),
+		heuristicTimestamp: new Date(props.auxiliaryData.selectorModified),
 		clusters: [],
 	};
 

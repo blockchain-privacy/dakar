@@ -794,17 +794,28 @@ function openEntitySideBar(nodeData) {
 		case WORKSPACE_NODE_TYPE_SELECTOR:
 			// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
+				entityAuxiliaryData.value = nodeData;
+				entityIdentifier.value = nodeData.uid;
+
 				let displayType = '';
-				for (const descriptor of heuristicDescriptors.value) {
-					if (descriptor.type === nodeData.heuristicType) {
-						displayType = descriptor.title;
+
+				switch (nodeData.selectorType) {
+					case SELECTOR_TYPE_HEURISTIC:
+						for (const descriptor of heuristicDescriptors.value) {
+							if (descriptor.type === nodeData.heuristicOptions?.type) {
+								displayType = descriptor.title;
+								break;
+							}
+						}
+
 						break;
-					}
+					case SELECTOR_TYPE_TX_PROP:
+						displayType = 'selector (change me)';
+						break;
+					default:
 				}
 
-				entityAuxiliaryData.value = nodeData;
 				entityAuxiliaryData.value.displayType = displayType;
-				entityIdentifier.value = nodeData.uid;
 			}
 
 			break;
