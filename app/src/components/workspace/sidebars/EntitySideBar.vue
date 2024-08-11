@@ -87,6 +87,7 @@
         <v-skeleton-loader
           v-if="isLoading"
           class="mx-auto"
+          width="600px"
           type="list-item-three-line, list-item-three-line, list-item-three-line"
         />
         <template v-else>
@@ -150,6 +151,7 @@ import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
+	SELECTOR_TYPE_HEURISTIC,
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
@@ -192,9 +194,13 @@ const title = computed(() => {
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
+			if (props.auxiliaryData?.selectorType === SELECTOR_TYPE_HEURISTIC) {
+				return 'Heuristic Properties';
+			}
+
 			return 'Selector Properties';
 		default:
-			return 'unknown entity type';
+			return 'Unknown entity type';
 	}
 });
 
@@ -206,6 +212,7 @@ onUpdated(async () => {
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
 		const cacheValue = cacheStore.getValue(props.identifier);
+		entityData.value = null;
 		if (cacheValue !== undefined) {
 			entityData.value = cacheValue;
 		} else if (props.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
@@ -303,7 +310,6 @@ async function getTransactionData() {
 		return;
 	}
 
-	entityData.value = null;
 	try {
 		const response = await dakar.data.blockchainTransactionsHashGet({hash: props.identifier});
 		entityData.value = response.transactions;
@@ -317,8 +323,6 @@ async function getAddressData() {
 	if (props.identifier === '') {
 		return;
 	}
-
-	entityData.value = null;
 
 	try {
 		const response = await dakar.data.blockchainAddressesHashGet({hash: props.identifier});
@@ -334,7 +338,6 @@ async function getHeuristicData() {
 		return;
 	}
 
-	entityData.value = null;
 	const opt = props.auxiliaryData.heuristicOptions;
 
 	const tmp = {
