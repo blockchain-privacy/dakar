@@ -49,6 +49,11 @@ export function convertAmount(val) {
 	});
 }
 
+// AmountToIntegers returns the given number multipled by 100 000 000 and localized
+export function amountToIntegers(val) {
+	return Math.trunc(val * 1e8);
+}
+
 // GetCurrentDate returns the current date as a string in the form dd-mm-yyyy
 export function getCurrentDate() {
 	const now = new Date();
