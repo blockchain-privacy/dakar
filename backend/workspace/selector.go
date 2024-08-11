@@ -132,22 +132,14 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return "", nil, serror.FromStrWithContext("invalid type", "type", selectorType)
 	}
 
-	workspaceLock := workspaceMutex.Lock(workspaceUID)
-	defer workspaceLock.Unlock()
-
-	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
-	if err != nil {
-		return "", nil, err
+	if !options.IsValid() {
+		return "", nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
 	}
 
 	newNode := workspace.Node{
 		Type:           workspace.NodeTypeSelector,
 		SelectorType:   selectorType,
 		SelectorStatus: workspace.StatusWaiting,
-	}
-
-	if !options.IsValid() {
-		return "", nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
 	}
 
 	// check  if selector type and options match
@@ -168,9 +160,16 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return "", nil, serror.FromStrWithContext("invalid selector type", "options", options, "type", selectorType)
 	}
 
+	workspaceLock := workspaceMutex.Lock(workspaceUID)
+	defer workspaceLock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
+	if err != nil {
+		return "", nil, err
+	}
+
 	parentIndex, parentNode, err := getSelectorParent(selectorParent, w.Nodes)
-	if err != nil && selectorType == workspace.TypeHeuristic {
-		// only heuristic are required to have a parent
+	if err != nil {
 		return "", nil, serror.AddContext(err, "options", options)
 	}
 
