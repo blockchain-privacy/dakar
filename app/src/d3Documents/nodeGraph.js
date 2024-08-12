@@ -190,7 +190,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION && node.privacyTypeLabel) {
 			return this.#filterPrivacyTypes.includes(node.privacyTypeLabel);
 		}
 
