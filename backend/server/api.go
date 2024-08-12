@@ -444,7 +444,7 @@ func (s *Server) handlerAddressExclusionList() http.Handler {
 //	@Router			/workspaces/selector/status/ [post]
 func (s *Server) handlerSelectorByUID() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSelectorStatus(s.db, r)
+		reply, status := getSelectorStatus(s.workspaceMutex, s.db, r)
 
 		SendReply(w, reply, status)
 	})

@@ -239,7 +239,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 	}, http.StatusOK
 }
 
-func getSelectorStatus(dgraph external.Database, r *http.Request) (reply selectorStatusReply, status int) {
+func getSelectorStatus(workspaceMutex *workspace.Mutex, dgraph external.Database, r *http.Request) (reply selectorStatusReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -252,21 +252,21 @@ func getSelectorStatus(dgraph external.Database, r *http.Request) (reply selecto
 		WorkspaceUID string `json:"workspaceUID"`
 	}
 
-	var workRequest request
+	var req request
 
-	if err := json.NewDecoder(r.Body).Decode(&workRequest); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = http.StatusBadRequest
 		warn(err)
 		return
 	}
 
-	if workRequest.SelectorUID == "" || workRequest.WorkspaceUID == "" {
+	if req.SelectorUID == "" || req.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
 	selectorStatus, err := dbwork.GetSelectorStatus(r.Context(), dgraph,
-		workRequest.SelectorUID, workRequest.WorkspaceUID, tUser.ID)
+		req.SelectorUID, req.WorkspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -277,7 +277,10 @@ func getSelectorStatus(dgraph external.Database, r *http.Request) (reply selecto
 		return
 	}
 
-	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, workRequest.WorkspaceUID, tUser.ID)
+	lock := workspaceMutex.Lock(req.WorkspaceUID)
+	defer lock.Unlock()
+
+	w, err := dbwork.GetFrontendWorkspace(r.Context(), dgraph, req.WorkspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
