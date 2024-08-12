@@ -290,9 +290,17 @@ function getHeuristicTypes() {
 
 			return d;
 		})
-		.sort((a, b) => a.category < b.category && a.title < b.title)
+		.sort((a, b) => {
+			const comparedCategory = a.category.localeCompare(b.category);
+
+			if (comparedCategory === 0) {
+				return a.title.localeCompare(b.title);
+			}
+
+			return comparedCategory;
+		})
 		.forEach(d => {
-			// Insert dividers
+		// Insert dividers
 			if (d.category !== lastCategory) {
 				lastCategory = d.category;
 				selectorItems.push({divider: true, title: d.category});
