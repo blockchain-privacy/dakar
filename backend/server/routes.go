@@ -28,6 +28,7 @@ const (
 	routeAddWorkspaceSelector     string = "workspaces/selector"
 	routeWorkspaceSelectorStatus  string = "workspaces/selector/status"
 	routeWorkspaceSelectorResults string = "workspaces/selector/results"
+	routeWorkspaceSelectorReport  string = "workspaces/selector/report"
 	routeWorkspacesConnection     string = "workspaces/connection"
 	routeWorkspaceRename          string = "workspaces/rename"
 	routeMetrics                  string = "/metrics"

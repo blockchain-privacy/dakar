@@ -9,8 +9,10 @@ import (
 	"backend/db/workspace"
 	"backend/external"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"github.com/qrest/gomisc/serror"
+	"strconv"
 )
 
 type SelectorWork struct {
@@ -288,4 +290,57 @@ func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
 		userUID:      item.UserUID,
 		selectorUID:  item.SelectorUID,
 	}, nil
+}
+
+// WriteClustersToCsv writes the provided cluster to a csv file
+func WriteClustersToCsv(writer *csv.Writer, clusters []workspace.HeuristicCluster) error {
+	header := []string{"cluster ID", "attributions", "transaction hash", "timestamp"}
+
+	if err := writer.Write(header); err != nil {
+		return serror.New(err)
+	}
+
+	var clusterCount int
+	for _, c := range clusters {
+		clusterCount++
+		var attributions string
+
+		for i, a := range c.Attributions {
+			attributions += a.Tag
+
+			if i+1 < len(c.Attributions) {
+				attributions += ","
+			}
+		}
+
+		for _, transaction := range c.Transactions {
+			row := []string{strconv.Itoa(clusterCount), attributions, transaction.Hash, transaction.Timestamp}
+
+			if err := writer.Write(row); err != nil {
+				return serror.New(err)
+			}
+		}
+		writer.Flush()
+	}
+
+	writer.Flush()
+	return nil
+}
+
+// WriteTransactionsToCsv writes the provided transactions to a csv file
+func WriteTransactionsToCsv(writer *csv.Writer, transactions []workspace.TransactionWithTimestamp) error {
+	header := []string{"transaction hash", "timestamp"}
+
+	if err := writer.Write(header); err != nil {
+		return serror.New(err)
+	}
+
+	for _, transaction := range transactions {
+		if err := writer.Write([]string{transaction.Hash, transaction.Timestamp}); err != nil {
+			return serror.New(err)
+		}
+	}
+	writer.Flush()
+
+	return nil
 }

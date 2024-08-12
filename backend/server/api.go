@@ -120,20 +120,20 @@ func (s *Server) handlerMeta() http.Handler {
 	})
 }
 
-// Heuristic Report godoc
+// Selector Report godoc
 //
-//	@Summary	Get a CSV file containing results of the specified heuristic
-//	@Tags		heuristic
+//	@Summary	Get a CSV file containing results of the specified selector
+//	@Tags		workspace
 //	@Produce	text/csv
-//	@Param		work	body		server.writeHeuristicReport.request	true	"work item"
-//	@Success	200		{file}		file								"comma separated values"
-//	@Failure	400		{string}	string								"bad request"
-//	@Failure	404		{string}	string								"resource not found"
-//	@Failure	500		{string}	string								"encoding error"
-//	@Router		/heuristics/report/ [post]
-func (s *Server) handlerHeuristicsReport() http.Handler {
+//	@Param		selector	body		server.writeSelectorReport.request	true	"selector request"
+//	@Success	200			{file}		file								"comma separated values"
+//	@Failure	400			{string}	string								"bad request"
+//	@Failure	404			{string}	string								"resource not found"
+//	@Failure	500			{string}	string								"encoding error"
+//	@Router		/workspaces/selector/report/ [post]
+func (s *Server) handlerSelectorReport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeHeuristicReport(s.db, w, r)
+		writeSelectorReport(s.db, w, r)
 	})
 }
 
@@ -477,10 +477,10 @@ func (s *Server) handlerHMILookup() http.Handler {
 //	@Produce		json
 //	@Accept			json
 //	@Param			selector	body		server.getSelectorResultsReply.request	true	"Selector request"
-//	@Success		200		{object}	server.selectorResultsReply
-//	@Failure		400		{object}	server.selectorResultsReply
-//	@Failure		401		{object}	server.selectorResultsReply
-//	@Failure		500		{object}	server.selectorResultsReply
+//	@Success		200			{object}	server.selectorResultsReply
+//	@Failure		400			{object}	server.selectorResultsReply
+//	@Failure		401			{object}	server.selectorResultsReply
+//	@Failure		500			{object}	server.selectorResultsReply
 //	@Router			/workspaces/selector/results/ [post]
 func (s *Server) handlerSelectorDetails() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -853,10 +853,6 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(BuildPattern(http.MethodGet, routeMeta, ""),
 		s.adapt(s.handlerMeta(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Second*10)))
 
-	// heuristic
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicReport, ""),
-		s.adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
-
 	// Analytics
 	s.handler.Handle(BuildPattern(http.MethodPost, routeShortestTxPath, ""),
 		s.adapt(s.handlerShortestTransactionPath(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
@@ -937,7 +933,9 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, ""),
 		s.adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesConnection, ""),
-		s.adapt(s.handlerWorkspaceConnection(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
+		s.adapt(s.handlerWorkspaceConnection(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorResults, ""),
-		s.adapt(s.handlerSelectorDetails(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
+		s.adapt(s.handlerSelectorDetails(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorReport, ""),
+		s.adapt(s.handlerSelectorReport(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
 }

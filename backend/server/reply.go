@@ -662,11 +662,11 @@ func getHMILookupReply(dgraph external.Database, r *http.Request) (reply hmiLook
 	return
 }
 
-// writeHeuristicReport writes heuristic data in CSV format
-func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *http.Request) {
+// writeSelectorReport writes selector data in CSV format
+func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 
-	const errReport = "error getting heuristic report"
+	const errReport = "error getting selector report"
 
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -676,24 +676,24 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 	}
 
 	type request struct {
-		HeuristicUID string `json:"heuristicUID"`
+		SelectorUID  string `json:"selectorUID"`
 		WorkspaceUID string `json:"workspaceUID"`
 	}
 
-	var heuristicRequest request
-	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
+	var selectorRequest request
+	if err := json.NewDecoder(r.Body).Decode(&selectorRequest); err != nil {
 		http.Error(w, errReport, http.StatusBadRequest)
 		warn(serror.New(err))
 		return
 	}
 
-	if heuristicRequest.HeuristicUID == "" || heuristicRequest.WorkspaceUID == "" {
+	if selectorRequest.SelectorUID == "" || selectorRequest.WorkspaceUID == "" {
 		http.Error(w, errReport, http.StatusBadRequest)
 		return
 	}
 
 	heuristicResults, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
-		heuristicRequest.HeuristicUID, tUser.ID, heuristicRequest.WorkspaceUID)
+		selectorRequest.SelectorUID, tUser.ID, selectorRequest.WorkspaceUID)
 	if err != nil {
 		http.Error(w, errReport, http.StatusInternalServerError)
 		warn(err)
@@ -701,47 +701,27 @@ func writeHeuristicReport(dgraph external.Database, w http.ResponseWriter, r *ht
 	}
 
 	// headers for streaming data to client
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", heuristicRequest.HeuristicUID))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", selectorRequest.SelectorUID))
 	w.Header().Set("Content-Type", "text/csv")
 
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
 
-	header := []string{"cluster ID", "attributions", "origin transaction hash", "origin timestamp"}
-
-	if err = csvWriter.Write(header); err != nil {
-		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		warn(serror.New(err))
+	if len(heuristicResults.Clusters) > 0 {
+		err = workspace.WriteClustersToCsv(csvWriter, heuristicResults.Clusters)
+	} else if len(heuristicResults.Transactions) > 0 {
+		err = workspace.WriteTransactionsToCsv(csvWriter, heuristicResults.Transactions)
+	} else {
+		http.Error(w, "invalid selector results", http.StatusInternalServerError)
+		warn(serror.FromStr("invalid selector results"))
 		return
 	}
 
-	var clusterCount int
-	for _, c := range heuristicResults.Clusters {
-		clusterCount++
-		var attributions string
-
-		for i, a := range c.Attributions {
-			attributions += a.Tag
-
-			if i+1 < len(c.Attributions) {
-				attributions += ","
-			}
-		}
-
-		for _, transaction := range c.Transactions {
-			row := []string{strconv.Itoa(clusterCount), attributions, transaction.Hash, transaction.Timestamp}
-
-			if err = csvWriter.Write(row); err != nil {
-				// communication with client is not possible, can only log error
-				// this is because as soon as we write the CSV header, the HTTP response status is also sent
-				warn(serror.New(err))
-				return
-			}
-		}
-		csvWriter.Flush()
+	if err != nil {
+		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+		warn(err)
+		return
 	}
-
-	csvWriter.Flush()
 }
 
 // writeClusterReport writes cluster data in CSV format
