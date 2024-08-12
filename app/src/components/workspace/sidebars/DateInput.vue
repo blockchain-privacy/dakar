@@ -20,6 +20,7 @@
       <v-date-picker
         v-model="model"
         hide-header
+        :allowed-dates="isDateAllowed"
       />
       <v-card-actions>
         <v-btn
@@ -41,6 +42,14 @@ defineProps({
 	rules: {type: Array, required: false, default: undefined},
 	error: {type: Boolean, required: false, default: false},
 });
+
+// In 2009 Bitcoin was created
+const earliestDate = new Date(2009, 0);
+const latestDate = new Date();
+
+function isDateAllowed(someDate) {
+	return someDate <= latestDate && someDate >= earliestDate;
+}
 
 const model = defineModel({type: Date});
 const menuModel = ref(false);
