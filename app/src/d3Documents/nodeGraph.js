@@ -250,6 +250,10 @@ export default class NodeGraph {
 	}
 
 	setContextObjectClicked() {
+		if (!this.#contextNodeSelection) {
+			return;
+		}
+
 		this.resetClick();
 		this.resetLasso();
 
@@ -1377,6 +1381,11 @@ export default class NodeGraph {
 	// Returns the node which triggered the context menu event or click event
 	getContextNode() {
 		return this.#contextNodeData;
+	}
+
+	resetContextNode() {
+		this.#contextNodeData = null;
+		this.#contextNodeSelection = null;
 	}
 
 	// SetDragCallback receives a function as an argument.
