@@ -69,39 +69,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	}
 
 	// 2. Store work
-	if updateErr := workspace.UpdateSelector(ctx, c, &workspace.Selector{
-		UID:     s.selectorUID,
-		Status:  status,
-		Results: newNodes,
-	}, s.userUID, s.workspaceUID); updateErr != nil {
-		return updateErr
-	}
-
-	// 3. Update workspace
-	lock := workspaceMutex.Lock(s.workspaceUID)
-	defer lock.Unlock()
-
-	w, err := workspace.GetFrontendWorkspace(ctx, c, s.workspaceUID, s.userUID)
-	if err != nil {
-		return err
-	}
-
-	nodeMap, notes := separateNodes(w.Nodes)
-
-	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(c, nodeMap, s.userUID, s.workspaceUID)
-	if err != nil {
-		return err
-	}
-
-	// try to set node status
-	if n, ok := nodeMap[s.selectorUID]; ok {
-		n.SelectorStatus = status
-		nodeMap[s.selectorUID] = n
-	}
-
-	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
-
-	return encodeAndStoreWorkspaceState(ctx, c, s.userUID, s.workspaceUID, frontEndNodes, &clusterHeight)
+	return updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes)
 }
 
 func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.UIDNode, error) {
@@ -212,11 +180,51 @@ type HeuristicWork struct {
 	userUID      string
 }
 
+// updateSelector updates the selector both in the workspace state and in the db.
+func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.Database,
+	selectorUID string, workspaceUID string, userUID string, status string, newNodes []any) error {
+
+	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
+		UID:     selectorUID,
+		Status:  status,
+		Results: newNodes,
+	}, userUID, workspaceUID); updateErr != nil {
+		return updateErr
+	}
+
+	// 3. Update workspace
+	lock := workspaceMutex.Lock(workspaceUID)
+	defer lock.Unlock()
+
+	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
+	if err != nil {
+		return err
+	}
+
+	nodeMap, notes := separateNodes(w.Nodes)
+
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
+	if err != nil {
+		return err
+	}
+
+	// try to set node status
+	if newNode, ok := nodeMap[selectorUID]; ok {
+		newNode.SelectorStatus = status
+		nodeMap[selectorUID] = newNode
+	}
+
+	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
+
+	return encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight)
+
+}
+
 // Run processes the heuristic and inserts it into the workspace
-func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *graph.Wrapper) error {
+func (h HeuristicWork) Run(workspaceMutex *Mutex, c external.Database, g *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
-	results, err := h.executor.Run(dgraph, g)
+	results, err := h.executor.Run(c, g)
 	var newNodes []any
 	if err == nil {
 		newNodes = make([]any, len(results))
@@ -228,45 +236,11 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, dgraph external.Database, g *g
 		status = workspace.StatusError
 		warn(err)
 	}
-
-	// 2. Store work
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
-		UID:     h.selectorUID,
-		Status:  status,
-		Results: newNodes,
-	}, h.userUID, h.workspaceUID); updateErr != nil {
-		return updateErr
-	}
-
-	// 3. Update workspace
-	lock := workspaceMutex.Lock(h.workspaceUID)
-	defer lock.Unlock()
-
-	// update workspace
-	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, h.workspaceUID, h.userUID)
-	if err != nil {
-		return err
-	}
-
-	nodeMap, notes := separateNodes(w.Nodes)
-
-	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, h.userUID, h.workspaceUID)
-	if err != nil {
-		return err
-	}
-
-	// try to set node status
-	if newNode, ok := nodeMap[h.selectorUID]; ok {
-		newNode.SelectorStatus = status
-		nodeMap[h.selectorUID] = newNode
-	}
-
-	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
-
-	return encodeAndStoreWorkspaceState(ctx, dgraph, h.userUID, h.workspaceUID, frontEndNodes, &clusterHeight)
+	// 2. Store work
+	return updateSelector(ctx, workspaceMutex, c, h.selectorUID, h.workspaceUID, h.userUID, status, newNodes)
 }
 
 func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
