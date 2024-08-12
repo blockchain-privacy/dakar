@@ -9,7 +9,7 @@
         :rounded="$vuetify.display.xs?'0':undefined"
         :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
       >
-        <v-btn @click="openCreateSelectorSheet(false)">
+        <v-btn @click="showCreateSelectorSheetFromButton">
           Add Selector
         </v-btn>
         <adaptive-toolbar
@@ -766,6 +766,12 @@ function openConnectionSheet(d) {
 
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
+}
+
+function showCreateSelectorSheetFromButton() {
+	// So no parent is set
+	nodeGraph.resetContextNode();
+	openCreateSelectorSheet(false);
 }
 
 function openCreateSelectorSheet(isHeuristic) {
