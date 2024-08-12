@@ -21,6 +21,7 @@
         v-model="model"
         hide-header
         :allowed-dates="isDateAllowed"
+        show-adjacent-months
       />
       <v-card-actions>
         <v-btn

@@ -20,7 +20,7 @@
         >
           <icon-item
             title="Start date"
-            :icon="mdiCalendar"
+            :icon="mdiCalendarStart"
           >
             {{ new Date(selectorData.startDate).toLocaleDateString() }}
           </icon-item>
@@ -28,7 +28,7 @@
         <v-col v-if="selectorData.endDate">
           <icon-item
             title="End date"
-            :icon="mdiCalendar"
+            :icon="mdiCalendarEnd"
           >
             {{ new Date(selectorData.endDate).toLocaleDateString() }}
           </icon-item>
@@ -43,7 +43,7 @@
         >
           <icon-item
             title="Input Sum Min"
-            :icon="mdiCurrencyUsd"
+            :icon="mdiSigma"
           >
             {{ convertAmount(selectorData.inputSum.min) }}
           </icon-item>
@@ -51,7 +51,7 @@
         <v-col v-if="selectorData.inputSum?.max">
           <icon-item
             title="Input Sum Max"
-            :icon="mdiCurrencyUsd"
+            :icon="mdiSigma"
           >
             {{ convertAmount(selectorData.inputSum.max) }}
           </icon-item>
@@ -66,7 +66,7 @@
         >
           <icon-item
             title="Output Sum Min"
-            :icon="mdiCurrencyUsd"
+            :icon="mdiSigma"
           >
             {{ convertAmount(selectorData.outputSum.min) }}
           </icon-item>
@@ -74,9 +74,55 @@
         <v-col v-if="selectorData.outputSum?.max">
           <icon-item
             title="Output Sum Max"
-            :icon="mdiCurrencyUsd"
+            :icon="mdiSigma"
           >
             {{ convertAmount(selectorData.outputSum.max) }}
+          </icon-item>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col
+          v-if="selectorData.inputRange?.min"
+          cols="12"
+          xs="12"
+          sm="6"
+        >
+          <icon-item
+            title="Input Range Min"
+            :icon="mdiCurrencyUsd"
+          >
+            {{ convertAmount(selectorData.inputRange.min) }}
+          </icon-item>
+        </v-col>
+        <v-col v-if="selectorData.inputRange?.max">
+          <icon-item
+            title="Input Range Max"
+            :icon="mdiCurrencyUsd"
+          >
+            {{ convertAmount(selectorData.inputRange.max) }}
+          </icon-item>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col
+          v-if="selectorData.outputRange?.min"
+          cols="12"
+          xs="12"
+          sm="6"
+        >
+          <icon-item
+            title="Output Range Min"
+            :icon="mdiCurrencyUsd"
+          >
+            {{ convertAmount(selectorData.outputRange.min) }}
+          </icon-item>
+        </v-col>
+        <v-col v-if="selectorData.outputRange?.max">
+          <icon-item
+            title="Output Range Max"
+            :icon="mdiCurrencyUsd"
+          >
+            {{ convertAmount(selectorData.outputRange.max) }}
           </icon-item>
         </v-col>
       </v-row>
@@ -157,7 +203,9 @@
 
 <script setup>
 import IconItem from '@/components/common/IconItem.vue';
-import {mdiCalendar, mdiCurrencyUsd, mdiPoundBoxOutline} from '@mdi/js';
+import {
+	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiCurrencyUsd, mdiPoundBoxOutline, mdiSigma,
+} from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
