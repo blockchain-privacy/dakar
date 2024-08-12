@@ -69,10 +69,16 @@
             </template>
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
+            <div
+              class="text-subtitle-2 mb-3"
+              style="max-width:260px"
+            >
+              Select transactions based on their properties.
+            </div>
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Time Range
             </div>
-            <div class="d-flex align-center">
+            <div class="d-flex align-center mb-5">
               <date-input
                 v-model="selectorOptions.startDate"
                 :rules="parameterRules.get('date')"
@@ -89,7 +95,7 @@
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Transaction Input Sum
             </div>
-            <div class="d-flex align-center">
+            <div class="d-flex align-center mb-5">
               <v-text-field
                 v-model="selectorOptions.inputSum.min"
                 min-width="100px"
@@ -111,7 +117,7 @@
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Transaction Output Sum
             </div>
-            <div class="d-flex align-center">
+            <div class="d-flex align-center mb-5">
               <v-text-field
                 v-model="selectorOptions.outputSum.min"
                 min-width="100px"
@@ -133,7 +139,7 @@
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Transaction Inputs
             </div>
-            <div class="d-flex align-center">
+            <div class="d-flex align-center mb-5">
               <v-text-field
                 v-model="selectorOptions.inputRange.min"
                 min-width="100px"
@@ -299,7 +305,15 @@ function isRangeEmpty(obj) {
 	return obj.min === undefined && obj.max === undefined;
 }
 
-// eslint-disable-next-line complexity
+// Converts the string to a blockchain amount, if the string is empty returns undefined
+function getAmount(amount) {
+	if (!amount) {
+		return undefined;
+	}
+
+	return amountToIntegers(parseFloat(amount));
+}
+
 async function addNewSelectorAction(event) {
 	const res = await event;
 	if (!res.valid) {
@@ -336,15 +350,15 @@ async function addNewSelectorAction(event) {
 			options.startDate = options.startDate.toISOString();
 			options.endDate = options.endDate.toISOString();
 
-			options.inputSum.min &&= amountToIntegers(parseFloat(options.inputSum.min));
-			options.inputSum.max &&= amountToIntegers(parseFloat(options.inputSum.max));
-			options.outputSum.min &&= amountToIntegers(parseFloat(options.outputSum.min));
-			options.outputSum.max &&= amountToIntegers(parseFloat(options.outputSum.max));
+			options.inputSum.min = getAmount(options.inputSum.min);
+			options.inputSum.max = getAmount(options.inputSum.max);
+			options.outputSum.min = getAmount(options.outputSum.min);
+			options.outputSum.max = getAmount(options.outputSum.max);
 
-			options.inputRange.min &&= amountToIntegers(parseFloat(options.inputRange.min));
-			options.inputRange.max &&= amountToIntegers(parseFloat(options.inputRange.max));
-			options.outputRange.min &&= amountToIntegers(parseFloat(options.outputRange.min));
-			options.outputRange.max &&= amountToIntegers(parseFloat(options.outputRange.max));
+			options.inputRange.min = getAmount(options.inputRange.min);
+			options.inputRange.max = getAmount(options.inputRange.max);
+			options.outputRange.min = getAmount(options.outputRange.min);
+			options.outputRange.max = getAmount(options.outputRange.max);
 
 			if (isRangeEmpty(options.inputSum)) {
 				delete options.inputSum;

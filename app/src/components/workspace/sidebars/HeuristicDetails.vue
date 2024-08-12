@@ -109,7 +109,7 @@
       >
         <named-divider
           v-if="enoughDataForGraph"
-          title="Origin Transactions"
+          title="Transactions"
           title-class="text-subtitle-1"
           :vertical-margin="0"
         />
