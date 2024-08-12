@@ -59,7 +59,7 @@
           :address-hash="entityData.addresshash"
         />
         <v-chip
-          v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && entityData?.clusterCount > 0"
+          v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && (entityData?.clusterCount > 0 || entityData?.selectorCount > 0)"
           rounded
           color="primary"
           variant="tonal"
@@ -451,10 +451,10 @@ async function downloadReport() {
 	}
 
 	try {
-		const response = await dakar.heuristic.heuristicsReportPost({
-			work: {
+		const response = await dakar.workspace.workspacesSelectorReportPost({
+			selector: {
 				workspaceUID: props.workspaceUid,
-				heuristicUID: entityData.value.selectorUid,
+				selectorUID: entityData.value.selectorUid,
 			},
 		});
 		// Looks hacky, but it is the only way with good UX
@@ -463,7 +463,7 @@ async function downloadReport() {
 
 		a.setAttribute(
 			'download',
-			`heuristic_report_${getCurrentDate()}_${entityData.value.selectorUid}.csv`,
+			`selector_report_${getCurrentDate()}_${entityData.value.selectorUid}.csv`,
 		);
 		a.click();
 		a.remove();

@@ -9,7 +9,6 @@ const (
 	routeAddress                  string = "blockchain/addresses"
 	routeAddressOutputRange       string = "blockchain/outputs"
 	routeMeta                     string = "meta"
-	routeHeuristicReport          string = "heuristics/report"
 	routeShortestTxPath           string = "shortestTransactionPath"
 	routeConnectionLookup         string = "connectionLookup"
 	routeMixingActivity           string = "mixingActivity"
