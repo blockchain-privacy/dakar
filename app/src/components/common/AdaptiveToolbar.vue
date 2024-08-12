@@ -69,16 +69,16 @@
       Center
     </v-btn>
     <v-btn
-      v-if="showWorkspacesButton"
+      v-if="showAddSelectorButton"
       variant="text"
       class="my-1"
-      :to="{name: ROUTE_NAME_WORKSPACES_PAGE}"
+      @click="onAddSelector"
     >
       <v-icon
-        :icon="mdiOpenInNew"
+        :icon="mdiFilterPlus"
         class="me-1"
       />
-      Workspaces
+      Add Selector
     </v-btn>
 
     <v-btn
@@ -134,7 +134,6 @@
       <div class="d-flex justify-center">
         <chip-filter
           v-model="privacyFilters"
-          style="max-width: 420px"
           label="Transaction Types"
           :items="privacyTypeItems"
           @changed="onFilterChanged"
@@ -147,10 +146,9 @@
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached,
-	mdiImageFilterCenterFocus, mdiOpenInNew, mdiMagnify, mdiFilterCog, mdiChartTimelineVariant,
+	mdiImageFilterCenterFocus, mdiMagnify, mdiFilterCog, mdiChartTimelineVariant, mdiFilterPlus,
 } from '@mdi/js';
 import {ref} from 'vue';
-import {ROUTE_NAME_WORKSPACES_PAGE} from '@/constants/index.js';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
 const emit = defineEmits([
@@ -161,6 +159,7 @@ const emit = defineEmits([
 	'addEntity',
 	'filterChanged',
 	'shortestPathLookup',
+	'addSelector',
 ]);
 
 const props = defineProps({
@@ -172,7 +171,7 @@ const props = defineProps({
 	addEntityEnabled: {type: Boolean, required: false, default: true},
 	oneLine: {type: Boolean, required: false, default: false},
 	showDeleteButton: {type: Boolean, required: false, default: true},
-	showWorkspacesButton: {type: Boolean, required: false, default: true},
+	showAddSelectorButton: {type: Boolean, required: false, default: true},
 	nodeTypeItems: {type: Array, required: false, default: () => []},
 	privacyTypeItems: {type: Array, required: false, default: () => []},
 	disableFilter: {type: Boolean, required: false, default: false},
@@ -202,9 +201,21 @@ function onFilterChanged() {
 	);
 }
 
+function onAddSelector() {
+	emit('addSelector');
+}
+
 </script>
 
 <style scoped>
+
+.workspace-name {
+  max-width: 220px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* remove outline from text-field variant 'outlined'.
  This can also be achieved by using variant 'plain',
  but then the label text is not centered */

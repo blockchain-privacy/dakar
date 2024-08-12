@@ -219,7 +219,7 @@
                 :show-search-field="false"
                 one-line
                 :show-delete-button="false"
-                :show-workspaces-button="false"
+                :show-add-selector-button="false"
                 disable-filter
                 @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
                 @center="nodeGraph.centerGraph()"

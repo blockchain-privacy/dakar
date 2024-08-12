@@ -8,10 +8,8 @@
         v-if="workspaceName"
         :rounded="$vuetify.display.xs?'0':undefined"
         :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
+        style="max-width:700px"
       >
-        <v-btn @click="showCreateSelectorSheetFromButton">
-          Add Selector
-        </v-btn>
         <adaptive-toolbar
           :name="workspaceName"
           :selected-item-count="lassoSelectedNodes.length"
@@ -27,6 +25,7 @@
           @add-entity="handleGraphQuery"
           @filter-changed="handleMenuFilterChanged"
           @shortest-path-lookup="handleShortestPathLookup"
+          @add-selector="showCreateSelectorSheetFromButton"
         />
         <v-progress-linear
           v-if="isModifyingWorkspace"
@@ -1046,13 +1045,6 @@ async function whenMounted() {
 :deep( #svg_canvas ) {
   height: 100%;
   width: 100%;
-}
-
-.workspace-name {
-  max-width: 275px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
 }
 
 .auto-save {
