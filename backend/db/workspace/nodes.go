@@ -14,13 +14,13 @@ import (
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
-	connections []NodeConnections, heuristicNodes []Node, selectorNodes []Node, clusterHeight int64, err error) {
+	connections []NodeConnections, selectorNodes []Node, clusterHeight int64, err error) {
 	result, err := getWorkspaceConnectionsRaw(c, uids, userUID, workspaceUID)
 	if err != nil {
-		return nil, nil, nil, 0, err
+		return nil, nil, 0, err
 	}
 
-	transactions, clusters, heuristicNodes, selectorNodes, clusterHeight, err := parseConnectionResult(result)
+	transactions, clusters, selectorNodes, clusterHeight, err := parseConnectionResult(result)
 	if err != nil {
 		return
 	}
@@ -180,7 +180,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 //
 //nolint:gocyclo
 func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
-	heuristics []Node, selectorNodes []Node, clusterHeight int64, err error) {
+	selectorNodes []Node, clusterHeight int64, err error) {
 	if len(r.ClusterHeight) > 1 {
 		err = serror.FromFormat("invalid number of cluster height results: %d", len(r.ClusterHeight))
 		return
@@ -230,6 +230,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		heuristicToClusters[heuristic.UID] = heuristicClusters
 	}
 
+	selectorNodes = make([]Node, 0, len(r.Heuristics)+len(r.Selectors))
 	// parentToHeuristic contains the mapping of parents to its directly
 	// connected heuristics. This map is used to add the contained heuristic
 	// uids as children to their corresponding transaction (if its parent is a transaction).
@@ -262,7 +263,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			return
 		}
 
-		heuristics = append(heuristics, Node{
+		selectorNodes = append(selectorNodes, Node{
 			UID:                 h.UID,
 			Type:                "selector",
 			Children:            children,
@@ -315,8 +316,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			err = serror.NewWithContext(err, "opt", s.Options)
 			return
 		}
-
-		heuristics = append(heuristics, Node{
+		selectorNodes = append(selectorNodes, Node{
 			UID:                 s.UID,
 			Type:                "selector",
 			Children:            children,

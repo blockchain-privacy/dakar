@@ -354,7 +354,7 @@ func encodeAndStoreWorkspaceState(ctx context.Context, dgraph external.Database,
 // Also inserts found heuristics into the node map
 func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[string]workspace.Node,
 	userUID string, workspaceUID string) (int64, map[string]workspace.Node, error) {
-	connections, nodeHeuristics, nodeSelectors, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
+	connections, nodeSelectors, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
 		cliutil.GetMapKeys(nodeMap), userUID, workspaceUID)
 	if err != nil {
 		return 0, nil, err
@@ -370,17 +370,6 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 
 		// need to add nodes into new map, otherwise duplicate addresses will be left in the map
 		newNodeMap[node.UID] = nodeElement
-	}
-
-	// add heuristic nodes to map
-	for _, h := range nodeHeuristics {
-		// set coordinates
-		if oldHeuristic, ok := nodeMap[h.UID]; ok {
-			h.X = oldHeuristic.X
-			h.Y = oldHeuristic.Y
-		}
-
-		newNodeMap[h.UID] = h
 	}
 
 	// add selector nodes to map
