@@ -265,7 +265,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 
 		selectorNodes = append(selectorNodes, Node{
 			UID:                 h.UID,
-			Type:                "selector",
+			Type:                NodeTypeSelector,
 			Children:            children,
 			SelectorType:        h.Type,
 			SelectorStatus:      h.Status,
@@ -318,7 +318,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		}
 		selectorNodes = append(selectorNodes, Node{
 			UID:                 s.UID,
-			Type:                "selector",
+			Type:                NodeTypeSelector,
 			Children:            children,
 			SelectorType:        s.Type,
 			SelectorStatus:      s.Status,
