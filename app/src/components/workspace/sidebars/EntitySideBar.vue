@@ -117,21 +117,10 @@
             v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC"
             :heuristic-data="entityData"
           />
-          <div
+          <selector-details
             v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP"
-          >
-            <div>
-              Start date: {{ entityData.startDate }}
-              <br>
-              End date: {{ entityData.endDate }}
-            </div>
-            <div
-              v-for="t in entityData.transactions"
-              :key="t.txhash"
-            >
-              {{ t.txhash }}
-            </div>
-          </div>
+            :selector-data="entityData"
+          />
           <div v-else>
             Type not recognized
           </div>
@@ -174,6 +163,7 @@ import {
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
+import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
