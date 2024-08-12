@@ -126,7 +126,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 						children: ~Selector.parent{uid}
 						options: Selector.options
 						resultCount: count(Selector.results)
-						results: Selector.results {uid}
+						results: Selector.results@filter(uid(t)){uid}
 					}
 
 					heuristics(func: uid(heuristicSelectors)){

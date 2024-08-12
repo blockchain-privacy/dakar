@@ -67,7 +67,7 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 
 	toDate := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999, date.Location())
 	var query = fmt.Sprintf(`query Q($from:string,$to:string) {
-					blocks as var(func: between(ts, $from, $to))@filter(type(Block))
+					blocks as var(func: between(ts, $from, $to))@filter(has(blockhash))
 
 					var(func: uid(blocks)){
 						transactions {

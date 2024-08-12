@@ -204,7 +204,7 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 		parentQuery = `{
 							h as Workspace.selectors@filter(uid($parent))
 						}`
-		parentUnion = ` t as var(func: uid($parent))@filter(type(Transaction))
+		parentUnion = ` t as var(func: uid($parent))@filter(has(txhash))
 						p as var(func: uid(t,h))`
 
 		cond = "@if(eq(len(w), 1) and eq(len(p),1))"
@@ -293,14 +293,14 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 
 
 
-				transactions(func: uid(r))@filter(type(Transaction))@normalize{
+				transactions(func: uid(r))@filter(has(txhash))@normalize{
 					txhash:txhash
 					~transactions{
 						ts:ts
 					}
 				}
 
-				clusters(func: uid(r))@filter(type(HeuristicCluster)){
+				clusters(func: uid(r))@filter(has(HeuristicCluster.results)){
 					transactions: HeuristicCluster.results@normalize{
 						txhash:txhash
 						~transactions{
@@ -342,7 +342,7 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
 					s as Workspace.selectors@filter(uid($selectorUIDs)){
-						hc as Selector.results@filter(type(HeuristicCluster))
+						hc as Selector.results@filter(has(HeuristicCluster.results))
 					}
 				}
 			}

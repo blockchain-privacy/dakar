@@ -98,7 +98,7 @@ func SetWorkspaceState(ctx context.Context, c external.Database, userUID string,
 	}
 
 	return db.MutationWithRetry(ctx, c, &api.Request{
-		Query: "query Q($uid:string){var(func: uid($uid))@filter(type(Workspace)){v as uid}}",
+		Query: "query Q($uid:string){var(func: uid($uid))@filter(has(Workspace.name)){v as uid}}",
 		Vars:  map[string]string{"$uid": workspaceUID},
 		Mutations: []*api.Mutation{{
 			Cond:    "@if(gt(len(v), 0))",
@@ -223,7 +223,7 @@ func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, w
 				var(func: uid($user)){
 					w as User.workspaces` + filterWorkspaces + `{
 						s as Workspace.selectors{
-							hc as Selector.results@filter(type(HeuristicCluster))
+							hc as Selector.results@filter(has(HeuristicCluster.results))
 						}
 					}
 				}
