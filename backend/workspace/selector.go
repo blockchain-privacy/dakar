@@ -183,7 +183,6 @@ type HeuristicWork struct {
 // updateSelector updates the selector both in the workspace state and in the db.
 func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.Database,
 	selectorUID string, workspaceUID string, userUID string, status string, newNodes []any) error {
-
 	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
 		UID:     selectorUID,
 		Status:  status,
@@ -217,7 +216,6 @@ func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
 
 	return encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight)
-
 }
 
 // Run processes the heuristic and inserts it into the workspace
