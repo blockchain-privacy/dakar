@@ -36,6 +36,11 @@
   </v-menu>
 </template>
 <script setup>
+// DateInput was implemented because v-date-input (by vuetify) has usability issues:
+// - it allows modifying the formatted text, but does not update the selected date
+// - the input field can not set to be readonly, while still allowing the date picker to work
+// Thus, this component allows selecting a date via the date picker. The selected date
+// is displayed as formatted text in the readonly text field.
 import {ref} from 'vue';
 
 defineProps({
