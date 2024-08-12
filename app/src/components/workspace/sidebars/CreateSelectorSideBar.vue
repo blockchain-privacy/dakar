@@ -84,12 +84,14 @@
                 :rules="parameterRules.get('date')"
                 :error="startDateError"
                 label="From"
+                @update:model-value="handleDateChange"
               />
               <date-input
                 v-model="selectorOptions.endDate"
                 :rules="parameterRules.get('date')"
                 :error="endDateError"
                 label="To"
+                @update:model-value="handleDateChange"
               />
             </div>
             <div class="d-flex justify-center my-2 text-subtitle-1">
@@ -301,8 +303,18 @@ function getHeuristicTypes() {
 	return selectorItems;
 }
 
-function isRangeEmpty(obj) {
+function isAmountRangeEmpty(obj) {
 	return obj.min === undefined && obj.max === undefined;
+}
+
+function handleDateChange() {
+	if (selectorOptions.value.startDate === null) {
+		selectorOptions.value.startDate = selectorOptions.value.endDate;
+	}
+
+	if (selectorOptions.value.endDate === null) {
+		selectorOptions.value.endDate = selectorOptions.value.startDate;
+	}
 }
 
 // Converts the string to a blockchain amount, if the string is empty returns undefined
@@ -360,19 +372,19 @@ async function addNewSelectorAction(event) {
 			options.outputRange.min = getAmount(options.outputRange.min);
 			options.outputRange.max = getAmount(options.outputRange.max);
 
-			if (isRangeEmpty(options.inputSum)) {
+			if (isAmountRangeEmpty(options.inputSum)) {
 				delete options.inputSum;
 			}
 
-			if (isRangeEmpty(options.outputSum)) {
+			if (isAmountRangeEmpty(options.outputSum)) {
 				delete options.outputSum;
 			}
 
-			if (isRangeEmpty(options.inputRange)) {
+			if (isAmountRangeEmpty(options.inputRange)) {
 				delete options.inputRange;
 			}
 
-			if (isRangeEmpty(options.outputRange)) {
+			if (isAmountRangeEmpty(options.outputRange)) {
 				delete options.outputRange;
 			}
 
