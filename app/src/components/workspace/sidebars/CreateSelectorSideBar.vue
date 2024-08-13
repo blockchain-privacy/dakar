@@ -1,7 +1,7 @@
 <template>
   <side-bar
     v-model="model"
-    title="Add Selector"
+    :title="title"
     :icon="mdiFilterPlus"
     max-width="648px"
   >
@@ -203,7 +203,9 @@ import {useRoute} from 'vue-router';
 import {mdiFilterPlus} from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
-import {onUpdated, ref, toRaw} from 'vue';
+import {
+	computed, onUpdated, ref, toRaw,
+} from 'vue';
 import {CLUSTER_TYPE_CUSTOM, SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP} from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
@@ -274,6 +276,18 @@ onUpdated(() => {
 
 	startDateError.value = false;
 	endDateError.value = false;
+});
+
+// Computed
+const title = computed(() => {
+	switch (props.selectorType) {
+		case SELECTOR_TYPE_HEURISTIC:
+			return 'Add Heuristic';
+		case SELECTOR_TYPE_TX_PROP:
+			return 'Add Selector';
+		default:
+			return 'Add Selector';
+	}
 });
 
 // Functions

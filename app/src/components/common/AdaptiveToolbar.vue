@@ -28,7 +28,7 @@
     <v-btn
       v-if="!disableFilter"
       variant="text"
-      :icon="mdiFilterCog"
+      :icon="mdiCog"
       :active="showFilter"
       @click="showFilter = !showFilter"
     />
@@ -145,8 +145,8 @@
 
 <script setup>
 import {
-	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached,
-	mdiImageFilterCenterFocus, mdiMagnify, mdiFilterCog, mdiChartTimelineVariant, mdiFilterPlus,
+	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached,	mdiImageFilterCenterFocus,
+	mdiMagnify, mdiChartTimelineVariant, mdiFilterPlus, mdiCog,
 } from '@mdi/js';
 import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';

@@ -28,25 +28,32 @@
         Add Note
       </v-chip>
       <template v-if="!isLoading && entityData">
-        <template
-          v-if="type === WORKSPACE_NODE_TYPE_SELECTOR ||
-            (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
+        <v-chip
+          v-if="isTxProp || isHeuristic"
+          rounded
+          color="primary"
+          variant="tonal"
+          class="me-2"
+          :prepend-icon="mdiFilterPlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @click="handleAddSelectorClick"
         >
-          <v-chip
-            v-if="type === WORKSPACE_NODE_TYPE_SELECTOR || isDestination(entityData[0].privacytype)"
-            rounded
-            color="primary"
-            variant="tonal"
-            class="me-2"
-            :prepend-icon="mdiFilterPlus"
-            :disabled="disableAddingNodes || auxiliaryData?.loading"
-            @click="handleAddSelectorClick"
-          >
-            Add Selector
-          </v-chip>
-        </template>
+          Add Selector
+        </v-chip>
+        <v-chip
+          v-if="isHeuristic || isDestination(entityData[0]?.privacytype)"
+          rounded
+          color="primary"
+          variant="tonal"
+          class="me-2"
+          :prepend-icon="mdiFilterPlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @click="handleAddHeuristicClick"
+        >
+          Add Heuristic
+        </v-chip>
         <fingerprint-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.privacytype)"
           :transaction-hash="identifier"
           class="me-2"
         />
@@ -109,16 +116,16 @@
             </template>
           </template>
           <address-view
-            v-else-if="entityData && type === WORKSPACE_NODE_TYPE_CLUSTER"
+            v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
             :address-data="entityData"
             :show-title-bar="false"
           />
           <heuristic-details
-            v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC"
+            v-else-if="isHeuristic"
             :heuristic-data="entityData"
           />
           <selector-details
-            v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP"
+            v-else-if="isTxProp"
             :selector-data="entityData"
           />
           <div v-else>
@@ -133,9 +140,8 @@
 <script setup>
 import {
 	mdiCardBulletedOutline,
-	mdiChartBar,
 	mdiDelete,
-	mdiFileDownloadOutline, mdiFilterPlus,
+	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus,
 	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
@@ -172,7 +178,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addSelector', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addSelector', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -209,6 +215,12 @@ const title = computed(() => {
 	}
 });
 
+const isHeuristic = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
+	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC);
+
+const isTxProp = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
+	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP);
+
 // Hooks
 onUpdated(async () => {
 	if (props.identifier && props.identifier !== oldIdentifier) {
@@ -242,7 +254,7 @@ const sideBarIcon = computed(() => {
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			return mdiChartBar;
+			return mdiFilter;
 		default:
 			return mdiShapeCirclePlus;
 	}
@@ -497,6 +509,10 @@ function deselectAllAddresses() {
 	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
 		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
 		.map(d => d.id));
+}
+
+function handleAddHeuristicClick() {
+	emit('addHeuristic');
 }
 
 function handleAddSelectorClick() {

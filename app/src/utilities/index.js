@@ -269,6 +269,10 @@ export function isOrigin(privacyType) {
 // IsDestination returns true if the provided privacyType is in the range of
 // destination transactions
 export function isDestination(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
