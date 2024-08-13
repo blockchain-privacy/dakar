@@ -14,11 +14,20 @@ const (
 
 	TypeTransactionProperties = "transactionProperties"
 	TypeHeuristic             = "heuristic"
+
+	PrivacyTypeOrigin             = "origin"
+	PrivacyTypeMixing             = "mixing"
+	PrivacyTypeDestination        = "destination"
+	PrivacyTypeCollateralCreation = "cc"
+	PrivacyTypeCollateralPayment  = "cp"
 )
 
 var validTypes = map[string]bool{TypeTransactionProperties: true, TypeHeuristic: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
+
+var validPrivacyTypes = map[string]bool{PrivacyTypeOrigin: true, PrivacyTypeMixing: true,
+	PrivacyTypeDestination: true, PrivacyTypeCollateralCreation: true, PrivacyTypeCollateralPayment: true}
 
 // IsTypeValid returns true if the provided type is valid
 func IsTypeValid(t string) bool {
@@ -28,6 +37,11 @@ func IsTypeValid(t string) bool {
 // IsStatusValid returns true if the provided status is valid
 func IsStatusValid(s string) bool {
 	return validStates[s]
+}
+
+// IsPrivacyTypeValid returns true if the provided privacy type is valid
+func IsPrivacyTypeValid(s string) bool {
+	return validPrivacyTypes[s]
 }
 
 type Selector struct {
@@ -60,14 +74,22 @@ func (a AmountRange) IsValid() bool {
 }
 
 type Options struct {
-	StartDate                  *time.Time   `json:"startDate,omitempty"`
-	EndDate                    *time.Time   `json:"endDate,omitempty"`
-	PrivacyTypes               []int        `json:"privacyTypes,omitempty"`
-	ExcludePrivacyTransactions *bool        `json:"excludePrivacyTransactions,omitempty"`
-	InputSum                   *AmountRange `json:"inputSum,omitempty"`
-	OutputSum                  *AmountRange `json:"outputSum,omitempty"`
-	InputRange                 *AmountRange `json:"inputRange,omitempty"`
-	OutputRange                *AmountRange `json:"outputRange,omitempty"`
+	// StartDate is the start of the time range selection
+	StartDate *time.Time `json:"startDate,omitempty"`
+	// EndDate is the end of the time range selection
+	EndDate *time.Time `json:"endDate,omitempty"`
+	// PrivacyTypes contains the privacy types which are included in the selection
+	PrivacyTypes []string `json:"privacyTypes,omitempty"`
+	// ExcludePrivacyTransactions determines if all transactions with a privacy type should be excluded
+	ExcludePrivacyTransactions *bool `json:"excludePrivacyTransactions,omitempty"`
+	// InputSum is an amount range of the summed up inputs each transaction has to fullfil
+	InputSum *AmountRange `json:"inputSum,omitempty"`
+	// OutputSum is an amount range of the summed up outputs each transaction has to fullfil
+	OutputSum *AmountRange `json:"outputSum,omitempty"`
+	// InputRange is an amount range at least one input of each transaction has to fullfil
+	InputRange *AmountRange `json:"inputRange,omitempty"`
+	// OutputRange  is an amount range at least one output of each transaction has to fullfil
+	OutputRange *AmountRange `json:"outputRange,omitempty"`
 }
 
 func (o Options) IsValid(hasParent bool) bool {
@@ -117,7 +139,7 @@ func (o Options) IsValid(hasParent bool) bool {
 	}
 
 	for _, privacyType := range o.PrivacyTypes {
-		if privacyType < 0 || privacyType > 4 {
+		if !IsPrivacyTypeValid(privacyType) {
 			return false
 		}
 	}

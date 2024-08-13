@@ -103,16 +103,18 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 			}
 
 			switch privacyType {
-			case 0:
+			case PrivacyTypeMixing:
 				privacyTypeFilter += "between(privacytype,0," + constants.StrPrivacyMixingLast + ")"
-			case 1:
+			case PrivacyTypeDestination:
 				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + ")"
-			case 2:
+			case PrivacyTypeOrigin:
 				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + ")"
-			case 3:
+			case PrivacyTypeCollateralCreation:
 				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralCreationFirst + "," + constants.StrPrivacyCollateralCreationLast + ")"
-			case 4:
+			case PrivacyTypeCollateralPayment:
 				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralPaymentFirst + "," + constants.StrPrivacyCollateralPaymentLast + ")"
+			default:
+				return nil, serror.FromStrWithContext("invalid privacy type", "privacy type", privacyType)
 			}
 		}
 	}
