@@ -75,6 +75,7 @@
           v-model="isCreateSelectorSheetOpen"
           :descriptors="heuristicDescriptors"
           :selector-type="selectorCreationType"
+          :has-parent="isSelectorParentSet"
           @add-selector="addNewSelector"
         />
         <entity-side-bar
@@ -84,8 +85,8 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-selector="openCreateSelectorSheet(false)"
-          @add-heuristic="openCreateSelectorSheet(true)"
+          @add-selector="openCreateSelectorSheet(false, true)"
+          @add-heuristic="openCreateSelectorSheet(true, true)"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
@@ -244,6 +245,8 @@ const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
 const workspaceUID = ref('');
 const workspaceName = ref('');
+// IsSelectorParentSet determines if a newly created selector should have a parent
+const isSelectorParentSet = ref(false);
 const isCreateSelectorSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
@@ -272,14 +275,14 @@ const contextMenuModel = ref({
 			title: 'Add Heuristic',
 			icon: mdiFilterPlus,
 			show: () => isHeuristicNode(nodeGraph.getContextNode()) || isDestiationNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(true),
+			action: () => openCreateSelectorSheet(true, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Add Selector',
 			icon: mdiFilterPlus,
 			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(false),
+			action: () => openCreateSelectorSheet(false, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -793,15 +796,17 @@ function openConnectionSheet(d) {
 function showCreateSelectorSheetFromButton() {
 	// So no parent is set
 	nodeGraph.resetContextNode();
-	openCreateSelectorSheet(false);
+	openCreateSelectorSheet(false, false);
 }
 
-function openCreateSelectorSheet(isHeuristic) {
+function openCreateSelectorSheet(isHeuristic, withParent) {
 	if (isHeuristic) {
 		selectorCreationType.value = SELECTOR_TYPE_HEURISTIC;
 	} else {
 		selectorCreationType.value = SELECTOR_TYPE_TX_PROP;
 	}
+
+	isSelectorParentSet.value = withParent;
 
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;

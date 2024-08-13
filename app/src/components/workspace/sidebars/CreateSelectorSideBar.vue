@@ -73,27 +73,39 @@
               class="text-subtitle-2 mb-3"
               style="max-width:260px"
             >
-              Select transactions based on their properties.
+              Select transactions based on their properties. Results are limited to 50 transactions.
             </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Time Range
+
+            <named-divider title="Select" />
+
+            <template v-if="!hasParent">
+              <div class="d-flex justify-center my-2 text-subtitle-1">
+                Time Range
+              </div>
+              <div class="d-flex align-center mb-5">
+                <date-input
+                  v-model="selectorOptions.startDate"
+                  :rules="parameterRules.get('date')"
+                  :error="startDateError"
+                  label="From"
+                  @update:model-value="handleDateChange"
+                />
+                <date-input
+                  v-model="selectorOptions.endDate"
+                  :rules="parameterRules.get('date')"
+                  :error="endDateError"
+                  label="To"
+                  @update:model-value="handleDateChange"
+                />
+              </div>
+            </template>
+            <div
+              v-else
+              class="text-subtitle-1"
+            >
+              Transactions of the parent node will be used
             </div>
-            <div class="d-flex align-center mb-5">
-              <date-input
-                v-model="selectorOptions.startDate"
-                :rules="parameterRules.get('date')"
-                :error="startDateError"
-                label="From"
-                @update:model-value="handleDateChange"
-              />
-              <date-input
-                v-model="selectorOptions.endDate"
-                :rules="parameterRules.get('date')"
-                :error="endDateError"
-                label="To"
-                @update:model-value="handleDateChange"
-              />
-            </div>
+            <named-divider title="Filter" />
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Transaction Input Sum
             </div>
@@ -219,6 +231,7 @@ const route = useRoute();
 const props = defineProps({
 	selectorType: {type: String, required: true},
 	descriptors: {type: Array, required: true},
+	hasParent: {type: Boolean, required: false, default: false},
 });
 
 // Heuristic select model
@@ -372,17 +385,22 @@ async function addNewSelectorAction(event) {
 		case SELECTOR_TYPE_TX_PROP:
 			options = structuredClone(toRaw(selectorOptions.value));
 
-			if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
-				startDateError.value = true;
-				endDateError.value = true;
-				return;
+			if (props.hasParent) {
+				delete options.startDate;
+				delete options.endDate;
+			} else {
+				if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
+					startDateError.value = true;
+					endDateError.value = true;
+					return;
+				}
+
+				options.startDate = options.startDate.toISOString();
+				options.endDate = options.endDate.toISOString();
 			}
 
 			startDateError.value = false;
 			endDateError.value = false;
-
-			options.startDate = options.startDate.toISOString();
-			options.endDate = options.endDate.toISOString();
 
 			options.inputSum.min = getAmount(options.inputSum.min);
 			options.inputSum.max = getAmount(options.inputSum.max);
@@ -393,6 +411,12 @@ async function addNewSelectorAction(event) {
 			options.inputRange.max = getAmount(options.inputRange.max);
 			options.outputRange.min = getAmount(options.outputRange.min);
 			options.outputRange.max = getAmount(options.outputRange.max);
+
+			if (isAmountRangeEmpty(options.inputSum) && isAmountRangeEmpty(options.outputSum)
+				&& isAmountRangeEmpty(options.inputRange) && isAmountRangeEmpty(options.outputRange)) {
+				setErrorMessage('at least one filter must be set');
+				return;
+			}
 
 			if (isAmountRangeEmpty(options.inputSum)) {
 				delete options.inputSum;
