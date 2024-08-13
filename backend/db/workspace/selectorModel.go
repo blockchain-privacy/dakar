@@ -70,15 +70,17 @@ type Options struct {
 	OutputRange                *AmountRange `json:"outputRange,omitempty"`
 }
 
-func (o Options) IsValid() bool {
-	// both dates must be set
-	if o.StartDate == nil || o.EndDate == nil {
-		return false
-	}
+func (o Options) IsValid(hasParent bool) bool {
+	if !hasParent {
+		// both dates must be set
+		if o.StartDate == nil || o.EndDate == nil {
+			return false
+		}
 
-	// start date must be smaller than end date
-	if o.StartDate.Compare(*o.EndDate) > 0 {
-		return false
+		// start date must be smaller than end date
+		if o.StartDate.Compare(*o.EndDate) > 0 {
+			return false
+		}
 	}
 
 	// at least one option must be set

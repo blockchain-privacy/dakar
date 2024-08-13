@@ -861,7 +861,9 @@ export default class NodeGraph {
 				if (this.#nodeTypeColorMap) {
 					let nodeColor;
 
-					if (d.privacyTypeLabel) {
+					if (d.selectorType) {
+						nodeColor = this.#nodeTypeColorMap.get(d.selectorType);
+					} else if (d.privacyTypeLabel) {
 						nodeColor = this.#nodeTypeColorMap.get(d.privacyTypeLabel);
 					} else {
 						nodeColor = this.#nodeTypeColorMap.get(d.type);
@@ -1032,6 +1034,10 @@ export default class NodeGraph {
 							return title;
 						}
 					} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
+						if (!d.selectorOptions.startDate || !d.selectorOptions.endDate) {
+							return '';
+						}
+
 						const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
 						const startDateStr = new Date(d.selectorOptions.startDate).toLocaleDateString(undefined, dateOptions);
 						const endDateStr = new Date(d.selectorOptions.endDate).toLocaleDateString(undefined, dateOptions);

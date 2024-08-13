@@ -68,7 +68,7 @@ type Options struct {
 	UserUID string `json:"-"`
 }
 
-func (o Options) IsValid() bool {
+func (o Options) IsValid(_ bool) bool {
 	return o.Type != "" && o.TransactionHash != ""
 }
 

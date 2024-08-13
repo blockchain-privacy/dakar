@@ -25,8 +25,8 @@ type SelectorWork struct {
 
 type Options interface {
 	workspace.Options | dbHeuristic.Options
-	// IsValid returns true if the Options are valid
-	IsValid() bool
+	// IsValid returns true if the Options are valid. hasParent should be set to true if the associated selector has a parent.
+	IsValid(hasParent bool) bool
 }
 
 func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
@@ -56,7 +56,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	// 1. Do work
 	status := workspace.StatusSuccess
 	var newNodes []any
-	results, err := workspace.DoSelection(ctx, c, s.opt)
+	results, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
 		newNodes = make([]any, len(results))
 		for i, result := range results {
@@ -102,7 +102,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return "", nil, serror.FromStrWithContext("invalid type", "type", selectorType)
 	}
 
-	if !options.IsValid() {
+	if !options.IsValid(selectorParent != "") {
 		return "", nil, serror.FromStrWithContext("invalid options", "options", options, "type", selectorType)
 	}
 

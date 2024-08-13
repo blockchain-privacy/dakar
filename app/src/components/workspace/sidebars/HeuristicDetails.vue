@@ -76,7 +76,7 @@
           sm="6"
         >
           <icon-item
-            title="Number of origins"
+            title="Number of transactions"
             :icon="mdiPoundBoxOutline"
           >
             {{ transactionCount }}

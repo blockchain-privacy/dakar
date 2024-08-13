@@ -36,8 +36,8 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 	return filter + "(" + fiterSubject + "," + strconv.FormatInt(*number, 10) + ")"
 }
 
-func DoSelection(ctx context.Context, c external.Database, o Options) ([]string, error) {
-	if !o.IsValid() {
+func DoSelection(ctx context.Context, c external.Database, o Options, parentUID string) ([]string, error) {
+	if !o.IsValid(parentUID != "") {
 		return nil, serror.New(ErrInvalidOptions)
 	}
 
@@ -126,15 +126,36 @@ func DoSelection(ctx context.Context, c external.Database, o Options) ([]string,
 		privacyTypeFilter = "@filter(not has(privacytype))"
 	}
 
+	var selectorQuery string
+
+	if parentUID == "" {
+		selectorQuery = `var(func: between(ts,"` + o.StartDate.Format(time.RFC3339) + `","` + o.EndDate.Format(time.RFC3339) + `")){
+							t as transactions` + privacyTypeFilter + `
+						}`
+	} else {
+		selectorQuery = `
+					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + TypeHeuristic + `)){
+						Selector.results{
+							hr as HeuristicCluster.results
+						}
+					}
+
+					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + TypeHeuristic + `)){
+						sr as Selector.results
+					}
+					t as var(func: uid(hr,sr))
+					`
+	}
+
 	query := `{
-				var(func: between(ts,"` + o.StartDate.Format(time.RFC3339) + `","` + o.EndDate.Format(time.RFC3339) + `")){
-					t as transactions` + privacyTypeFilter + `@cascade{
+				` + selectorQuery + `
+
+				f as var(func: uid(t))@cascade{
 					` + inputRangeFilter + `
 					` + outputRangeFilter + `
-					}
 				}
 
-				withSums as var(func: uid(t), first: 50){
+				withSums as var(func: uid(f), first: 50){
 					` + queryBody + `
 				}
 				
