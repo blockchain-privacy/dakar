@@ -271,9 +271,15 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiFilterPlus,
-			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_SELECTOR
-			|| nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
-			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
+			show: () => isHeuristicNode(nodeGraph.getContextNode()) || isDestiationNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(true),
+			disabled: () => nodeGraph.getContextNode()?.loading,
+		},
+		{
+			title: 'Add Selector',
+			icon: mdiFilterPlus,
+			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(false),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -435,6 +441,30 @@ async function lockAutosave() {
 		// eslint-disable-next-line no-await-in-loop
 		await sleep(200);
 	}
+}
+
+function isTxPropNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_TX_PROP;
+}
+
+function isHeuristicNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_HEURISTIC;
+}
+
+function isDestiationNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.privacyTypeLabel === PRIVACY_TYPE_DESTINATION;
 }
 
 function isEditEnabled(contextNode) {
@@ -748,14 +778,6 @@ function getHeuristicTransaction(nodes, uid) {
 	return '';
 }
 
-function contextMenuOpenTypeSelection(node) {
-	if (!node) {
-		return;
-	}
-
-	openCreateSelectorSheet(true);
-}
-
 function openConnectionSheet(d) {
 	connectionData.value = d;
 
@@ -862,6 +884,9 @@ function showContextMenu(e) {
 
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
+
+	// Need to hide sidebar, otherwise the context node is also used by side bar
+	closeSideBars();
 
 	nextTick(() => {
 		contextMenuModel.value.display = true;
