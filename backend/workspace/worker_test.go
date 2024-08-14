@@ -102,4 +102,8 @@ func TestWorker_work(t *testing.T) {
 			break
 		}
 	}
+
+	// stop worker
+	cancel()
+	wg.Wait()
 }
