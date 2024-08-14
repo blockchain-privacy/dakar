@@ -3,7 +3,7 @@
     v-model="model"
     :title="title"
     :icon="mdiFilterPlus"
-    max-width="648px"
+    max-width="330px"
   >
     <template #body>
       <v-form
@@ -69,15 +69,10 @@
             </template>
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
-            <div
-              class="text-subtitle-2 mb-3"
-              style="max-width:260px"
-            >
+            <div class="text-subtitle-2 mb-3">
               Select transactions based on their properties. Results are limited to 50 transactions.
             </div>
-
             <named-divider title="Select" />
-
             <template v-if="!hasParent">
               <div class="d-flex justify-center my-2 text-subtitle-1">
                 Time Range
@@ -103,9 +98,50 @@
               v-else
               class="text-subtitle-1"
             >
-              Transactions of the parent node will be used
+              Using transactions of the parent node
             </div>
-            <named-divider title="Filter" />
+            <named-divider title="Filter by Type" />
+            <v-switch
+              v-model="selectorOptions.excludePrivacyTransactions"
+              label="Exclude Privacy Transactions"
+            />
+            <v-select
+              v-model="selectorOptions.privacyTypes"
+              :disabled="selectorOptions.excludePrivacyTransactions"
+              max-width="330px"
+              multiple
+              label="Transaction Types"
+              hide-details
+              :items="privacyTypeItems"
+            >
+              <template #selection="{ item }">
+                <v-chip rounded>
+                  <template #prepend>
+                    <v-sheet
+                      style="width:15px; height:15px"
+                      rounded
+                      :color="item.raw.color?item.raw.color:'black'"
+                      class="me-2"
+                    />
+                  </template>
+                  {{ item.title }}
+                </v-chip>
+              </template>
+              <template #item="i">
+                <v-list-item v-bind="i.props">
+                  <template #prepend="{isSelected}">
+                    <v-checkbox-btn :model-value="isSelected" />
+                    <v-sheet
+                      style="width:15px; height:15px"
+                      rounded
+                      :color="i.item.raw.color?i.item.raw.color:'black'"
+                      class="me-2"
+                    />
+                  </template>
+                </v-list-item>
+              </template>
+            </v-select>
+            <named-divider title="Filter by Amount" />
             <div class="d-flex justify-center my-2 text-subtitle-1">
               Transaction Input Sum
             </div>
@@ -216,12 +252,12 @@ import {mdiFilterPlus} from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
 import {
-	computed, onUpdated, ref, toRaw,
+	computed, onMounted, onUpdated, ref, toRaw,
 } from 'vue';
 import {CLUSTER_TYPE_CUSTOM, SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP} from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
-import {amountToIntegers} from '@/utilities/index.js';
+import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
@@ -242,6 +278,8 @@ const heuristicTypes = ref([]);
 const selectorOptions = ref({
 	startDate: null,
 	endDate: null,
+	excludePrivacyTransactions: false,
+	privacyTypes: [],
 	inputSum: {min: undefined, max: undefined},
 	outputSum: {min: undefined, max: undefined},
 	inputRange: {min: undefined, max: undefined},
@@ -279,7 +317,15 @@ const parameterRules = new Map([
 	['date', [v => Boolean(v)]],
 ]);
 
+const privacyTypeItems = [];
+
 // Hooks
+onMounted(() => {
+	getColorMap().forEach((v, k) => {
+		privacyTypeItems.push({title: capitalize(k), value: k, color: v});
+	});
+});
+
 onUpdated(() => {
 	heuristicTypes.value = getHeuristicTypes();
 	if (heuristicTypes.value.length > 0) {
@@ -318,7 +364,7 @@ function getHeuristicTypes() {
 			return d;
 		})
 		.sort((a, b) => {
-			const comparedCategory = a.category.localeCompare(b.category);
+			const comparedCategory = b.category.localeCompare(a.category);
 
 			if (comparedCategory === 0) {
 				return a.title.localeCompare(b.title);
@@ -361,7 +407,85 @@ function getAmount(amount) {
 	return amountToIntegers(parseFloat(amount));
 }
 
+function buildHeuristicOptions() {
+	let options = null;
+	if (!heuristicOptions.value.type) {
+		setErrorMessage('invalid heuristic type');
+		return;
+	}
+
+	options = structuredClone(toRaw(heuristicOptions.value));
+	options.clusterTypes = heuristicOptions.value.clusterTypes?.length > 0 ? [CLUSTER_TYPE_CUSTOM] : [];
+
+	// Int to string
+	options.paramter &&= `${options.paramter}`;
+	return options;
+}
+
+function buildSelectorOptions() {
+	const options = structuredClone(toRaw(selectorOptions.value));
+
+	if (props.hasParent) {
+		delete options.startDate;
+		delete options.endDate;
+	} else {
+		if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
+			startDateError.value = true;
+			endDateError.value = true;
+			return;
+		}
+
+		options.startDate = options.startDate.toISOString();
+		options.endDate = options.endDate.toISOString();
+	}
+
+	startDateError.value = false;
+	endDateError.value = false;
+
+	options.inputSum.min = getAmount(options.inputSum.min);
+	options.inputSum.max = getAmount(options.inputSum.max);
+	options.outputSum.min = getAmount(options.outputSum.min);
+	options.outputSum.max = getAmount(options.outputSum.max);
+
+	options.inputRange.min = getAmount(options.inputRange.min);
+	options.inputRange.max = getAmount(options.inputRange.max);
+	options.outputRange.min = getAmount(options.outputRange.min);
+	options.outputRange.max = getAmount(options.outputRange.max);
+
+	if (isAmountRangeEmpty(options.inputSum) && isAmountRangeEmpty(options.outputSum)
+		&& isAmountRangeEmpty(options.inputRange) && isAmountRangeEmpty(options.outputRange)
+		&& !options.excludePrivacyTransactions && options.privacyTypes.length === 0) {
+		setErrorMessage('at least one filter must be set');
+		return;
+	}
+
+	if (options.excludePrivacyTransactions) {
+		delete options.privacyTypes;
+	} else {
+		delete options.excludePrivacyTransactions;
+	}
+
+	if (isAmountRangeEmpty(options.inputSum)) {
+		delete options.inputSum;
+	}
+
+	if (isAmountRangeEmpty(options.outputSum)) {
+		delete options.outputSum;
+	}
+
+	if (isAmountRangeEmpty(options.inputRange)) {
+		delete options.inputRange;
+	}
+
+	if (isAmountRangeEmpty(options.outputRange)) {
+		delete options.outputRange;
+	}
+
+	return options;
+}
+
 async function addNewSelectorAction(event) {
+	// Check if form is valid
 	const res = await event;
 	if (!res.valid) {
 		return;
@@ -371,69 +495,10 @@ async function addNewSelectorAction(event) {
 
 	switch (props.selectorType) {
 		case SELECTOR_TYPE_HEURISTIC:
-			if (!heuristicOptions.value.type) {
-				setErrorMessage('invalid heuristic type');
-				return;
-			}
-
-			options = structuredClone(toRaw(heuristicOptions.value));
-			options.clusterTypes = heuristicOptions.value.clusterTypes?.length > 0 ? [CLUSTER_TYPE_CUSTOM] : [];
-
-			// Int to string
-			options.paramter &&= `${options.paramter}`;
+			options = buildHeuristicOptions();
 			break;
 		case SELECTOR_TYPE_TX_PROP:
-			options = structuredClone(toRaw(selectorOptions.value));
-
-			if (props.hasParent) {
-				delete options.startDate;
-				delete options.endDate;
-			} else {
-				if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
-					startDateError.value = true;
-					endDateError.value = true;
-					return;
-				}
-
-				options.startDate = options.startDate.toISOString();
-				options.endDate = options.endDate.toISOString();
-			}
-
-			startDateError.value = false;
-			endDateError.value = false;
-
-			options.inputSum.min = getAmount(options.inputSum.min);
-			options.inputSum.max = getAmount(options.inputSum.max);
-			options.outputSum.min = getAmount(options.outputSum.min);
-			options.outputSum.max = getAmount(options.outputSum.max);
-
-			options.inputRange.min = getAmount(options.inputRange.min);
-			options.inputRange.max = getAmount(options.inputRange.max);
-			options.outputRange.min = getAmount(options.outputRange.min);
-			options.outputRange.max = getAmount(options.outputRange.max);
-
-			if (isAmountRangeEmpty(options.inputSum) && isAmountRangeEmpty(options.outputSum)
-				&& isAmountRangeEmpty(options.inputRange) && isAmountRangeEmpty(options.outputRange)) {
-				setErrorMessage('at least one filter must be set');
-				return;
-			}
-
-			if (isAmountRangeEmpty(options.inputSum)) {
-				delete options.inputSum;
-			}
-
-			if (isAmountRangeEmpty(options.outputSum)) {
-				delete options.outputSum;
-			}
-
-			if (isAmountRangeEmpty(options.inputRange)) {
-				delete options.inputRange;
-			}
-
-			if (isAmountRangeEmpty(options.outputRange)) {
-				delete options.outputRange;
-			}
-
+			options = buildSelectorOptions();
 			break;
 		default:
 			setErrorMessage('invalid selector type');
