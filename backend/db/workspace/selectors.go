@@ -95,6 +95,14 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 		outputRangeFilter = "tx_outputs@filter(" + outputRangeFilter + "){amount}"
 	}
 
+	var rangeFilter string
+	if inputRangeFilter != "" || outputRangeFilter != "" {
+		rangeFilter = `@cascade{
+					` + inputRangeFilter + `
+					` + outputRangeFilter + `
+					}`
+	}
+
 	var privacyTypeFilter string
 	if o.PrivacyTypes != nil {
 		for _, privacyType := range o.PrivacyTypes {
@@ -152,12 +160,9 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 	query := `{
 				` + selectorQuery + `
 
-				f as var(func: uid(t))@cascade{
-					` + inputRangeFilter + `
-					` + outputRangeFilter + `
-				}
+				f as var(func: uid(t))` + rangeFilter + `
 
-				withSums as var(func: uid(f), first: 50){
+				withSums as var(func: uid(f)){
 					` + queryBody + `
 				}
 				

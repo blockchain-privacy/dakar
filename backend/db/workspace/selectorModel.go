@@ -99,8 +99,12 @@ func (o Options) IsValid(hasParent bool) bool {
 			return false
 		}
 
-		// start date must be smaller than end date
-		if o.StartDate.Compare(*o.EndDate) > 0 {
+		// start date must be before end date
+		if o.StartDate.After(*o.EndDate) {
+			return false
+		}
+		// duration between must be smaller than 60 days (for performance)
+		if o.EndDate.Sub(*o.StartDate) > time.Hour*24*60 {
 			return false
 		}
 	}
