@@ -135,7 +135,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate:    &startDate1,
 				EndDate:      &endDate1,
-				PrivacyTypes: []string{PrivacyTypeOrigin, PrivacyTypeDestination},
+				PrivacyTypes: []string{PrivacyTypeOrigin, PrivacyTypeMixing},
 				InputSum:     &AmountRange{Min: &val1},
 				InputRange:   &AmountRange{Min: &valPoint01, Max: &valPoint1},
 				OutputRange:  &AmountRange{Min: &val1, Max: &valPoint1},
@@ -146,7 +146,7 @@ func TestDoSelection(t *testing.T) {
 			o: Options{
 				StartDate:                  &startDate1,
 				EndDate:                    &endDate1,
-				PrivacyTypes:               []string{PrivacyTypeOrigin, PrivacyTypeDestination},
+				PrivacyTypes:               []string{PrivacyTypeOrigin, PrivacyTypeMixing},
 				ExcludePrivacyTransactions: &yes,
 			},
 			wantErr: true,
