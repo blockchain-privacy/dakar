@@ -7,7 +7,6 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"os"
 	"slices"
 	"sort"
 	"testing"
@@ -480,7 +479,7 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	// set wrapper not loading and set environment variable to
 	// only load a small graph (should have no effect, as graph is small anyway)
 	w.isLoading = false
-	require.NoError(t, os.Setenv("DEV_GRAPH_LIMIT", "10000"))
+	t.Setenv("DEV_GRAPH_LIMIT", "10000")
 	require.NoError(t, w.LoadGraphs())
 	require.NotNil(t, w.transactionGraph)
 }

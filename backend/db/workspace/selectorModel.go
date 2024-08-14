@@ -134,7 +134,7 @@ func (o Options) IsValid(hasParent bool) bool {
 	}
 
 	// there are only 5 privacy types
-	if o.PrivacyTypes != nil && len(o.PrivacyTypes) > 5 {
+	if len(o.PrivacyTypes) > 5 {
 		return false
 	}
 
