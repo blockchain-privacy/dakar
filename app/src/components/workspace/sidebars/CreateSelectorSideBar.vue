@@ -452,17 +452,14 @@ function buildSelectorOptions() {
 	options.outputRange.min = getAmount(options.outputRange.min);
 	options.outputRange.max = getAmount(options.outputRange.max);
 
-	if (isAmountRangeEmpty(options.inputSum) && isAmountRangeEmpty(options.outputSum)
-		&& isAmountRangeEmpty(options.inputRange) && isAmountRangeEmpty(options.outputRange)
-		&& !options.excludePrivacyTransactions && options.privacyTypes.length === 0) {
-		setErrorMessage('at least one filter must be set');
-		return;
-	}
-
 	if (options.excludePrivacyTransactions) {
 		delete options.privacyTypes;
 	} else {
 		delete options.excludePrivacyTransactions;
+	}
+
+	if (options.privacyTypes?.length === 0) {
+		delete options.privacyTypes;
 	}
 
 	if (isAmountRangeEmpty(options.inputSum)) {
@@ -503,6 +500,12 @@ async function addNewSelectorAction(event) {
 		default:
 			setErrorMessage('invalid selector type');
 			return;
+	}
+
+	// Check for empty object
+	if (Object.keys(options).length === 0) {
+		setErrorMessage('at least one filter must be set');
+		return;
 	}
 
 	emit('add-selector', props.selectorType, options);
