@@ -10,7 +10,7 @@
     "lint": "eslint src --fix"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.45",
+    "@blockchain/dakar": "^1.1.47",
     "@fontsource/roboto": "^5.0.14",
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.5",
@@ -27,19 +27,19 @@
     "d3-time": "^3.1.0",
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
-    "pinia": "^2.2.0",
-    "vue": "^3.4.35",
-    "vue-router": "^4.4.2",
+    "pinia": "^2.2.1",
+    "vue": "^3.4.37",
+    "vue-router": "^4.4.3",
     "vuetify": "^3.6.14"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
-    "eslint": "^9.8.0",
+    "eslint": "^9.9.0",
     "eslint-config-xo": "^0.46.0",
     "eslint-plugin-vue": "^9.27.0",
     "eslint-plugin-vuetify": "^2.4.0",
     "sass": "^1.77.8",
-    "vite": "^5.3.5",
+    "vite": "^5.4.0",
     "vite-plugin-vuetify": "^2.0.4",
     "vite-svg-loader": "^5.1.0"
   },
