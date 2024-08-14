@@ -18,8 +18,8 @@ const (
 	PrivacyTypeOrigin             = "origin"
 	PrivacyTypeMixing             = "mixing"
 	PrivacyTypeDestination        = "destination"
-	PrivacyTypeCollateralCreation = "cc"
-	PrivacyTypeCollateralPayment  = "cp"
+	PrivacyTypeCollateralCreation = "collateral creation"
+	PrivacyTypeCollateralPayment  = "collateral payment"
 )
 
 var validTypes = map[string]bool{TypeTransactionProperties: true, TypeHeuristic: true}

@@ -138,12 +138,12 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 		selectorQuery = `
 					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + TypeHeuristic + `)){
 						Selector.results{
-							hr as HeuristicCluster.results
+							hr as HeuristicCluster.results` + privacyTypeFilter + `
 						}
 					}
 
 					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + TypeHeuristic + `)){
-						sr as Selector.results
+						sr as Selector.results` + privacyTypeFilter + `
 					}
 					t as var(func: uid(hr,sr))
 					`
