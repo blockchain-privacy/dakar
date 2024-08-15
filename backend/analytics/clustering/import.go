@@ -96,10 +96,8 @@ func validateAddresses(ctx context.Context, dgraph external.Database,
 		addresses[c.AddressHash] = true
 	}
 
-	uniqueAddresses := cliutil.GetMapKeys(addresses)
-
 	// check maximum number of addresses
-	if len(uniqueAddresses) > 1000 {
+	if len(addresses) > 1000 {
 		return nil, serror.New(ErrTooManyAddresses)
 	}
 
@@ -112,7 +110,7 @@ func validateAddresses(ctx context.Context, dgraph external.Database,
 	}
 
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(ctx, dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(ctx, dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}
