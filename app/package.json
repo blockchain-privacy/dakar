@@ -28,9 +28,9 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "pinia": "^2.2.1",
-    "vue": "^3.4.37",
+    "vue": "^3.4.38",
     "vue-router": "^4.4.3",
-    "vuetify": "^3.6.14"
+    "vuetify": "^3.6.15"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
