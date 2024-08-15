@@ -147,16 +147,8 @@ func DeleteAllAddressExclusions(ctx context.Context, c external.Database, userID
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
-	if err != nil {
-		return err
-	}
 
-	if !db.HasMutationCost(resp) {
-		return serror.FromStr("nothing was deleted")
-	}
-
-	return nil
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 // GetAddressExclusionStatus returns true if the given address is part of the users address exclusion list

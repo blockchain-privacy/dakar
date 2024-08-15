@@ -193,13 +193,12 @@ func TestDeleteWorkspace(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			// invalid UID
-			workspaceUID: "0x123",
-			wantErr:      true,
-		},
-		{
-			// invalid UID
 			workspaceUID: workspaceUID,
+			wantErr:      false,
+		},
+		// delete all workspaces
+		{
+			workspaceUID: "",
 			wantErr:      false,
 		},
 	}

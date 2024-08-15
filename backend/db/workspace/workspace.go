@@ -237,16 +237,8 @@ func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, w
 		}},
 		CommitNow: true,
 	}
-	response, err := db.MutationWithRetryAndResponse(ctx, c, req)
-	if err != nil {
-		return err
-	}
 
-	if !db.HasMutationCost(response) {
-		return serror.New(db.ErrNoMutationHappened)
-	}
-
-	return nil
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []string) (isOutdated bool, err error) {
