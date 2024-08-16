@@ -5,6 +5,7 @@ import (
 	"backend/db/user"
 	"backend/external"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -89,7 +90,8 @@ func TestImportAttribution(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := ImportAttribution(tt.args.dgraph, tt.args.attributions, tt.args.userID, tt.args.isPublic)
+		err := ImportAttribution(context.Background(), tt.args.dgraph, tt.args.attributions,
+			tt.args.userID, tt.args.isPublic)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -181,7 +183,7 @@ func Test_validateAddresses(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		got, err := validateAddresses(tt.args.dgraph, tt.args.attributions)
+		got, err := validateAddresses(context.Background(), tt.args.dgraph, tt.args.attributions)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

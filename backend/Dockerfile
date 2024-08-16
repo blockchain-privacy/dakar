@@ -1,23 +1,18 @@
-# build stage
-FROM golang:1.22-alpine as build-stage
-ARG MODFILE_PATH="go.mod"
-ARG MODSUM_PATH="go.sum"
+FROM golang:latest AS build-stage
 
-WORKDIR /build
+ENV CGO_ENABLED=0
 
 # download dependencies before build, so they can be cached
-COPY $MODFILE_PATH ./go.mod
-COPY $MODSUM_PATH ./go.sum
+COPY go.mod .
+COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN go build -v -modfile $MODFILE_PATH -o crawler ./cmd/crawler/
+RUN go build -o /crawler ./cmd/crawler/
 
-# production stage
 FROM scratch
-COPY --from=build-stage /build/crawler /app/
+COPY --from=build-stage /crawler .
 
 VOLUME ["/data"]
-WORKDIR /app
 CMD ["--config", "/data/config.yml"]
-ENTRYPOINT ["./crawler"]
+ENTRYPOINT ["/crawler"]

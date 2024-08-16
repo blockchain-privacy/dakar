@@ -4,6 +4,7 @@ import (
 	"backend/db"
 	"backend/db/user"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -43,7 +44,7 @@ func TestAddWorkspace(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		newWorkspaceUID, err := AddWorkspace(dbHandle, tt.name, tt.userUID)
+		newWorkspaceUID, err := AddWorkspace(context.Background(), dbHandle, tt.name, tt.userUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -55,20 +56,20 @@ func TestAddWorkspace(t *testing.T) {
 
 func TestGetFrontendWorkspaces(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-
+	ctx := context.Background()
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(dbHandle)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID)
 	require.NoError(t, err)
 
 	userUID2, err := user.CreateNewUser(dbHandle)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
-	_, err = AddWorkspace(dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -92,7 +93,7 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		workspaces, err := GetFrontendWorkspaces(dbHandle, tt.userUID)
+		workspaces, err := GetFrontendWorkspaces(ctx, dbHandle, tt.userUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -102,26 +103,26 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 	}
 }
 
-func TestFindDescandantHeuristicUIDs(t *testing.T) {
+func TestFindDescandantSelectorUIDs(t *testing.T) {
 	filledMap := map[string]Node{
 		"0x1": {
 			UID:      "0x1",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: nil,
 		},
 		"0x2": {
 			UID:      "0x2",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: nil,
 		},
 		"0x3": {
 			UID:      "0x3",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: nil,
 		},
 		"0x4": {
 			UID:      "0x4",
-			Type:     "heuristic",
+			Type:     NodeTypeSelector,
 			Children: []string{"0x2", "0x3"},
 		},
 	}
@@ -152,7 +153,7 @@ func TestFindDescandantHeuristicUIDs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.want, FindDescendantHeuristicUIDs(tt.nodes, tt.nodeUID))
+		require.EqualValues(t, tt.want, FindDescendantSelectorUIDs(tt.nodes, tt.nodeUID))
 	}
 }
 
@@ -175,5 +176,38 @@ func TestDeleteNodes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		require.EqualValues(t, tt.want, DeleteNodes(tt.nodes, tt.uids))
+	}
+}
+
+func TestDeleteWorkspace(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	ctx := context.Background()
+	// create dgraph user and workspace for tests
+	userUID, err := user.CreateNewUser(dbHandle)
+	require.NoError(t, err)
+	workspaceUID, err := AddWorkspace(ctx, dbHandle, "test", userUID)
+	require.NoError(t, err)
+
+	tests := []struct {
+		workspaceUID string
+		wantErr      bool
+	}{
+		{
+			workspaceUID: workspaceUID,
+			wantErr:      false,
+		},
+		// delete all workspaces
+		{
+			workspaceUID: "",
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		if err := DeleteWorkspace(ctx, dbHandle, userUID, tt.workspaceUID); tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
 	}
 }

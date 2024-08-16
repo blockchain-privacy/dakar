@@ -28,25 +28,32 @@
         Add Note
       </v-chip>
       <template v-if="!isLoading && entityData">
-        <template
-          v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC ||
-            (type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.privacytype >= 0)"
+        <v-chip
+          v-if="isTxProp || isHeuristic"
+          rounded
+          color="primary"
+          variant="tonal"
+          class="me-2"
+          :prepend-icon="mdiFilterPlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @click="handleAddSelectorClick"
         >
-          <v-chip
-            v-if="type === WORKSPACE_NODE_TYPE_HEURISTIC || isDestination(entityData[0].privacytype)"
-            rounded
-            color="primary"
-            variant="tonal"
-            class="me-2"
-            :prepend-icon="mdiShapeCirclePlus"
-            :disabled="disableAddingNodes || auxiliaryData?.loading"
-            @click="handleAddHeuristicClick"
-          >
-            Add Heuristic
-          </v-chip>
-        </template>
+          Add Selector
+        </v-chip>
+        <v-chip
+          v-if="isHeuristic || isDestination(entityData[0]?.privacytype)"
+          rounded
+          color="primary"
+          variant="tonal"
+          class="me-2"
+          :prepend-icon="mdiFilterPlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @click="handleAddHeuristicClick"
+        >
+          Add Heuristic
+        </v-chip>
         <fingerprint-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0] && isDestination(entityData[0].privacytype)"
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.privacytype)"
           :transaction-hash="identifier"
           class="me-2"
         />
@@ -59,7 +66,7 @@
           :address-hash="entityData.addresshash"
         />
         <v-chip
-          v-else-if="type === WORKSPACE_NODE_TYPE_HEURISTIC && entityData?.clusterCount > 0"
+          v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && (entityData?.clusterCount > 0 || entityData?.selectorCount > 0)"
           rounded
           color="primary"
           variant="tonal"
@@ -87,6 +94,7 @@
         <v-skeleton-loader
           v-if="isLoading"
           class="mx-auto"
+          width="600px"
           type="list-item-three-line, list-item-three-line, list-item-three-line"
         />
         <template v-else>
@@ -108,13 +116,17 @@
             </template>
           </template>
           <address-view
-            v-else-if="entityData && type === WORKSPACE_NODE_TYPE_CLUSTER"
+            v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
             :address-data="entityData"
             :show-title-bar="false"
           />
           <heuristic-details
-            v-else-if="entityData.heuristicUid && type === WORKSPACE_NODE_TYPE_HEURISTIC"
+            v-else-if="isHeuristic"
             :heuristic-data="entityData"
+          />
+          <selector-details
+            v-else-if="isTxProp"
+            :selector-data="entityData"
           />
           <div v-else>
             Type not recognized
@@ -128,9 +140,8 @@
 <script setup>
 import {
 	mdiCardBulletedOutline,
-	mdiChartBar,
 	mdiDelete,
-	mdiFileDownloadOutline,
+	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus,
 	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
@@ -150,13 +161,15 @@ import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
+import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -165,7 +178,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addSelector', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -191,12 +204,22 @@ const title = computed(() => {
 			return `Transaction ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
-			return 'Heuristic Properties';
+		case WORKSPACE_NODE_TYPE_SELECTOR:
+			if (props.auxiliaryData?.selectorType === SELECTOR_TYPE_HEURISTIC) {
+				return 'Heuristic Properties';
+			}
+
+			return 'Selector Properties';
 		default:
-			return 'unknown entity type';
+			return 'Unknown entity type';
 	}
 });
+
+const isHeuristic = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
+	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC);
+
+const isTxProp = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
+	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP);
 
 // Hooks
 onUpdated(async () => {
@@ -206,14 +229,15 @@ onUpdated(async () => {
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
 		const cacheValue = cacheStore.getValue(props.identifier);
+		entityData.value = null;
 		if (cacheValue !== undefined) {
 			entityData.value = cacheValue;
 		} else if (props.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 			await getTransactionData();
 		} else if (props.type === WORKSPACE_NODE_TYPE_CLUSTER) {
 			await getAddressData();
-		} else if (props.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
-			await getHeuristicData();
+		} else if (props.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+			await getSelectorData();
 		}
 
 		setSelectableEntities();
@@ -229,8 +253,8 @@ const sideBarIcon = computed(() => {
 			return mdiTransfer;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
-			return mdiChartBar;
+		case WORKSPACE_NODE_TYPE_SELECTOR:
+			return mdiFilter;
 		default:
 			return mdiShapeCirclePlus;
 	}
@@ -281,13 +305,15 @@ function setSelectableEntities() {
 			showSelectAddresses.value = false;
 
 			break;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
-			for (const cluster of entityData.value.clusters) {
-				for (const tx of cluster.txs) {
-					if (tx.txhash) {
-						selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-					}
-				}
+		case WORKSPACE_NODE_TYPE_SELECTOR:
+			switch (props.auxiliaryData.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC:
+					setSelectableHeuristicElements();
+					break;
+				case SELECTOR_TYPE_TX_PROP:
+					setSelectableSelectorElements();
+					break;
+				default:
 			}
 
 			showSelectTransactions.value = true;
@@ -298,12 +324,29 @@ function setSelectableEntities() {
 	}
 }
 
+function setSelectableHeuristicElements() {
+	for (const cluster of entityData.value.clusters) {
+		for (const tx of cluster.transactions) {
+			if (tx.txhash) {
+				selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			}
+		}
+	}
+}
+
+function setSelectableSelectorElements() {
+	for (const tx of entityData.value.transactions) {
+		if (tx.txhash) {
+			selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+		}
+	}
+}
+
 async function getTransactionData() {
 	if (props.identifier === '') {
 		return;
 	}
 
-	entityData.value = null;
 	try {
 		const response = await dakar.data.blockchainTransactionsHashGet({hash: props.identifier});
 		entityData.value = response.transactions;
@@ -318,8 +361,6 @@ async function getAddressData() {
 		return;
 	}
 
-	entityData.value = null;
-
 	try {
 		const response = await dakar.data.blockchainAddressesHashGet({hash: props.identifier});
 		entityData.value = response.address;
@@ -329,46 +370,72 @@ async function getAddressData() {
 	}
 }
 
-async function getHeuristicData() {
+async function getSelectorData() {
 	if (!props.identifier || !props.workspaceUid) {
 		return;
 	}
 
-	entityData.value = null;
+	let tmpEntityData;
 
-	const tmp = {
-		heuristicParameter: props.auxiliaryData.heuristicParameter,
-		heuristicExcludeAddresses: props.auxiliaryData.heuristicExcludeAddresses,
-		heuristicExcludeSpendingGaps: props.auxiliaryData.heuristicExcludeSpendingGaps,
-		heuristicCustomClusters: props.auxiliaryData.heuristicClusterTypes?.length > 0,
-		heuristicTypeTitle: props.auxiliaryData.displayType,
-		clusterCount: props.auxiliaryData.heuristicClusterCount,
-		heuristicUid: props.auxiliaryData.uid,
-		heuristicTimestamp: new Date(props.auxiliaryData.heuristicTs),
-		clusters: [],
-	};
+	switch (props.auxiliaryData.selectorType) {
+		case SELECTOR_TYPE_HEURISTIC:
+			{
+				const opt = props.auxiliaryData.heuristicOptions;
 
-	// Check if data has to be loaded from backend
-	if (!tmp.clusterCount) {
-		entityData.value = tmp;
-		return;
+				tmpEntityData = {
+					heuristicParameter: opt.parameter,
+					heuristicExcludeAddresses: opt.excludeAddresses,
+					heuristicExcludeSpendingGaps: opt.excludeSpendingGaps,
+					heuristicCustomClusters: opt.clusterTypes?.length > 0,
+					heuristicTypeTitle: props.auxiliaryData.displayType,
+					clusterCount: props.auxiliaryData.selectorResultCount,
+					selectorUid: props.auxiliaryData.uid,
+					heuristicTimestamp: new Date(props.auxiliaryData.selectorModified),
+					clusters: [],
+				};
+			}
+
+			// Check if data has to be loaded from backend
+			if (!tmpEntityData.clusterCount) {
+				entityData.value = tmpEntityData;
+				return;
+			}
+
+			break;
+		case SELECTOR_TYPE_TX_PROP:
+			tmpEntityData = props.auxiliaryData.selectorOptions;
+			tmpEntityData.selectorUid = props.auxiliaryData.uid;
+			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
+			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
+			tmpEntityData.transactions = [];
+
+			// Check if data has to be loaded from backend
+			if (!tmpEntityData.selectorCount) {
+				entityData.value = tmpEntityData;
+				return;
+			}
+
+			break;
+		default:
+			// Invalid type
+			return;
 	}
 
 	try {
-		const response = await dakar.heuristic.heuristicDetailsPost({
-			heuristic: {
-				heuristicUID: props.identifier,
-				workspaceUID: props.workspaceUid,
-			},
+		const response = await dakar.workspace.workspacesSelectorResultsPost({
+			selector: {selectorUID: props.identifier, workspaceUID: props.workspaceUid},
 		});
 
-		if (!response.heuristic) {
-			throw new Error('response contains no heuristics');
+		if (response.selector?.clusters?.length > 0) {
+			// Heuristics
+			tmpEntityData.clusters = response.selector.clusters;
+		} else if (response.selector?.transactions?.length > 0) {
+			// Txprop
+			tmpEntityData.transactions = response.selector.transactions;
 		}
 
-		tmp.clusters = response.heuristic.clusters;
-		entityData.value = tmp;
-		cacheStore.setValue(props.identifier, tmp);
+		entityData.value = tmpEntityData;
+		cacheStore.setValue(props.identifier, tmpEntityData);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -381,15 +448,15 @@ function setErrorMessage(msg) {
 }
 
 async function downloadReport() {
-	if (!entityData.value.heuristicUid || !props.workspaceUid) {
+	if (!entityData.value.selectorUid || !props.workspaceUid) {
 		return;
 	}
 
 	try {
-		const response = await dakar.heuristic.heuristicsReportPost({
-			work: {
+		const response = await dakar.workspace.workspacesSelectorReportPost({
+			selector: {
 				workspaceUID: props.workspaceUid,
-				heuristicUID: entityData.value.heuristicUid,
+				selectorUID: entityData.value.selectorUid,
 			},
 		});
 		// Looks hacky, but it is the only way with good UX
@@ -398,7 +465,7 @@ async function downloadReport() {
 
 		a.setAttribute(
 			'download',
-			`heuristic_report_${getCurrentDate()}_${entityData.value.heuristicUid}.csv`,
+			`selector_report_${getCurrentDate()}_${entityData.value.selectorUid}.csv`,
 		);
 		a.click();
 		a.remove();
@@ -446,6 +513,10 @@ function deselectAllAddresses() {
 
 function handleAddHeuristicClick() {
 	emit('addHeuristic');
+}
+
+function handleAddSelectorClick() {
+	emit('addSelector');
 }
 
 </script>

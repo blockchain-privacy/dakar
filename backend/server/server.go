@@ -3,7 +3,6 @@ package server
 import (
 	"backend/analytics/graph"
 	"backend/external"
-	"backend/worker"
 	"backend/workspace"
 	"errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -41,7 +40,7 @@ type Server struct {
 	// Dash or Bitcoin RPC client
 	client external.RPCClient
 	// worker which sequentially processes work packages (currently only used for heuristics)
-	worker *worker.Worker
+	worker *workspace.Worker
 	// in-memory transaction and address graph of all privacy transactions
 	graphWrapper *graph.Wrapper
 	// cache factory
@@ -50,10 +49,12 @@ type Server struct {
 	workspaceMutex *workspace.Mutex
 	// HTTP mux
 	handler *http.ServeMux
+	// duration after which every handler timesout
+	handlerTimeout time.Duration
 }
 
-func NewServer(db external.Database, client external.RPCClient,
-	worker *worker.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
+func NewServer(m *workspace.Mutex, db external.Database, client external.RPCClient,
+	worker *workspace.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
 	if worker == nil {
 		return nil, serror.FromStr("worker pointer is nil")
 	}
@@ -69,8 +70,9 @@ func NewServer(db external.Database, client external.RPCClient,
 		worker:         worker,
 		graphWrapper:   graphWrapper,
 		cacheFactory:   factory,
-		workspaceMutex: workspace.NewMutex(),
+		workspaceMutex: m,
 		handler:        http.NewServeMux(),
+		handlerTimeout: time.Minute * 3,
 	}, nil
 }
 

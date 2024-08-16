@@ -7,35 +7,20 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"os"
 	"slices"
 	"sort"
 	"testing"
 	"time"
 )
 
-// unregisterCollectors unregisters all collectors of the wrapper.
-// This is needed because collectors can not be registered twice with the same default config.
-func unregisterCollectors(w *Wrapper) {
-	if w == nil {
-		return
-	}
-
-	prometheus.Unregister(w.blocks)
-	prometheus.Unregister(w.transactions)
-	prometheus.Unregister(w.blockHeight)
-}
-
 func TestNewWrapper(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 	require.NotNil(t, w)
 	require.NotNil(t, w.transactionGraphMutex)
 }
 
 func TestWrapper_IsTransactionGraphLoaded(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	require.False(t, w.IsTransactionGraphLoaded())
 	w.transactionGraph = NewReversibleGraph(1)
@@ -58,7 +43,6 @@ func TestWrapper_IsTransactionGraphLoaded(t *testing.T) {
 
 func TestWrapper_ReverseLookup(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.ReverseLookup("", 0, nil, false)
@@ -137,7 +121,6 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 
 func TestWrapper_ForwardLookup(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.ForwardLookup("", "", nil, false)
@@ -215,7 +198,6 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 
 func TestWrapper_ForwardLookupByTime(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.ForwardLookupByTime("", 0, nil, false)
@@ -293,7 +275,6 @@ func TestWrapper_ForwardLookupByTime(t *testing.T) {
 
 func TestWrapper_SpendingFingerprint(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	// transaction graph not loaded -> should produce error
 	_, _, err := w.SpendingFingerprint("")
@@ -406,7 +387,6 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 
 func TestWrapper_GetInputTransactions(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.GetInputTransactions("")
@@ -479,7 +459,7 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
+	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// database is not set
 	require.Error(t, w.LoadGraphs())
@@ -499,21 +479,18 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	// set wrapper not loading and set environment variable to
 	// only load a small graph (should have no effect, as graph is small anyway)
 	w.isLoading = false
-	require.NoError(t, os.Setenv("DEV_GRAPH_LIMIT", "10000"))
+	t.Setenv("DEV_GRAPH_LIMIT", "10000")
 	require.NoError(t, w.LoadGraphs())
 	require.NotNil(t, w.transactionGraph)
 }
 
 func TestWrapper_Props(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
-
 	require.NotEmpty(t, w.Props())
 }
 
 func TestWrapper_CalculateInitialState(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	// error because no graphs were loaded so far
 	require.Error(t, w.CalculateInitialState())
@@ -527,7 +504,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
+	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// db handle not set -> error
 	flag, err := w.NextBlock()
@@ -548,13 +525,11 @@ func TestWrapper_NextBlock(t *testing.T) {
 
 func TestWrapper_PostExecution(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 	require.NoError(t, w.PostExecution())
 }
 
 func TestWrapper_IncrementState(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 
 	require.Zero(t, w.state.ID)
 	require.NoError(t, w.IncrementState())
@@ -563,7 +538,6 @@ func TestWrapper_IncrementState(t *testing.T) {
 
 func TestWrapper_Empty(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
 	require.False(t, w.Empty())
 
 	w.state.ID = 30
@@ -576,8 +550,7 @@ func TestWrapper_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
 	w := NewWrapper(context.Background(), nil)
-	unregisterCollectors(w)
-
+	w.RegisterMetrics(prometheus.NewRegistry())
 	w.db = dbHandle
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)

@@ -3,14 +3,13 @@ package db
 import (
 	"backend/constants"
 	"backend/external"
-	"github.com/qrest/gomisc/serror"
-
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/qrest/gomisc/serror"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
 // transactionDType is the dgraph database type for the Transaction type
@@ -242,7 +241,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	}
 
 	if len(r.Q) == 0 {
-		err = serror.FromFormat("block: %d: %w", blockID, ErrTransactionNotFound)
+		err = serror.NewWithContext(ErrTransactionNotFound, "block", blockID)
 		return
 	}
 
@@ -366,7 +365,7 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 }
 
 // GetFrontendTransaction gets transaction information for the frontend
-func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
+func GetFrontendTransaction(ctx context.Context, c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
 	if txHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -397,8 +396,6 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 				}
 			  }` + FrontendTransactionFragments
 
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = serror.New(err)
@@ -465,7 +462,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 }
 
 // GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
-func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
+func GetFrontendTransactionsByUID(ctx context.Context, c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
 	if len(txUids) == 0 {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -484,9 +481,6 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 				}
 			  }`
 
-	// without retry, as this request can easily time out
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
 		err = serror.New(err)
@@ -518,7 +512,7 @@ type AmountTransaction struct {
 }
 
 // GetFrontendTransactionAmounts returns summed up amount values per transaction
-func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []AmountTransaction, err error) {
+func GetFrontendTransactionAmounts(ctx context.Context, c external.Database, txUids []string) (txs []AmountTransaction, err error) {
 	if len(txUids) == 0 {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -550,9 +544,6 @@ func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []
 			}
 		}`
 
-	// without retry, as this request can easily time out
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
 		err = serror.New(err)
@@ -597,7 +588,7 @@ func GetFrontendTransactionAmounts(c external.Database, txUids []string) (txs []
 }
 
 // GetTransactionUIDMapping returns for each transaction a mapping between transaction UID and transaction hash
-func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Transaction, err error) {
+func GetTransactionUIDMapping(ctx context.Context, c external.Database, txUids []string) (txs []Transaction, err error) {
 	if len(txUids) == 0 {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -611,9 +602,6 @@ func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Trans
 				}
 			  }`
 
-	// without retry, as this request can easily time out
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
 		err = serror.New(err)
@@ -637,7 +625,7 @@ func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Trans
 
 // GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
-func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
+func GetTransactionBlockID(ctx context.Context, c external.Database, txHash string) (blockID uint64, err error) {
 	if txHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -651,8 +639,6 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 			  	}
 			   }`
 
-	ctx, cancel := GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = serror.New(err)
@@ -707,20 +693,18 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 }
 
 // GetTransactionUID returns the uid of the given transaction
-func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
+func GetTransactionUID(ctx context.Context, c external.Database, txHash string) (uid string, err error) {
 	if txHash == "" {
 		return "", serror.New(ErrEmptyRequestArgument)
 	}
 
 	const query = `query Q($tx:string) {
-				q(func: eq(txhash, $tx)){
-					uid
-				}
-			  }`
+					q(func: eq(txhash, $tx)){uid}
+				   }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Second*20, query, map[string]string{"$tx": txHash})
+	resp, err := QueryVarWithRetry(ctx, c, query, map[string]string{"$tx": txHash})
 	if err != nil {
-		return
+		return "", err
 	}
 
 	var r struct {

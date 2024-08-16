@@ -46,7 +46,7 @@ export default function () {
 					const isBefore = futurePos < range[0];
 
 					if (pos < range[0] || pos > range[1]) { // Already out of bounds
-						if (isBefore === v < 0) {
+						if (isBefore === (v < 0)) {
 							node[vAttr] = 0; // Moving outwards, stop its motion
 						}
 
@@ -59,8 +59,8 @@ export default function () {
 				if (cushionWidth > 0 && cushionStrength > 0) {
 					// Repel from boundaries
 					node[vAttr] += (
-						Math.max(0, 1 - Math.max(0, pos - range[0]) / cushionWidth)
-            - Math.max(0, 1 - Math.max(0, range[1] - pos) / cushionWidth)
+						Math.max(0, 1 - (Math.max(0, pos - range[0]) / cushionWidth))
+						- Math.max(0, 1 - (Math.max(0, range[1] - pos) / cushionWidth))
 					) * cushionStrength * alpha;
 				}
 			});

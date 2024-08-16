@@ -241,7 +241,7 @@ const table = ref({
 });
 
 // Computed
-const offset = computed(() => table.value.page * itemsPerPage - itemsPerPage);
+const offset = computed(() => (table.value.page * itemsPerPage) - itemsPerPage);
 const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
 
 // Hooks

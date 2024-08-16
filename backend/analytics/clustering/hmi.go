@@ -2,13 +2,12 @@ package clustering
 
 import (
 	"backend/blockiterator"
+	"backend/db"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 )
@@ -31,27 +30,35 @@ func NewHierarchicalMultiInput(ctx context.Context, dgraph external.Database) *H
 	return &HierarchicalMultiInput{
 		db:  dgraph,
 		ctx: ctx,
-		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_hmi_blocks_processed_total",
-			Help: "The total number of blocks processed by the HMI clustering process",
-		}),
-		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_hmi_transactions_processed_total",
-			Help: "The total number of transactions processed by the HMI clustering process",
-		}),
-		mergedClusters: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_hmi_clusters_merged_total",
-			Help: "The total number of clusters merged by the HMI clustering process",
-		}),
-		newAddresses: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_hmi_new_addresses_total",
-			Help: "The total number of new addresses added to clusters by the HMI clustering process",
-		}),
-		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_clustering_hmi_last_block",
-			Help: "The last processed block by the HMI clustering process",
-		}),
 	}
+}
+
+func (m *HierarchicalMultiInput) RegisterMetrics(req prometheus.Registerer) {
+	m.blocks = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_hmi_blocks_processed_total",
+		Help: "The total number of blocks processed by the HMI clustering process",
+	})
+	req.MustRegister(m.blocks)
+	m.transactions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_hmi_transactions_processed_total",
+		Help: "The total number of transactions processed by the HMI clustering process",
+	})
+	req.MustRegister(m.transactions)
+	m.mergedClusters = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_hmi_clusters_merged_total",
+		Help: "The total number of clusters merged by the HMI clustering process",
+	})
+	req.MustRegister(m.mergedClusters)
+	m.newAddresses = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_clustering_hmi_new_addresses_total",
+		Help: "The total number of new addresses added to clusters by the HMI clustering process",
+	})
+	req.MustRegister(m.newAddresses)
+	m.blockHeight = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "dakar_clustering_hmi_last_block",
+		Help: "The last processed block by the HMI clustering process",
+	})
+	req.MustRegister(m.blockHeight)
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
@@ -161,8 +168,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 					} else {
 						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.UID)
 						if dbErr != nil {
-							return false, fmt.Errorf("block %d cluster uid %s: %w",
-								m.state.ID, transactionCluster.UID, dbErr)
+							return false, serror.AddContext(dbErr, "block", m.state.ID, "cluster uid", transactionCluster.UID)
 						}
 
 						clusterMap[root.UID] = clustering.Cluster{
@@ -214,7 +220,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 			// add addresses
 			addressCount += len(addressesWithoutCluster)
 			for address := range addressesWithoutCluster {
-				cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{UID: address})
+				cluster.Addresses = append(cluster.Addresses, db.UIDNode{UID: address})
 			}
 
 			// set the new cluster root for all addresses in the transaction
@@ -224,7 +230,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 			// add child clusters
 			for c := range existingClusters {
-				cluster.Children = append(cluster.Children, clustering.SubCluster{UID: c})
+				cluster.Children = append(cluster.Children, db.UIDNode{UID: c})
 				// accumulate address counts from existing clusters
 				if existingCluster, ok := clusterMap[c]; ok {
 					addressCount += *existingCluster.AddressCount
@@ -250,7 +256,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 		// insert new clusters
 		if len(newClusters) > 0 {
 			if validationErr := validateClusters(newClusters); validationErr != nil {
-				return false, fmt.Errorf("block id %d: %w", m.state.ID, validationErr)
+				return false, serror.AddContext(validationErr, "block id", m.state.ID)
 			}
 
 			clusterErr := clustering.AddClusters(m.db, newClusters, true)

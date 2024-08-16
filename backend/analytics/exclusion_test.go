@@ -6,6 +6,7 @@ import (
 	"backend/db/user"
 	"backend/external"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -68,7 +69,7 @@ func TestImportAddressExclusions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := ImportAddressExclusions(tt.args.dgraph, tt.args.exclusions, tt.args.userID)
+		err := ImportAddressExclusions(context.Background(), tt.args.dgraph, tt.args.exclusions, tt.args.userID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -91,14 +92,14 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 				exclusions: nil,
 				userID:     "some_uid",
 			},
-			want: exclusion.User{UID: "some_uid", Exclusions: []exclusion.AddressExclusions{}},
+			want: exclusion.User{UID: "some_uid", Exclusions: []db.UIDNode{}},
 		},
 		{
 			args: args{
 				exclusions: []string{"some_other_uid1", "some_other_uid2"},
 				userID:     "some_uid",
 			},
-			want: exclusion.User{UID: "some_uid", Exclusions: []exclusion.AddressExclusions{
+			want: exclusion.User{UID: "some_uid", Exclusions: []db.UIDNode{
 				{UID: "some_other_uid1"},
 				{UID: "some_other_uid2"},
 			}},
@@ -149,7 +150,7 @@ func Test_validateExclusionAddresses(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		got, err := validateExclusionAddresses(tt.args.dgraph, tt.args.exclusions)
+		got, err := validateExclusionAddresses(context.Background(), tt.args.dgraph, tt.args.exclusions)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

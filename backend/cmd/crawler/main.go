@@ -13,10 +13,11 @@ import (
 	"backend/processor"
 	"backend/server"
 	"backend/userserver"
-	"backend/worker"
+	"backend/workspace"
 	"context"
 	"flag"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/config"
 	"github.com/qrest/gomisc/serror"
 	"io"
@@ -56,7 +57,7 @@ func initAllLoggers(fileHandle *os.File) {
 	processor.InitLogger()
 	server.InitLogger()
 	userserver.InitLogger()
-	worker.InitLogger()
+	workspace.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -341,20 +342,21 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 
-			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
-				appContext, graphDB, client, newConfig.Modules.Crawler.InitialCacheSize,
-				processorConfig)); processorErr != nil {
+			crawler := processor.NewCrawler(appContext, graphDB, client,
+				newConfig.Modules.Crawler.InitialCacheSize, processorConfig)
+			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
+			if processorErr := blockiterator.StartIteration(crawler); processorErr != nil {
 				warn(processorErr)
 			}
 		}()
 	}
 
+	workspaceMutex := workspace.NewMutex()
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
-	w, err := worker.NewWorker(graphWrapper)
-	if err != nil {
-		warn(err)
-		return
-	}
+	graphWrapper.RegisterMetrics(prometheus.DefaultRegisterer)
+	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper)
+	w.RegisterMetrics(prometheus.DefaultRegisterer)
+
 	var classifierStarted bool
 
 	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics {
@@ -380,19 +382,21 @@ func main() {
 					defer func() {
 						chClassifyingStopped <- true
 					}()
+					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
+					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 
-					if classifierErr := blockiterator.StartIteration(analytics.NewClassifier(
-						appContext, graphDB, analyserConfig)); classifierErr != nil {
+					if classifierErr := blockiterator.StartIteration(classifier); classifierErr != nil {
 						warn(classifierErr)
 					}
 				}()
 			}
 		}()
 
-		if ok := w.Start(appContext, graphDB); !ok {
-			info("could not start worker")
-			return
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w.Start(appContext)
+		}()
 	}
 
 	// activate classifier
@@ -404,9 +408,9 @@ func main() {
 			defer func() {
 				chClassifyingStopped <- true
 			}()
-
-			if classifierErr := blockiterator.StartIteration(analytics.NewClassifier(
-				appContext, graphDB, analyserConfig)); classifierErr != nil {
+			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
+			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
+			if classifierErr := blockiterator.StartIteration(classifier); classifierErr != nil {
 				warn(classifierErr)
 			}
 		}()
@@ -421,8 +425,9 @@ func main() {
 				chHMIClusteringStopped <- true
 			}()
 
-			if clusteringErr := blockiterator.StartIteration(clustering.NewHierarchicalMultiInput(
-				appContext, graphDB)); clusteringErr != nil {
+			hmi := clustering.NewHierarchicalMultiInput(appContext, graphDB)
+			hmi.RegisterMetrics(prometheus.DefaultRegisterer)
+			if clusteringErr := blockiterator.StartIteration(hmi); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -436,9 +441,9 @@ func main() {
 			defer func() {
 				chFMIClusteringStopped <- true
 			}()
-
-			if clusteringErr := blockiterator.StartIteration(clustering.NewFlatMultiInput(
-				appContext, graphDB, newConfig.Modules.FMI.MaxBlocks)); clusteringErr != nil {
+			fmi := clustering.NewFlatMultiInput(appContext, graphDB, newConfig.Modules.FMI.MaxBlocks)
+			fmi.RegisterMetrics(prometheus.DefaultRegisterer)
+			if clusteringErr := blockiterator.StartIteration(fmi); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -447,7 +452,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if newConfig.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, client, w, graphWrapper)
+		apiServer, serverErr := server.NewServer(workspaceMutex, graphDB, client, w, graphWrapper)
 		if serverErr != nil {
 			warn(serverErr)
 		}

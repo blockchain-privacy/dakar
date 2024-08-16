@@ -178,13 +178,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		return err
 	}
 
-	// map to slice
-	addrSlice := make([]db.Address, 0, len(addrMap))
-	for _, a := range addrMap {
-		addrSlice = append(addrSlice, a)
-	}
-
-	return db.UpsertAddresses(dgraph, addrSlice)
+	return db.UpsertAddresses(dgraph, cliutil.GetMapValues(addrMap))
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
@@ -222,11 +216,6 @@ func getOutputAddress(pubKey *jsonrpc.ScriptPubKeyResult, pubKeyHashAddrID byte)
 
 	if pubKey.Address != "" {
 		return pubKey.Address, nil
-	}
-
-	if len(pubKey.Addresses) > 0 {
-		// use first address, ignore others
-		return pubKey.Addresses[0], nil
 	}
 
 	// try to extract addresses
@@ -596,7 +585,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 
 	txHashMap, err := createTransactionHashmap(rpcClient, block.Tx)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", state.String(), err)
+		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 
@@ -609,7 +598,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
-			err = fmt.Errorf("%s: %w", state.String(), err)
+			err = serror.AddContext(err, "state", state.String())
 			return
 		}
 
@@ -640,7 +629,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
-			err = fmt.Errorf("%s: %w", state.String(), err)
+			err = serror.AddContext(err, "state", state.String())
 			return
 		}
 
@@ -686,13 +675,13 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 	}
 
 	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
-		err = fmt.Errorf("%s: %w", state.String(), err)
+		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 
 	// save processing state
 	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
-		err = fmt.Errorf("%s: %w", state.String(), err)
+		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 

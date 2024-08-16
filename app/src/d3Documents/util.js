@@ -29,7 +29,7 @@ export function abbreviateNumber(number) {
 
 // Returns the ratio of a shortened line
 export function getRatio(d, nodeRadius) {
-	const c = Math.sqrt((d.target.x - d.source.x) ** 2 + (d.target.y - d.source.y) ** 2);
+	const c = Math.sqrt(((d.target.x - d.source.x) ** 2) + ((d.target.y - d.source.y) ** 2));
 	// 10 is the marker width
 	const c2 = c - nodeRadius - 10;
 	return c2 / c;
@@ -37,7 +37,7 @@ export function getRatio(d, nodeRadius) {
 
 // Returns the ratio of a shortened line
 export function getRatioR(d, nodeRadius) {
-	const c = Math.sqrt((d.source.x - d.target.x) ** 2 + (d.source.y - d.target.y) ** 2);
+	const c = Math.sqrt(((d.source.x - d.target.x) ** 2) + ((d.source.y - d.target.y) ** 2));
 	// 10 is the marker width
 	const c2 = c - nodeRadius - 10;
 	return c2 / c;

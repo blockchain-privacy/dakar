@@ -193,7 +193,7 @@ func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint
 }
 
 // AddCustomClusters adds the given clusters to the database
-func AddCustomClusters(c external.Database, clusters []CustomCluster) error {
+func AddCustomClusters(ctx context.Context, c external.Database, clusters []CustomCluster) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
@@ -210,12 +210,17 @@ func AddCustomClusters(c external.Database, clusters []CustomCluster) error {
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*5, &api.Request{
+	_, err = c.Mutate(ctx, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
 		CommitNow: true,
 	})
+	if err != nil {
+		return serror.New(err)
+	}
+
+	return nil
 }
 
 // AddClusters adds the given clusters to the database
@@ -448,17 +453,16 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 }
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
-func GetClusters(c external.Database, addressHash string, maxAddresses int,
-	userID string) (clusters []FrontendCluster, err error) {
+func GetClusters(ctx context.Context, c external.Database, addressHash string,
+	maxAddresses int, userID string) ([]FrontendCluster, error) {
 	query := `query Q($addressHash:string,$user:string) {
 				var(func:eq(addresshash,$addressHash)){
 					c as ~Cluster.addresses@filter(not eq(Cluster.type,` + string(TypeHMI) + `))
 				}` + getClusterQuery(maxAddresses) + "}"
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash,
-		"$user": userID})
+	resp, err := c.Query(ctx, query, map[string]string{"$addressHash": addressHash, "$user": userID})
 	if err != nil {
-		return
+		return nil, serror.New(err)
 	}
 
 	var r struct {
@@ -466,8 +470,7 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 		ClusterTags []ClusterTags            `json:"tags,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.New(err)
-		return
+		return nil, serror.New(err)
 	}
 
 	return responseToFrontendClusters(r.Clusters, r.ClusterTags)
@@ -475,7 +478,8 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 
 // GetHMIClusters returns all connected hierarchical multi-input cluster to the
 // given address and the uid of the cluster directly connected to the address
-func GetHMIClusters(c external.Database, addressHash string) (addressCluster string, clusters []FrontendHMICluster, err error) {
+func GetHMIClusters(ctx context.Context, c external.Database,
+	addressHash string) (addressCluster string, clusters []FrontendHMICluster, err error) {
 	const query = string(`query Q($addressHash:string) {
 							var(func: eq(addresshash,$addressHash)){
 								hmi as ~Cluster.addresses@filter(eq(Cluster.type,` + TypeHMI + `))
@@ -505,8 +509,9 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 							}
 						  }`)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
+		err = serror.New(err)
 		return
 	}
 
@@ -517,12 +522,10 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 			Transaction  struct {
 				TxHash string `json:"txhash,omitempty"`
 			} `json:"Cluster.transaction,omitempty"`
-			Children []SubCluster `json:"Cluster.children,omitempty"`
-			Parent   []SubCluster `json:"~Cluster.children,omitempty"`
+			Children []db.UIDNode `json:"Cluster.children,omitempty"`
+			Parent   []db.UIDNode `json:"~Cluster.children,omitempty"`
 		} `json:"q,omitempty"`
-		AddressCluster []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"x,omitempty"`
+		AddressCluster []db.UIDNode `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)
@@ -653,9 +656,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 	}
 
 	var r struct {
-		Clusters []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)
@@ -688,7 +689,7 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) error 
 		return err
 	}
 
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 
@@ -696,7 +697,7 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) error 
 }
 
 // DeleteAllClusters deletes all clusters of a given user
-func DeleteAllClusters(c external.Database, userID string) error {
+func DeleteAllClusters(ctx context.Context, c external.Database, userID string) error {
 	req := &api.Request{
 		Query: `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
@@ -709,8 +710,8 @@ func DeleteAllClusters(c external.Database, userID string) error {
 		}},
 		CommitNow: true,
 	}
-	_, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	return err
+
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 // GetRelatedClusters returns the UIDs of clusters which can be reached from the given cluster
@@ -747,9 +748,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 	}
 
 	var r struct {
-		Clusters []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)

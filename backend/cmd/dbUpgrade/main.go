@@ -5,11 +5,12 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/heuristics"
 	"backend/db/status"
 	"backend/external"
 	"backend/processor"
 	"backend/server"
-	"backend/worker"
+	"backend/workspace"
 	"flag"
 	"fmt"
 	"github.com/qrest/gomisc/config"
@@ -38,7 +39,7 @@ func initLogger(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	worker.InitLogger()
+	workspace.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -189,6 +190,86 @@ func main() {
 
 	info("increasing schema version ...")
 	err = status.SetSchemaVersion(dgraph, 5)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
+
+	info("removing workspace heuristics ...")
+	err = db.DropPredicateWorkspaceHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("removing workspace heuristics finished")
+
+	info("adding selectors starting ...")
+	err = db.AlterSchemaAddSelectors(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("adding selectors finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 6)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
+
+	info("dropping user heuristics ...")
+	err = db.DropPredicateUserHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("dropping user heuristics finished")
+
+	info("removing user heuristics from type starting ...")
+	err = db.AlterSchemaRemoveUserHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("removing user heuristics from type finished")
+
+	info("deleting all heuristics starting ...")
+	err = heuristics.DeleteAllHeuristics(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("deleting all heuristics finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 7)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
+
+	info("deleting Heuristic type starting ...")
+	err = db.DropTypeHeuristic(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("deleting Heuristic type finished")
+
+	info("deleting HeuristicResult type starting ...")
+	err = db.DropTypeHeuristicResult(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("deleting HeuristicResult type finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 8)
 	if err != nil {
 		warn(err)
 		return

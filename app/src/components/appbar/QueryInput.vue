@@ -61,9 +61,9 @@ function newRouting() {
 	}
 
 	if (isPushFromUserInput || !id
-      || !(route.name === ROUTE_NAME_BLOCK_PAGE
-          || route.name === ROUTE_NAME_ADDRESS_PAGE
-          || route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
+		|| !(route.name === ROUTE_NAME_BLOCK_PAGE
+		|| route.name === ROUTE_NAME_ADDRESS_PAGE
+		|| route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
 		return;
 	}
 

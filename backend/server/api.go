@@ -20,7 +20,7 @@ import (
 //	@Router			/blockchain/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSearchReply(s.db, r.PathValue("query"))
+		reply, status := getSearchReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -39,7 +39,7 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Router		/blockchain/addresses/{hash} [get]
 func (s *Server) handlerAddress() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressReply(s.db, r.PathValue("hash"))
+		reply, status := getAddressReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -59,7 +59,7 @@ func (s *Server) handlerAddress() http.Handler {
 //	@Router		/blockchain/blocks/{hash} [get]
 func (s *Server) handlerBlock() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getBlockReply(r, s.db, r.PathValue("hash"))
+		reply, status := getBlockReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -78,7 +78,7 @@ func (s *Server) handlerBlock() http.Handler {
 //	@Router		/blockchain/transactions/{hash} [get]
 func (s *Server) handlerTransaction() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getTransactionReply(s.db, r.PathValue("hash"))
+		reply, status := getTransactionReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -98,7 +98,7 @@ func (s *Server) handlerTransaction() http.Handler {
 //	@Router		/blockchain/outputs/{hash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressOutputRangeReply(r, s.db, r.PathValue("hash"))
+		reply, status := getAddressOutputRangeReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -113,27 +113,27 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Failure	500	{object}	server.metaReply
 //	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		reply, status := getMetaReply(s.db, s.client)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getMetaReply(s.db, s.client, r)
 
 		SendReply(w, reply, status)
 	})
 }
 
-// Heuristic Report godoc
+// Selector Report godoc
 //
-//	@Summary	Get a CSV file containing results of the specified heuristic
-//	@Tags		heuristic
+//	@Summary	Get a CSV file containing results of the specified selector
+//	@Tags		workspace
 //	@Produce	text/csv
-//	@Param		work	body		server.writeHeuristicReport.request	true	"work item"
-//	@Success	200		{file}		file								"comma separated values"
-//	@Failure	400		{string}	string								"bad request"
-//	@Failure	404		{string}	string								"resource not found"
-//	@Failure	500		{string}	string								"encoding error"
-//	@Router		/heuristics/report/ [post]
-func (s *Server) handlerHeuristicsReport() http.Handler {
+//	@Param		selector	body		server.writeSelectorReport.request	true	"selector request"
+//	@Success	200			{file}		file								"comma separated values"
+//	@Failure	400			{string}	string								"bad request"
+//	@Failure	404			{string}	string								"resource not found"
+//	@Failure	500			{string}	string								"encoding error"
+//	@Router		/workspaces/selector/report/ [post]
+func (s *Server) handlerSelectorReport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeHeuristicReport(w, r, s.db)
+		writeSelectorReport(s.db, w, r)
 	})
 }
 
@@ -149,7 +149,7 @@ func (s *Server) handlerHeuristicsReport() http.Handler {
 //	@Router		/clusters/report/{hash} [get]
 func (s *Server) handlerClusterReport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeClusterReport(w, r, s.db)
+		writeClusterReport(s.db, w, r)
 	})
 }
 
@@ -202,7 +202,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 //	@Router		/clusters/ [delete]
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAllClustersReply(r, s.db)
+		reply, status := getDeleteAllClustersReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -236,7 +236,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Router		/attributions/ [get]
 func (s *Server) handlerAttributionList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAttributionOverviewReply(r, s.db)
+		reply, status := getAttributionOverviewReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -257,7 +257,7 @@ func (s *Server) handlerAttributionList() http.Handler {
 //	@Router		/attributions/ [post]
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddAttributionReply(r, s.db, false)
+		reply, status := getAddAttributionReply(s.db, r, false)
 
 		SendReply(w, reply, status)
 	})
@@ -278,7 +278,7 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Router		/attributions/public/ [post]
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddAttributionReply(r, s.db, true)
+		reply, status := getAddAttributionReply(s.db, r, true)
 
 		SendReply(w, reply, status)
 	})
@@ -333,7 +333,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 //	@Router		/attributions/ [delete]
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAllAttributionsReply(r, s.db)
+		reply, status := getDeleteAllAttributionsReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -352,7 +352,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Router		/attributions/search/{query} [get]
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAttributionSearchReply(r, s.db, r.PathValue("query"))
+		reply, status := getAttributionSearchReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -390,7 +390,7 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //	@Router		/exclusions/{hash} [delete]
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		status := getDeleteAddressExclusionReply(r, s.db)
+		status := getDeleteAddressExclusionReply(s.db, r)
 
 		SendReply(w, "", status)
 	})
@@ -407,7 +407,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 //	@Router		/exclusions/ [delete]
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		status := getDeleteAllAddressExclusionsReply(r, s.db)
+		status := getDeleteAllAddressExclusionsReply(s.db, r)
 
 		SendReply(w, "", status)
 	})
@@ -424,27 +424,27 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 //	@Router		/exclusions/ [get]
 func (s *Server) handlerAddressExclusionList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressExclusionOverviewReply(r, s.db)
+		reply, status := getAddressExclusionOverviewReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
 }
 
-// Heuristic by Work ID godoc
+// Selector Status godoc
 //
-//	@Summary		Get a specific heuristic by work ID
-//	@Description	Get a specific heuristic by work ID
-//	@Tags			heuristic
+//	@Summary		Checks if the given selector is finished executing
+//	@Description	Checks if the given selector is finished executing. Returns the updated workspace in that case.
+//	@Tags			workspace
 //	@Produce		json
-//	@Param			work	body		server.getHeuristicByWorkIDReply.request	true	"work item"
-//	@Success		200		{object}	server.heuristicByWorkIDReply
-//	@Failure		400		{object}	server.heuristicByWorkIDReply
-//	@Failure		401		{object}	server.heuristicByWorkIDReply
-//	@Failure		500		{object}	server.heuristicByWorkIDReply
-//	@Router			/heuristicByWorkID/ [post]
-func (s *Server) handlerHeuristicByWorkID() http.Handler {
+//	@Param			selector	body		server.getSelectorStatus.request	true	"selector identifier"
+//	@Success		200			{object}	server.selectorStatusReply
+//	@Failure		400			{object}	server.selectorStatusReply
+//	@Failure		401			{object}	server.selectorStatusReply
+//	@Failure		500			{object}	server.selectorStatusReply
+//	@Router			/workspaces/selector/status/ [post]
+func (s *Server) handlerSelectorByUID() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicByWorkIDReply(r, s.db, s.worker)
+		reply, status := getSelectorStatus(s.workspaceMutex, s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -462,48 +462,52 @@ func (s *Server) handlerHeuristicByWorkID() http.Handler {
 //	@Router		/clusters/hmi/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHMILookupReply(s.db, r.PathValue("hash"))
+		reply, status := getHMILookupReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
 }
 
-// Heuristic Details godoc
+// Selector Results godoc
 //
-//	@Summary	Get the details of a heuristic
-//	@Tags		heuristic
-//	@Produce	json
-//	@Accept		json
-//	@Param		heuristic	body		server.getHeuristicDetailsReply.request	true	"Heuristic UID"
-//	@Success	200			{object}	server.heuristicDetailsReply
-//	@Failure	400			{object}	server.heuristicDetailsReply
-//	@Failure	401			{object}	server.heuristicDetailsReply
-//	@Failure	500			{object}	server.heuristicDetailsReply
-//	@Router		/heuristicDetails/ [post]
-func (s *Server) handlerHeuristicsDetails() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicDetailsReply(r, s.db)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Execute Heuristics godoc
-//
-//	@Summary		Queues the execution of heuristics for the given transaction
-//	@Description	This call queues the given heuristics for the given transaction. Does not wait until the heuristic execution is finished.
-//	@Tags			heuristic
+//	@Summary		Get the results of a selector.
+//	@Description	Get the rsults of a selector.
+//	@Description	Depending on the selector type the one of the result properties is filled.
+//	@Tags			workspace
 //	@Produce		json
 //	@Accept			json
-//	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
-//	@Success		200			{object}	server.heuristicExecutionReply
-//	@Failure		400			{object}	server.heuristicExecutionReply
-//	@Failure		401			{object}	server.heuristicExecutionReply
-//	@Failure		500			{object}	server.heuristicExecutionReply
-//	@Router			/executeHeuristics/ [post]
-func (s *Server) handlerHeuristicsExecution() http.Handler {
+//	@Param			selector	body		server.getSelectorResultsReply.request	true	"Selector request"
+//	@Success		200			{object}	server.selectorResultsReply
+//	@Failure		400			{object}	server.selectorResultsReply
+//	@Failure		401			{object}	server.selectorResultsReply
+//	@Failure		500			{object}	server.selectorResultsReply
+//	@Router			/workspaces/selector/results/ [post]
+func (s *Server) handlerSelectorDetails() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicExecutionReply(r, s.db, s.worker, s.workspaceMutex)
+		reply, status := getSelectorResultsReply(s.db, r)
+
+		SendReply(w, reply, status)
+	})
+}
+
+// Add Selector godoc
+//
+//	@Summary		Adds a new selector to a workspace
+//	@Description	Adds a new selector to a workspace. The selector will be executed eventually
+//	@Description	and the results stored in the database. Only one options parameter may be set.
+//	@Description	Returns the updated workspace.
+//	@Tags			workspace
+//	@Produce		json
+//	@Accept			json
+//	@Param			selector	body		server.getAddWorkspaceSelectorReply.request	true	"Selector properties"
+//	@Success		200			{object}	server.addWorkspaceSelectorReply
+//	@Failure		400			{object}	server.addWorkspaceSelectorReply
+//	@Failure		401			{object}	server.addWorkspaceSelectorReply
+//	@Failure		500			{object}	server.addWorkspaceSelectorReply
+//	@Router			/workspaces/selector/ [post]
+func (s *Server) handlerAddWorkspaceSelector() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getAddWorkspaceSelectorReply(s.db, r, s.workspaceMutex)
 
 		SendReply(w, reply, status)
 	})
@@ -522,7 +526,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 //	@Router		/shortestTransactionPath/ [post]
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getShortestTransactionPathReply(s.db, r.Body)
+		reply, status := getShortestTransactionPathReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -543,7 +547,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Router		/connectionLookup/{hash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r.PathValue("hash"), r.URL)
+		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r)
 
 		SendReply(w, reply, status)
 	})
@@ -562,7 +566,7 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 //	@Router		/clusters/{hash} [get]
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getClusterLookupReply(r, s.db)
+		reply, status := getClusterLookupReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -581,7 +585,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 //	@Router		/mixingActivity/ [post]
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getMixingActivity(s.db, r.Body)
+		reply, status := getMixingActivity(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -600,7 +604,7 @@ func (s *Server) handlerMixingActivity() http.Handler {
 //	@Router		/exclusions/{hash} [get]
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressExclusionStatusReply(r, s.db, r.PathValue("hash"))
+		reply, status := getAddressExclusionStatusReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -618,7 +622,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSpendingFingerprintReply(s.db, s.graphWrapper, r.PathValue("hash"))
+		reply, status := getSpendingFingerprintReply(s.db, s.graphWrapper, r)
 
 		SendReply(w, reply, status)
 	})
@@ -637,7 +641,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 //	@Router		/workspaces/nodes/ [post]
 func (s *Server) handlerAddWorkspaceNodes() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, s.worker, r)
+		reply, status := getAddWorkspaceNodesReply(s.db, s.workspaceMutex, r)
 
 		SendReply(w, reply, status)
 	})
@@ -728,7 +732,7 @@ func (s *Server) handlerRenameWorkspace() http.Handler {
 //	@Router		/workspaces/{uid} [get]
 func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, s.worker, r)
+		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, r)
 
 		SendReply(w, reply, status)
 	})
@@ -803,7 +807,7 @@ func (s *Server) handlerWorkspaceConnection() http.Handler {
 //	@Router		/workspaces/{uid} [delete]
 func (s *Server) handlerDeleteWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteWorkspaceReply(r, s.db)
+		reply, status := getDeleteWorkspaceReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -822,7 +826,7 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 //	@Router		/workspaces/ [delete]
 func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAllWorkspacesReply(r, s.db)
+		reply, status := getDeleteAllWorkspacesReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -832,108 +836,106 @@ func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 func (s *Server) setupHandlers() {
 	// Search
 	s.handler.Handle(BuildPattern(http.MethodGet, routeSearch, "query"),
-		mw.Adapt(s.handlerSearch(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerSearch(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
 
 	// Common data
 	s.handler.Handle(BuildPattern(http.MethodGet, routeTransaction, "hash"),
 		// transaction data never changes so set cache time to infinte
-		mw.Adapt(s.handlerTransaction(), s.cacheFactory(time.Duration(0)), mw.MaxBody5MiB()))
+		s.adapt(s.handlerTransaction(), mw.MaxBody5MiB(), s.cacheFactory(time.Duration(0))))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeBlock, "hash"),
-		mw.Adapt(s.handlerBlock(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerBlock(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeAddress, "hash"),
-		mw.Adapt(s.handlerAddress(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddress(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAddressOutputRange, "hash"),
-		mw.Adapt(s.handlerAddressOutputRange(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddressOutputRange(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 
 	// Meta
 	s.handler.Handle(BuildPattern(http.MethodGet, routeMeta, ""),
-		mw.Adapt(s.handlerMeta(), s.authorization(), s.cacheFactory(time.Second*10), mw.MaxBody5MiB()))
-
-	// heuristic
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicByWorkID, ""),
-		mw.Adapt(s.handlerHeuristicByWorkID(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicDetails, ""),
-		mw.Adapt(s.handlerHeuristicsDetails(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicsExecution, ""),
-		mw.Adapt(s.handlerHeuristicsExecution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodPost, routeHeuristicReport, ""),
-		mw.Adapt(s.handlerHeuristicsReport(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerMeta(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Second*10)))
 
 	// Analytics
 	s.handler.Handle(BuildPattern(http.MethodPost, routeShortestTxPath, ""),
-		mw.Adapt(s.handlerShortestTransactionPath(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerShortestTransactionPath(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeConnectionLookup, "hash"),
-		mw.Adapt(s.handlerConnectionLookup(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerConnectionLookup(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeMixingActivity, ""),
-		mw.Adapt(s.handlerMixingActivity(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerMixingActivity(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),
-		mw.Adapt(s.handlerSpendingFingerprint(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerSpendingFingerprint(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 
 	// Clusters
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, "hash"),
-		mw.Adapt(s.handlerClusterLookup(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerClusterLookup(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClustersHmi, "hash"),
-		mw.Adapt(s.handlerHMILookup(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerHMILookup(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClustersReport, "hash"),
-		mw.Adapt(s.handlerClusterReport(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerClusterReport(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeClusters, ""),
-		mw.Adapt(s.handlerAddCluster(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddCluster(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeClusters, "uid"),
-		mw.Adapt(s.handlerDeleteCluster(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteCluster(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeClusters, ""),
-		mw.Adapt(s.handlerDeleteAllClusters(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteAllClusters(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, ""),
-		mw.Adapt(s.handlerClusterOverview(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerClusterOverview(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Attributions
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributions, ""),
-		mw.Adapt(s.handlerAddPrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddPrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributionsPublic, ""),
-		mw.Adapt(s.handlerAddPublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddPublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributions, ""),
-		mw.Adapt(s.handlerAttributionList(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAttributionList(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, "uid"),
-		mw.Adapt(s.handlerDeletePrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeletePrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributionsPublic, "uid"),
-		mw.Adapt(s.handlerDeletePublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeletePublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, ""),
-		mw.Adapt(s.handlerDeleteAllPrivateAttributions(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteAllPrivateAttributions(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributionsSearch, "query"),
-		mw.Adapt(s.handlerSearchAttributions(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerSearchAttributions(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Address Exclusions
 	s.handler.Handle(BuildPattern(http.MethodPost, routeExclusions, ""),
-		mw.Adapt(s.handlerAddAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeExclusions, "hash"),
-		mw.Adapt(s.handlerDeleteAddressExclusion(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteAddressExclusion(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeExclusions, ""),
-		mw.Adapt(s.handlerDeleteAllAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteAllAddressExclusions(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeExclusions, ""),
-		mw.Adapt(s.handlerAddressExclusionList(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerAddressExclusionList(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeExclusions, "hash"),
-		mw.Adapt(s.handlerGetAddressExclusionStatus(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerGetAddressExclusionStatus(), s.authorization(), mw.MaxBody5MiB()))
 
 	// Workspace
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceRename, ""),
-		mw.Adapt(s.handlerRenameWorkspace(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerRenameWorkspace(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesNodes, ""),
-		mw.Adapt(s.handlerAddWorkspaceNodes(), s.authorization(), mw.MaxBody(50)))
+		s.adapt(s.handlerAddWorkspaceNodes(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceNote, ""),
-		mw.Adapt(s.handlerAddWorkspaceNote(), s.authorization(), mw.MaxBody(50)))
+		s.adapt(s.handlerAddWorkspaceNote(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceSelector, ""),
+		s.adapt(s.handlerAddWorkspaceSelector(), s.authorization(), mw.MaxBody(50)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorStatus, ""),
+		s.adapt(s.handlerSelectorByUID(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspacesNode, ""),
-		mw.Adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), mw.MaxBody(50)))
+		s.adapt(s.handlerDeleteWorkspaceNode(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, ""),
-		mw.Adapt(s.handlerWorkspaces(), s.authorization()))
+		s.adapt(s.handlerWorkspaces(), s.authorization()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaces, "name"),
-		mw.Adapt(s.handlerAddWorkspace(), s.authorization()))
+		s.adapt(s.handlerAddWorkspace(), s.authorization()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, "uid"),
-		mw.Adapt(s.handlerGetWorkspace(), s.authorization()))
+		s.adapt(s.handlerGetWorkspace(), s.authorization()))
 	s.handler.Handle(BuildPattern(http.MethodPut, routeWorkspaces, ""),
-		mw.Adapt(s.handlerUpdateWorkspace(), s.authorization(), mw.MaxBody(50)))
+		s.adapt(s.handlerUpdateWorkspace(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, "uid"),
-		mw.Adapt(s.handlerDeleteWorkspace(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteWorkspace(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, ""),
-		mw.Adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
+		s.adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesConnection, ""),
-		mw.Adapt(s.handlerWorkspaceConnection(), s.authorization(), s.cacheFactory(time.Minute*10), mw.MaxBody5MiB()))
+		s.adapt(s.handlerWorkspaceConnection(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorResults, ""),
+		s.adapt(s.handlerSelectorDetails(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorReport, ""),
+		s.adapt(s.handlerSelectorReport(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
 }

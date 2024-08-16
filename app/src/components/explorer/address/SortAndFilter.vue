@@ -105,8 +105,7 @@ function handleSortAndFilter() {
 	updateSortState();
 	updateFilterState();
 
-	isSortingByInput.value = sort.value.selected === 2
-    || sort.value.selected === 3;
+	isSortingByInput.value = sort.value.selected === 2 || sort.value.selected === 3;
 
 	emit('update:modelValue', {order: sort.value.selected, filter: filter.value.selected});
 	emit('change');
@@ -146,7 +145,7 @@ function updateFilterState() {
 
 	let disableCoinbaseFilter = false;
 	if (props.dataAvailable
-    && (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount)) {
+		&& (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount)) {
 		disableCoinbaseFilter = true;
 	}
 

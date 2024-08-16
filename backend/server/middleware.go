@@ -18,6 +18,11 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
+// adapt calls mw.Adapt() and inserts an http.TimeoutHandler into the adapter chain
+func (s *Server) adapt(h http.Handler, adapters ...mw.Adapter) http.Handler {
+	return mw.Adapt(h, append([]mw.Adapter{s.timeout()}, adapters...)...)
+}
+
 func (s *Server) authorization() mw.Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +36,14 @@ func (s *Server) authorization() mw.Adapter {
 			// call next handler and add to the request context the identity information
 			h.ServeHTTP(w,
 				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{ID: dakarUser})))
+		})
+	}
+}
+
+func (s *Server) timeout() mw.Adapter {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.TimeoutHandler(h, s.handlerTimeout, "request timed out").ServeHTTP(w, r)
 		})
 	}
 }

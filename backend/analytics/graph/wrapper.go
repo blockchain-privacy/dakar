@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var graphLogger *slog.Logger
@@ -55,19 +54,27 @@ func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
 		context:               ctx,
 		transactionGraphMutex: new(sync.RWMutex),
 		db:                    dgraph,
-		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_graph_blocks_processed_total",
-			Help: "The total number of blocks processed by the graph wrapper",
-		}),
-		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_graph_transactions_processed_total",
-			Help: "The total number of transactions processed by the graph wrapper",
-		}),
-		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_graph_last_block",
-			Help: "The last processed block by the graph wrapper",
-		}),
 	}
+}
+
+func (w *Wrapper) RegisterMetrics(req prometheus.Registerer) {
+	w.blocks = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_graph_blocks_processed_total",
+		Help: "The total number of blocks processed by the graph wrapper",
+	})
+	req.MustRegister(w.blocks)
+
+	w.transactions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "dakar_graph_transactions_processed_total",
+		Help: "The total number of transactions processed by the graph wrapper",
+	})
+	req.MustRegister(w.transactions)
+
+	w.blockHeight = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "dakar_graph_last_block",
+		Help: "The last processed block by the graph wrapper",
+	})
+	req.MustRegister(w.blockHeight)
 }
 
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded

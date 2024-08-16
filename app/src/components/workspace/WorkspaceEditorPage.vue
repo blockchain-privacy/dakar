@@ -8,6 +8,7 @@
         v-if="workspaceName"
         :rounded="$vuetify.display.xs?'0':undefined"
         :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
+        style="max-width:700px"
       >
         <adaptive-toolbar
           :name="workspaceName"
@@ -24,6 +25,7 @@
           @add-entity="handleGraphQuery"
           @filter-changed="handleMenuFilterChanged"
           @shortest-path-lookup="handleShortestPathLookup"
+          @add-selector="showCreateSelectorSheetFromButton"
         />
         <v-progress-linear
           v-if="isModifyingWorkspace"
@@ -69,11 +71,12 @@
             </v-card-text>
           </v-card>
         </v-dialog>
-        <heuristic-type-selection-side-bar
-          v-model="isAddHeuristicSheetOpen"
-          :tab-items="heuristicTabItems"
+        <create-selector-side-bar
+          v-model="isCreateSelectorSheetOpen"
           :descriptors="heuristicDescriptors"
-          @add-heuristic="addNewHeuristic"
+          :selector-type="selectorCreationType"
+          :has-parent="isSelectorParentSet"
+          @add-selector="addNewSelector"
         />
         <entity-side-bar
           v-model="isEntitySideBarOpen"
@@ -82,7 +85,8 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-heuristic="openTypeSelectionSheet"
+          @add-selector="openCreateSelectorSheet(false, true)"
+          @add-heuristic="openCreateSelectorSheet(true, true)"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
@@ -176,21 +180,21 @@
 <script setup>
 import {
 	mdiCheckCircle,
-	mdiDelete,
+	mdiDelete, mdiFilterPlus,
 	mdiNoteEdit,
 	mdiNotePlus,
-	mdiShapeCirclePlus,
 } from '@mdi/js';
-import HeuristicTypeSelectionSideBar from './sidebars/HeuristicTypeSelectionSideBar.vue';
+import CreateSelectorSideBar from './sidebars/CreateSelectorSideBar.vue';
 import {
 	APPLICATION_NAME,
-	CLUSTER_TYPE_CUSTOM,
 	ROUTE_NAME_WORKSPACE_PAGE,
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC,
+	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
+	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING,
 } from '@/constants';
 import {
 	getColorMap, handleError, getPrivacyTypeLabel,
@@ -218,30 +222,23 @@ const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
-const newUidPrefix = 'newUid_';
-
 const colorMap = getColorMap();
-colorMap.set(WORKSPACE_NODE_TYPE_HEURISTIC, '#4CAF50');
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
+colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4CAF50');
+colorMap.set(SELECTOR_TYPE_TX_PROP, '#872154');
 
 const nodeTypeLabels = [
-	{text: WORKSPACE_NODE_TYPE_HEURISTIC, color: '#4CAF50'},
+	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#4CAF50'},
 	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#CDDC39'},
 	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
 ];
 
 const nodeGraph = new NodeGraph(colorMap);
-
-let uidCounter = 1;
 let data = null;
-// Node which triggered the heuristic type selection,
-// and to which will be the parent of the new heuristic.
-// It may be a destination transaction or another heuristic
-let newHeuristicParentNodeUID = '';
-// Holds the references of all timers
-const heuristicTimers = [];
+// Holds the references to all selector timers
+const selectorTimers = [];
 
 const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
@@ -249,15 +246,17 @@ const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
 const workspaceUID = ref('');
 const workspaceName = ref('');
-const isAddHeuristicSheetOpen = ref(false);
+// IsSelectorParentSet determines if a newly created selector should have a parent
+const isSelectorParentSet = ref(false);
+const isCreateSelectorSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
+const selectorCreationType = ref('');
 const isShortestPathSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
-const heuristicTabItems = ref([]);
 const connectionData = ref({});
 const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
@@ -275,10 +274,16 @@ const contextMenuModel = ref({
 	items: [
 		{
 			title: 'Add Heuristic',
-			icon: mdiShapeCirclePlus,
-			show: () => nodeGraph.getContextNode()?.type === WORKSPACE_NODE_TYPE_HEURISTIC
-        || nodeGraph.getContextNode().privacyTypeLabel === PRIVACY_TYPE_DESTINATION,
-			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
+			icon: mdiFilterPlus,
+			show: () => isHeuristicNode(nodeGraph.getContextNode()) || isDestiationNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(true, true),
+			disabled: () => nodeGraph.getContextNode()?.loading,
+		},
+		{
+			title: 'Add Selector',
+			icon: mdiFilterPlus,
+			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(false, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -312,7 +317,7 @@ watch(route, () => {
 	newRouting();
 });
 
-watch(isAddHeuristicSheetOpen, newVal => {
+watch(isCreateSelectorSheetOpen, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal) {
 		nodeGraph.resetClick();
@@ -385,7 +390,7 @@ onUnmounted(() => {
 	}
 
 	// Stop all heuristic timers
-	heuristicTimers.forEach(d => clearTimeout(d));
+	selectorTimers.forEach(d => clearTimeout(d));
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
 	workspaceStore.setWorkspaceActive(false);
@@ -442,6 +447,30 @@ async function lockAutosave() {
 	}
 }
 
+function isTxPropNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_TX_PROP;
+}
+
+function isHeuristicNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_HEURISTIC;
+}
+
+function isDestiationNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.privacyTypeLabel === PRIVACY_TYPE_DESTINATION;
+}
+
 function isEditEnabled(contextNode) {
 	return contextNode?.type === WORKSPACE_NODE_TYPE_NOTE;
 }
@@ -449,18 +478,18 @@ function isEditEnabled(contextNode) {
 // Checks if a node can be deleted. If a heuristic or a node
 // in a heuristic sub graph is loading it return false.
 function isDeleteEnabled(contextNode) {
-	if (!contextNode || contextNode.loading) {
+	if (!contextNode || contextNode.selectorStatus === SELECTOR_STATUS_WAITING) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
 		return true;
 	}
 
 	if (contextNode.children) {
 		for (const child of contextNode.children) {
 			const childNode = nodeGraph.getNode(child);
-			if (!childNode || childNode.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+			if (!childNode || childNode.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
 				continue;
 			}
 
@@ -636,67 +665,58 @@ function setErrorMessage(msg) {
 	});
 }
 
-async function addNewHeuristic(heuristic) {
-	await lockAutosave();
+// Sends the new selector to the backend
+async function addNewSelector(type, options) {
+	const currentNode = nodeGraph.getContextNode();
 
-	const newHeuristic = {
-		uid: `${newUidPrefix}${uidCounter}`,
-		type: heuristic.type,
-		clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
-		useAddressExclusionList: heuristic.useAddressExclusionList,
-		excludeSpendingGaps: heuristic.excludeSpendingGaps,
-	};
+	let parent;
+	let heuristicOptions;
+	let selectorOptions;
 
-	if (heuristic.parameter) {
-		newHeuristic.parameter = `${heuristic.parameter.value}`;
-	}
-
-	uidCounter += 1;
-
-	const parentNode = nodeGraph.getNode(newHeuristicParentNodeUID);
-	if (!parentNode) {
-		releaseAutosaveLock();
-		return;
-	}
-
-	const nodes = nodeGraph.getNodes();
-	const txHash = getHeuristicTransaction(nodes, newHeuristicParentNodeUID);
-	if (!txHash) {
-		releaseAutosaveLock();
-		return;
-	}
-
-	newHeuristic.transactionHash = txHash;
-
-	if (parentNode.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
-		// Only set parent if the direct parent is a heuristic
-		newHeuristic.parentUID = newHeuristicParentNodeUID;
-	}
-
-	try {
-		const response = await dakar.heuristic.executeHeuristicsPost({
-			heuristic: {newHeuristic, workspaceUID: workspaceUID.value},
-		});
-
-		if (parentNode.children) {
-			parentNode.children.push(response.workID);
-		} else {
-			parentNode.children = [response.workID];
+	if (type === SELECTOR_TYPE_HEURISTIC) {
+		if (!currentNode || !currentNode.uid) {
+			setErrorMessage('could not determine parent node');
+			return;
 		}
 
-		nodeGraph.addNodes([parentNode, {
-			uid: response.workID,
-			type: WORKSPACE_NODE_TYPE_HEURISTIC,
-			loading: true,
-			heuristicType: newHeuristic.type,
-			heuristicExcludeAddresses: newHeuristic.excludeAddresses,
-			heuristicExcludeSpendingGaps: newHeuristic.excludeSpendingGaps,
-			heuristicClusterTypes: newHeuristic.clusterTypes,
-			heuristicParameter: newHeuristic.parameter,
-		}]);
-		// Immediatly auto save to store coordinates of dummy node
+		parent = currentNode.uid;
+
+		heuristicOptions = options;
+		const nodes = nodeGraph.getNodes();
+		const txHash = getHeuristicTransaction(nodes, currentNode.uid);
+		if (!txHash) {
+			setErrorMessage('could not determine heuristic transaction');
+			return;
+		}
+
+		heuristicOptions.transactionHash = txHash;
+	} else if (type === SELECTOR_TYPE_TX_PROP) {
+		if (currentNode?.uid) {
+			parent = currentNode.uid;
+		}
+
+		selectorOptions = options;
+	} else {
+		setErrorMessage('invalid selector type');
+		return;
+	}
+
+	await lockAutosave();
+
+	try {
+		const response = await dakar.workspace.workspacesSelectorPost({
+			selector: {
+				parent, type, heuristicOptions, selectorOptions, workspaceUID: workspaceUID.value,
+			},
+		});
+
+		response.nodes = setPrivacyLabels(response.nodes);
+		nodeGraph.removeAllNodes(false);
+		nodeGraph.addNodes(response.nodes);
+		startWaitingforSelectors(response.nodes);
+
+		// Immediatly auto save to store coordinates of new node
 		queueAutoSave(0);
-		addWork(response.workID);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -704,25 +724,31 @@ async function addNewHeuristic(heuristic) {
 	releaseAutosaveLock();
 }
 
-function addWork(workID) {
-	heuristicTimers.push(setTimeout(checkWork, 3000, workID));
+function startWaitingforSelectors(nodes) {
+	// Stop all timers
+	selectorTimers.forEach(d => clearTimeout(d));
+	// Start new timers
+	nodes
+		.filter(n => n.selectorStatus === SELECTOR_STATUS_WAITING)
+		.forEach(n => addWork(n.uid));
 }
 
-// Periodically check
-async function checkWork(workID) {
+function addWork(selectorUID) {
+	selectorTimers.push(setTimeout(checkWork, 3000, selectorUID));
+}
+
+// Checks if the requested selector is finished executing
+async function checkWork(selectorUID) {
 	try {
-		const response = await dakar.heuristic.heuristicByWorkIDPost({
-			work: {
-				workspaceUID: workspaceUID.value,
-				id: workID,
-			},
+		const response = await dakar.workspace.workspacesSelectorStatusPost({
+			selector: {workspaceUID: workspaceUID.value, selectorUID},
 		});
 		if (response.nodes) {
 			response.nodes = setPrivacyLabels(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
-			addWork(workID);
+			addWork(selectorUID);
 		}
 	} catch (e) {
 		setErrorMessage(e);
@@ -741,7 +767,7 @@ function getHeuristicTransaction(nodes, uid) {
 		return node.transactionHash;
 	}
 
-	if (node.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
+	if (node.type === WORKSPACE_NODE_TYPE_SELECTOR) {
 		// Find parent and do recursive call
 		const parent = nodes.find(v => v.children?.includes(uid));
 
@@ -756,21 +782,11 @@ function getHeuristicTransaction(nodes, uid) {
 	return '';
 }
 
-function contextMenuOpenTypeSelection(node) {
-	if (!node) {
-		return;
-	}
-
-	newHeuristicParentNodeUID = node.uid;
-
-	openTypeSelectionSheet();
-}
-
 function openConnectionSheet(d) {
 	connectionData.value = d;
 
 	isEntitySideBarOpen.value = false;
-	isAddHeuristicSheetOpen.value = false;
+	isCreateSelectorSheetOpen.value = false;
 	isConnectionSideBarOpen.value = true;
 	isShortestPathSideBarOpen.value = false;
 
@@ -778,22 +794,30 @@ function openConnectionSheet(d) {
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
-function openTypeSelectionSheet() {
+function showCreateSelectorSheetFromButton() {
+	// So no parent is set
+	nodeGraph.resetContextNode();
+	openCreateSelectorSheet(false, false);
+}
+
+function openCreateSelectorSheet(isHeuristic, withParent) {
+	if (isHeuristic) {
+		selectorCreationType.value = SELECTOR_TYPE_HEURISTIC;
+	} else {
+		selectorCreationType.value = SELECTOR_TYPE_TX_PROP;
+	}
+
+	isSelectorParentSet.value = withParent;
+
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
-	isAddHeuristicSheetOpen.value = true;
+	isCreateSelectorSheetOpen.value = true;
 	isShortestPathSideBarOpen.value = false;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
 function openEntitySideBar(nodeData) {
-	// Do not show sidebar for heuristic placeholder
-	if (nodeData.uid.startsWith(newUidPrefix)) {
-		return;
-	}
-
-	newHeuristicParentNodeUID = nodeData.uid;
 	entityAuxiliaryData.value = null;
 	entityType.value = nodeData.type;
 
@@ -804,27 +828,38 @@ function openEntitySideBar(nodeData) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
-		case WORKSPACE_NODE_TYPE_HEURISTIC:
+		case WORKSPACE_NODE_TYPE_SELECTOR:
 			// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
+				entityAuxiliaryData.value = nodeData;
+				entityIdentifier.value = nodeData.uid;
+
 				let displayType = '';
-				for (const descriptor of heuristicDescriptors.value) {
-					if (descriptor.type === nodeData.heuristicType) {
-						displayType = descriptor.title;
+
+				switch (nodeData.selectorType) {
+					case SELECTOR_TYPE_HEURISTIC:
+						for (const descriptor of heuristicDescriptors.value) {
+							if (descriptor.type === nodeData.heuristicOptions?.type) {
+								displayType = descriptor.title;
+								break;
+							}
+						}
+
 						break;
-					}
+					case SELECTOR_TYPE_TX_PROP:
+						displayType = 'selector (change me)';
+						break;
+					default:
 				}
 
-				entityAuxiliaryData.value = nodeData;
 				entityAuxiliaryData.value.displayType = displayType;
-				entityIdentifier.value = nodeData.uid;
 			}
 
 			break;
 		default:
 	}
 
-	isAddHeuristicSheetOpen.value = false;
+	isCreateSelectorSheetOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isShortestPathSideBarOpen.value = false;
 	isEntitySideBarOpen.value = true;
@@ -836,13 +871,13 @@ function openShortestPathSidebar() {
 	shortestPathTransactions.value = lassoSelectedNodes.value.map(d => d.transactionHash);
 
 	isEntitySideBarOpen.value = false;
-	isAddHeuristicSheetOpen.value = false;
+	isCreateSelectorSheetOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isShortestPathSideBarOpen.value = true;
 }
 
 function closeSideBars() {
-	isAddHeuristicSheetOpen.value = false;
+	isCreateSelectorSheetOpen.value = false;
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isShortestPathSideBarOpen.value = false;
@@ -855,6 +890,9 @@ function showContextMenu(e) {
 
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
+
+	// Need to hide sidebar, otherwise the context node is also used by side bar
+	closeSideBars();
 
 	nextTick(() => {
 		contextMenuModel.value.display = true;
@@ -924,24 +962,6 @@ async function refreshData() {
 	data.nodes ??= [];
 
 	return true;
-}
-
-function createTabs() {
-	const tabSet = new Set();
-	let isCategoryEmpty = false;
-	heuristicDescriptors.value.forEach(e => {
-		if (e.category) {
-			tabSet.add(e.category);
-		} else {
-			// If no category is set
-			isCategoryEmpty = true;
-		}
-	});
-	heuristicTabItems.value = Array.from(tabSet).sort().reverse();
-
-	if (isCategoryEmpty) {
-		heuristicTabItems.value.push('Other');
-	}
 }
 
 function queueAutoSave(t = 5000) {
@@ -1038,8 +1058,6 @@ async function whenMounted() {
 		return false;
 	}
 
-	// Creates the tab descriptions based on the heuristic categories
-	createTabs();
 	nodeGraph.populateHeuristicMap(heuristicDescriptors.value);
 
 	// Update page title
@@ -1048,13 +1066,7 @@ async function whenMounted() {
 	nodeGraph.addNodes(data.nodes);
 	nodeGraph.centerGraph();
 
-	// Add for each dummy heuristics a timer which checks if their heuristic is done executing
-	for (const node of data.nodes) {
-		if (node.loading) {
-			addWork(node.uid);
-		}
-	}
-
+	startWaitingforSelectors(data.nodes);
 	return true;
 }
 
@@ -1065,13 +1077,6 @@ async function whenMounted() {
 :deep( #svg_canvas ) {
   height: 100%;
   width: 100%;
-}
-
-.workspace-name {
-  max-width: 275px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
 }
 
 .auto-save {

@@ -9,27 +9,13 @@ import (
 	"testing"
 )
 
-// unregisterCollectors unregisters all collectors of the classifier.
-// This is needed because collectors can not be registered twice with the same default config.
-func unregisterCollectors(c *Crawler) {
-	if c == nil {
-		return
-	}
-
-	prometheus.Unregister(c.blocks)
-	prometheus.Unregister(c.transactions)
-	prometheus.Unregister(c.blockHeight)
-}
-
 func TestNewCrawler(t *testing.T) {
 	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
-	unregisterCollectors(crawler)
 	require.NotNil(t, crawler)
 }
 
 func TestCrawler_Props(t *testing.T) {
 	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
-	unregisterCollectors(crawler)
 
 	require.NotEmpty(t, crawler.Props())
 }
@@ -40,8 +26,7 @@ func TestCrawler_IncrementState(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
-	unregisterCollectors(crawler)
-
+	crawler.RegisterMetrics(prometheus.NewRegistry())
 	// initial state is not set yet
 	require.Error(t, crawler.IncrementState())
 
@@ -59,7 +44,7 @@ func TestCrawler_Empty(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
-	unregisterCollectors(crawler)
+	crawler.RegisterMetrics(prometheus.NewRegistry())
 	require.True(t, crawler.Empty())
 
 	require.NoError(t, crawler.CalculateInitialState())
@@ -80,7 +65,7 @@ func TestCrawler_CalculateInitialState(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
-	unregisterCollectors(crawler)
+	crawler.RegisterMetrics(prometheus.NewRegistry())
 	require.NoError(t, crawler.CalculateInitialState())
 }
 
@@ -89,7 +74,6 @@ func TestCrawler_PostExecution(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
-	unregisterCollectors(crawler)
 
 	require.NoError(t, crawler.PostExecution())
 }
@@ -100,8 +84,7 @@ func TestCrawler_NextBlock(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
-	unregisterCollectors(crawler)
-
+	crawler.RegisterMetrics(prometheus.NewRegistry())
 	_, err := crawler.NextBlock()
 	require.Error(t, err)
 
@@ -117,8 +100,7 @@ func TestCrawler_Iterate(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
-	unregisterCollectors(crawler)
-
+	crawler.RegisterMetrics(prometheus.NewRegistry())
 	_, err := crawler.Iterate()
 	require.Error(t, err)
 

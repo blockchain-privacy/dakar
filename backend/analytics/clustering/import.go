@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/external"
+	"context"
 	"errors"
 	"github.com/qrest/gomisc/serror"
 	"time"
@@ -22,19 +23,19 @@ var (
 )
 
 // ImportCluster writes the given address relations into the database
-func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, userID string) error {
+func ImportCluster(ctx context.Context, dgraph external.Database, clusters []ExternalClusterItem, userID string) error {
 	if userID == "" {
 		return serror.FromStr("user ID is not set")
 	}
 
-	addrToUID, err := validateAddresses(dgraph, clusters)
+	addrToUID, err := validateAddresses(ctx, dgraph, clusters)
 	if err != nil {
 		return err
 	}
 
 	dbClusters := buildDatabaseClusters(clusters, userID, addrToUID)
 
-	return clustering.AddCustomClusters(dgraph, dbClusters)
+	return clustering.AddCustomClusters(ctx, dgraph, dbClusters)
 }
 
 // buildDatabaseClusters creates from the given cluster and address to
@@ -53,13 +54,13 @@ func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
 			Type:         clustering.TypeCustom,
 			Timestamp:    clusterTimestamp,
 			AddressCount: &numAddresses,
-			User:         clustering.HollowUser{UID: userID},
+			User:         db.UIDNode{UID: userID},
 		}
 
 		dbCluster.SetDType()
 
 		for a := range c {
-			dbCluster.Addresses = append(dbCluster.Addresses, clustering.HollowAddress{UID: hashToUID[a]})
+			dbCluster.Addresses = append(dbCluster.Addresses, db.UIDNode{UID: hashToUID[a]})
 		}
 
 		dbClusters = append(dbClusters, dbCluster)
@@ -88,16 +89,15 @@ func buildClusterSet(clusters []ExternalClusterItem) map[string]map[string]bool 
 // Returns ErrShallowCluster if there are clusters with less than 2 addresses.
 // If an address does not exist in the db, an error containing the address hash is returned.
 // Returns a mapping from address hash to db UID, if no errors occurred.
-func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem) (map[string]string, error) {
-	addresses := map[string]bool{}
+func validateAddresses(ctx context.Context, dgraph external.Database,
+	clusters []ExternalClusterItem) (map[string]string, error) {
+	addresses := make(map[string]bool, len(clusters))
 	for _, c := range clusters {
 		addresses[c.AddressHash] = true
 	}
 
-	uniqueAddresses := cliutil.GetMapKeys(addresses)
-
 	// check maximum number of addresses
-	if len(uniqueAddresses) > 1000 {
+	if len(addresses) > 1000 {
 		return nil, serror.New(ErrTooManyAddresses)
 	}
 
@@ -110,7 +110,7 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 	}
 
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(ctx, dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			delete(addresses, a.Hash)
 		}
 
-		return nil, serror.FromFormat("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
+		return nil, serror.NewWithContext(ErrNonExistentAddress, "address", cliutil.GetOneKey(addresses))
 	}
 
 	// build mapping

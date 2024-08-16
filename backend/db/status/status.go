@@ -3,9 +3,9 @@ package status
 import (
 	"backend/db"
 	"backend/external"
-	"github.com/qrest/gomisc/serror"
-
+	"context"
 	"encoding/json"
+	"github.com/qrest/gomisc/serror"
 	"time"
 
 	"github.com/dgraph-io/dgo/v230/protos/api"
@@ -155,7 +155,7 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 }
 
 // GetFrontendStatus gets verbose status information from the database
-func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
+func GetFrontendStatus(ctx context.Context, c external.Database) (status FrontendStatus, err error) {
 	query := `{
 				crawler(func: type(` + CrawlerStatusDType + `)){
 					iscrawling
@@ -175,8 +175,6 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 				}
 			}`
 
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
 		err = serror.New(err)

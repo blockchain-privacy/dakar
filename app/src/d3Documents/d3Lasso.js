@@ -45,7 +45,7 @@ function isPointInside(vs, point) {
 		const	yj = vs[j][1];
 
 		const intersect = ((yi > y) !== (yj > y))
-      && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+			&& (x < ((xj - xi) * ((y - yi) / (yj - yi))) + xi);
 		if (intersect) {
 			inside = !inside;
 		}
@@ -117,7 +117,7 @@ export default function lasso() {
 				e.__lasso.loopSelect = false;
 
 				const box = e.getBoundingClientRect();
-				e.__lasso.lassoPoint = [Math.round(box.left + box.width / 2), Math.round(box.top + box.height / 2)];
+				e.__lasso.lassoPoint = [Math.round(box.left + (box.width / 2)), Math.round(box.top + (box.height / 2))];
 			});
 
 			// If hover is on, add hover function
@@ -168,7 +168,7 @@ export default function lasso() {
 			drawnCoords.push([x, y]);
 
 			// Calculate the current distance from the lasso origin
-			const distance = Math.sqrt((x - origin[0]) ** 2 + (y - origin[1]) ** 2);
+			const distance = Math.sqrt(((x - origin[0]) ** 2) + ((y - origin[1]) ** 2));
 
 			// Set the closed path line
 			const closeDrawPath = 'M ' + tx + ' ' + ty + ' L ' + tOrigin[0] + ' ' + tOrigin[1];

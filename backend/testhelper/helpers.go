@@ -131,3 +131,7 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database) {
 
 	m.Run()
 }
+
+func GetPointer[number any](n number) *number {
+	return &n
+}

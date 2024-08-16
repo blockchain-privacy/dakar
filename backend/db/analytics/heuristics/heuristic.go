@@ -22,90 +22,26 @@ import (
 
 var (
 	errInvalidDatabaseResponse = errors.New("error invalid response")
-	// ErrNoMutationHappened is returned if no mutation occurred
-	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
-// InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c external.Database, h *Heuristic, userUID string, workspaceUID string) (insertUID string, err error) {
-	h.SetDType()
-
-	const newHeuristicDummyUID = "new_h"
-	h.UID = "_:" + newHeuristicDummyUID
-
-	var query string
-
-	// if TxHash is not empty we have to search for the transaction uid
-	if h.TxHash != "" {
-		h.Transaction.UID = "uid(tx)"
-		query = `query Q($txhash: string, $userUID: string, $workspaceUID: string) {
-					tx as var(func: eq(txhash, $txhash))
-					var(func: uid($userUID))@filter(type(User)){
-						w as User.workspaces@filter(uid($workspaceUID))
-					}
-				  }`
-	}
-
-	type dummyWorkspace struct {
-		UID        string      `json:"uid,omitempty"`
-		Heuristics []Heuristic `json:"Workspace.heuristics,omitempty"`
-	}
-
-	// set cluster height to 0, to force an update of the corresponding workspace
-	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{*h}})
-	if err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	req := &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$txhash": h.TxHash, "$userUID": userUID, "$workspaceUID": workspaceUID},
-		Mutations: []*api.Mutation{{
-			Cond:    "@if(gt(len(w), 0))",
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
-
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	if err != nil {
-		return
-	}
-
-	insertUID, ok := resp.GetUids()[newHeuristicDummyUID]
-	if !ok {
-		err = serror.FromStr("no new heuristic created")
-		return
-	}
-
-	return
-}
-
-// DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c external.Database, uids []string, userUID string, workspaceUID string) error {
+// DeleteAllHeuristics deletes all heuristics in the database
+func DeleteAllHeuristics(c external.Database) error {
 	const query = `
-		query Q($userUID:string,$heuristicUIDs:string,$workspaceUID:string){
-			var(func: uid($userUID)){
-				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.heuristics@filter(uid($heuristicUIDs)){
-						hc as Heuristic.clusters{
-							hr as HeuristicCluster.results
-						}
-					}
+		{
+			var(func: type(Heuristic)){
+				h as uid
+				hc as Heuristic.clusters{
+					hr as HeuristicCluster.results
 				}
 			}
 		}`
 
 	req := &api.Request{
 		Query: query,
-		Vars: map[string]string{"$userUID": userUID,
-			"$heuristicUIDs": db.CreateCommaArray(uids), "$workspaceUID": workspaceUID},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte(` uid(hr) * * .
 								uid(hc) * * .
-								uid(h) * * .
-								<` + workspaceUID + "> <Workspace.heuristics> uid(h) ."),
+								uid(h) * * .`),
 		}},
 		CommitNow: true,
 	}
@@ -115,15 +51,15 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 		return err
 	}
 
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return serror.New(ErrNoMutationHappened)
+	if !db.HasMutationCost(resp) {
+		return serror.New(db.ErrNoMutationHappened)
 	}
 
 	return nil
 }
 
-// GetHeuristicResults returns the connected transactions of heuristic
-func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction,
+// GetHeuristicTransactions returns the connected transactions of heuristic
+func GetHeuristicTransactions(c external.Database, heuristicUID string) (results []HeuristicTransaction,
 	attributionMap map[ClusterUID][]string, err error) {
 	const query = `query Q($uid:string) {
 				var (func: uid($uid)){ x as Heuristic.clusters }
@@ -131,11 +67,9 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 				q(func: uid(x)){
 					uid
 					HeuristicCluster.results{
-						HeuristicResult.origin{
-							uid
-							tx_outputs{
-								amount
-							}
+						uid
+						tx_outputs{
+							amount
 						}
 					}
 					HeuristicCluster.attributions{
@@ -154,14 +88,10 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 		Clusters []struct {
 			UID     ClusterUID `json:"uid,omitempty"`
 			Results []struct {
-				Origin struct {
-					UID     string            `json:"uid,omitempty"`
-					Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-				} `json:"HeuristicResult.origin,omitempty"`
+				UID     string            `json:"uid,omitempty"`
+				Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
-			Attributions []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"HeuristicCluster.attributions,omitempty"`
+			Attributions []db.UIDNode `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -176,9 +106,9 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 		thisClusterID := ClusterUID(strconv.FormatInt(clusterCounter, 10))
 		for _, result := range cluster.Results {
 			results = append(results, HeuristicTransaction{
-				UID:     result.Origin.UID,
+				UID:     result.UID,
 				Cluster: thisClusterID,
-				Outputs: result.Origin.Outputs,
+				Outputs: result.Outputs,
 			})
 		}
 
@@ -326,10 +256,8 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 			Inputs  []struct {
 				Address []struct {
-					UID     string `json:"uid,omitempty"`
-					Cluster []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~Cluster.addresses,omitempty"`
+					UID     string       `json:"uid,omitempty"`
+					Cluster []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 				} `json:"~addr_outputs,omitempty"`
 			} `json:"tx_inputs,omitempty"`
 		} `json:"q,omitempty"`
@@ -564,99 +492,6 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	transaction = HeuristicTransaction{
 		UID:     t.UID,
 		Outputs: t.Outputs,
-	}
-
-	return
-}
-
-// GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID, which was created by userUID
-func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string, workspaceUID string) (
-	frontendHeuristic FrontendHeuristicShort, err error) {
-	const query = `query Q($heuristicUID:string,$userUID:string,$workspaceUID:string){
-				var(func: uid($userUID)){
-					User.workspaces@filter(uid($workspaceUID)){
-						Workspace.heuristics@filter(uid($heuristicUID)){
-							c as Heuristic.clusters
-						}
-					}
-				}
-
-				q(func: uid(c)){
-					HeuristicCluster.results{
-						HeuristicResult.origin@normalize{
-							txhash:txhash
-							~transactions{
-								ts:ts
-							}
-						}
-						HeuristicResult.destinations{
-							uid
-						}
-					}
-					HeuristicCluster.attributions {
-						tag:Attribution.tag
-						isPublic:Attribution.isPublic
-					}
-				}
-			   }`
-
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$heuristicUID": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
-	if err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Clusters []struct {
-			Results []struct {
-				// Origin must be declared as an array because in the query @normalize is used
-				Origin       []FrontendTransactionResult `json:"HeuristicResult.origin,omitempty"`
-				Destinations []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"HeuristicResult.destinations,omitempty"`
-			} `json:"HeuristicCluster.results,omitempty"`
-			Attributions []Attribution `json:"HeuristicCluster.attributions,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	if heuristicUID == "" {
-		err = serror.FromStr("empty response from database")
-		return
-	}
-
-	frontendHeuristic.UID = heuristicUID
-
-	for _, cluster := range r.Clusters {
-		var origins []FrontendTransactionResult
-		destinationMap := make(map[string]bool)
-		for _, result := range cluster.Results {
-			if len(result.Origin) != 1 {
-				err = serror.FromStr("invalid response from database")
-				return
-			}
-
-			result.Origin[0].DestinationCount = len(result.Destinations)
-
-			origins = append(origins, result.Origin[0])
-
-			// collect destinations of all results in map
-			for _, destination := range result.Destinations {
-				destinationMap[destination.UID] = true
-			}
-		}
-
-		frontendHeuristic.Clusters = append(frontendHeuristic.Clusters, FrontendHeuristicCluster{
-			Transactions: origins,
-			Attributions: cluster.Attributions,
-		})
 	}
 
 	return

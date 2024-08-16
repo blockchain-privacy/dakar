@@ -641,9 +641,7 @@ func GetAllFMIClusters(c external.Database) (uids []string, err error) {
 		return
 	}
 	var r struct {
-		Clusters []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -662,7 +660,7 @@ func GetAllFMIClusters(c external.Database) (uids []string, err error) {
 // True: Both inputs and outputs are traversed
 // False: Only inputs are traversed
 // withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
-func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, txTo string,
+func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Database, txFrom string, txTo string,
 	withPrivacyTransactions bool, anyDirection bool) ([]db.FrontendTransaction, error) {
 	/* Full query
 	query Q($txFrom:string, $txTo:string){
@@ -712,9 +710,6 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 				}
 			  }`
 
-	// without retry, as this request can easily time out
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
 	if err != nil {
 		if isDeadlineExceeded(err) {

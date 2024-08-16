@@ -2,7 +2,8 @@ package workspace
 
 import (
 	"backend/constants"
-	"backend/db/analytics/heuristics"
+	"backend/db"
+	dbHeuristic "backend/db/analytics/heuristics"
 )
 
 const DType = "Workspace"
@@ -11,7 +12,7 @@ const DType = "Workspace"
 const (
 	NodeTypeCluster     = "cluster"
 	NodeTypeTransaction = "transaction"
-	NodeTypeHeuristic   = "heuristic"
+	NodeTypeSelector    = "selector"
 	NodeTypeNote        = "note"
 )
 
@@ -76,32 +77,22 @@ type connectionRequest struct {
 	} `json:"cluster_height,omitempty"`
 
 	AddressClusters []struct {
-		UID     string `json:"uid,omitempty"`
-		Cluster []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"cluster,omitempty"`
+		UID     string       `json:"uid,omitempty"`
+		Cluster []db.UIDNode `json:"cluster,omitempty"`
 	} `json:"address_cluster,omitempty"`
 
 	Transactions []struct {
 		UID     string `json:"uid,omitempty"`
 		Outputs []struct {
-			InputTransactions []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~tx_inputs,omitempty"`
-			Addresses []struct {
-				Clusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~Cluster.addresses,omitempty"`
+			InputTransactions []db.UIDNode `json:"~tx_inputs,omitempty"`
+			Addresses         []struct {
+				Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 			} `json:"~addr_outputs,omitempty"`
 		} `json:"tx_outputs,omitempty"`
 		Inputs []struct {
-			OutputTransactions []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~tx_outputs,omitempty"`
-			Addresses []struct {
-				Clusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~Cluster.addresses,omitempty"`
+			OutputTransactions []db.UIDNode `json:"~tx_outputs,omitempty"`
+			Addresses          []struct {
+				Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 			} `json:"~addr_outputs,omitempty"`
 		} `json:"tx_inputs,omitempty"`
 	} `json:"transactions,omitempty"`
@@ -110,67 +101,63 @@ type connectionRequest struct {
 		UID      string `json:"uid,omitempty"`
 		Clusters []struct {
 			Results []struct {
-				Destinations []struct {
-					Inputs []struct {
-						Addresses []struct {
-							Clusters []struct {
-								UID string `json:"uid,omitempty"`
-							} `json:"~Cluster.addresses,omitempty"`
-						} `json:"~addr_outputs,omitempty"`
-					} `json:"tx_inputs,omitempty"`
-				} `json:"HeuristicResult.destinations,omitempty"`
-				Origin struct {
-					Inputs []struct {
-						Addresses []struct {
-							Clusters []struct {
-								UID string `json:"uid,omitempty"`
-							} `json:"~Cluster.addresses,omitempty"`
-						} `json:"~addr_outputs,omitempty"`
-					} `json:"tx_inputs,omitempty"`
-				} `json:"HeuristicResult.origin,omitempty"`
+				Inputs []struct {
+					Addresses []struct {
+						Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
+					} `json:"~addr_outputs,omitempty"`
+				} `json:"tx_inputs,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
-		} `json:"Heuristic.clusters,omitempty"`
+		} `json:"results,omitempty"`
 	} `json:"heuristic_clusters,omitempty"`
+
+	SelectorClusters []struct {
+		UID     string `json:"uid,omitempty"`
+		Results []struct {
+			Inputs []struct {
+				Addresses []struct {
+					Clusters []db.UIDNode `json:"~Cluster.addresses,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"results,omitempty"`
+	} `json:"selector_clusters,omitempty"`
 
 	ClusterClusters []struct {
 		UID       string `json:"uid,omitempty"`
 		Addresses []struct {
 			Outputs []struct {
-				InputClusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~tx_inputs,omitempty"`
-				OutputClusters []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"~tx_outputs,omitempty"`
+				InputClusters  []db.UIDNode `json:"~tx_inputs,omitempty"`
+				OutputClusters []db.UIDNode `json:"~tx_outputs,omitempty"`
 			} `json:"addr_outputs,omitempty"`
 		} `json:"Cluster.addresses,omitempty"`
 	} `json:"cluster_clusters,omitempty"`
 
 	Heuristics []struct {
-		UID                 string   `json:"uid,omitempty"`
-		Timestamp           string   `json:"ts,omitempty"`
-		Type                string   `json:"type,omitempty"`
-		Parameter           string   `json:"parameter,omitempty"`
-		ExcludeAddresses    bool     `json:"excludeAddresses"`
-		ExcludeSpendingGaps bool     `json:"excludeSpendingGaps"`
-		ClusterTypes        []string `json:"clusterTypes,omitempty"`
-		Transaction         struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"transaction,omitempty"`
-		ParentHeuristic []heuristics.HollowHeuristic `json:"parent,omitempty"`
-		ChildHeuristics []heuristics.HollowHeuristic `json:"children,omitempty"`
-		ClusterCount    *int                         `json:"clusterCount,omitempty"`
-		Clusters        []struct {
-			Results []struct {
-				Origin struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"HeuristicResult.origin,omitempty"`
-				Destinations []struct {
-					UID string `json:"uid,omitempty"`
-				} `json:"HeuristicResult.destinations,omitempty"`
-			} `json:"HeuristicCluster.results,omitempty"`
-		} `json:"Heuristic.clusters,omitempty"`
+		UID         string       `json:"uid,omitempty"`
+		Created     string       `json:"created,omitempty"`
+		Modified    string       `json:"modified,omitempty"`
+		Type        string       `json:"type,omitempty"`
+		Status      string       `json:"status,omitempty"`
+		Options     string       `json:"options,omitempty"`
+		Parent      *db.UIDNode  `json:"parent,omitempty"`
+		Children    []db.UIDNode `json:"children,omitempty"`
+		ResultCount *int         `json:"resultCount,omitempty"`
+		Clusters    []struct {
+			Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
+		} `json:"results,omitempty"`
 	} `json:"heuristics,omitempty"`
+
+	Selectors []struct {
+		UID         string       `json:"uid,omitempty"`
+		Created     string       `json:"created,omitempty"`
+		Modified    string       `json:"modified,omitempty"`
+		Type        string       `json:"type,omitempty"`
+		Status      string       `json:"status,omitempty"`
+		Options     string       `json:"options,omitempty"`
+		Parent      *db.UIDNode  `json:"parent,omitempty"`
+		Children    []db.UIDNode `json:"children,omitempty"`
+		ResultCount *int         `json:"resultCount,omitempty"`
+		Results     []db.UIDNode `json:"results,omitempty"`
+	} `json:"selectors,omitempty"`
 }
 
 // Node is the data model of a workspace node
@@ -190,26 +177,24 @@ type Node struct {
 	TransactionHash string `json:"transactionHash,omitempty"`
 	PrivacyType     *int   `json:"privacyType,omitempty"`
 
-	// heuristic
-	HeuristicType       string   `json:"heuristicType,omitempty"`
-	Parameter           string   `json:"heuristicParameter,omitempty"`
-	ExcludeAddresses    *bool    `json:"heuristicExcludeAddresses,omitempty"`
-	ExcludeSpendingGaps *bool    `json:"heuristicExcludeSpendingGaps,omitempty"`
-	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
-	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
-	Timestamp           string   `json:"heuristicTs,omitempty"`
+	// selector
+	SelectorCreated     string               `json:"selectorCreated,omitempty"`
+	SelectorModified    string               `json:"selectorModified,omitempty"`
+	SelectorType        string               `json:"selectorType,omitempty"`
+	SelectorStatus      string               `json:"selectorStatus,omitempty"`
+	SelectorResultCount *int                 `json:"selectorResultCount,omitempty"`
+	SelectorOptions     *Options             `json:"selectorOptions,omitempty"`
+	HeuristicOptions    *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`
-
-	// Loading is true if a new heuristic has been created, which is not yet finished executing
-	Loading *bool `json:"loading,omitempty"`
 }
 
 func (f Node) IsDestination() bool {
 	return f.Type == NodeTypeTransaction && f.PrivacyType != nil && constants.PrivacyType(*f.PrivacyType).IsDestination()
 }
 
-func (f Node) IsLoading() bool {
-	return f.Loading != nil && *f.Loading
+type dummyUser struct {
+	UID        string      `json:"uid,omitempty"`
+	Workspaces []Workspace `json:"User.workspaces,omitempty"`
 }

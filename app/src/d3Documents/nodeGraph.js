@@ -7,13 +7,17 @@ import {
 	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
 } from '@/d3Documents/util';
 import {
-	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
+	mdiClockAlertOutline, mdiExclamationThick, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
 	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_HEURISTIC, WORKSPACE_NODE_TYPE_NOTE,
+	WORKSPACE_NODE_TYPE_SELECTOR,
+	WORKSPACE_NODE_TYPE_NOTE,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
+	SELECTOR_STATUS_WAITING,
+	SELECTOR_STATUS_ERROR,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
 
@@ -93,7 +97,7 @@ function dragEnded(event, context) {
 
 	// Call callback only if dragged at least the minimum distance
 	if (context.dragEndCallback !== null
-    && (Math.abs(context.dragStartX - event.x) > 3 || Math.abs(context.dragStartY - event.y) > 3)) {
+		&& (Math.abs(context.dragStartX - event.x) > 3 || Math.abs(context.dragStartY - event.y) > 3)) {
 		context.dragEndCallback();
 	}
 }
@@ -186,7 +190,7 @@ export default class NodeGraph {
 			return false;
 		}
 
-		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION && node.privacyTypeLabel) {
 			return this.#filterPrivacyTypes.includes(node.privacyTypeLabel);
 		}
 
@@ -246,6 +250,10 @@ export default class NodeGraph {
 	}
 
 	setContextObjectClicked() {
+		if (!this.#contextNodeSelection) {
+			return;
+		}
+
 		this.resetClick();
 		this.resetLasso();
 
@@ -676,8 +684,8 @@ export default class NodeGraph {
 
 		const width = maxX - minX;
 		const height = maxY - minY;
-		const centerX = minX + width / 2;
-		const centerY = minY + height / 2;
+		const centerX = minX + (width / 2);
+		const centerY = minY + (height / 2);
 
 		this.#rootSvg.transition().duration(250).call(this.#zoom.translateTo, centerX, centerY);
 	}
@@ -696,21 +704,21 @@ export default class NodeGraph {
 		const textHeight = 12;
 		const iconWidth = 12;
 		const iconMargin = 1;
-		const iconY = this.#nodeRadius + textHeight + textAreaMargin * 2;
+		const iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
 
 		// Remove all children
 		iconGroup.selectAll('*').remove();
 
 		icons.forEach((icon, i) => {
 			iconGroup.append('path')
-				.attr('transform', `translate(${iconWidth * i + iconMargin * i},${iconY}) scale(0.45,0.45)`)
+				.attr('transform', `translate(${(iconWidth * i) + (iconMargin * i)},${iconY}) scale(0.45,0.45)`)
 				.attr('fill', 'currentColor')
 				.attr('d', icon);
 		});
 
 		if (parameter) {
 			iconGroup.append('text')
-				.attr('transform', `translate(${iconWidth * icons.length + iconMargin * icons.length},${iconY + 9})`)
+				.attr('transform', `translate(${(iconWidth * icons.length) + (iconMargin * icons.length)},${iconY + 9})`)
 				.attr('font-size', 10)
 				.style('cursor', 'default')
 				.attr('fill', 'currentColor')
@@ -729,10 +737,14 @@ export default class NodeGraph {
 			entityGroup = groupElement.append('g');
 		}
 
-		this.drawNodes(groupElement.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
-			entityGroup.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE));
-		this.drawNotes(groupElement.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
-			entityGroup.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE));
+		this.drawNodes(
+			groupElement.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type !== WORKSPACE_NODE_TYPE_NOTE),
+		);
+		this.drawNotes(
+			groupElement.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
+			entityGroup.filter(d => d.type === WORKSPACE_NODE_TYPE_NOTE),
+		);
 	}
 
 	drawNotes(groupElement, entityGroup) {
@@ -754,7 +766,7 @@ export default class NodeGraph {
 				const nodeRect = this.getBBox();
 				d.bbHeight = nodeRect.height;
 				d.bbWidth = nodeRect.width;
-				d3Select(this).attr('y', -nodeRect.height / 2 - 2);
+				d3Select(this).attr('y', -(nodeRect.height / 2) - 2);
 			});
 
 		entityGroup.append('rect')
@@ -849,7 +861,9 @@ export default class NodeGraph {
 				if (this.#nodeTypeColorMap) {
 					let nodeColor;
 
-					if (d.privacyTypeLabel) {
+					if (d.selectorType) {
+						nodeColor = this.#nodeTypeColorMap.get(d.selectorType);
+					} else if (d.privacyTypeLabel) {
 						nodeColor = this.#nodeTypeColorMap.get(d.privacyTypeLabel);
 					} else {
 						nodeColor = this.#nodeTypeColorMap.get(d.type);
@@ -921,36 +935,44 @@ export default class NodeGraph {
 				self.setMouseOverAnimation(self, this, false);
 			});
 
-		// Add loading circle
+		// Add node symbol
 		const loadingRadius = this.#nodeRadius - 6;
 		const gap = 2 * Math.PI * loadingRadius / 4;
 
 		const gapString = `${gap} ${gap}`;
 
 		entityGroup.each(function (d) {
-			if (!d.loading) {
-				return;
+			switch (d.selectorStatus) {
+				case SELECTOR_STATUS_WAITING:
+					d3Select(this).append('circle')
+						.attr('r', loadingRadius)
+						.attr('cursor', 'pointer')
+						.attr('stroke-width', 3)
+						.attr('stroke', '#fff')
+						.attr('stroke-dasharray', gapString)
+						.attr('fill', 'none')
+						.attr('stroke-linecap', 'round')
+						.append('animateTransform')
+						.attr('attributeName', 'transform')
+						.attr('type', 'rotate')
+						.attr('repeatCount', 'indefinite')
+						.attr('dur', '2.941176470588235s')
+						.attr('keyTimes', '0;1')
+						.attr('values', '0 0 0;360 0 0');
+					break;
+				case SELECTOR_STATUS_ERROR:
+					d3Select(this)
+						.append('path')
+						.attr('transform', 'translate(-12,-12) scale(1,1)')
+						.attr('fill', 'white')
+						.attr('d', mdiExclamationThick);
+					break;
+				default:
 			}
-
-			d3Select(this).append('circle')
-				.attr('r', loadingRadius)
-				.attr('cursor', 'pointer')
-				.attr('stroke-width', 3)
-				.attr('stroke', '#fff')
-				.attr('stroke-dasharray', gapString)
-				.attr('fill', 'none')
-				.attr('stroke-linecap', 'round')
-				.append('animateTransform')
-				.attr('attributeName', 'transform')
-				.attr('type', 'rotate')
-				.attr('repeatCount', 'indefinite')
-				.attr('dur', '2.941176470588235s')
-				.attr('keyTimes', '0;1')
-				.attr('values', '0 0 0;360 0 0');
 		});
 
 		// Add node descriptions
-		const textAreaWidth = 100;
+		const textAreaWidth = 120;
 		const textAreaMargin = 3;
 		const textHeight = 12;
 		const fontSize = textHeight - 2;
@@ -1005,10 +1027,22 @@ export default class NodeGraph {
 					return d.transactionHash;
 				}
 
-				if (d.type === WORKSPACE_NODE_TYPE_HEURISTIC) {
-					const title = this.#heuristicTypeMap.get(d.heuristicType);
-					if (title !== undefined) {
-						return title;
+				if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+					if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
+						const title = this.#heuristicTypeMap.get(d.heuristicOptions.type);
+						if (title !== undefined) {
+							return title;
+						}
+					} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
+						if (!d.selectorOptions.startDate || !d.selectorOptions.endDate) {
+							return '';
+						}
+
+						const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
+						const startDateStr = new Date(d.selectorOptions.startDate).toLocaleDateString(undefined, dateOptions);
+						const endDateStr = new Date(d.selectorOptions.endDate).toLocaleDateString(undefined, dateOptions);
+
+						return `${startDateStr} - ${endDateStr}`;
 					}
 				}
 
@@ -1037,16 +1071,15 @@ export default class NodeGraph {
 		// 	})
 		// 	.each(elide);
 
-		// Heuristic properties
-		// Cluster count
-		let nodeClusterCount = entityGroup.select('.clusterCount');
-		if (nodeClusterCount.empty()) {
-			nodeClusterCount = entityGroup.append('text').classed('clusterCount', true);
+		// Symbol or text which is centered on the node
+		let resultCount = entityGroup.select('.resultCount');
+		if (resultCount.empty()) {
+			resultCount = entityGroup.append('text').classed('resultCount', true);
 		}
 
-		nodeClusterCount.raise();
+		resultCount.raise();
 
-		nodeClusterCount
+		resultCount
 			.attr('text-anchor', 'middle')
 			.style('cursor', 'pointer')
 			.style('font-weight', 'bold')
@@ -1055,37 +1088,37 @@ export default class NodeGraph {
 			.attr('font-size', 12)
 			.attr('y', 1)
 			.text(d => {
-				if (d.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
 					return '';
 				}
 
-				return abbreviateNumber(d.heuristicClusterCount);
+				return abbreviateNumber(d.selectorResultCount);
 			});
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_HEURISTIC) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorType !== SELECTOR_TYPE_HEURISTIC || !d.heuristicOptions) {
 					return;
 				}
 
 				const icons = [];
-				if (d.heuristicExcludeAddresses) {
+				if (d.heuristicOptions.excludeAddresses) {
 					icons.push(mdiPlaylistRemove);
 				}
 
-				if (d.heuristicClusterTypes?.length > 0) {
+				if (d.heuristicOptions.clusterTypes?.length > 0) {
 					icons.push(mdiMerge);
 				}
 
-				if (d.heuristicExcludeSpendingGaps) {
+				if (d.heuristicOptions.excludeSpendingGaps) {
 					icons.push(mdiClockAlertOutline);
 				}
 
-				if (d.heuristicParameter) {
+				if (d.heuristicOptions.parameter) {
 					icons.push(mdiTune);
 				}
 
-				self.drawIcons(d3Select(this), icons, d.heuristicParameter);
+				self.drawIcons(d3Select(this), icons, d.heuristicOptions.parameter);
 			});
 	}
 
@@ -1120,8 +1153,7 @@ export default class NodeGraph {
 				dragEnded(e, self);
 			})
 			.filter(e => !e.ctrlKey && !e.shiftKey && !e.button)
-			.clickDistance(3),
-		);
+			.clickDistance(3));
 	}
 
 	// Draws the state of the graph, returns all newly added nodes
@@ -1200,20 +1232,22 @@ export default class NodeGraph {
 		const node = this.#nodeGroup
 			.selectAll('.nodeContainer')
 			.data(nodes, d => d.uid)
-			.join(enter => {
-				const g = enter.append('g');
-				this.drawEntities(g);
-				this.#newNodes = g;
-				return g;
-			},
-			update => {
-				if (this.#changedData.size > 0) {
+			.join(
+				enter => {
+					const g = enter.append('g');
+					this.drawEntities(g);
+					this.#newNodes = g;
+					return g;
+				},
+				update => {
+					if (this.#changedData.size > 0) {
 					// Do drawing only for actually updated nodes
-					this.drawEntities(update.filter(d => this.#changedData.has(d.uid)));
-				}
+						this.drawEntities(update.filter(d => this.#changedData.has(d.uid)));
+					}
 
-				return update;
-			})
+					return update;
+				},
+			)
 			.classed('nodeContainer', true)
 			.each(d => {
 				// Exclude every node from force simulation
@@ -1254,7 +1288,7 @@ export default class NodeGraph {
 		const scaleHeight = (svgBoundingRect.height - 120) / rgBoundingRect.height;
 		const scaleWidth = (svgBoundingRect.width - 100) / rgBoundingRect.width;
 
-		this.#rootSvg.call(this.#zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
+		this.#rootSvg.call(this.#zoom.translateTo, rgBoundingBox.x + (rgBoundingBox.width / 2), rgBoundingBox.y + (rgBoundingBox.height / 2));
 
 		const scaleBy = Math.min(scaleHeight, scaleWidth);
 
@@ -1353,6 +1387,11 @@ export default class NodeGraph {
 	// Returns the node which triggered the context menu event or click event
 	getContextNode() {
 		return this.#contextNodeData;
+	}
+
+	resetContextNode() {
+		this.#contextNodeData = null;
+		this.#contextNodeSelection = null;
 	}
 
 	// SetDragCallback receives a function as an argument.

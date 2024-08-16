@@ -3,7 +3,9 @@ package workspace
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	dbHeuristic "backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"encoding/json"
 	"github.com/qrest/gomisc/serror"
 	"slices"
@@ -12,13 +14,13 @@ import (
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
-	connections []NodeConnections, heuristicNodes []Node, clusterHeight int64, err error) {
+	connections []NodeConnections, selectorNodes []Node, clusterHeight int64, err error) {
 	result, err := getWorkspaceConnectionsRaw(c, uids, userUID, workspaceUID)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
-	transactions, clusters, heuristicNodes, clusterHeight, err := parseConnectionResult(result)
+	transactions, clusters, selectorNodes, clusterHeight, err := parseConnectionResult(result)
 	if err != nil {
 		return
 	}
@@ -49,47 +51,47 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 					# transaction uids
 					t as var(func: uid(uids))@filter(has(txhash))
 					
-					# heuristic uids
+					# selector uids
 					var(func: uid($userUID)){
 						User.workspaces@filter(uid($workspaceUID)){
-							h as Workspace.heuristics
+							s as Workspace.selectors
 						}
 					}
 
-					heuristic_clusters(func: uid(h)){
-						uid
-						Heuristic.clusters{
-							HeuristicCluster.results{
-								HeuristicResult.destinations{
-									...fGetHeuristicCluster
-								}
-								HeuristicResult.origin{
-									...fGetHeuristicCluster
-								}
-							}
-						}
-					}
+					# split selectors by type
+					heuristicSelectors as var(func: uid(s))@filter(eq(Selector.type, ` + TypeHeuristic + `))
+					propSelectors as var(func: uid(s))@filter(not eq(Selector.type, ` + TypeHeuristic + `))
 
 					# find fmi cluster for each address
 					address_cluster(func: uid(uids))@filter(has(addresshash)){
 						uid
-						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
-							uid
+						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){uid}
+					}
+
+					heuristic_clusters(func: uid(heuristicSelectors)){
+						uid
+						results: Selector.results{
+							HeuristicCluster.results{
+								...fTxCluster
+							}
+						}
+					}
+
+					selector_clusters(func: uid(propSelectors)){
+						uid
+						results: Selector.results{
+							...fTxCluster
 						}
 					}
 					
 					transactions(func: uid(t)){
 						uid
 						tx_outputs{
-							~tx_inputs@filter(uid(t)){
-								uid
-							}
+							~tx_inputs@filter(uid(t)){uid}
 							...fGetCluster
 						}
 						tx_inputs {
-							~tx_outputs@filter(uid(t)){
-								uid
-							}
+							~tx_outputs@filter(uid(t)){uid}
 							...fGetCluster
 						}
 					}
@@ -108,45 +110,37 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 									}
 								}
 								~tx_outputs@normalize{
-									tx_inputs(first:1){
-										~addr_outputs{
-											~Cluster.addresses@filter(uid(c)){
-												uid:uid
-											}
-										}
-									}
+									...fTxCluster
 								}
 							}
 						}
 					}
 
-					heuristics(func: uid(h)){
+					selectors(func: uid(propSelectors)){
 						uid
-						transaction:Heuristic.transaction{
-							uid
-						}
-						ts:Heuristic.ts
-						type:Heuristic.type
-						parameter:Heuristic.parameter
-						clusterTypes:Heuristic.clusterTypes
-						excludeAddresses:Heuristic.excludeAddresses
-						excludeSpendingGaps:Heuristic.excludeSpendingGaps
-						parent:Heuristic.parent{
-							uid
-						}
-						children:~Heuristic.parent{
-							uid
-						}
-						clusterCount: count(Heuristic.clusters)
-						Heuristic.clusters{
-							HeuristicCluster.results{
-								HeuristicResult.origin@filter(uid(t)){
-									uid
-								}
-								HeuristicResult.destinations@filter(uid(t)){
-									uid
-								}
-							}
+						created: Selector.created
+						modified: Selector.modified
+						type: Selector.type
+						status: Selector.status
+						parent: Selector.parent {uid}
+						children: ~Selector.parent{uid}
+						options: Selector.options
+						resultCount: count(Selector.results)
+						results: Selector.results@filter(uid(t)){uid}
+					}
+
+					heuristics(func: uid(heuristicSelectors)){
+						uid
+						created: Selector.created
+						modified: Selector.modified
+						type: Selector.type
+						status: Selector.status
+						parent: Selector.parent {uid}
+						children: ~Selector.parent{uid}
+						options: Selector.options
+						resultCount: count(Selector.results)
+						results: Selector.results{
+							HeuristicCluster.results@filter(uid(t)){uid}
 						}
 					}
 				}
@@ -160,7 +154,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 				}
 				
 				# only select the transaction creator
-				fragment fGetHeuristicCluster {
+				fragment fTxCluster {
 					tx_inputs(first:1){
 						...fGetCluster
 					}
@@ -186,18 +180,21 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 //
 //nolint:gocyclo
 func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
-	heuristics []Node, clusterHeight int64, err error) {
-	if len(r.ClusterHeight) != 1 {
+	selectorNodes []Node, clusterHeight int64, err error) {
+	if len(r.ClusterHeight) > 1 {
 		err = serror.FromFormat("invalid number of cluster height results: %d", len(r.ClusterHeight))
 		return
 	}
 
-	if r.ClusterHeight[0].LastClusteredID == nil {
+	if len(r.ClusterHeight) == 0 {
+		// cluster height not set yet
+		clusterHeight = 0
+	} else if r.ClusterHeight[0].LastClusteredID == nil {
 		err = serror.FromStr("null pointer received for last clustered ID")
 		return
+	} else {
+		clusterHeight = *r.ClusterHeight[0].LastClusteredID
 	}
-
-	clusterHeight = *r.ClusterHeight[0].LastClusteredID
 
 	// clusterToAddress contains the mapping of flat multi-input clusters to their addresses.
 	// This map is used to replace the uid of clusters with the uid of addresses.
@@ -217,14 +214,12 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		heuristicClusters := map[string]bool{}
 		for _, heuristicCluster := range heuristic.Clusters {
 			for _, result := range heuristicCluster.Results {
-				for _, tx := range append(result.Destinations, result.Origin) {
-					for _, input := range tx.Inputs {
-						for _, address := range input.Addresses {
-							for _, cluster := range address.Clusters {
-								// find corresponding address UID and set it connected to this transaction
-								if addressUID, ok := clusterToAddress[cluster.UID]; ok {
-									heuristicClusters[addressUID] = true
-								}
+				for _, input := range result.Inputs {
+					for _, address := range input.Addresses {
+						for _, cluster := range address.Clusters {
+							// find corresponding address UID and set it connected to this transaction
+							if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+								heuristicClusters[addressUID] = true
 							}
 						}
 					}
@@ -235,27 +230,25 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		heuristicToClusters[heuristic.UID] = heuristicClusters
 	}
 
-	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
-	// This map is used to add the contained heuristic uids as children to their corresponding transaction.
-	txToHeuristic := map[string][]string{}
+	selectorNodes = make([]Node, 0, len(r.Heuristics)+len(r.Selectors))
+	// parentToHeuristic contains the mapping of parents to its directly
+	// connected heuristics. This map is used to add the contained heuristic
+	// uids as children to their corresponding transaction (if its parent is a transaction).
+	parentToHeuristic := map[string][]string{}
 	for _, h := range r.Heuristics {
-		// no parent -> root heuristic
-		if len(h.ParentHeuristic) == 0 {
-			txToHeuristic[h.Transaction.UID] = append(txToHeuristic[h.Transaction.UID], h.UID)
+		if h.Parent != nil && h.Parent.UID != "" {
+			parentToHeuristic[h.Parent.UID] = append(parentToHeuristic[h.Parent.UID], h.UID)
 		}
 
-		children := make([]string, len(h.ChildHeuristics))
-		for i, c := range h.ChildHeuristics {
+		children := make([]string, len(h.Children))
+		for i, c := range h.Children {
 			children[i] = c.UID
 		}
 
 		// add connections between heuristics and their found origins
 		for _, cluster := range h.Clusters {
 			for _, result := range cluster.Results {
-				children = append(children, result.Origin.UID)
-				for _, destination := range result.Destinations {
-					children = append(children, destination.UID)
-				}
+				children = append(children, result.UID)
 			}
 		}
 
@@ -264,17 +257,75 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			children = append(children, heuristicClusters)
 		}
 
-		heuristics = append(heuristics, Node{
+		var opt dbHeuristic.Options
+		if err = json.Unmarshal([]byte(h.Options), &opt); err != nil {
+			err = serror.NewWithContext(err, "opt", h.Options)
+			return
+		}
+
+		selectorNodes = append(selectorNodes, Node{
 			UID:                 h.UID,
-			Type:                "heuristic",
+			Type:                NodeTypeSelector,
 			Children:            children,
-			HeuristicType:       h.Type,
-			Parameter:           h.Parameter,
-			ExcludeAddresses:    &h.ExcludeAddresses,    // #nosec G601, false positive as of go1.22
-			ExcludeSpendingGaps: &h.ExcludeSpendingGaps, // #nosec G601, false positive as of go1.22
-			ClusterTypes:        h.ClusterTypes,
-			ClusterCount:        h.ClusterCount,
-			Timestamp:           h.Timestamp,
+			SelectorType:        h.Type,
+			SelectorStatus:      h.Status,
+			SelectorResultCount: h.ResultCount,
+			SelectorCreated:     h.Created,
+			SelectorModified:    h.Modified,
+			HeuristicOptions:    &opt,
+		})
+	}
+
+	selectorToClusters := map[string]map[string]bool{}
+	for _, s := range r.SelectorClusters {
+		selectorCluster := map[string]bool{}
+		for _, result := range s.Results {
+			for _, input := range result.Inputs {
+				for _, address := range input.Addresses {
+					for _, cluster := range address.Clusters {
+						// find corresponding address UID and set it connected to this transaction
+						if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+							selectorCluster[addressUID] = true
+						}
+					}
+				}
+			}
+		}
+
+		selectorToClusters[s.UID] = selectorCluster
+	}
+
+	for _, s := range r.Selectors {
+		children := make([]string, len(s.Children))
+		for i, c := range s.Children {
+			children[i] = c.UID
+		}
+
+		// add connections between selectors and their results
+		for _, result := range s.Results {
+			children = append(children, result.UID)
+		}
+
+		// add cluster reachable from this heuristic as children
+		for selectorClusters := range selectorToClusters[s.UID] {
+			children = append(children, selectorClusters)
+		}
+
+		var opt Options
+		if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
+			err = serror.NewWithContext(err, "opt", s.Options)
+			return
+		}
+		selectorNodes = append(selectorNodes, Node{
+			UID:                 s.UID,
+			Type:                NodeTypeSelector,
+			Children:            children,
+			SelectorType:        s.Type,
+			SelectorStatus:      s.Status,
+			SelectorResultCount: s.ResultCount,
+			SelectorCreated:     s.Created,
+			SelectorModified:    s.Modified,
+			SelectorOptions:     &opt,
 		})
 	}
 
@@ -287,7 +338,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		}
 
 		// add root heuristics to transaction if available
-		if rootHeuristics, ok := txToHeuristic[queryTx.UID]; ok {
+		if rootHeuristics, ok := parentToHeuristic[queryTx.UID]; ok {
 			for _, h := range rootHeuristics {
 				ct.children[h] = true
 			}
@@ -404,7 +455,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 
 // GetConnectionClusterToCluster return the transaction UIDs which connect two clusters.
 // The provided UIDs must be of addresses of the respective clusters.
-func GetConnectionClusterToCluster(c external.Database, firstUID string, secondUID string) (
+func GetConnectionClusterToCluster(ctx context.Context, c external.Database, firstUID string, secondUID string) (
 	frontendTransactions []db.AmountTransaction, err error) {
 	const query = `query Q($first:string,$second:string){
 			# find fmi cluster for first address
@@ -452,7 +503,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 			}
 }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$first": firstUID, "$second": secondUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$first": firstUID, "$second": secondUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -464,12 +515,8 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 		ClusterClusters []struct {
 			Addresses []struct {
 				Outputs []struct {
-					InputClusters []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~tx_inputs,omitempty"`
-					OutputClusters []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~tx_outputs,omitempty"`
+					InputClusters  []db.UIDNode `json:"~tx_inputs,omitempty"`
+					OutputClusters []db.UIDNode `json:"~tx_outputs,omitempty"`
 				} `json:"addr_outputs,omitempty"`
 			} `json:"Cluster.addresses,omitempty"`
 		} `json:"cluster_clusters,omitempty"`
@@ -497,7 +544,7 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	}
 
 	if len(transactionMap) > 0 {
-		frontendTransactions, err = db.GetFrontendTransactionAmounts(c, cliutil.GetMapKeys(transactionMap))
+		frontendTransactions, err = db.GetFrontendTransactionAmounts(ctx, c, cliutil.GetMapKeys(transactionMap))
 		if err != nil {
 			return
 		}
@@ -506,40 +553,29 @@ func GetConnectionClusterToCluster(c external.Database, firstUID string, secondU
 	return
 }
 
-// GetConnectionClusterToHeuristic returns the transaction UIDs which connects a cluster to an heuristic.
+// GetConnectionClusterToSelector returns the transaction UIDs which connects a cluster to a selector.
 // The provided cluster UID must be of a cluster address.
-func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heuristicUID string, userUID string,
-	workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
-	const query = `query Q($cluster:string,$heuristic:string,$userUID:string,$workspaceUID:string){
+func GetConnectionClusterToSelector(ctx context.Context, c external.Database, clusterUID string,
+	selectorUID string, userUID string, workspaceUID string) (frontendTransactions []db.AmountTransaction, err error) {
+	const query = `query Q($cluster:string,$selector:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.heuristics@filter(uid($heuristic))
+					s as Workspace.selectors@filter(uid($selector))
 				}
 			}
 			
 			# find fmi cluster for address
 			var(func: uid($cluster))@filter(has(addresshash)){
-				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
-					uid
-				}
+				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 			}
 			
-			heuristic_clusters(func: uid(h)){
-				Heuristic.clusters{
-					HeuristicCluster.results{
-						# todo show only transaction which connects to cluster
-						HeuristicResult.destinations@cascade{
-							uid
-							tx_inputs(first:1){
-								...fGetCluster
-							}
-						}
-						HeuristicResult.origin@cascade{
-							uid
-							tx_inputs(first:1){
-								...fGetCluster
-							}
+			selector_clusters(func: uid(s)){
+				Selector.results{
+					HeuristicCluster.results@cascade{
+						uid
+						tx_inputs(first:1){
+							...fGetCluster
 						}
 					}
 				}
@@ -554,8 +590,8 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 			}
 		}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$cluster": clusterUID,
-		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$cluster": clusterUID,
+		"$selector": selectorUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -564,18 +600,11 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 	// json struct
 	// while the query also returns the cluster uids, only the transaction hashes are collected
 	var r struct {
-		HeuristicClusters []struct {
+		SelectorClusters []struct {
 			Clusters []struct {
-				Results []struct {
-					Destinations []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"HeuristicResult.destinations,omitempty"`
-					Origin struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"HeuristicResult.origin,omitempty"`
-				} `json:"HeuristicCluster.results,omitempty"`
-			} `json:"Heuristic.clusters,omitempty"`
-		} `json:"heuristic_clusters,omitempty"`
+				Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
+			} `json:"Selector.results,omitempty"`
+		} `json:"selector_clusters,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -583,26 +612,23 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 		return
 	}
 
-	if len(r.HeuristicClusters) != 1 {
-		err = serror.FromFormat("invalid number of heuristic results returned: %d", len(r.HeuristicClusters))
+	if len(r.SelectorClusters) != 1 {
+		err = serror.FromFormat("invalid number of selector results returned: %d", len(r.SelectorClusters))
 		return
 	}
 
-	if len(r.HeuristicClusters[0].Clusters) != 1 {
-		err = serror.FromFormat("invalid number of cluster results returned: %d", len(r.HeuristicClusters[0].Clusters))
+	if len(r.SelectorClusters[0].Clusters) != 1 {
+		err = serror.FromFormat("invalid number of cluster results returned: %d", len(r.SelectorClusters[0].Clusters))
 		return
 	}
 
 	transactionMap := map[string]bool{}
-	for _, results := range r.HeuristicClusters[0].Clusters[0].Results {
-		for _, destination := range results.Destinations {
-			transactionMap[destination.UID] = true
-		}
-		transactionMap[results.Origin.UID] = true
+	for _, results := range r.SelectorClusters[0].Clusters[0].Results {
+		transactionMap[results.UID] = true
 	}
 
 	if len(transactionMap) > 0 {
-		frontendTransactions, err = db.GetFrontendTransactionAmounts(c, cliutil.GetMapKeys(transactionMap))
+		frontendTransactions, err = db.GetFrontendTransactionAmounts(ctx, c, cliutil.GetMapKeys(transactionMap))
 		if err != nil {
 			return
 		}
@@ -613,7 +639,7 @@ func GetConnectionClusterToHeuristic(c external.Database, clusterUID string, heu
 
 // SearchForNode returns the uid which matches to the given query. In case the query is an address
 // which is connected to clusters, they are returned instead.
-func SearchForNode(c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
+func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
 	if nodeQuery == "" || userUID == "" {
 		err = serror.New(db.ErrEmptyRequestArgument)
 		return
@@ -633,7 +659,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 						}
 					}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$query": nodeQuery, "$user": userUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$query": nodeQuery, "$user": userUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -681,8 +707,8 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (node 
 
 // GetConnectionClusterToTransaction returns the given transaction, with each output
 // having a flag if it belongs to one of the cluster's addresses.
-func GetConnectionClusterToTransaction(c external.Database, clusterUID string, transactionUID string) (
-	frontendTransactions []db.FrontendTransaction, err error) {
+func GetConnectionClusterToTransaction(ctx context.Context, c external.Database, clusterUID string,
+	transactionUID string) (frontendTransactions []db.FrontendTransaction, err error) {
 	const query = `query Q($transaction:string,$address:string){
 					# find fmi cluster for address
 					var(func: uid($address))@filter(has(addresshash)){
@@ -712,7 +738,7 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -762,7 +788,7 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 	}
 
 	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
-		frontendTransactions, err = db.GetFrontendTransaction(c, r.Transactions[0].TransactionHash)
+		frontendTransactions, err = db.GetFrontendTransaction(ctx, c, r.Transactions[0].TransactionHash)
 		if err != nil {
 			return
 		}
@@ -785,44 +811,32 @@ func GetConnectionClusterToTransaction(c external.Database, clusterUID string, t
 	return
 }
 
-// GetConnectionHeuristicToTransaction returns the given transaction, with each output
-// having a flag if it belongs to one of the heuristic's clusters addresses.
-func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID string, transactionUID string, userUID string,
-	workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
-	const query = `query Q($transaction:string,$heuristic:string,$userUID:string,$workspaceUID:string){
+// GetConnectionSelectorToTransaction returns the given transaction, with each output
+// having a flag if it belongs to one of the selector's clusters addresses.
+func GetConnectionSelectorToTransaction(ctx context.Context, c external.Database, selectorUID string,
+	transactionUID string, userUID string, workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
+	const query = `query Q($transaction:string,$selector:string,$userUID:string,$workspaceUID:string){
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					h as Workspace.heuristics@filter(uid($heuristic))
+					s as Workspace.selectors@filter(uid($selector))
 				}
 			}
 
 			t as var(func: uid($transaction))
 
-			# get all cluster of heuristic
-			var(func: uid(h)){
-				Heuristic.clusters{
-					HeuristicCluster.results{
-						# todo show only transaction which connects to cluster
-						HeuristicResult.destinations@filter(uid(t)){
-							tx_inputs(first:1){
-								~addr_outputs{
-									c1 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
-								}
-							}
-						}
-						HeuristicResult.origin@filter(uid(t)){
-							tx_inputs(first:1){
-								~addr_outputs{
-									c2 as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
-								}
+			# get all clusters of selector
+			var(func: uid(s)){
+				Selector.results{
+					HeuristicCluster.results@filter(uid(t)){
+						tx_inputs(first:1){
+							~addr_outputs{
+								c as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 							}
 						}
 					}
 				}
 			}
-
-			c as var(func: uid(c1,c2))
 
 			q(func: uid(t)){
 				txhash
@@ -844,8 +858,8 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 			}
 		}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$transaction": transactionUID,
-		"$heuristic": heuristicUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID,
+		"$selector": selectorUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
 		return
@@ -895,7 +909,7 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 	}
 
 	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
-		frontendTransactions, err = db.GetFrontendTransaction(c, r.Transactions[0].TransactionHash)
+		frontendTransactions, err = db.GetFrontendTransaction(ctx, c, r.Transactions[0].TransactionHash)
 		if err != nil {
 			return
 		}
@@ -918,20 +932,20 @@ func GetConnectionHeuristicToTransaction(c external.Database, heuristicUID strin
 	return
 }
 
-// FindDescendantHeuristicUIDs returns the given node uid and all node uids which can
+// FindDescendantSelectorUIDs returns the given node uid and all node uids which can
 // be found by recursively traversing their children. Only heuristics are considered.
-func FindDescendantHeuristicUIDs(nodes map[string]Node, nodeUID string) []string {
+func FindDescendantSelectorUIDs(nodes map[string]Node, nodeUID string) []string {
 	var descendants []string
 
 	n, ok := nodes[nodeUID]
-	if !ok || n.Type != NodeTypeHeuristic {
+	if !ok || n.Type != NodeTypeSelector {
 		return descendants
 	}
 
 	descendants = append(descendants, n.UID)
 
 	for _, childNode := range n.Children {
-		descendants = append(descendants, FindDescendantHeuristicUIDs(nodes, childNode)...)
+		descendants = append(descendants, FindDescendantSelectorUIDs(nodes, childNode)...)
 	}
 	return descendants
 }

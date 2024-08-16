@@ -9,17 +9,25 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
+	"backend/db/workspace"
 	"backend/external"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"time"
 )
 
-// errNoOriginsAtStart defines an error which should be used when no origins are available
-var errNoOriginsAtStart = errors.New("no origins can be fetched")
+type heuristicConstructor func() heuristic
 
-var errInvalidClusterTypes = errors.New("cluster types are not valid")
+var ConstructorMap = make(map[string]heuristicConstructor)
+
+var (
+	errHeuristicNotValid = errors.New("error heuristics are not valid")
+	// errNoOriginsAtStart defines an error which should be used when no origins are available
+	errNoOriginsAtStart    = errors.New("no origins can be fetched")
+	errInvalidClusterTypes = errors.New("cluster types are not valid")
+)
 
 const (
 	// heuristicCategoryReverse defines a category string for the frontend to order the heuristic
@@ -27,6 +35,35 @@ const (
 	// heuristicCategoryForward defines a category string for the frontend to order the heuristic
 	heuristicCategoryForward = "Forward"
 )
+
+func init() {
+	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
+	// New heuristics must be added here
+	var validHeuristicTypes = []heuristicConstructor{
+		newOneSourceHeuristic,
+		newReverseAmountHeuristic,
+		newPerfectMatchHeuristic,
+		newDenominationTypeHeuristic,
+		newReverseLookupHeuristic,
+		newForwardLookupHeuristic,
+		newForwardAmountHeuristic,
+		newSimpleForwardHeuristic,
+	}
+
+	for _, h := range validHeuristicTypes {
+		ConstructorMap[h().getType()] = h
+	}
+}
+
+// areClusterTypesValid checks if the given clusterTypes are valid
+func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
+	if len(clusterTypes) == 0 {
+		return true
+	}
+
+	// for now only one additional cluster type exists
+	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
+}
 
 type Descriptor struct {
 	Title       string `json:"title,omitempty"`
@@ -43,41 +80,21 @@ type Descriptor struct {
 }
 
 type heuristic interface {
+	fmt.Stringer
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+	exec(dgraph external.Database, g *graph.Wrapper,
 		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
-	// getParameterString returns the used parameter for this heuristic as a string
+	// getParameterString should return the parameter in string (e.g. '10h' for a 10 hour duration).
+	// This string is saved in the database.
 	getParameterString() string
-	// hasParameter returns true if this heuristic has a parameter
-	hasParameter() bool
-	// setParameter sets the parameter
-	setParameter(string) error
-	// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
-	// If cluster types are set to nil, the result will not be clustered.
-	// If multiple cluster types are set, then the consolidation of these clusters will be used.
-	setClusterTypes([]clustering.ClusterType) error
-	// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
-	getClusterTypes() []clustering.ClusterType
-	// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
-	setExcludeAddresses(bool)
-	// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
-	getExcludeAddresses() bool
-	// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
-	setExcludeSpendingGaps(bool)
-	// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
-	getExcludeSpendingGaps() bool
-	// setUserUID sets the UID of the user who created this heuristic
-	setUserUID(string)
-	// String returns the heuristic in string format
-	String() string
+	// setConfig applies the provided configuration values
+	setConfig(heuristics.Options) error
+	// getConfig returns the configuration of the heuristic
+	getConfig() heuristics.Options
 	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
 	GetDescriptor() Descriptor
-	// clone copies an instance of this interface. This method is needed because
-	// instances of interfaces can not be easily copied-by-value.
-	// More information: https://stackoverflow.com/questions/37851500/how-to-copy-an-interface-value-in-go
-	clone() heuristic
 }
 
 // getNumberOfDenominations returns the number of denominations. If destinationTransaction is set, it
@@ -184,28 +201,25 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType, exclusions []string,
-	excludeSpendingGaps bool) (
+	lookBackTime time.Duration, exclusions []string, c heuristics.Options) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
-	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, excludeSpendingGaps)
+	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// get tx details for each uid
-	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, cliutil.GetMapKeys(endpoints),
-		userUID, clusterTypes)
+	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes)
 }
 
 // getDestinationTxOrigins returns all origins of the given
 // transaction, limited to a look back time of 90 days.
-func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash string, userUID string,
-	requestedClusterTypes []clustering.ClusterType, excludeAddresses bool,
-	excludeSpendingGaps bool) ([]heuristics.HeuristicTransaction,
+func getDestinationTxOrigins(ctx context.Context, dgraph external.Database,
+	g *graph.Wrapper, txHash string, c heuristics.Options) ([]heuristics.HeuristicTransaction,
 	map[heuristics.ClusterUID][]string, error) {
-	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90,
-		userUID, requestedClusterTypes, excludeAddresses, excludeSpendingGaps)
+	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(ctx, dgraph, g, txHash, time.Hour*24*90, c)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -214,11 +228,11 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash 
 
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
-func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper, txHash string, dur time.Duration,
-	userUID string, requestedClusterTypes []clustering.ClusterType, excludeAddresses bool, excludeSpendingGaps bool) (
+func getDestinationTxOriginsTimeLimited(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	txHash string, dur time.Duration, c heuristics.Options) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// get uid for txhash
-	uid, err := db.GetTransactionUID(dgraph, txHash)
+	uid, err := db.GetTransactionUID(ctx, dgraph, txHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -229,8 +243,8 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	}
 
 	var exclusions []string
-	if excludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, userUID)
+	if c.ExcludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, c.UserUID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -239,7 +253,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions, excludeSpendingGaps)
+		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions, c.ExcludeSpendingGaps)
 		if lookupErr != nil {
 			return nil, nil, lookupErr
 		}
@@ -251,7 +265,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 
 	// get tx details for each uid
 	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, cliutil.GetMapKeys(uidMap),
-		userUID, requestedClusterTypes)
+		c.UserUID, c.ClusterTypes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -292,110 +306,62 @@ func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
 	return heuristics.GetTransactionsWithInputAmount(dgraph, cliutil.GetMapKeys(uidMap))
 }
 
-func isParentHeuristicSet(parentHeuristicUID string) bool {
-	return parentHeuristicUID != ""
+func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {
+	parentType, err := db.GetTypeByUID(ctx, c, parentUID)
+	if err != nil {
+		return false, err
+	}
+
+	return parentType == workspace.SelectorDType, nil
 }
 
 // Executor holds information for executing on heuristic and its children
 type Executor struct {
-	rootUID         string
-	thisHeuristic   heuristic
-	transactionHash string
+	rootUID       string
+	thisHeuristic heuristic
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(newHeuristic heuristics.DatabaseHeuristicRequest, userUID string) (executor Executor, err error) {
-	if newHeuristic.TransactionHash == "" {
-		err = serror.FromFormat("transaction of heuristic request is empty: %v", newHeuristic)
-		return
-	}
-
-	// only set values for global type map once
-	if len(typeMap) == 0 {
-		for _, h := range ValidHeuristicTypes {
-			typeMap[h.getType()] = h
-		}
-	}
-
-	if modelHeuristic, ok := typeMap[newHeuristic.Type]; !ok ||
-		(modelHeuristic.hasParameter() && len(newHeuristic.Parameter) == 0) {
+func ConstructExecutors(config heuristics.Options, userUID string, parentUID string) (executor Executor, err error) {
+	constructor, ok := ConstructorMap[config.Type]
+	if !ok {
 		err = serror.New(errHeuristicNotValid)
 		return
 	}
 
-	newHeuristicElement, err := buildHeuristicTreeElement(typeMap, newHeuristic, userUID)
-	if err != nil {
+	// copy parameters from heuristic request into newly created heuristic
+	clonedHeuristic := constructor()
+	c := config
+	c.UserUID = userUID
+	if err = clonedHeuristic.setConfig(c); err != nil {
 		return
 	}
 
 	executor = Executor{
-		thisHeuristic:   newHeuristicElement.heuristic,
-		rootUID:         newHeuristicElement.parentHeuristicUID,
-		transactionHash: newHeuristic.TransactionHash,
+		thisHeuristic: clonedHeuristic,
+		rootUID:       parentUID,
 	}
 
 	return
 }
 
-// Run start the execution of the given heuristic executor. If parentHeuristicUID is not
-// set (e.g. "") than the Executor.rootUID is used
-func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) (*heuristics.Heuristic, error) {
-	newHeuristic, err := exec(dgraph, g, hx.transactionHash, hx.rootUID, hx.thisHeuristic)
-	if err != nil {
-		return nil, fmt.Errorf("heuristic type: %s, parameter: %s, %w",
-			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
-	}
-
-	return newHeuristic, nil
-}
-
-// exec executes the heuristic on the transaction specified by txHash for the given userUID
-func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string,
-	h heuristic) (newHeuristic *heuristics.Heuristic, err error) {
-	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
+// Run starts the execution of the given heuristic executor.
+func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
+	heuristicClusters, err := hx.thisHeuristic.exec(dgraph, g, hx.rootUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
-		return
+		return nil, err
 	}
 
 	// set DType
 	for i := range heuristicClusters {
 		heuristicClusters[i].SetDType()
-		for y := range heuristicClusters[i].Results {
-			heuristicClusters[i].Results[y].SetDType()
-		}
 	}
 
-	// only set parent heuristic if uid is provided
-	var pHeuristic []heuristics.Heuristic
-	if parentHeuristicUID != "" {
-		pHeuristic = []heuristics.Heuristic{{UID: parentHeuristicUID}}
-	}
-
-	clusterTypes := make([]string, len(h.getClusterTypes()))
-	for i, cType := range h.getClusterTypes() {
-		clusterTypes[i] = string(cType)
-	}
-
-	shouldExcludeAddresses := h.getExcludeAddresses()
-	shouldExcludeSpendingGaps := h.getExcludeSpendingGaps()
-
-	newHeuristic = &heuristics.Heuristic{
-		HeuristicType:       h.getType(),
-		ClusterTypes:        clusterTypes,
-		ExcludeAddresses:    &shouldExcludeAddresses,
-		ExcludeSpendingGaps: &shouldExcludeSpendingGaps,
-		Clusters:            heuristicClusters,
-		Parameter:           h.getParameterString(),
-		ParentHeuristic:     pHeuristic,
-		TxHash:              txHash,
-		Timestamp:           time.Now().UTC().Format(time.RFC3339),
-	}
-
-	return
+	return heuristicClusters, nil
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's
-func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.HeuristicResult,
+func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode,
 	attributionMap map[heuristics.ClusterUID][]string) []heuristics.HeuristicCluster {
 	resultCluster := make([]heuristics.HeuristicCluster, 0, len(clusterMap))
 	for clusterID, results := range clusterMap {

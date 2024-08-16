@@ -9,7 +9,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
-	"backend/worker"
+	"backend/workspace"
 	"flag"
 	"fmt"
 	"github.com/qrest/gomisc/config"
@@ -40,7 +40,7 @@ func initAllLoggers(fileHandle *os.File) {
 	db.InitLogger()
 	processor.InitLogger()
 	server.InitLogger()
-	worker.InitLogger()
+	workspace.InitLogger()
 }
 
 func info(msg string, v ...any) {

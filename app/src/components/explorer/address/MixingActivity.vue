@@ -219,7 +219,7 @@
                 :show-search-field="false"
                 one-line
                 :show-delete-button="false"
-                :show-workspaces-button="false"
+                :show-add-selector-button="false"
                 disable-filter
                 @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
                 @center="nodeGraph.centerGraph()"
@@ -377,7 +377,7 @@ function setErrorMessage(msg) {
 
 function onBarClick(data) {
 	if (data.x0.getHours() === data.x1.getHours()
-      && data.x0.getMinutes() === data.x1.getMinutes()) {
+		&& data.x0.getMinutes() === data.x1.getMinutes()) {
 		barTable.value.startDate = data.x0.toLocaleDateString();
 		barTable.value.endDate = data.x1.toLocaleDateString();
 	} else {
@@ -430,7 +430,7 @@ function getFilteredData(withGraphData) {
 
 	const items = activities.value.map(d => toRaw(d)).filter(d => {
 		if (selectedPrivacyLabel.value.length < 5
-        && !selectedPrivacyLabel.value.includes(d.privacyTypeLabel)) {
+			&& !selectedPrivacyLabel.value.includes(d.privacyTypeLabel)) {
 			return false;
 		}
 
@@ -537,7 +537,7 @@ function onTabChange(tab) {
 
 	if (graphMode) {
 		if (!showTooManyTransactionsMsg.value
-        || overrideTooManyTransactionsWarning.value) {
+			|| overrideTooManyTransactionsWarning.value) {
 			updateSvgData();
 		}
 
@@ -622,7 +622,7 @@ async function updateSvgData(pullNewData) {
 	// Draw
 	if (graphMode) {
 		if (!showTooManyTransactionsMsg.value
-        || overrideTooManyTransactionsWarning.value) {
+			|| overrideTooManyTransactionsWarning.value) {
 			showGraph.value = true;
 			nodeGraph.removeAllNodes(false);
 

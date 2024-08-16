@@ -47,13 +47,11 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 	handler := http.NewServeMux()
 
 	const routeUsers = "users"
-	// User
 	handler.Handle(server.BuildPattern(http.MethodPost, routeUsers, ""),
 		mw.Adapt(s.handlerCreateUser(), mw.MaxBody5MiB()))
 	handler.Handle(server.BuildPattern(http.MethodDelete, routeUsers, "uid"),
 		mw.Adapt(s.handlerDeleteUser(), mw.MaxBody5MiB()))
 
-	// create server
 	srv := &http.Server{
 		Addr:              ":" + strconv.FormatUint(uint64(port), 10),
 		Handler:           handler,

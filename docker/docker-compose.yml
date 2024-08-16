@@ -6,7 +6,7 @@ x-logging:
 
 services:
   zero:
-    image: dgraph/dgraph:v24.0.0
+    image: dgraph/dgraph:v24.0.1
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -19,7 +19,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v24.0.0
+    image: dgraph/dgraph:v24.0.1
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -93,7 +93,7 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:20.1
+    image: dashpay/dashd:21.0
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/home/dash
@@ -120,6 +120,21 @@ services:
       - 4567
     networks:
       - dgraph_default
+
+  kratosadmin:
+    image: bluedark/kratosadmin:latest
+    container_name: kratosadmin
+    volumes:
+      - ./kratosadmin/config.yml:/config.yml
+    ports:
+      - "9316:9316"
+    expose:
+      - 9316
+    networks:
+      - dgraph_default
+    logging: *default-logging
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   oathkeeper:
     image: oryd/oathkeeper:v0.40

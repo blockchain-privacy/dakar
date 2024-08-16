@@ -250,19 +250,19 @@ func Test_calculateMetrics(t *testing.T) {
 	operations := []clustering.DBOperation{
 		{
 			NewCluster: clustering.Cluster{
-				Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x2"}, {UID: "0x3"}},
+				Addresses: []db.UIDNode{{UID: "0x1"}, {UID: "0x2"}, {UID: "0x3"}},
 			},
 			OldClusters: []string{"1", "2", "3"},
 		},
 		{
 			NewCluster: clustering.Cluster{
-				Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x2"}},
+				Addresses: []db.UIDNode{{UID: "0x1"}, {UID: "0x2"}},
 			},
 			OldClusters: []string{"1", "2"},
 		},
 		{
 			NewCluster: clustering.Cluster{
-				Addresses: []clustering.HollowAddress{{UID: "0x1"}},
+				Addresses: []db.UIDNode{{UID: "0x1"}},
 			},
 			OldClusters: []string{"1"},
 		},
@@ -273,23 +273,9 @@ func Test_calculateMetrics(t *testing.T) {
 	require.Equal(t, 6, addressCount)
 }
 
-// unregisterCollectors unregisters all collectors of the flat multi input clusterer.
-// This is needed because collectors can not be registered twice with the same default config.
-func unregisterCollectors(fm *FlatMultiInput) {
-	if fm == nil {
-		return
-	}
-
-	prometheus.Unregister(fm.blocks)
-	prometheus.Unregister(fm.transactions)
-	prometheus.Unregister(fm.mergedClusters)
-	prometheus.Unregister(fm.newAddresses)
-	prometheus.Unregister(fm.blockHeight)
-}
-
 func TestNewFlatMultiInput(t *testing.T) {
 	fm := NewFlatMultiInput(context.Background(), nil, 1)
-	unregisterCollectors(fm)
+
 	require.NotNil(t, fm)
 }
 
@@ -297,8 +283,7 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
 	fm := NewFlatMultiInput(context.Background(), nil, 1)
-	unregisterCollectors(fm)
-
+	fm.RegisterMetrics(prometheus.NewRegistry())
 	// panics because db is not set
 	require.Panics(t, func() {
 		_ = fm.CalculateInitialState()
@@ -323,8 +308,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
-	unregisterCollectors(fm)
-
+	fm.RegisterMetrics(prometheus.NewRegistry())
 	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
 	require.NoError(t, fm.CalculateInitialState())
 
@@ -349,7 +333,6 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
-	unregisterCollectors(fm)
 
 	// error because no status is set
 	_, err := fm.NextBlock()
@@ -373,14 +356,12 @@ func TestFlatMultiInput_PostExecution(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 
 	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
-	unregisterCollectors(fm)
 
 	require.NoError(t, fm.PostExecution())
 }
 
 func TestFlatMultiInput_IncrementState(t *testing.T) {
 	fm := NewFlatMultiInput(context.Background(), nil, 1)
-	unregisterCollectors(fm)
 
 	require.EqualValues(t, 0, fm.state.ID)
 	// need to simulate a block being processed
@@ -391,7 +372,6 @@ func TestFlatMultiInput_IncrementState(t *testing.T) {
 
 func TestFlatMultiInput_Empty(t *testing.T) {
 	fm := NewFlatMultiInput(context.Background(), nil, 1)
-	unregisterCollectors(fm)
 
 	// initially top and id are 0, so not empty
 	require.False(t, fm.Empty())
@@ -403,7 +383,6 @@ func TestFlatMultiInput_Empty(t *testing.T) {
 
 func TestFlatMultiInput_Props(t *testing.T) {
 	fm := NewFlatMultiInput(context.Background(), nil, 1)
-	unregisterCollectors(fm)
 
 	require.NotEmpty(t, fm.Props())
 }

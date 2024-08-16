@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	dbh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	"backend/db/workspace"
 	"backend/external"
@@ -97,16 +96,16 @@ type metaReply struct {
 	Blocks *int64                 `json:"blocks,omitempty"`
 }
 
-type heuristicByWorkIDReply struct {
+type selectorStatusReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 
-type heuristicExecutionReply struct {
-	WorkID string `json:"workID"`
+type addWorkspaceSelectorReply struct {
+	Nodes []workspace.Node `json:"nodes,omitempty"`
 }
 
-type heuristicDetailsReply struct {
-	Heuristic *dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
+type selectorResultsReply struct {
+	Results workspace.FrontendSelectorResults `json:"selector,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
@@ -166,14 +165,14 @@ type SearchResult struct {
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
-func GetBlock(dgraph external.Database, query string) (SearchResult, bool, error) {
-	return GetBlockWithOptions(dgraph, query, 0)
+func GetBlock(ctx context.Context, dgraph external.Database, query string) (SearchResult, bool, error) {
+	return GetBlockWithOptions(ctx, dgraph, query, 0)
 }
 
 // GetBlockWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports an offset. A maximum of 5 transactions is returned.
-func GetBlockWithOptions(dgraph external.Database, query string, offset int) (SearchResult, bool, error) {
-	block, err := db.GetFrontendBlock(dgraph, query, offset)
+func GetBlockWithOptions(ctx context.Context, dgraph external.Database, query string, offset int) (SearchResult, bool, error) {
+	block, err := db.GetFrontendBlock(ctx, dgraph, query, offset)
 	if err != nil {
 		// only print error if it is not expected
 		if !errors.Is(err, db.ErrBlockNotFound) {
@@ -186,8 +185,8 @@ func GetBlockWithOptions(dgraph external.Database, query string, offset int) (Se
 }
 
 // GetTransaction searches for the hash specified in query. If a transaction is found the returned bool is true
-func GetTransaction(dgraph external.Database, query string) (SearchResult, bool, error) {
-	tx, err := db.GetFrontendTransaction(dgraph, query)
+func GetTransaction(ctx context.Context, dgraph external.Database, query string) (SearchResult, bool, error) {
+	tx, err := db.GetFrontendTransaction(ctx, dgraph, query)
 	if err != nil {
 		// only print error if it is not expected
 		if !errors.Is(err, db.ErrTransactionNotFound) {
@@ -201,16 +200,16 @@ func GetTransaction(dgraph external.Database, query string) (SearchResult, bool,
 
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
 // A maximum of 20 elements is returned.
-func GetAddress(dgraph external.Database, query string) (SearchResult, bool, error) {
-	return GetAddressWithOptions(dgraph, query, db.SortAscendingByOutputTime, 0, nil)
+func GetAddress(ctx context.Context, dgraph external.Database, query string) (SearchResult, bool, error) {
+	return GetAddressWithOptions(ctx, dgraph, query, db.SortAscendingByOutputTime, 0, nil)
 }
 
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports sorting and setting an offset. For sorting use the constants defined in the db address module.
 // A maximum of 20 elements is returned.
-func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int,
+func GetAddressWithOptions(ctx context.Context, dgraph external.Database, query string, sortOrder int,
 	offset int, filters []int) (SearchResult, bool, error) {
-	addr, err := db.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
+	addr, err := db.GetFrontendAddress(ctx, dgraph, query, sortOrder, offset, filters)
 	if err != nil {
 		// only print error if it is not expected
 		if !errors.Is(err, db.ErrAddressNotFound) {

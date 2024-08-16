@@ -3,6 +3,7 @@ package db
 import (
 	"backend/external"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -61,16 +62,16 @@ func TestGetFrontendAddress(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	_, err := GetFrontendAddress(dbHandle, "", 1, 1, nil)
+	_, err := GetFrontendAddress(context.Background(), dbHandle, "", 1, 1, nil)
 	require.Error(t, err)
 
 	const addrHash = "XsE93qsgqTkzumVTaeanYRXqVz3uXjWpkc"
 
-	addr, err := GetFrontendAddress(dbHandle, addrHash, SortAscendingByAmount, 1, nil)
+	addr, err := GetFrontendAddress(context.Background(), dbHandle, addrHash, SortAscendingByAmount, 1, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, addr.Outputs)
 
-	addr, err = GetFrontendAddress(dbHandle, addrHash, SortAscendingByAmount, 1, []int{FilterByUnspent})
+	addr, err = GetFrontendAddress(context.Background(), dbHandle, addrHash, SortAscendingByAmount, 1, []int{FilterByUnspent})
 	require.NoError(t, err)
 	require.Empty(t, addr.Outputs)
 }
@@ -81,7 +82,7 @@ func TestUpsertAddresses(t *testing.T) {
 
 	const newAddressHash = "some_address_hash"
 
-	_, err := GetFrontendAddress(dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
+	_, err := GetFrontendAddress(context.Background(), dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
 	require.Error(t, err)
 
 	newAddress := Address{Hash: newAddressHash, Outputs: []Output{{
@@ -95,7 +96,7 @@ func TestUpsertAddresses(t *testing.T) {
 
 	require.NoError(t, UpsertAddresses(dbHandle, []Address{newAddress}))
 
-	frontendAddress, err := GetFrontendAddress(dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
+	frontendAddress, err := GetFrontendAddress(context.Background(), dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
 	require.NoError(t, err)
 	require.Equal(t, newAddressHash, frontendAddress.Hash)
 }
@@ -141,7 +142,7 @@ func TestGetAddressUIDs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotAddresses, err := GetAddressUIDs(tt.args.c, tt.args.addressHashes)
+		gotAddresses, err := GetAddressUIDs(context.Background(), tt.args.c, tt.args.addressHashes)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

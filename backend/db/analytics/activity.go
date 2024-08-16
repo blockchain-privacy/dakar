@@ -2,13 +2,12 @@ package analytics
 
 import (
 	"backend/constants"
-	"backend/db"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
 	"fmt"
-	"time"
 )
 
 // Functions for detecting mixing activity
@@ -17,7 +16,8 @@ import (
 // to the cluster (of the given address) and directly connected to all collateral
 // transactions of the cluster.
 // If isClusterLookup is false, only the given address and its connected transactions will be considered.
-func GetMixingActivity(c external.Database, addressHash string, isClusterLookup bool) ([]MixingActivity, error) {
+func GetMixingActivity(ctx context.Context, c external.Database,
+	addressHash string, isClusterLookup bool) ([]MixingActivity, error) {
 	var clusterID, clusterQuery string
 
 	if isClusterLookup {
@@ -73,9 +73,9 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 					}
 			  	}`, clusterQuery, clusterID)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$address": addressHash})
+	resp, err := c.Query(ctx, query, map[string]string{"$address": addressHash})
 	if err != nil {
-		return nil, err
+		return nil, serror.New(err)
 	}
 
 	var r struct {

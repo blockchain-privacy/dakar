@@ -1,8 +1,10 @@
 package userserver
 
 import (
+	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	dbus "backend/db/user"
 	dbwork "backend/db/workspace"
 	"backend/external"
@@ -41,28 +43,40 @@ func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgRep
 		return
 	}
 
-	if err := attribution.DeleteAllAttributions(dgraph, uid); err != nil {
+	// not using the request context here, because user deletion process should
+	// continue even if the request gets cancelled or times out
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	if err := exclusion.DeleteAllAddressExclusions(ctx, dgraph, uid); err != nil {
+		reply.Msg = "could not delete users' " + uid + " address exclusions"
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	if err := attribution.DeleteAllAttributions(ctx, dgraph, uid); err != nil {
 		reply.Msg = "could not delete users' " + uid + " attributions"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
+	if err := clustering.DeleteAllClusters(ctx, dgraph, uid); err != nil {
 		reply.Msg = "could not delete users' " + uid + " clusters"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	if err := dbwork.DeleteAllWorkspaces(dgraph, uid); err != nil {
+	if err := dbwork.DeleteAllWorkspaces(ctx, dgraph, uid); err != nil {
 		reply.Msg = "could not delete users' " + uid + " workspaces"
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	if err := dbus.DeleteUser(dgraph, uid); err != nil {
+	if err := dbus.DeleteUser(ctx, dgraph, uid); err != nil {
 		reply.Msg = "could not delete dgraph user"
 		status = http.StatusInternalServerError
 		warn(err)

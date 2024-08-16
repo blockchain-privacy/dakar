@@ -36,6 +36,7 @@ func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
 	return err
 }
 
+//nolint:staticcheck // statichceck somehow complains about SA3000, despite being only relevant for go versions <1.15
 func TestMain(m *testing.M) {
 	InitLogger()
 
@@ -330,16 +331,12 @@ func Test_crawlerState_increment(t *testing.T) {
 	require.EqualValues(t, 2, state.id)
 }
 
-func getPointer[number any](n number) *number {
-	return &n
-}
-
 func Test_buildAddresses(t *testing.T) {
 	oCache := newOutputCache()
 	err := oCache.setOutputs("asdf", []db.Output{
-		{OutputIndex: getPointer[uint32](1)},
-		{OutputIndex: getPointer[uint32](2)},
-		{OutputIndex: getPointer[uint32](3)},
+		{OutputIndex: testhelper.GetPointer[uint32](1)},
+		{OutputIndex: testhelper.GetPointer[uint32](2)},
+		{OutputIndex: testhelper.GetPointer[uint32](3)},
 	})
 	require.NoError(t, err)
 
@@ -440,7 +437,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 
 	txWithoutAddresses := rawTxResult
 	for i := range txWithoutAddresses.Vout {
-		txWithoutAddresses.Vout[i].ScriptPubKey.Addresses = nil
+		txWithoutAddresses.Vout[i].ScriptPubKey.Address = ""
 		txWithoutAddresses.Vout[i].ScriptPubKey.Type = "pubkeyhash"
 	}
 
@@ -507,8 +504,8 @@ func Test_filterExternalOutputs(t *testing.T) {
 
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs("txhash2", []db.Output{
-		{OutputIndex: getPointer[uint32](4)},
-		{OutputIndex: getPointer[uint32](5)},
+		{OutputIndex: testhelper.GetPointer[uint32](4)},
+		{OutputIndex: testhelper.GetPointer[uint32](5)},
 	}))
 
 	type args struct {
@@ -550,8 +547,8 @@ func Test_processTxVin(t *testing.T) {
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs("txhash1", []db.Output{
 		{
-			OutputIndex: getPointer[uint32](0),
-			Amount:      getPointer[int64](3),
+			OutputIndex: testhelper.GetPointer[uint32](0),
+			Amount:      testhelper.GetPointer[int64](3),
 		},
 	}))
 	type args struct {
@@ -686,16 +683,16 @@ func Test_getStartingID(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
-		IsCrawling: getPointer[bool](true),
+		IsCrawling: testhelper.GetPointer[bool](true),
 		// make blocks not match
-		LastBlockID: getPointer[uint64](5),
+		LastBlockID: testhelper.GetPointer[uint64](5),
 	}))
 	_, err = getStartingID(dbHandle)
 	require.Error(t, err)
 
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
-		IsCrawling:  getPointer[bool](true),
-		LastBlockID: getPointer[uint64](testhelper.BlockFileLastBlock),
+		IsCrawling:  testhelper.GetPointer[bool](true),
+		LastBlockID: testhelper.GetPointer[uint64](testhelper.BlockFileLastBlock),
 	}))
 	gotStartID, err = getStartingID(dbHandle)
 	require.NoError(t, err)
@@ -837,21 +834,6 @@ func Test_getOutputAddress(t *testing.T) {
 				Address: "a",
 			},
 			want:    "a",
-			wantErr: false,
-		},
-		{
-			pubKey: &jsonrpc.ScriptPubKeyResult{
-				Addresses: []string{"b"},
-				Address:   "a",
-			},
-			want:    "a",
-			wantErr: false,
-		},
-		{
-			pubKey: &jsonrpc.ScriptPubKeyResult{
-				Addresses: []string{"b"},
-			},
-			want:    "b",
 			wantErr: false,
 		},
 		{

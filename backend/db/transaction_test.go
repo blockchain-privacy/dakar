@@ -3,6 +3,7 @@ package db
 import (
 	"backend/constants"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -227,7 +228,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const blockHash = "00000000000cfe64fca7b5c3a8ad1ee39dd3f380aeb56027bc25e97904d2c99e"
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
-	transaction, err := GetFrontendTransaction(dbHandle, txHash1)
+	transaction, err := GetFrontendTransaction(context.Background(), dbHandle, txHash1)
 	require.NoError(t, err)
 	require.Len(t, transaction, 1)
 	require.Equal(t, txHash1, transaction[0].Hash)
@@ -237,7 +238,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638"
-	transaction, err = GetFrontendTransaction(dbHandle, txHash2)
+	transaction, err = GetFrontendTransaction(context.Background(), dbHandle, txHash2)
 	require.NoError(t, err)
 	require.Len(t, transaction, 1)
 	require.Equal(t, txHash2, transaction[0].Hash)
@@ -259,7 +260,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 		uids[i] = tx.UID
 	}
 
-	frontendTransactions, err := GetFrontendTransactionsByUID(dbHandle, uids[:])
+	frontendTransactions, err := GetFrontendTransactionsByUID(context.Background(), dbHandle, uids[:])
 	require.NoError(t, err)
 	require.Equal(t, len(transactions), len(frontendTransactions))
 }
@@ -269,12 +270,12 @@ func TestGetTransactionBlockID(t *testing.T) {
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
-	id, err := GetTransactionBlockID(dbHandle, txHash1)
+	id, err := GetTransactionBlockID(context.Background(), dbHandle, txHash1)
 	require.NoError(t, err)
 	require.EqualValues(t, 60001, id)
 
 	const txHash2 = "d0bc5aba5a81df73b706d7819956fb298e03baf52a97c736bb588dfd3586e849"
-	id, err = GetTransactionBlockID(dbHandle, txHash2)
+	id, err = GetTransactionBlockID(context.Background(), dbHandle, txHash2)
 	require.NoError(t, err)
 	require.EqualValues(t, 60007, id)
 }
@@ -315,14 +316,15 @@ func TestGetTransactionUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	_, err := GetTransactionUID(dbHandle, "")
+	ctx := context.Background()
+	_, err := GetTransactionUID(ctx, dbHandle, "")
 	require.Error(t, err)
 
-	_, err = GetTransactionUID(dbHandle, "transaction_hash_which_does_not_exist")
+	_, err = GetTransactionUID(ctx, dbHandle, "transaction_hash_which_does_not_exist")
 	require.Error(t, err)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
-	uid, err := GetTransactionUID(dbHandle, txHash1)
+	uid, err := GetTransactionUID(ctx, dbHandle, txHash1)
 	require.NoError(t, err)
 	require.NotEmpty(t, uid)
 }
@@ -406,7 +408,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotTxs, err := GetTransactionUIDMapping(dbHandle, tt.txUids)
+		gotTxs, err := GetTransactionUIDMapping(context.Background(), dbHandle, tt.txUids)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

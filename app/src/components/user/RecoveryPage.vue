@@ -81,7 +81,7 @@ function setErrorMessage(msg) {
 
 async function initRecoveryFlow() {
 	try {
-		const response = await 	ory.frontend.createBrowserRecoveryFlow();
+		const response = await ory.frontend.createBrowserRecoveryFlow();
 		setFlowData(response);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);

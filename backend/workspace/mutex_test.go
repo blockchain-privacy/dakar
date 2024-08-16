@@ -10,7 +10,7 @@ import (
 )
 
 // Credit: https://stackoverflow.com/questions/40931373/how-to-gc-a-map-of-mutexes-in-go/62562831#62562831
-func TestM(t *testing.T) {
+func TestMutexMap(t *testing.T) {
 	m := NewMutex()
 
 	keyCount := 20

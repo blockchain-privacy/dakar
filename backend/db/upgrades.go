@@ -72,3 +72,99 @@ func AlterSchemaRemoveHex(c external.Database) error {
 			}`,
 	})
 }
+
+func DropPredicateWorkspaceHeuristics(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{DropAttr: "Workspace.heuristics"})
+}
+
+func AlterSchemaAddSelectors(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Workspace.selectors: [uid] @reverse . # selectors which are managed by this workspace
+			type Workspace {
+				Workspace.name
+				Workspace.ts
+				Workspace.state
+				Workspace.clusterHeight
+				Workspace.selectors
+			}
+			
+			Selector.created: dateTime @index(day) .  # creation date of the selector
+			Selector.modified: dateTime @index(day) .  # modification date of the selector
+			Selector.type: string @index(hash) . # type of the selector
+			Selector.status: string @index(hash) . # status of the selector (waiting, error, success)
+			Selector.parent: uid @reverse . # parent node from which a selector can use data
+			Selector.options: string . # JSON encoded options of the selector
+			Selector.results: [uid] @reverse . # results of the selector
+
+			type Selector {
+				Selector.created
+				Selector.modified
+				Selector.type
+				Selector.status
+				Selector.parent
+				Selector.options
+				Selector.results
+			}`,
+	})
+}
+
+func DropPredicateUserHeuristics(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{DropAttr: "User.heuristics"})
+}
+
+func AlterSchemaRemoveUserHeuristics(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			User.addressExclusions: [uid] @count @reverse .
+			User.workspaces: [uid] @reverse .
+
+			type User {
+				User.addressExclusions
+				User.workspaces
+			}`,
+	})
+}
+
+func DropTypeHeuristic(c external.Database) error {
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.type"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.parameter"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.transaction"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.clusters"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.parent"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.ts"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.clusterTypes"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.excludeAddresses"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.excludeSpendingGaps"}); err != nil {
+		return err
+	}
+
+	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "Heuristic"})
+}
+
+func DropTypeHeuristicResult(c external.Database) error {
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "HeuristicResult.origin"}); err != nil {
+		return err
+	}
+	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "HeuristicResult.destinations"}); err != nil {
+		return err
+	}
+
+	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "HeuristicResult"})
+}

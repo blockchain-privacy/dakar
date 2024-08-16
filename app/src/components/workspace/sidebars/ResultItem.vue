@@ -7,9 +7,6 @@
              params: { id: tx.txhash }}"
     >
       {{ tx.txhash }}
-      <div v-if="tx.destinationCount">
-        Destinations: {{ tx.destinationCount }}
-      </div>
     </store-link>
     <v-expand-transition>
       <div v-if="showAllOutputs">
@@ -20,9 +17,6 @@
                  params: { id: tx.txhash }}"
         >
           {{ tx.txhash }}
-          <div v-if="tx.destinationCount">
-            Destinations: {{ tx.destinationCount }}
-          </div>
         </store-link>
       </div>
     </v-expand-transition>

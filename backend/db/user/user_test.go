@@ -3,6 +3,7 @@ package user
 import (
 	"backend/db"
 	"backend/testhelper"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -10,6 +11,7 @@ import (
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
+	db.InitLogger()
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
@@ -60,8 +62,8 @@ func TestDeleteUser(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 	// delete user
-	require.NoError(t, DeleteUser(dbHandle, user))
+	require.NoError(t, DeleteUser(context.Background(), dbHandle, user))
 
 	// try to delete user which does not exist
-	require.Error(t, DeleteUser(dbHandle, "some_random_uid_which_does_not_exist"))
+	require.Error(t, DeleteUser(context.Background(), dbHandle, "0x9999999"))
 }

@@ -76,7 +76,7 @@
           sm="6"
         >
           <icon-item
-            title="Number of origins"
+            title="Number of transactions"
             :icon="mdiPoundBoxOutline"
           >
             {{ transactionCount }}
@@ -109,7 +109,7 @@
       >
         <named-divider
           v-if="enoughDataForGraph"
-          title="Origin Transactions"
+          title="Transactions"
           title-class="text-subtitle-1"
           :vertical-margin="0"
         />
@@ -179,7 +179,7 @@ const transactionCount = computed(() => {
 	let count = 0;
 
 	props.heuristicData.clusters.forEach(cluster => {
-		count += cluster.txs.length;
+		count += cluster.transactions.length;
 	});
 	return count;
 });
@@ -208,7 +208,7 @@ function updateData(graphData) {
 	// Flatten
 	const detailArray = [];
 	graphData.forEach(d => {
-		detailArray.push(...d.txs);
+		detailArray.push(...d.transactions);
 	});
 
 	svgHistogram.draw(detailArray);

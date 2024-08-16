@@ -35,7 +35,7 @@ export function getLocalSettings() {
 export function shortenHash(hash) {
 	const elementLen = 17;
 
-	if (hash.length < elementLen * 2 + 3) {
+	if (hash.length < (elementLen * 2) + 3) {
 		return hash;
 	}
 
@@ -47,6 +47,11 @@ export function convertAmount(val) {
 	return (val / 1e8).toLocaleString(undefined, {
 		maximumFractionDigits: 10,
 	});
+}
+
+// AmountToIntegers returns the given number multipled by 100 000 000 and localized
+export function amountToIntegers(val) {
+	return Math.trunc(val * 1e8);
 }
 
 // GetCurrentDate returns the current date as a string in the form dd-mm-yyyy
@@ -153,8 +158,8 @@ export function isValidQuery(str) {
 
 function isRole(session, roleName) {
 	return Boolean(session && session.identity && session.identity.metadata_public
-    && session.identity.metadata_public.roles
-    && session.identity.metadata_public.roles.some(d => d === roleName));
+		&& session.identity.metadata_public.roles
+		&& session.identity.metadata_public.roles.some(d => d === roleName));
 }
 
 export function isPrivilegedIdentity(session) {
@@ -264,6 +269,10 @@ export function isOrigin(privacyType) {
 // IsDestination returns true if the provided privacyType is in the range of
 // destination transactions
 export function isDestination(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
@@ -315,11 +324,12 @@ export function plural(subject, count) {
 // Returns a mapping between transaction types and their colors
 export function getColorMap() {
 	const colorMap = new Map();
+
+	colorMap.set('origin', '#D55E00');
+	colorMap.set('mixing', '#56B4E9');
 	colorMap.set('destination', '#0072B2');
 	colorMap.set('collateral creation', '#E69F00');
 	colorMap.set('collateral payment', '#009E73');
-	colorMap.set('origin', '#D55E00');
-	colorMap.set('mixing', '#56B4E9');
 
 	return colorMap;
 }

@@ -3,6 +3,7 @@ package exclusion
 import (
 	"backend/db"
 	"backend/external"
+	"context"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"github.com/qrest/gomisc/serror"
@@ -10,7 +11,7 @@ import (
 )
 
 // AddAddressExclusions adds the given address exclusions to the database
-func AddAddressExclusions(c external.Database, user User) error {
+func AddAddressExclusions(ctx context.Context, c external.Database, user User) error {
 	if len(user.Exclusions) == 0 {
 		return serror.FromStr("nothing to add")
 	}
@@ -20,12 +21,15 @@ func AddAddressExclusions(c external.Database, user User) error {
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*5, &api.Request{
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
+	_, err = c.Mutate(ctx, &api.Request{
+		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	})
+	if err != nil {
+		return serror.New(err)
+	}
+
+	return nil
 }
 
 // GetAddressExclusionUIDs returns all UIDs of the excluded addresses of a user
@@ -46,9 +50,7 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 	}
 
 	var r struct {
-		Exclusions []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Exclusions []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)
@@ -64,7 +66,8 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 
 // GetAddressExclusions returns all address hashes of the excluded addresses of a user.
 // Response limited to 30 address hashes.
-func GetAddressExclusions(c external.Database, userID string) (addresses []string, count int64, err error) {
+func GetAddressExclusions(ctx context.Context, c external.Database,
+	userID string) (addresses []string, count int64, err error) {
 	const query = `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
 					a as User.addressExclusions
@@ -77,9 +80,9 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	resp, err := c.Query(ctx, query, map[string]string{"$user": userID})
 	if err != nil {
-		return
+		return nil, 0, serror.New(err)
 	}
 
 	var r struct {
@@ -110,7 +113,7 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 }
 
 // DeleteAddressExclusion deletes the given address exclusion
-func DeleteAddressExclusion(c external.Database, userID string, addressHash string) error {
+func DeleteAddressExclusion(ctx context.Context, c external.Database, userID string, addressHash string) error {
 	req := &api.Request{
 		Query: `query Q($user:string,$hash:string) {
 					a as var(func: eq(addresshash,$hash))@cascade{
@@ -123,13 +126,13 @@ func DeleteAddressExclusion(c external.Database, userID string, addressHash stri
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
 	if err != nil {
 		return err
 	}
 
 	// check if there was actually something mutated
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+	if !db.HasMutationCost(resp) {
 		return serror.FromStr("nothing was deleted")
 	}
 
@@ -137,43 +140,34 @@ func DeleteAddressExclusion(c external.Database, userID string, addressHash stri
 }
 
 // DeleteAllAddressExclusions deletes all address exclusions of a given user
-func DeleteAllAddressExclusions(c external.Database, userID string) error {
+func DeleteAllAddressExclusions(ctx context.Context, c external.Database, userID string) error {
 	req := &api.Request{
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte("<" + userID + "> <User.addressExclusions> * ."),
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if err != nil {
-		return err
-	}
 
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return serror.FromStr("nothing was deleted")
-	}
-
-	return nil
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 // GetAddressExclusionStatus returns true if the given address is part of the users address exclusion list
-func GetAddressExclusionStatus(c external.Database, addressHash string, userID string) (isExcluded bool, err error) {
+func GetAddressExclusionStatus(ctx context.Context, c external.Database,
+	addressHash string, userID string) (isExcluded bool, err error) {
 	const query = `query Q($user:string,$hash:string) {
 					q(func: eq(addresshash,$hash))@filter(uid_in(~User.addressExclusions,$user)){
 						uid
 					}
 				  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$user": userID, "$hash": addressHash})
+	resp, err := c.Query(ctx, query, map[string]string{"$user": userID, "$hash": addressHash})
 	if err != nil {
+		err = serror.New(err)
 		return
 	}
 
 	var r struct {
-		Address []struct {
-			UID string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Address []db.UIDNode `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = serror.New(err)

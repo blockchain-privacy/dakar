@@ -4,6 +4,7 @@ import (
 	"backend/external"
 	"backend/testhelper"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -21,8 +22,6 @@ import (
 const (
 	// backendTimeout is the duration until a request originating from the backend times out
 	backendTimeout = time.Minute * 20
-	// frontEndTimout is the duration until a request originating from the frontend times out
-	frontEndTimout = time.Second * 30
 	// maxRetries is the number of transaction retries in case of an error response
 	maxRetries = 5
 	// retrySleepDuration is the duration between retries
@@ -41,7 +40,14 @@ var (
 	ErrEmptyRequestArgument = errors.New("received empty argument")
 	errInvalidTimeout       = errors.New("invalid timeout")
 	errInvalidResult        = errors.New("invalid result")
+	// ErrNoMutationHappened is returned if no mutation occurred
+	ErrNoMutationHappened = errors.New("no mutation happened")
 )
+
+// UIDNode holds the uid of a database node. Useful for connecting entities.
+type UIDNode struct {
+	UID string `json:"uid,omitempty"`
+}
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger() {
@@ -59,11 +65,6 @@ func warn(err error, v ...any) {
 // GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
 func GetBackendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), backendTimeout)
-}
-
-// GetFrontendContext returns a context with a runtime of frontEndTimout and a cancel function
-func GetFrontendContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), frontEndTimout)
 }
 
 // execTx executes the given request
@@ -85,73 +86,6 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 	}
 
 	return resp, nil
-}
-
-// execExistingTx executes the given request
-func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
-	if timeoutPerRequest <= 0 {
-		return nil, serror.New(errInvalidTimeout)
-	}
-
-	if req == nil {
-		return nil, serror.New(ErrEmptyRequestArgument)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
-	defer cancel()
-
-	resp, err := tx.Do(ctx, req)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	return resp, nil
-}
-
-// TxWithRetry executes the given request. In case the request fails repeat it
-func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api.Request) error {
-	_, err := TxWithRetryAndResponse(db, timeoutPerRequest, req)
-	return err
-}
-
-// TxWithRetryAndResponse executes the given request. In case the request fails repeat it
-func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
-	req *api.Request) (resp *api.Response, err error) {
-	for i := range maxRetries {
-		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
-			return
-		}
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return
-}
-
-// ExistingTxWithRetry executes the given request. In case the request fails repeat it
-func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) error {
-	_, err := ExistingTxWithRetryAndResponse(tx, timeoutPerRequest, req)
-	return err
-}
-
-// ExistingTxWithRetryAndResponse executes the given request. In case the request fails repeat it
-func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
-	req *api.Request) (resp *api.Response, err error) {
-	for i := range maxRetries {
-		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
-			return
-		}
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return
 }
 
 // execReadOnlyTx executes the given request, vars is allowed to be nil
@@ -176,6 +110,101 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 	return resp, nil
 }
 
+// execExistingTx executes the given request
+func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, serror.New(errInvalidTimeout)
+	}
+
+	if req == nil || tx == nil {
+		return nil, serror.New(ErrEmptyRequestArgument)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
+
+	resp, err := tx.Do(ctx, req)
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	return resp, nil
+}
+
+// TxWithRetry executes the given request. In case the request fails repeat it
+func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api.Request) error {
+	_, err := TxWithRetryAndResponse(db, timeoutPerRequest, req)
+	return err
+}
+
+// TxWithRetryAndResponse executes the given request. In case the request fails repeat it
+func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
+	req *api.Request) (resp *api.Response, err error) {
+	for i := range maxRetries {
+		if resp, err = execTx(db, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
+			return
+		}
+
+		// Retry the transaction if it was aborted
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
+// MutationWithRetry executes the given request. In case the request fails repeat it
+func MutationWithRetry(ctx context.Context, db external.Database, req *api.Request) error {
+	_, err := MutationWithRetryAndResponse(ctx, db, req)
+	return err
+}
+
+// MutationWithRetryAndResponse executes the given request. In case the request fails repeat it
+func MutationWithRetryAndResponse(ctx context.Context, db external.Database,
+	req *api.Request) (resp *api.Response, err error) {
+	for i := range maxRetries {
+		if resp, err = db.Mutate(ctx, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
+			return
+		}
+
+		err = serror.New(err)
+
+		// Retry the transaction if it was aborted
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
+// ExistingTxWithRetry executes the given request. In case the request fails repeat it
+func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) error {
+	_, err := ExistingTxWithRetryAndResponse(tx, timeoutPerRequest, req)
+	return err
+}
+
+// ExistingTxWithRetryAndResponse executes the given request. In case the request fails repeat it
+func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
+	req *api.Request) (resp *api.Response, err error) {
+	for i := range maxRetries {
+		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
+			return
+		}
+
+		// Retry the transaction if it was aborted
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
 func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
@@ -198,6 +227,25 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 	}
 
 	return nil, err
+}
+
+// QueryVarWithRetry executes the given request. In case the request fails repeats it
+func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
+	vars map[string]string) (resp *api.Response, err error) {
+	for i := range maxRetries {
+		resp, err = db.Query(ctx, q, vars)
+		if err == nil {
+			return
+		}
+		err = serror.New(err)
+
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
 }
 
 // ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
@@ -289,4 +337,45 @@ func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
 	require.NoError(t, SetupSchema(database))
 
 	database.IsDirty = true
+}
+
+func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string, error) {
+	if uid == "" {
+		return "", serror.New(ErrEmptyRequestArgument)
+	}
+
+	const query = `query Q($uid:string){
+				q(func: uid($uid)){
+					dgraph.type
+				}
+			  }`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": uid})
+	if err != nil {
+		return "", serror.New(err)
+	}
+
+	// json struct
+	var r struct {
+		Type []struct {
+			Type []string `json:"dgraph.type,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return "", serror.New(err)
+	}
+
+	if len(r.Type) != 1 || len(r.Type[0].Type) != 1 {
+		return "", serror.New(errInvalidResult)
+	}
+
+	return r.Type[0].Type[0], nil
+}
+
+// HasMutationCost returns true if the response has a mutation cost attached.
+// This happens if a request mutated data in the database.
+func HasMutationCost(resp *api.Response) bool {
+	v, ok := resp.Metrics.NumUids["mutation_cost"]
+	return ok && v > 0
 }

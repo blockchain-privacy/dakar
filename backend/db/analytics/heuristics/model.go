@@ -1,43 +1,20 @@
 package heuristics
 
 import (
+	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"fmt"
 	"time"
 )
 
-// DType is the dgraph database type for the Heuristic type
-const DType = "Heuristic"
-
-// ResultDType is the dgraph database type for the HeuristicResult type
-const ResultDType = "HeuristicResult"
-
 // ClusterDType is the dgraph database type for the HeuristicCluster type
 const ClusterDType = "HeuristicCluster"
-
-// DummyNode holds the uid of a database node
-type DummyNode struct {
-	UID string `json:"uid,omitempty"`
-}
-
-// HeuristicResult holds one result (origin) of a heuristic and
-// optionally the results of a forward lookup (destinations)
-type HeuristicResult struct {
-	Origin       DummyNode   `json:"HeuristicResult.origin,omitempty"`
-	Destinations []DummyNode `json:"HeuristicResult.destinations,omitempty"`
-	DType        []string    `json:"dgraph.type,omitempty"`
-}
-
-// SetDType sets the DType for dgraph type recognition
-func (r *HeuristicResult) SetDType() {
-	r.DType = []string{ResultDType}
-}
 
 // HeuristicCluster holds a set of results (origins) of a heuristic
 // which belong to the same cluster (or merged cluster) and its attributions
 type HeuristicCluster struct {
-	Results      []HeuristicResult         `json:"HeuristicCluster.results,omitempty"`
+	Results      []db.UIDNode              `json:"HeuristicCluster.results,omitempty"`
 	Attributions []attribution.Attribution `json:"HeuristicCluster.attributions,omitempty"`
 	DType        []string                  `json:"dgraph.type,omitempty"`
 }
@@ -45,34 +22,6 @@ type HeuristicCluster struct {
 // SetDType sets the DType for dgraph type recognition
 func (c *HeuristicCluster) SetDType() {
 	c.DType = []string{ClusterDType}
-}
-
-// Heuristic is the database type representation of a heuristic
-type Heuristic struct {
-	UID                 string   `json:"uid,omitempty"`
-	HeuristicType       string   `json:"Heuristic.type,omitempty"`
-	Parameter           string   `json:"Heuristic.parameter,omitempty"`
-	ClusterTypes        []string `json:"Heuristic.clusterTypes,omitempty"`
-	ExcludeAddresses    *bool    `json:"Heuristic.excludeAddresses"`
-	ExcludeSpendingGaps *bool    `json:"Heuristic.excludeSpendingGaps"`
-	UserUID             string   `json:"~User.heuristics,omitempty"`
-	WorkspaceUID        string   `json:"~Workspace.heuristics,omitempty"`
-	Transaction         struct {
-		UID string `json:"uid,omitempty"`
-	} `json:"Heuristic.transaction,omitempty"`
-	Timestamp       string             `json:"Heuristic.ts,omitempty"`
-	ParentHeuristic []Heuristic        `json:"Heuristic.parent,omitempty"`
-	ChildHeuristics []Heuristic        `json:"~Heuristic.parent,omitempty"`
-	Clusters        []HeuristicCluster `json:"Heuristic.clusters,omitempty"`
-
-	DType []string `json:"dgraph.type,omitempty"`
-	// only included for finding the tx uid in the upsert step
-	TxHash string `json:"-"`
-}
-
-// SetDType sets the DType for dgraph type recognition
-func (h *Heuristic) SetDType() {
-	h.DType = []string{DType}
 }
 
 type ClusterUID string
@@ -102,43 +51,38 @@ func (h HeuristicTransaction) String() string {
 		h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
+type Options struct {
+	// Type is the type of the heuristic
+	Type      string `json:"type,omitempty"`
+	Parameter string `json:"parameter,omitempty"`
+	// ClusterTypes are used to cluster the results of the heuristic.
+	// If cluster types are set to nil, the result will not be clustered.
+	// If multiple cluster types are set, then the consolidation of these clusters will be used.
+	ClusterTypes []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	// ExcludeAddresses controls whether certain addresses should be excluded from the lookups
+	ExcludeAddresses bool `json:"excludeAddresses"`
+	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
+	ExcludeSpendingGaps bool   `json:"excludeSpendingGaps"`
+	TransactionHash     string `json:"transactionHash,omitempty"`
+	// UserUID is the UID of the user who created this heuristic
+	UserUID string `json:"-"`
+}
+
+func (o Options) IsValid(_ bool) bool {
+	return o.Type != "" && o.TransactionHash != ""
+}
+
+func (o Options) String() string {
+	return fmt.Sprintf("Transaction Hash: %s, Parameter: %s, cluster type: %v, exclude addresses: %v, exclude spending gaps: %v",
+		o.TransactionHash, o.Parameter, o.ClusterTypes, o.ExcludeAddresses, o.ExcludeSpendingGaps)
+}
+
 // DatabaseHeuristicRequest holds all heuristic data which is set by the user
 type DatabaseHeuristicRequest struct {
-	UID                 string                   `json:"uid,omitempty"`
-	TransactionHash     string                   `json:"transactionHash,omitempty"`
-	Type                string                   `json:"type,omitempty"`
-	Parameter           string                   `json:"parameter,omitempty"`
-	ParentHeuristicUID  string                   `json:"parentUID,omitempty"`
-	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
-	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
-	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
-}
-
-type HollowHeuristic struct {
-	UID string `json:"uid,omitempty"`
-}
-
-type FrontendTransactionResult struct {
-	Timestamp        string `json:"ts,omitempty"`
-	Hash             string `json:"txhash,omitempty"`
-	DestinationCount int    `json:"destinationCount,omitempty"`
-}
-
-// FrontendHeuristicCluster holds the results counts of a heuristic per cluster
-type FrontendHeuristicCluster struct {
-	Transactions []FrontendTransactionResult `json:"txs,omitempty"`
-	Attributions []Attribution               `json:"attributions,omitempty"`
-}
-
-type Attribution struct {
-	Tag      string `json:"tag,omitempty"`
-	IsPublic bool   `json:"isPublic"`
-}
-
-// FrontendHeuristicShort holds all result counts of a heuristic
-type FrontendHeuristicShort struct {
-	UID      string                     `json:"uid,omitempty"`
-	Clusters []FrontendHeuristicCluster `json:"clusters,omitempty"`
+	UID                string   `json:"uid,omitempty"`
+	Type               string   `json:"type,omitempty"`
+	ParentHeuristicUID string   `json:"parentUID,omitempty"`
+	Configuration      *Options `json:"config"`
 }
 
 type mergedClusterItem struct {
