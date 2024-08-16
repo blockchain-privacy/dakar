@@ -7,11 +7,10 @@ import (
 	"backend/db/analytics"
 	dbstat "backend/db/status"
 	"backend/external"
-	"github.com/qrest/gomisc/serror"
-	"slices"
-
 	"context"
+	"github.com/qrest/gomisc/serror"
 	"log"
+	"slices"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -278,7 +277,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// get the transaction of the current block height
-	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID)
+	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID, c.state.ID)
 	if err != nil {
 		return false, err
 	}
@@ -289,11 +288,11 @@ func (c *Classifier) Iterate() (bool, error) {
 		return false, err
 	}
 
-	// the classifications of step 1 are in some cases only indications of the classifications.
+	// the classifications of step 1 are in some cases only indications of the true classifications.
 	// step 2: either insert the classified directly into the db or only if they are connected
 	// to a certain type of transactions
 
-	// step 2.1: set the privacy type of mixing transactions.
+	// step 2.1: store the privacy type of mixing transactions.
 	if len(mixingTransactions) > 0 {
 		if updateErr := db.UpdateTransactions(c.db, mixingTransactions); updateErr != nil {
 			return false, updateErr
@@ -357,7 +356,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		}
 	}
 
-	// step 2.4: set collateral creation type
+	// step 2.4: set collateral payment type
 	if len(cpTransactions) > 0 {
 		var insertedSum uint64
 		var numInserted uint64 = 1

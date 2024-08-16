@@ -95,7 +95,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	return
 }
 
-// GetAddressesByBlock gets all addresses per transaction by block id.
+// GetAddressesByBlock gets all addresses per transaction by block ID range.
 func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint64,
 	clusterType ClusterType) (transactions []TransactionWithInputOutputAddressCluster, err error) {
 	const query = `query Q($from:string,$to:string,$ctype:string) {
