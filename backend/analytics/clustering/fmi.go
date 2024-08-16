@@ -230,7 +230,8 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		// insert new clusters
 		if len(operations) > 0 {
-			// ProcessClusterOperations uses a long running transaction, thus we have to handly retrying manually
+			// ProcessClusterOperations uses a long running transaction,
+			// therefore transaction retrying has to be handled manually
 			if err = db.WithRetry(func() error {
 				return clustering.ProcessClusterOperations(m.db, operations)
 			}, 5); err != nil {

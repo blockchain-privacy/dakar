@@ -110,6 +110,8 @@ func execReadOnlyRequest(db external.Database, timeoutPerRequest time.Duration, 
 	return resp, nil
 }
 
+// WithRetry calls the given function. If dgo.ErrAborted is returned, the function
+// is called a few more times. Between each call retryDuration is waited.
 func WithRetry(f func() error, retryDuration time.Duration) error {
 	var err error
 	var encounteredError bool
@@ -165,20 +167,19 @@ func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api
 
 // TxWithRetryAndResponse executes the given request. In case the request fails repeat it
 func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
-	req *api.Request) (resp *api.Response, err error) {
-	for i := range maxRetries {
-		if resp, err = execRequest(db, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
-			return
-		}
+	req *api.Request) (*api.Response, error) {
+	var resp *api.Response
+	var err error
 
-		if i+1 < maxRetries {
-			// Retry the transaction if it was aborted
-			warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
-			time.Sleep(retrySleepDuration)
-		}
+	err = WithRetry(func() error {
+		resp, err = execRequest(db, timeoutPerRequest, req)
+		return err
+	}, retrySleepDuration)
+	if err != nil {
+		return nil, err
 	}
 
-	return
+	return resp, err
 }
 
 // MutationWithRetry executes the given request. In case the request fails repeat it
@@ -189,65 +190,53 @@ func MutationWithRetry(ctx context.Context, db external.Database, req *api.Reque
 
 // MutationWithRetryAndResponse executes the given request. In case the request fails repeat it
 func MutationWithRetryAndResponse(ctx context.Context, db external.Database,
-	req *api.Request) (resp *api.Response, err error) {
-	for i := range maxRetries {
-		if resp, err = db.Mutate(ctx, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
-			return
-		}
+	req *api.Request) (*api.Response, error) {
+	var resp *api.Response
+	var err error
 
-		err = serror.New(err)
-
-		if i+1 < maxRetries {
-			// Retry the transaction if it was aborted
-			warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
-			time.Sleep(retrySleepDuration)
-		}
+	err = WithRetry(func() error {
+		resp, err = db.Mutate(ctx, req)
+		return err
+	}, retrySleepDuration)
+	if err != nil {
+		return nil, err
 	}
 
-	return
+	return resp, err
 }
 
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
 func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
+	var resp *api.Response
 	var err error
-	for i := range maxRetries {
-		resp, txErr := execReadOnlyRequest(db, timeoutPerRequest, q, vars)
-		if txErr == nil {
-			return resp, nil
-		}
-		err = txErr
 
-		if errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
-			return nil, err
-		}
-
-		if i+1 < maxRetries {
-			warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
-			time.Sleep(retrySleepDuration)
-		}
+	err = WithRetry(func() error {
+		resp, err = execReadOnlyRequest(db, timeoutPerRequest, q, vars)
+		return err
+	}, retrySleepDuration)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, err
+	return resp, err
 }
 
 // QueryVarWithRetry executes the given request. In case the request fails repeats it
 func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
-	vars map[string]string) (resp *api.Response, err error) {
-	for i := range maxRetries {
-		resp, err = db.Query(ctx, q, vars)
-		if err == nil {
-			return
-		}
-		err = serror.New(err)
+	vars map[string]string) (*api.Response, error) {
+	var resp *api.Response
+	var err error
 
-		if i+1 < maxRetries {
-			warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
-			time.Sleep(retrySleepDuration)
-		}
+	err = WithRetry(func() error {
+		resp, err = db.Query(ctx, q, vars)
+		return err
+	}, retrySleepDuration)
+	if err != nil {
+		return nil, err
 	}
 
-	return
+	return resp, err
 }
 
 // ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
