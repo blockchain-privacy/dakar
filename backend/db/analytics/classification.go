@@ -13,17 +13,17 @@ import (
 	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
-// ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block and
+// ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block range and
 // the origin privacy type for all transactions which are connected to mixing
 // transactions in this block. Additionally, it returns all transactions connected to newly
 // classified origin transaction which have no privacy type set yet.
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themselves.
-func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (toClassify []db.Transaction,
+func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint64, toBlockID uint64) (toClassify []db.Transaction,
 	origins []db.Transaction, err error) {
-	const query = `query Q($bid: string) {
-				b as var(func: eq(id,$bid)){t as ts}
+	query := `query Q($from:int,$to:int) {
+				b as var(func: between(id, $from, $to)){t as ts}
 				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
@@ -89,7 +89,8 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$bid": strconv.FormatUint(blockID, 10)},
+		Vars: map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
+			"$to": strconv.FormatUint(toBlockID, 10)},
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(dest), 0))",
@@ -241,12 +242,11 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 // the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
 	blockHeight uint64) (outputTransactions []db.Transaction, err error) {
-	const query = `query Q($uids: string, $bid: string){
-				var(func: eq(id,$bid)){t as ts}
+	const query = `query Q($uids:string,$bid:int){
 				var (func: uid($uids)){
 					tx_outputs{
 						v as ~tx_inputs@filter(le(count(tx_outputs),2))@cascade{
-							~transactions@filter(le(ts,val(t)))
+							~transactions@filter(le(id,$bid))
 						}
 					}
 				}

@@ -558,6 +558,35 @@ func TestClassifier_Iterate(t *testing.T) {
 	require.NotEmpty(t, mixingCount)
 }
 
+func TestMultipleBlockIteration(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling: testhelper.GetPointer(false),
+		// first block of the file
+		LastBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileLastBlock),
+	}))
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
+	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
+	classifier.RegisterMetrics(prometheus.NewRegistry())
+
+	classifier.state.ID = testhelper.ClassifierFileFirstBlock
+	classifier.state.Top = testhelper.ClassifierFileLastBlock
+
+	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(dbHandle))
+
+	_, err := classifier.Iterate()
+	require.NoError(t, err)
+
+	// check mixing count after classification
+	//mixingCount, originCount, ccCount, cpCount, err := analytics.GetPrivacyTransactionCount(dbHandle)
+	//require.NoError(t, err)
+
+}
+
 func TestClassifier_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)

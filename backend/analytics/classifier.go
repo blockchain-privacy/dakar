@@ -305,7 +305,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
-		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID)
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID, c.state.ID)
 	if classErr != nil {
 		return false, classErr
 	}
