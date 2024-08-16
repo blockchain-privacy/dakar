@@ -4,6 +4,8 @@ import (
 	"backend/external"
 	"backend/testhelper"
 	"context"
+	"errors"
+	"github.com/dgraph-io/dgo/v230"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -32,38 +34,38 @@ func TestGetBackendContext(t *testing.T) {
 	})
 }
 
-func TestExecTx(t *testing.T) {
+func TestExecRequest(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	_, err := execTx(dbHandle, time.Duration(0), &api.Request{
+	_, err := execRequest(dbHandle, time.Duration(0), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
 	require.Error(t, err)
 
-	_, err = execTx(dbHandle, time.Minute, nil)
+	_, err = execRequest(dbHandle, time.Minute, nil)
 	require.Error(t, err)
 
-	_, err = execTx(dbHandle, time.Minute, &api.Request{
+	_, err = execRequest(dbHandle, time.Minute, &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
 	require.NoError(t, err)
 }
 
-func TestExecExistingTx(t *testing.T) {
+func TestExecTx(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	_, err := execExistingTx(dbHandle.NewTxn(), time.Duration(0), &api.Request{
+	_, err := ExecTx(dbHandle.NewTxn(), time.Duration(0), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
 	require.Error(t, err)
 
-	_, err = execExistingTx(dbHandle.NewTxn(), time.Minute, nil)
+	_, err = ExecTx(dbHandle.NewTxn(), time.Minute, nil)
 	require.Error(t, err)
 
-	_, err = execExistingTx(dbHandle.NewTxn(), time.Minute, &api.Request{
+	_, err = ExecTx(dbHandle.NewTxn(), time.Minute, &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
@@ -103,49 +105,16 @@ func TestTxWithRetryAndResponse(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExistingTxWithRetry(t *testing.T) {
+func TestExecReadOnlyRequest(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	require.Error(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Duration(0), &api.Request{
-		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
-
-	require.Error(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Minute, nil))
-
-	require.NoError(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	}))
-}
-
-func TestExistingTxWithRetryAndResponse(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Duration(0), &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
+	_, err := execReadOnlyRequest(dbHandle, time.Minute, "", nil)
 	require.Error(t, err)
 
-	_, err = ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Minute, nil)
+	_, err = execReadOnlyRequest(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
 	require.Error(t, err)
 
-	_, err = ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.NoError(t, err)
-}
-
-func TestExecReadOnlyTx(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := execReadOnlyTx(dbHandle, time.Minute, "", nil)
-	require.Error(t, err)
-
-	_, err = execReadOnlyTx(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
-	require.Error(t, err)
-
-	_, err = execReadOnlyTx(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
+	_, err = execReadOnlyRequest(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
 	require.NoError(t, err)
 }
 
@@ -267,4 +236,47 @@ func TestGetTypeByUID(t *testing.T) {
 	typeString, err := GetTypeByUID(ctx, dbHandle, txUID)
 	require.NoError(t, err)
 	require.Equal(t, "Transaction", typeString)
+}
+
+func TestWithRetry(t *testing.T) {
+	executionCounter := 0
+	errorFunction := func() error {
+		executionCounter++
+		return errors.New("some error")
+	}
+
+	require.Error(t, WithRetry(errorFunction, 0))
+	require.EqualValues(t, 1, executionCounter)
+
+	executionCounter = 0
+	noErrorFunction := func() error {
+		executionCounter++
+		return nil
+	}
+
+	require.NoError(t, WithRetry(noErrorFunction, 0))
+	require.EqualValues(t, 1, executionCounter)
+
+	executionCounter = 0
+	txAborted := func() error {
+		executionCounter++
+		return dgo.ErrAborted
+	}
+
+	require.Error(t, WithRetry(txAborted, 0))
+	require.EqualValues(t, maxRetries, executionCounter)
+
+	executionCounter = 0
+	txAbortedThenSuccessful := func() error {
+		executionCounter++
+
+		if executionCounter == 3 {
+			return nil
+		}
+
+		return dgo.ErrAborted
+	}
+
+	require.NoError(t, WithRetry(txAbortedThenSuccessful, 0))
+	require.EqualValues(t, 3, executionCounter)
 }

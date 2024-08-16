@@ -309,7 +309,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 		}},
 		CommitNow: !existClusterMerges,
 	}
-	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	_, err = db.ExecTx(txn, time.Minute*5, req)
 	if err != nil {
 		return err
 	}
@@ -324,7 +324,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 			SetNquads: []byte(setNquads),
 		}},
 	}
-	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	_, err = db.ExecTx(txn, time.Minute*5, req)
 	if err != nil {
 		return err
 	}
@@ -336,8 +336,8 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 		}},
 		CommitNow: true,
 	}
-
-	return db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	_, err = db.ExecTx(txn, time.Minute*5, req)
+	return err
 }
 
 // GetHierarchicalClusterRoot returns the root of the cluster tree clusterUID is part of

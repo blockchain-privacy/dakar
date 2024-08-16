@@ -230,9 +230,11 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		// insert new clusters
 		if len(operations) > 0 {
-			opErr := clustering.ProcessClusterOperations(m.db, operations)
-			if opErr != nil {
-				return false, opErr
+			// ProcessClusterOperations uses a long running transaction, thus we have to handly retrying manually
+			if err = db.WithRetry(func() error {
+				return clustering.ProcessClusterOperations(m.db, operations)
+			}, 5); err != nil {
+				return false, err
 			}
 
 			countMergedClusters, countNewAddresses := calculateMetrics(operations)

@@ -67,8 +67,8 @@ func GetBackendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), backendTimeout)
 }
 
-// execTx executes the given request
-func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+// execRequest executes the given request
+func execRequest(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
 		return nil, serror.New(errInvalidTimeout)
 	}
@@ -88,8 +88,8 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 	return resp, nil
 }
 
-// execReadOnlyTx executes the given request, vars is allowed to be nil
-func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
+// execReadOnlyRequest executes the given request, vars is allowed to be nil
+func execReadOnlyRequest(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
 		return nil, serror.New(errInvalidTimeout)
@@ -110,8 +110,34 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 	return resp, nil
 }
 
-// execExistingTx executes the given request
-func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+func WithRetry(f func() error, retryDuration time.Duration) error {
+	var err error
+	var encounteredError bool
+	for range maxRetries {
+		if encounteredError {
+			// Retry the transaction if it was aborted
+			warn(fmt.Errorf("encountered error, retrying: %w", err))
+			time.Sleep(retryDuration)
+		}
+
+		if err = f(); errors.Is(err, dgo.ErrAborted) {
+			encounteredError = true
+			continue
+		}
+
+		break
+	}
+
+	if encounteredError && err == nil {
+		info("retryed transaction was successful")
+	}
+
+	return err
+}
+
+// ExecTx executes the given request. The caller is responsible for
+// retrying the transactions in case it is discarded (check error for dgo.ErrAborted).
+func ExecTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
 		return nil, serror.New(errInvalidTimeout)
 	}
@@ -141,13 +167,13 @@ func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api
 func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := range maxRetries {
-		if resp, err = execTx(db, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
+		if resp, err = execRequest(db, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
 			return
 		}
 
-		// Retry the transaction if it was aborted
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
+			// Retry the transaction if it was aborted
+			warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 			time.Sleep(retrySleepDuration)
 		}
 	}
@@ -171,33 +197,9 @@ func MutationWithRetryAndResponse(ctx context.Context, db external.Database,
 
 		err = serror.New(err)
 
-		// Retry the transaction if it was aborted
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return
-}
-
-// ExistingTxWithRetry executes the given request. In case the request fails repeat it
-func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) error {
-	_, err := ExistingTxWithRetryAndResponse(tx, timeoutPerRequest, req)
-	return err
-}
-
-// ExistingTxWithRetryAndResponse executes the given request. In case the request fails repeat it
-func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
-	req *api.Request) (resp *api.Response, err error) {
-	for i := range maxRetries {
-		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil || !errors.Is(err, dgo.ErrAborted) {
-			return
-		}
-
-		// Retry the transaction if it was aborted
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
-		if i+1 < maxRetries {
+			// Retry the transaction if it was aborted
+			warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 			time.Sleep(retrySleepDuration)
 		}
 	}
@@ -210,7 +212,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 	vars map[string]string) (*api.Response, error) {
 	var err error
 	for i := range maxRetries {
-		resp, txErr := execReadOnlyTx(db, timeoutPerRequest, q, vars)
+		resp, txErr := execReadOnlyRequest(db, timeoutPerRequest, q, vars)
 		if txErr == nil {
 			return resp, nil
 		}
@@ -220,8 +222,8 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return nil, err
 		}
 
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
 		if i+1 < maxRetries {
+			warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
 			time.Sleep(retrySleepDuration)
 		}
 	}
@@ -239,8 +241,8 @@ func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
 		}
 		err = serror.New(err)
 
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
 		if i+1 < maxRetries {
+			warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
 			time.Sleep(retrySleepDuration)
 		}
 	}
