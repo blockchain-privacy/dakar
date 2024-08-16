@@ -24,7 +24,7 @@ type BlockIterator interface {
 	// This will be called periodically when Empty returns true. Should return true if the state
 	// transition was successful.
 	NextBlock() (bool, error)
-	// PostExecution is always executed, even if PreLoop or Loop fail.
+	// PostExecution before the block iterator stops.
 	// This function should do operations like the setting the database status
 	PostExecution() error
 	IncrementState() error
@@ -66,14 +66,14 @@ func info(iterator BlockIterator, msg string, v ...interface{}) {
 }
 
 // StartIteration starts the iteration process
-func StartIteration(iterator BlockIterator) (err error) {
+func StartIteration(iterator BlockIterator, postIterationHook func()) (err error) {
 	props := iterator.Props()
 	if l := props.Logger; l == nil {
 		return serror.FromStr(props.Name + " logger is nil")
 	}
 
 	defer func() {
-		info(iterator, "iterator stopped")
+		info(iterator, "iterator stopped", "current block", iterator.Props().CurrentBlock)
 		// if the call to PostExecution results in an error, then only set the
 		// error if the error is currently nil
 		postErr := iterator.PostExecution()
@@ -87,7 +87,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		return
 	}
 
-	info(iterator, fmt.Sprintf("starting at: %d", iterator.Props().CurrentBlock))
+	info(iterator, "iterator started", "current block", iterator.Props().CurrentBlock)
 
 	lastMetricPrintBlockID := uint64(0)
 	numIteratedBlocks := uint64(0)
@@ -140,6 +140,10 @@ func StartIteration(iterator BlockIterator) (err error) {
 				time.Since(timerGlobal).Milliseconds()/blocksSinceLastPrint))
 			timerGlobal = time.Now()
 			lastMetricPrintBlockID = numIteratedBlocks
+		}
+
+		if postIterationHook != nil {
+			postIterationHook()
 		}
 	}
 }

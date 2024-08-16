@@ -15,16 +15,17 @@ import (
 type ContainerName string
 
 const (
-	EnvDBTests              = "DB_TESTS"
-	EnvRPCTests             = "RPC_TESTS"
-	EnvDBHostname           = "DB_HOSTNAME"
-	EnvRPCHostname          = "RPC_HOSTNAME"
-	UseClassifierFile       = "classifier"
-	UseBlockFile            = "block"
-	UsePrivacyFile          = "privacy"
-	ClassifierFileLastBlock = 1557780
-	BlockFileFirstBlock     = 60000
-	BlockFileLastBlock      = 60020
+	EnvDBTests               = "DB_TESTS"
+	EnvRPCTests              = "RPC_TESTS"
+	EnvDBHostname            = "DB_HOSTNAME"
+	EnvRPCHostname           = "RPC_HOSTNAME"
+	UseClassifierFile        = "classifier"
+	UseBlockFile             = "block"
+	UsePrivacyFile           = "privacy"
+	ClassifierFileFirstBlock = 1557775
+	ClassifierFileLastBlock  = 1557780
+	BlockFileFirstBlock      = 60000
+	BlockFileLastBlock       = 60020
 )
 
 // BlockFile contains Dash blocks from height 60000 to 60020.

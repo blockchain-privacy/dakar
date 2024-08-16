@@ -290,3 +290,14 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 
 	return
 }
+
+// RemovePrivacyTypeOfAllTransactions removes the privacy type of all transactions
+func RemovePrivacyTypeOfAllTransactions(c external.Database) (err error) {
+	req := &api.Request{
+		Query:     "{t as var(func: has(txhash))}",
+		Mutations: []*api.Mutation{{DelNquads: []byte("uid(t) <privacytype> * .")}},
+		CommitNow: true,
+	}
+
+	return db.TxWithRetry(c, time.Minute*10, req)
+}

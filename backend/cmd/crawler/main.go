@@ -363,7 +363,7 @@ func main() {
 			crawler := processor.NewCrawler(appContext, graphDB, client,
 				newConfig.Modules.Crawler.InitialCacheSize, processorConfig)
 			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
-			if processorErr := blockiterator.StartIteration(crawler); processorErr != nil {
+			if processorErr := blockiterator.StartIteration(crawler, nil); processorErr != nil {
 				warn(processorErr)
 			}
 		}()
@@ -390,7 +390,7 @@ func main() {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					if iterErr := blockiterator.StartIteration(graphWrapper); iterErr != nil {
+					if iterErr := blockiterator.StartIteration(graphWrapper, nil); iterErr != nil {
 						warn(iterErr)
 					}
 				}()
@@ -403,7 +403,7 @@ func main() {
 					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 
-					if classifierErr := blockiterator.StartIteration(classifier); classifierErr != nil {
+					if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
 						warn(classifierErr)
 					}
 				}()
@@ -428,7 +428,7 @@ func main() {
 			}()
 			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
-			if classifierErr := blockiterator.StartIteration(classifier); classifierErr != nil {
+			if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
 				warn(classifierErr)
 			}
 		}()
@@ -445,7 +445,7 @@ func main() {
 
 			hmi := clustering.NewHierarchicalMultiInput(appContext, graphDB)
 			hmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(hmi); clusteringErr != nil {
+			if clusteringErr := blockiterator.StartIteration(hmi, nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -461,7 +461,7 @@ func main() {
 			}()
 			fmi := clustering.NewFlatMultiInput(appContext, graphDB, newConfig.Modules.FMI.MaxBlocks)
 			fmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(fmi); clusteringErr != nil {
+			if clusteringErr := blockiterator.StartIteration(fmi, nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
