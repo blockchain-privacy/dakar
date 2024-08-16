@@ -241,9 +241,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 // the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
 	blockHeight uint64) (outputTransactions []db.Transaction, err error) {
-	uidList := db.CreateCommaArray(txUids)
-
-	query := `query Q($uids: string, $bid: string){
+	const query = `query Q($uids: string, $bid: string){
 				var(func: eq(id,$bid)){t as ts}
 				var (func: uid($uids)){
 					tx_outputs{
@@ -274,7 +272,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$uids": uidList, "$bid": strconv.FormatUint(blockHeight, 10)})
+		map[string]string{"$uids": db.CreateCommaArray(txUids), "$bid": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
 		return
 	}
