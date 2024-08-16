@@ -634,7 +634,7 @@ func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := db.GetTransactionByBlock(dbHandle, testhelper.BlockFileFirstBlock)
+	transactions, err := db.GetTransactionsByBlock(dbHandle, testhelper.BlockFileFirstBlock)
 	require.NoError(t, err)
 
 	type args struct {

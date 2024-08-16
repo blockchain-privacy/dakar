@@ -179,7 +179,7 @@ func (c *Classifier) CalculateInitialState() error {
 	}
 
 	if classifierStatus.LastClassifiedBlockID == nil {
-		return serror.FromStr("error last classified block is not set")
+		return serror.FromStr("last classified block is not set")
 	}
 
 	var state blockiterator.State
@@ -224,7 +224,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 
 		// no mixing transaction should be recognized in this step
 		if len(mixing) > 0 {
-			err = serror.FromStr("error mixing transaction after secondary classification loop")
+			err = serror.FromStr("mixing transaction occured after secondary classification loop")
 			return
 		}
 
@@ -278,7 +278,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// get the transaction of the current block height
-	transactions, err := db.GetTransactionByBlock(c.db, c.state.ID)
+	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID)
 	if err != nil {
 		return false, err
 	}

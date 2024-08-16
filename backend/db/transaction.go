@@ -201,8 +201,8 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	return r.Transactions, nil
 }
 
-// GetTransactionByBlock gets transaction information from the database by block id
-func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []Transaction, err error) {
+// GetTransactionsByBlock returns the transaction contained in the requested block
+func GetTransactionsByBlock(c external.Database, blockID uint64) (transactions []Transaction, err error) {
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
 					txs as transactions
