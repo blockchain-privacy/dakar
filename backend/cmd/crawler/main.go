@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"syscall"
@@ -71,7 +72,8 @@ func warn(err error, v ...any) {
 func setCommandFlags(c *Commands) {
 	flag.BoolVar(&c.ResetDB, "reset", false, "Remove all data from the database (default: false)")
 	flag.BoolVar(&c.IgnoreSafeGuard, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
-	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information")
+	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information (default: false)")
+	flag.StringVar(&c.CPUProfilePath, "cpuprofile", "", "Path where the cpu profile should be stored (default: <empty>)")
 }
 
 // selectConfig returns processor and analytics configurations based on the given blockchain mode.
@@ -212,6 +214,22 @@ func main() {
 	if commands.ShowVersion {
 		printVersion(newConfig.BlockchainMode)
 		return
+	}
+
+	////// CPU PROFILING //////
+
+	if commands.CPUProfilePath != "" {
+		f, err := os.Create(commands.CPUProfilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err = pprof.StartCPUProfile(f); err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer pprof.StopCPUProfile()
 	}
 
 	////// SETUP //////

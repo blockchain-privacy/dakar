@@ -40,13 +40,14 @@ The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured 
 
 ## Commandline Arguments
 
-|            Flag | Default Value | Description                                        |
-|----------------:|:-------------:|:---------------------------------------------------|
-| ignoresafeguard |     false     | Ignore the crawling safe guard (default: false)    |
-|           reset |     false     | Remove all data from the database (default: false) |
-|         version |     false     | Show version information                           |
-|    createConfig |     false     | creates a default config file (default: false)     |
-|          config |  config.yml   | config file path (default: config.yml)             |
+|               Flag | Default Value | Description                                                      |
+|-------------------:|:-------------:|:-----------------------------------------------------------------|
+|    ignoresafeguard |     false     | Ignore the crawling safe guard (default: false)                  |
+|              reset |     false     | Remove all data from the database (default: false)               |
+|            version |     false     | Show version information                                         |
+|       createConfig |     false     | creates a default config file (default: false)                   |
+|             config |  config.yml   | config file path (default: config.yml)                           |
+|         cpuprofile |   \<empty\>   | Path where the cpu profile should be stored (default: \<empty\>) |
 
 The crawler registers its activity in the underlying Dgraph database to prevent multiple
 crawlers accidentally using the same database at the same time. In case of an unexpected shutdown of the crawler, the safeguard might still be set in the database.

@@ -114,6 +114,7 @@ type Commands struct {
 	ResetDB         bool
 	IgnoreSafeGuard bool
 	ShowVersion     bool
+	CPUProfilePath  string
 }
 
 // checks if a crawling process is already running
