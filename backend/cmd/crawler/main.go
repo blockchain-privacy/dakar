@@ -106,7 +106,7 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 	// disable FMI clustering if it is disabled per configuration
 	if !analyserConfig.IsFMIClusteringEnabled {
-		config.Modules.FMI.Active = false
+		config.Modules.FMI = false
 	}
 }
 
@@ -293,7 +293,7 @@ func main() {
 
 	// exit if no module is active (excluding the metrics module)
 	if !newConfig.Modules.Classifier && !newConfig.Modules.Crawler.Active &&
-		!newConfig.Modules.HMI && !newConfig.Modules.FMI.Active &&
+		!newConfig.Modules.HMI && !newConfig.Modules.FMI &&
 		!newConfig.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
@@ -452,7 +452,7 @@ func main() {
 	}
 
 	// activate FMI clustering
-	if newConfig.Modules.FMI.Active {
+	if newConfig.Modules.FMI {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -497,7 +497,7 @@ func main() {
 	var crawlerStopped = !newConfig.Modules.Crawler.Active
 	var classifierStopped = !newConfig.Modules.Classifier
 	var clusteringHMIStopped = !newConfig.Modules.HMI
-	var clusteringFMIStopped = !newConfig.Modules.FMI.Active
+	var clusteringFMIStopped = !newConfig.Modules.FMI
 	var interrupted bool
 
 	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped)) {

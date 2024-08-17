@@ -32,11 +32,6 @@ type CrawlerModule struct {
 	InitialCacheSize int64 `yaml:"initialCacheSize"`
 }
 
-type FMIModule struct {
-	Active    bool   `yaml:"active"`
-	MaxBlocks uint64 `yaml:"maxBlocks"`
-}
-
 type APIModule struct {
 	Active bool `yaml:"active"`
 	Port   uint `yaml:"port"`
@@ -57,7 +52,7 @@ type ModulesConfig struct {
 	Metrics    MetricsModule `yaml:"metrics"`
 	User       UserModule    `yaml:"user"`
 	Crawler    CrawlerModule `yaml:"crawler"`
-	FMI        FMIModule     `yaml:"fmi"`
+	FMI        bool          `yaml:"fmi"`
 	HMI        bool          `yaml:"hmi"`
 	Classifier bool          `yaml:"classifier"`
 	Heuristics bool          `yaml:"heuristics"`
@@ -102,11 +97,8 @@ var defaultConfig = Config{
 		Classifier: false,
 		Heuristics: false,
 		Crawler:    CrawlerModule{Active: true, InitialCacheSize: 25000},
-		FMI: FMIModule{
-			Active:    false,
-			MaxBlocks: 10,
-		},
-		HMI: false,
+		FMI:        false,
+		HMI:        false,
 	},
 }
 
