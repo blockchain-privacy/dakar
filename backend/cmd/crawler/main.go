@@ -400,7 +400,7 @@ func main() {
 					defer func() {
 						chClassifyingStopped <- true
 					}()
-					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig, 1)
+					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 
 					if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
@@ -426,7 +426,7 @@ func main() {
 			defer func() {
 				chClassifyingStopped <- true
 			}()
-			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig, 1)
+			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 			if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
 				warn(classifierErr)
@@ -459,7 +459,7 @@ func main() {
 			defer func() {
 				chFMIClusteringStopped <- true
 			}()
-			fmi := clustering.NewFlatMultiInput(appContext, graphDB, newConfig.Modules.FMI.MaxBlocks)
+			fmi := clustering.NewFlatMultiInput(appContext, graphDB)
 			fmi.RegisterMetrics(prometheus.DefaultRegisterer)
 			if clusteringErr := blockiterator.StartIteration(fmi, nil); clusteringErr != nil {
 				warn(clusteringErr)

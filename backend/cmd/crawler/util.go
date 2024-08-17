@@ -33,8 +33,8 @@ type CrawlerModule struct {
 }
 
 type FMIModule struct {
-	Active    bool `yaml:"active"`
-	MaxBlocks uint `yaml:"maxBlocks"`
+	Active    bool   `yaml:"active"`
+	MaxBlocks uint64 `yaml:"maxBlocks"`
 }
 
 type APIModule struct {

@@ -274,7 +274,7 @@ func Test_calculateMetrics(t *testing.T) {
 }
 
 func TestNewFlatMultiInput(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, 1)
+	fm := NewFlatMultiInput(context.Background(), nil)
 
 	require.NotNil(t, fm)
 }
@@ -282,7 +282,7 @@ func TestNewFlatMultiInput(t *testing.T) {
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	fm := NewFlatMultiInput(context.Background(), nil, 1)
+	fm := NewFlatMultiInput(context.Background(), nil)
 	fm.RegisterMetrics(prometheus.NewRegistry())
 	// panics because db is not set
 	require.Panics(t, func() {
@@ -307,7 +307,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
+	fm := NewFlatMultiInput(context.Background(), dbHandle)
 	fm.RegisterMetrics(prometheus.NewRegistry())
 	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
 	require.NoError(t, fm.CalculateInitialState())
@@ -332,20 +332,20 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
+	fm := NewFlatMultiInput(context.Background(), dbHandle)
 
 	// error because no status is set
-	_, err := fm.NextBlock()
+	_, err := fm.Next()
 	require.Error(t, err)
 
 	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
 
 	// error because not classified block is set
-	_, err = fm.NextBlock()
+	_, err = fm.Next()
 	require.Error(t, err)
 
 	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
-	ok, err := fm.NextBlock()
+	ok, err := fm.Next()
 	require.NoError(t, err)
 	require.True(t, ok)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, fm.state.Top)
@@ -355,13 +355,13 @@ func TestFlatMultiInput_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle, 1)
+	fm := NewFlatMultiInput(context.Background(), dbHandle)
 
 	require.NoError(t, fm.PostExecution())
 }
 
 func TestFlatMultiInput_IncrementState(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, 1)
+	fm := NewFlatMultiInput(context.Background(), nil)
 
 	require.EqualValues(t, 0, fm.state.ID)
 	// need to simulate a block being processed
@@ -371,7 +371,7 @@ func TestFlatMultiInput_IncrementState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Empty(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, 1)
+	fm := NewFlatMultiInput(context.Background(), nil)
 
 	// initially top and id are 0, so not empty
 	require.False(t, fm.Empty())
@@ -382,7 +382,7 @@ func TestFlatMultiInput_Empty(t *testing.T) {
 }
 
 func TestFlatMultiInput_Props(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, 1)
+	fm := NewFlatMultiInput(context.Background(), nil)
 
 	require.NotEmpty(t, fm.Props())
 }

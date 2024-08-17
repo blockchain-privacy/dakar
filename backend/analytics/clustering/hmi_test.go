@@ -72,17 +72,17 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
 
 	// error because no status is set
-	_, err := hm.NextBlock()
+	_, err := hm.Next()
 	require.Error(t, err)
 
 	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
 
 	// error because not classified block is set
-	_, err = hm.NextBlock()
+	_, err = hm.Next()
 	require.Error(t, err)
 
 	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
-	ok, err := hm.NextBlock()
+	ok, err := hm.Next()
 	require.NoError(t, err)
 	require.True(t, ok)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, hm.state.Top)

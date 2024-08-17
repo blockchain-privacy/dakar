@@ -284,16 +284,20 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 func (m *HierarchicalMultiInput) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                "hierarchical multi-input clustering",
-		Context:             m.ctx,
-		Logger:              clusteringLogger,
-		CurrentBlock:        m.state.ID,
-		ProcessedBlockCount: 1,
+		Name:                        "hierarchical multi-input clustering",
+		Context:                     m.ctx,
+		Logger:                      clusteringLogger,
+		CurrentBlock:                m.state.ID,
+		ProcessedBlockCount:         1,
+		SupportsMultiBlockIteration: false,
 	}
 }
 
-// NextBlock tries to increase the internal state to the next block
-func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
+// SetMaxBlocks is not supported, so do nothing
+func (m *HierarchicalMultiInput) SetMaxBlocks(uint64) {}
+
+// Next tries to increase the internal state to the next block
+func (m *HierarchicalMultiInput) Next() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
 		return false, err

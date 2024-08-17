@@ -20,10 +20,10 @@ type BlockIterator interface {
 	// Iterate does one execution loop
 	// false -> stop execution
 	Iterate() (bool, error)
-	// NextBlock tries to increase the internal state to the next block. Returns false if this fails.
+	// Next tries to increase the internal state to the next block. Returns false if this fails.
 	// This will be called periodically when Empty returns true. Should return true if the state
 	// transition was successful.
-	NextBlock() (bool, error)
+	Next() (bool, error)
 	// PostExecution before the block iterator stops.
 	// This function should do operations like the setting the database status
 	PostExecution() error
@@ -33,6 +33,8 @@ type BlockIterator interface {
 	Empty() bool
 	// Props returns the properties of the iterator
 	Props() Properties
+	// SetMaxBlocks sets the number of blocks each iteration processes.
+	SetMaxBlocks(uint64)
 }
 
 type Properties struct {
@@ -45,6 +47,9 @@ type Properties struct {
 	CurrentBlock uint64
 	// ProcessedBlockCount is the number of blocks which have been processed by the last Iterate call
 	ProcessedBlockCount uint64
+	// SupportsMultiBlockIteration returns true if
+	// the iterator support iteration over multiple blocks at once
+	SupportsMultiBlockIteration bool
 }
 
 // State holds the current state of the processing loop
@@ -54,6 +59,17 @@ type State struct {
 
 	// Top is the highest block height, which was observed at some point
 	Top uint64
+}
+
+// scaleBlocksPerIteration returns the number of blocks each iteration should considers.
+// The incrase and decrase depends on if the target duration is smaller or higher than iterationDuration.
+// The maximum is set to 200 blocks.
+func scaleBlocksPerIteration(target time.Duration, iterationDuration time.Duration, blockCount uint64) uint64 {
+	if iterationDuration > target {
+		return max(1, blockCount/2)
+	}
+
+	return min(blockCount+1, 200)
 }
 
 func (s State) String() string {
@@ -114,12 +130,14 @@ func StartIteration(iterator BlockIterator, postIterationHook func()) (err error
 				return
 			}
 		}
-
+		now := time.Now()
 		ok, iterateErr := iterator.Iterate()
 		if iterateErr != nil {
 			err = iterateErr
 			return
 		}
+
+		iterationDuration := time.Since(now)
 
 		// stop execution
 		if !ok {
@@ -145,6 +163,12 @@ func StartIteration(iterator BlockIterator, postIterationHook func()) (err error
 		if postIterationHook != nil {
 			postIterationHook()
 		}
+
+		if iterator.Props().SupportsMultiBlockIteration {
+			scaledBlockCount := scaleBlocksPerIteration(time.Second*5, iterationDuration, iterator.Props().ProcessedBlockCount)
+			info(iterator, "scaling", "iter dur", iterationDuration, "curr max block", iterator.Props().ProcessedBlockCount, "scaled", scaledBlockCount)
+			iterator.SetMaxBlocks(scaledBlockCount)
+		}
 	}
 }
 
@@ -165,7 +189,7 @@ func waitForNextDBBlockID(it BlockIterator) (bool, error) {
 				return false, nil
 			}
 
-			if ok, err := it.NextBlock(); err != nil {
+			if ok, err := it.Next(); err != nil {
 				return false, err
 			} else if ok {
 				return false, nil

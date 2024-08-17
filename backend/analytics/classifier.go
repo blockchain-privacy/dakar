@@ -102,7 +102,7 @@ type Classifier struct {
 	state  blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
-	maxBlocks uint
+	maxBlocks uint64
 	// number of blocks which have been processed by the last Iterate call
 	blocksProcessed uint64
 
@@ -112,12 +112,12 @@ type Classifier struct {
 }
 
 // NewClassifier creates a new Classifier object
-func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config, maxBlocks uint) *Classifier {
+func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *Classifier {
 	return &Classifier{
 		config:    cfg,
 		db:        dgraph,
 		ctx:       ctx,
-		maxBlocks: maxBlocks,
+		maxBlocks: 1,
 	}
 }
 
@@ -141,12 +141,17 @@ func (c *Classifier) RegisterMetrics(req prometheus.Registerer) {
 
 func (c *Classifier) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                "classifier",
-		Context:             c.ctx,
-		Logger:              analyticsLogger,
-		CurrentBlock:        c.state.ID,
-		ProcessedBlockCount: c.blocksProcessed,
+		Name:                        "classifier",
+		Context:                     c.ctx,
+		Logger:                      analyticsLogger,
+		CurrentBlock:                c.state.ID,
+		ProcessedBlockCount:         c.blocksProcessed,
+		SupportsMultiBlockIteration: true,
 	}
+}
+
+func (c *Classifier) SetMaxBlocks(max uint64) {
+	c.maxBlocks = max
 }
 
 // IncrementState increments the state one block
@@ -257,9 +262,9 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 	return
 }
 
-// NextBlock tries to increase the internal state to the next block.
+// Next tries to increase the internal state to the next block.
 // Returns true if the top block id was changed
-func (c *Classifier) NextBlock() (bool, error) {
+func (c *Classifier) Next() (bool, error) {
 	status, err := dbstat.GetCrawlerStatus(c.db)
 	if err != nil {
 		return false, err
@@ -288,7 +293,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
-	toBlockID := min(c.state.Top, c.state.ID+uint64(c.maxBlocks)-1)
+	toBlockID := min(c.state.Top, c.state.ID+c.maxBlocks-1)
 
 	// get the transaction of the current block height
 	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID, toBlockID)
