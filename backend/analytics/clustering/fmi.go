@@ -21,7 +21,6 @@ type FlatMultiInput struct {
 
 	// how many blocks are processed in one interation at maximum
 	maxBlocks uint
-
 	// number of blocks which have been processed by the last Iterate call
 	blocksProcessed uint64
 

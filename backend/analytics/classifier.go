@@ -96,21 +96,28 @@ func CountAmountDenominations(amounts []int64) (denominations [NumDenominations]
 
 // Classifier implements BlockIterator which classifies the transactions of each traversed block
 type Classifier struct {
-	config       Config
-	db           external.Database
-	ctx          context.Context
-	state        blockiterator.State
+	config Config
+	db     external.Database
+	ctx    context.Context
+	state  blockiterator.State
+
+	// how many blocks are processed in one interation at maximum
+	maxBlocks uint
+	// number of blocks which have been processed by the last Iterate call
+	blocksProcessed uint64
+
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
 	blockHeight  prometheus.Gauge
 }
 
 // NewClassifier creates a new Classifier object
-func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *Classifier {
+func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config, maxBlocks uint) *Classifier {
 	return &Classifier{
-		config: cfg,
-		db:     dgraph,
-		ctx:    ctx,
+		config:    cfg,
+		db:        dgraph,
+		ctx:       ctx,
+		maxBlocks: maxBlocks,
 	}
 }
 
@@ -138,13 +145,13 @@ func (c *Classifier) Props() blockiterator.Properties {
 		Context:             c.ctx,
 		Logger:              analyticsLogger,
 		CurrentBlock:        c.state.ID,
-		ProcessedBlockCount: 1,
+		ProcessedBlockCount: c.blocksProcessed,
 	}
 }
 
 // IncrementState increments the state one block
 func (c *Classifier) IncrementState() error {
-	c.state.ID++
+	c.state.ID += c.blocksProcessed
 	return nil
 }
 
@@ -272,12 +279,19 @@ func (c *Classifier) NextBlock() (bool, error) {
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
 func (c *Classifier) Iterate() (bool, error) {
+	if c.maxBlocks == 0 {
+		return false, serror.FromStr("max blocks must be higher than zero")
+	}
+
 	if c.Empty() {
 		return false, serror.FromStr("got empty state")
 	}
 
+	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
+	toBlockID := min(c.state.Top, c.state.ID+uint64(c.maxBlocks)-1)
+
 	// get the transaction of the current block height
-	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID, c.state.ID)
+	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID, toBlockID)
 	if err != nil {
 		return false, err
 	}
@@ -305,7 +319,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
-		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID, c.state.ID)
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID, toBlockID)
 	if classErr != nil {
 		return false, classErr
 	}
@@ -315,7 +329,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
 		// been found they are getting classified, before appending them to the set of transactions
 		// which is getting inserted into the db
-		originCC, originCP, err := getConnectedCollaterals(c.db, potentialCollateralTransactions, c.state.ID)
+		originCC, originCP, err := getConnectedCollaterals(c.db, potentialCollateralTransactions, toBlockID)
 		if err != nil {
 			return false, err
 		}
@@ -379,13 +393,14 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, c.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
-	c.blocks.Inc()
+	c.blocksProcessed = toBlockID - c.state.ID + 1
+	c.blocks.Add(float64(c.blocksProcessed))
 	c.transactions.Add(float64(len(mixingTransactions)))
-	c.blockHeight.Set(float64(c.state.ID))
+	c.blockHeight.Set(float64(toBlockID))
 
 	return true, nil
 }

@@ -23,7 +23,7 @@ import (
 func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint64, toBlockID uint64) (toClassify []db.Transaction,
 	origins []db.Transaction, err error) {
 	query := `query Q($from:int,$to:int) {
-				b as var(func: between(id, $from, $to)){t as ts}
+				b as var(func: between(id, $from, $to))
 				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
@@ -43,7 +43,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 					tx_outputs{
 						# do not limit by number of inputs as there could be multiple with the same address
 						to_classify as ~tx_inputs@filter(not has(privacytype) and le(count(tx_outputs),2))@cascade{
-							~transactions@filter(le(ts,val(t)))
+							~transactions@filter(le(id,$to))
 						}
 					}
 				}

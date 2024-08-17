@@ -23,7 +23,7 @@ const (
 	UseBlockFile             = "block"
 	UsePrivacyFile           = "privacy"
 	ClassifierFileFirstBlock = 1557775
-	ClassifierFileLastBlock  = 1557780
+	ClassifierFileLastBlock  = 1557830
 	BlockFileFirstBlock      = 60000
 	BlockFileLastBlock       = 60020
 )
@@ -37,7 +37,7 @@ var BlockFile []byte
 // ClassifierFile contains Dash blocks from height 1557775 to 1557780.
 // This file includes block, transaction, and address data.
 //
-//go:embed blocks_1557775_1557780.json
+//go:embed blocks_1557775_1557830.json
 var ClassifierFile []byte
 
 // PrivacyFile contains a small transaction graph created by traversing forward beginning with tx

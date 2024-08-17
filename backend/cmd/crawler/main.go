@@ -400,7 +400,7 @@ func main() {
 					defer func() {
 						chClassifyingStopped <- true
 					}()
-					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
+					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig, 1)
 					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 
 					if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
@@ -426,7 +426,7 @@ func main() {
 			defer func() {
 				chClassifyingStopped <- true
 			}()
-			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
+			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig, 1)
 			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 			if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
 				warn(classifierErr)
