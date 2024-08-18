@@ -4,6 +4,7 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
@@ -292,12 +293,12 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 }
 
 // RemovePrivacyTypeOfAllTransactions removes the privacy type of all transactions
-func RemovePrivacyTypeOfAllTransactions(c external.Database) (err error) {
+func RemovePrivacyTypeOfAllTransactions(ctx context.Context, c external.Database) (err error) {
 	req := &api.Request{
 		Query:     "{t as var(func: has(txhash))}",
 		Mutations: []*api.Mutation{{DelNquads: []byte("uid(t) <privacytype> * .")}},
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, time.Minute*10, req)
+	return db.MutationWithRetry(ctx, c, req)
 }

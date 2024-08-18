@@ -550,7 +550,7 @@ func TestClassifier_Iterate(t *testing.T) {
 	classifier.state.ID = testhelper.ClassifierFileFirstBlock
 	classifier.state.Top = testhelper.ClassifierFileFirstBlock
 
-	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(dbHandle))
+	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
 
 	_, err = classifier.Iterate()
 	require.NoError(t, err)
@@ -567,7 +567,10 @@ func TestMultipleBlockIteration(t *testing.T) {
 
 	fileBlockCount := uint64(testhelper.ClassifierFileLastBlock - testhelper.ClassifierFileFirstBlock)
 
-	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(dbHandle))
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
+
+	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  testhelper.GetPointer(false),
 		LastBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileLastBlock),
@@ -577,9 +580,7 @@ func TestMultipleBlockIteration(t *testing.T) {
 		LastClassifiedBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileFirstBlock),
 	}))
 
-	ctx2, cancelFunc2 := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancelFunc2()
-	classifier2 := NewClassifier(ctx2, dbHandle, NewDashConfig())
+	classifier2 := NewClassifier(ctx, dbHandle, NewDashConfig())
 	classifier2.RegisterMetrics(prometheus.NewRegistry())
 
 	classifier2.state.ID = testhelper.ClassifierFileFirstBlock
@@ -588,7 +589,7 @@ func TestMultipleBlockIteration(t *testing.T) {
 	require.NoError(t, blockiterator.StartIteration(classifier2, func() {
 		numIteratedBlocks += classifier2.Props().ProcessedBlockCount
 		if numIteratedBlocks >= fileBlockCount {
-			cancelFunc2()
+			cancelFunc()
 		}
 	}))
 }
@@ -654,6 +655,8 @@ func Test_isCollateralCreation(t *testing.T) {
 	require.NoError(t, err)
 	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
+	largeAmount, err := db.GetTransaction(dbHandle, "cb94ed9e7c1e45c2e26585e7b24f8ab1d779cd9b8cd37d74bc7179211734ca85")
+	require.NoError(t, err)
 
 	tests := []struct {
 		t       db.Transaction
@@ -664,6 +667,7 @@ func Test_isCollateralCreation(t *testing.T) {
 		{t: cpTx, want: false, wantErr: false},
 		{t: mixingTx, want: false, wantErr: false},
 		{t: unclassifiedTx, want: false, wantErr: false},
+		{t: largeAmount, want: false, wantErr: false},
 	}
 	for _, tt := range tests {
 		got, err := isCollateralCreation(dbHandle, tt.t)

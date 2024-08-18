@@ -11,12 +11,15 @@ func TestRemovePrivacyTypeOfAllTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	// check mixing count before deleting
 	mixingCount, _, _, _, err := GetPrivacyTransactionCount(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, mixingCount)
 
-	require.NoError(t, RemovePrivacyTypeOfAllTransactions(dbHandle))
+	require.NoError(t, RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
 
 	// check mixing count after deletion
 	mixingCount, _, _, _, err = GetPrivacyTransactionCount(dbHandle)

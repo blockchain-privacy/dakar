@@ -45,7 +45,7 @@ import (
 //   │C Payment├─┤C Payment│          └─┤C Creation├─┤C Payment│
 //   └─────────┘ └─────────┘            └──────────┘ └─────────┘
 
-// NumDenominations is the number of Dash PrivateSend denominations existing
+// NumDenominations is the number of Dash PrivateSend denominations
 const NumDenominations = 5
 
 const (
@@ -437,13 +437,24 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 		return false, nil
 	}
 
+	outputSum := *t.Outputs[0].Amount + *t.Outputs[1].Amount
 	// must have at least enough to pay maxCollateral
-	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < maxCollateral {
+	if outputSum < maxCollateral {
 		return false, nil
 	}
 
 	// check if both outputs do not fulfill the minimum collateral amount
 	if *t.Outputs[0].Amount < minCollateral && *t.Outputs[1].Amount < minCollateral {
+		return false, nil
+	}
+
+	// one output must be smaller or equal to the old maximum collateral
+	if *t.Outputs[0].Amount > oldMaxCollateral*2 && *t.Outputs[1].Amount > oldMaxCollateral*2 {
+		return false, nil
+	}
+
+	// must not be larger than the highest denomination
+	if outputSum > denominationsTypes[0] {
 		return false, nil
 	}
 
