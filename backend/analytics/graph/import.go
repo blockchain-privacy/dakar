@@ -114,7 +114,7 @@ func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max in
 // numTxToLoad == 0: load all transactions
 // numTxToLoad > 0: load numTxToLoad transactions of each privacy type
 func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
-	mixingCount, originCount, ccCount, destinationCount, getErr :=
+	mixingCount, originCount, ccCount, cpCount, destinationCount, getErr :=
 		analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
 		return nil, getErr
@@ -126,7 +126,7 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 	}
 
 	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
-		"destination_count", destinationCount, "cc_count", ccCount)
+		"destination_count", destinationCount, "cc_count", ccCount, "cp_count", cpCount)
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
 

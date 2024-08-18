@@ -15,14 +15,14 @@ func TestRemovePrivacyTypeOfAllTransactions(t *testing.T) {
 	defer cancel()
 
 	// check mixing count before deleting
-	mixingCount, _, _, _, err := GetPrivacyTransactionCount(dbHandle)
+	mixingCount, _, _, _, _, err := GetPrivacyTransactionCount(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, mixingCount)
 
 	require.NoError(t, RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
 
 	// check mixing count after deletion
-	mixingCount, _, _, _, err = GetPrivacyTransactionCount(dbHandle)
+	mixingCount, _, _, _, _, err = GetPrivacyTransactionCount(dbHandle)
 	require.NoError(t, err)
 	require.Empty(t, mixingCount)
 }
