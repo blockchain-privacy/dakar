@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const targetIterationDuration = time.Second * 10
+
 // BlockIterator defines the basic structure of a process which
 // iterates sequentially over a set of blocks:
 //  1. do pre loop operations like getting the start id
@@ -43,12 +45,11 @@ type Properties struct {
 	Context context.Context
 	// Logger used for this iterator
 	Logger *slog.Logger
-	// CurrentBlock is the block height which is currently processed
+	// CurrentBlock refers to the block height which is currently being processed
 	CurrentBlock uint64
-	// ProcessedBlockCount is the number of blocks which have been processed by the last Iterate call
+	// ProcessedBlockCount is the total number of blocks that were processed during the last Iterate call
 	ProcessedBlockCount uint64
-	// SupportsMultiBlockIteration returns true if
-	// the iterator support iteration over multiple blocks at once
+	// SupportsMultiBlockIteration returns true if the iterator is capable of iterating over multiple blocks
 	SupportsMultiBlockIteration bool
 }
 
@@ -61,15 +62,21 @@ type State struct {
 	Top uint64
 }
 
-// scaleBlocksPerIteration returns the number of blocks each iteration should considers.
-// The incrase and decrase depends on if the target duration is smaller or higher than iterationDuration.
-// The maximum is set to 200 blocks.
+// scaleBlocksPerIteration determines the number of blocks to be processed in each iteration.
+// The scaling is based on whether the target duration is less than or greater than the iteration duration.
+// The upper limit is capped at 200 blocks.
 func scaleBlocksPerIteration(target time.Duration, iterationDuration time.Duration, blockCount uint64) uint64 {
-	if iterationDuration > target {
-		return max(1, blockCount/2)
+	upperLimit := time.Duration(float64(target) * 1.1)
+	if iterationDuration > upperLimit {
+		return max(1, uint64(float64(blockCount)*0.75))
 	}
 
-	return min(blockCount+1, 200)
+	lowerLimit := time.Duration(float64(target) * 0.9)
+	if iterationDuration < lowerLimit {
+		return min(max(blockCount+1, uint64(float64(blockCount)*1.1)), 200)
+	}
+
+	return blockCount
 }
 
 func (s State) String() string {
@@ -136,7 +143,6 @@ func StartIteration(iterator BlockIterator, postIterationHook func()) (err error
 			err = iterateErr
 			return
 		}
-
 		iterationDuration := time.Since(now)
 
 		// stop execution
@@ -165,9 +171,8 @@ func StartIteration(iterator BlockIterator, postIterationHook func()) (err error
 		}
 
 		if iterator.Props().SupportsMultiBlockIteration {
-			scaledBlockCount := scaleBlocksPerIteration(time.Second*5, iterationDuration, iterator.Props().ProcessedBlockCount)
-			info(iterator, "scaling", "iter dur", iterationDuration, "curr max block", iterator.Props().ProcessedBlockCount, "scaled", scaledBlockCount)
-			iterator.SetMaxBlocks(scaledBlockCount)
+			iterator.SetMaxBlocks(scaleBlocksPerIteration(targetIterationDuration,
+				iterationDuration, iterator.Props().ProcessedBlockCount))
 		}
 	}
 }

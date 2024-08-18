@@ -22,9 +22,10 @@ func Test_scaleBlocksPerIteration(t *testing.T) {
 		{
 			target:            time.Second * 5,
 			iterationDuration: time.Second * 6,
-			blockCount:        5,
+			blockCount:        3,
 			want:              2,
 		},
+		// not lower than 1
 		{
 			target:            time.Second * 5,
 			iterationDuration: time.Second * 6,
@@ -35,19 +36,32 @@ func Test_scaleBlocksPerIteration(t *testing.T) {
 			target:            time.Second * 5,
 			iterationDuration: time.Second * 6,
 			blockCount:        3,
-			want:              1,
+			want:              2,
 		},
 		{
 			target:            time.Second * 5,
 			iterationDuration: time.Second * 5,
 			blockCount:        3,
-			want:              4,
+			want:              3,
 		},
 		{
 			target:            time.Second * 5,
 			iterationDuration: time.Second * 0,
 			blockCount:        200,
 			want:              200,
+		},
+		// should add 10%
+		{
+			target:            time.Second * 5,
+			iterationDuration: time.Second * 0,
+			blockCount:        100,
+			want:              110,
+		},
+		{
+			target:            time.Second * 5,
+			iterationDuration: time.Second * 6,
+			blockCount:        100,
+			want:              75,
 		},
 	}
 	for _, tt := range tests {
