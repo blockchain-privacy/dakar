@@ -28,3 +28,6 @@ linters:
     - mirror
     - gocheckcompilerdirectives
     - intrange
+    - nilnil
+    - musttag
+

@@ -198,6 +198,10 @@ func (w *Wrapper) LoadGraphs() error {
 	}
 
 	txGraph, err := LoadTransactionGraph(w.db, numTxToLoad)
+	if errors.Is(err, ErrDBContainsNoPrivacyTransactions) {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}

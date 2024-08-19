@@ -3,6 +3,7 @@ package graph
 import (
 	"backend/db/analytics"
 	"backend/external"
+	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 
@@ -11,6 +12,8 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
+
+var ErrDBContainsNoPrivacyTransactions = errors.New("db contains no privacy transactions")
 
 // loadOriginTransactions loads origin transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
@@ -122,7 +125,7 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 
 	// nothing to do
 	if mixingCount == 0 {
-		return nil, nil
+		return nil, ErrDBContainsNoPrivacyTransactions
 	}
 
 	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,

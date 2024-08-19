@@ -7,10 +7,13 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/qrest/gomisc/serror"
 	"slices"
 	"time"
 )
+
+var ErrNodeNotFound = errors.New("node not found")
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
 func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
@@ -702,7 +705,7 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 		return
 	}
 
-	return nil, nil
+	return nil, ErrNodeNotFound
 }
 
 // GetConnectionClusterToTransaction returns the given transaction, with each output
