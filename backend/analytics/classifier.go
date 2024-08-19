@@ -453,11 +453,6 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 		return false, nil
 	}
 
-	// must not be larger than the highest denomination
-	if outputSum > denominationsTypes[0] {
-		return false, nil
-	}
-
 	inputCount, outputCount, err := db.GetOutputAddressCounts(dgraph, t.UID)
 	if err != nil {
 		return false, err
