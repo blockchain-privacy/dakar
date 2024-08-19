@@ -247,7 +247,7 @@ export default class Histogram {
 			.attr('font-size', '1em')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', 0 - margin.left)
-			.attr('x', 0 - (height / 2) - 20)
+			.attr('x', 0 - (height / 2))
 			.attr('dy', '1em')
 			.style('text-anchor', 'middle')
 			.text('Occurrences');
