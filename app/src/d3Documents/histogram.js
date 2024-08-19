@@ -57,7 +57,12 @@ export default class Histogram {
 		let lowestDate = null;
 		let highestDate = null;
 
-		const detailArray = graphData.map(d => {
+		const detailArray = [];
+		for (const d of graphData) {
+			if (d.dateTime === undefined && d.ts === undefined) {
+				continue;
+			}
+
 			if (d.dateTime === undefined) {
 				d.dateTime = new Date(d.ts);
 			}
@@ -70,10 +75,13 @@ export default class Histogram {
 				highestDate = d.dateTime;
 			}
 
-			return d;
-		});
+			detailArray.push(d);
+		}
 
-		const duration = highestDate - lowestDate;
+		let duration = 0;
+		if (highestDate !== null && lowestDate !== null) {
+			duration = highestDate - lowestDate;
+		}
 
 		// Check if there is enough data to draw the diagram; 1000 * 60 * 60 * 3 = 10800000
 		if (duration < 180000) {
