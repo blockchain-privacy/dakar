@@ -17,7 +17,6 @@ This is the backend of Dakar. It crawls the Dash blockchain and exposes its data
 
 ## Dependencies
 
-* `btcsuite` - blockchain rpc client access
 * `dgraph` - data storage and processed blockchain data
 * `grpc` - network communication
 * `ristretto` - in-memory cache for API requests
