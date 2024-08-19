@@ -217,7 +217,7 @@ export default class Histogram {
 		// Add the x Axis
 		svgGroup.append('g')
 			.attr('transform', `translate(0,${height})`)
-			.call(axisBottom(x));
+			.call(axisBottom(x).ticks(6));
 
 		// Add x title description
 		svgGroup.append('text')
@@ -233,7 +233,7 @@ export default class Histogram {
 			.text(`${lowestDate.toLocaleString()} - ${highestDate.toLocaleString()}`);
 
 		// Only allow integer on scale
-		const yAxisTicks = y.ticks().filter(tick => Number.isInteger(tick));
+		const yAxisTicks = y.ticks(5).filter(tick => Number.isInteger(tick));
 
 		// Add the y Axis
 		svgGroup.append('g')
