@@ -67,6 +67,24 @@
               </icon-item>
             </v-col>
           </v-row>
+          <v-row>
+            <v-col>
+              <icon-item
+                title="Input Sum"
+                :icon="mdiSigma"
+              >
+                {{ convertAmount(inputSum) }}
+              </icon-item>
+            </v-col>
+            <v-col>
+              <icon-item
+                title="Output Sum"
+                :icon="mdiSigma"
+              >
+                {{ convertAmount(outputSum) }}
+              </icon-item>
+            </v-col>
+          </v-row>
           <v-row v-if="isCoinBaseTx(tx)">
             <v-col>
               <icon-item
@@ -234,7 +252,7 @@ import {
 	mdiChevronUp,
 	mdiFormatHeaderPound,
 	mdiFormatListNumbered,
-	mdiPickaxe,
+	mdiPickaxe, mdiSigma,
 	mdiTransfer,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
@@ -265,7 +283,6 @@ const showAllOutputs = ref(false);
 const maxOutputs = ref(3);
 
 // Computed
-
 const filteredInputs = computed(() => props.tx.inputs
 	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
 const filteredOutputs = computed(() => props.tx.outputs
@@ -285,6 +302,8 @@ const areItemsLimited = computed(() => {
 
 	return Boolean(props.tx.outputs && props.tx.outputs.length > maxOutputs.value);
 });
+const inputSum = computed(() => props.tx.inputs.reduce((sum, input) => sum + input.amount, 0));
+const outputSum = computed(() => props.tx.outputs.reduce((sum, input) => sum + input.amount, 0));
 
 // Functions
 function getLabel(count, label) {
