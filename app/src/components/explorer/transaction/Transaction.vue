@@ -290,7 +290,7 @@ import {
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {
-	convertAmount, isDestination, plural, shortenHash,
+	convertAmount, getColorMap, getPrivacyTypeLabel, isDestination, plural, shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
@@ -320,6 +320,9 @@ const maxOutputs = ref(3);
 
 let svgInputGraph = null;
 let svgOutputGraph = null;
+const colorMap = getColorMap();
+// Set color for non-privacy transaction
+colorMap.set('', '#607D8B');
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
 
@@ -368,6 +371,13 @@ function init() {
 	updateOutputGraph();
 }
 
+function setPrivacyLabel(items) {
+	return items.map(d => {
+		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacytype);
+		return d;
+	});
+}
+
 function updateInputGraph() {
 	if (!props.tx.inputs) {
 		enoughDataForInputGraph.value = false;
@@ -375,7 +385,7 @@ function updateInputGraph() {
 	}
 
 	svgInputGraph = new Histogram(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
-	svgInputGraph.draw(props.tx.inputs);
+	svgInputGraph.drawStacked(setPrivacyLabel(props.tx.inputs), colorMap);
 	enoughDataForInputGraph.value = !svgInputGraph.empty;
 }
 
@@ -386,7 +396,7 @@ function updateOutputGraph() {
 	}
 
 	svgOutputGraph = new Histogram(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
-	svgOutputGraph.draw(props.tx.outputs);
+	svgOutputGraph.drawStacked(setPrivacyLabel(props.tx.outputs), colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }
 
