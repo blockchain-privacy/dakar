@@ -49,10 +49,14 @@ export default class Histogram {
 		documentSvg.innerHTML = '';
 	}
 
+	// Draws the graph.
+	// Set the click handler before calling this function.
 	draw(graphData) {
 		this.drawStacked(graphData, null);
 	}
 
+	// Draws the graph. If colorMap is set, draws a stacked graph.
+	// Set the click handler before calling this function.
 	drawStacked(graphData, colorMap) {
 		let lowestDate = null;
 		let highestDate = null;
@@ -186,23 +190,26 @@ export default class Histogram {
 
 			// Const self = this;
 			// set overlay which animates the bars and has event handler attached
-			bars.append('rect')
-				.attr('class', 'overlay')
-				.attr('x', 1)
-				.attr('opacity', 0)
-				.attr('width', d => x(d.x1) - x(d.x0) - 1)
-				.attr('height', d => height - y(d.length))
-				.on('click', (e, d) => {
-					this.clickCallBack(d);
-				})
-			// eslint-disable-next-line func-names
-				.on('mouseout', function mouseOut() {
-					d3Select(this).attr('opacity', 0);
-				})
-			// eslint-disable-next-line func-names
-				.on('mouseover', function mouseOver() {
-					d3Select(this).attr('opacity', 1);
-				});
+
+			if (this.clickCallBack !== null) {
+				bars.append('rect')
+					.attr('class', 'overlay')
+					.attr('x', 1)
+					.attr('opacity', 0)
+					.attr('width', d => x(d.x1) - x(d.x0) - 1)
+					.attr('height', d => height - y(d.length))
+					.on('click', (e, d) => {
+						this.clickCallBack(d);
+					})
+				// eslint-disable-next-line func-names
+					.on('mouseout', function mouseOut() {
+						d3Select(this).attr('opacity', 0);
+					})
+				// eslint-disable-next-line func-names
+					.on('mouseover', function mouseOver() {
+						d3Select(this).attr('opacity', 0.7);
+					});
+			}
 		}
 
 		if (this.enableTransition) {
