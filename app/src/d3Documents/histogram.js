@@ -50,10 +50,10 @@ export default class Histogram {
 	}
 
 	draw(graphData) {
-		this.drawStacked(graphData, [], null);
+		this.drawStacked(graphData, null);
 	}
 
-	drawStacked(graphData, categories, colorMap) {
+	drawStacked(graphData, colorMap) {
 		let lowestDate = null;
 		let highestDate = null;
 
@@ -127,7 +127,7 @@ export default class Histogram {
 		y.domain([0, max(bins, d => d.length)]);
 
 		let bars;
-		if (categories.length === 0) {
+		if (colorMap === null) {
 			// Append bar rectangles to the svg element
 			bars = svgGroup.selectAll('rect')
 				.data(bins)

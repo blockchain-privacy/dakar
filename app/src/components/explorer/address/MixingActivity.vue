@@ -499,14 +499,6 @@ function getFilteredData(withGraphData) {
 	return items;
 }
 
-function getCategories(filtered) {
-	if (selectedPrivacyLabel.value.length < 5) {
-		return selectedPrivacyLabel;
-	}
-
-	return [...new Set(filtered.map(d => d.privacyTypeLabel))];
-}
-
 function showForceGraphDespiteWarning() {
 	overrideTooManyTransactionsWarning.value = true;
 	onTabChange(1);
@@ -634,11 +626,7 @@ async function updateSvgData(pullNewData) {
 		}
 	} else {
 		svgHistogram.reset();
-		svgHistogram.drawStacked(
-			filteredItems,
-			getCategories(filteredItems),
-			colorMap,
-		);
+		svgHistogram.drawStacked(filteredItems, colorMap);
 		showHistogram.value = !svgHistogram.empty;
 		showNotEnoughDataMsg.value = svgHistogram.empty;
 	}
