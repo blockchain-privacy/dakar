@@ -409,7 +409,12 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	}
 
 	if err != nil {
-		status = http.StatusInternalServerError
+		if errors.Is(err, db.ErrInvalidRequestArgument) {
+			status = http.StatusBadRequest
+		} else {
+			status = http.StatusInternalServerError
+		}
+
 		warn(err)
 		return
 	}
