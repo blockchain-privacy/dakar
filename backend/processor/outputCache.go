@@ -11,7 +11,7 @@ type outputCache struct {
 }
 
 // newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
-func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoadSize int64) (*outputCache, error) {
+func newUTXOCache(dgraph external.Database, mostRecentBlockID uint64, initialLoadSize uint64) (*outputCache, error) {
 	fromBlock := mostRecentBlockID - (initialLoadSize - 1)
 	if fromBlock <= 0 {
 		fromBlock = 1

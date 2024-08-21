@@ -235,7 +235,7 @@ func (d BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseRes
 	return &r, nil
 }
 
-func (d BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
+func (d BlockchainClient) GetBlockHash(blockHeight uint64) (string, error) {
 	var r string
 	err := d.rpc.Call("getblockhash", []any{blockHeight}, &r)
 	if err != nil {

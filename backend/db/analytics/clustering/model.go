@@ -100,7 +100,7 @@ type TransactionWithAddressClusters struct {
 
 type TransactionWithInputOutputAddressCluster struct {
 	UID             string               `json:"uid"`
-	PrivacyType     *int64               `json:"privacytype,omitempty"`
+	PrivacyType     *uint16              `json:"privacytype,omitempty"`
 	InputAddresses  []AddressWithCluster `json:"input_addr,omitempty"`
 	OutputAddresses []AddressWithCluster `json:"output_addr,omitempty"`
 }
@@ -112,7 +112,7 @@ type TransactionWithAddresses struct {
 
 type TransactionWithInputOutputAddresses struct {
 	UID             string       `json:"uid"`
-	PrivacyType     *int64       `json:"privacytype,omitempty"`
+	PrivacyType     *uint16      `json:"privacytype,omitempty"`
 	InputAddresses  []db.UIDNode `json:"input_addr,omitempty"`
 	OutputAddresses []db.UIDNode `json:"output_addr,omitempty"`
 }

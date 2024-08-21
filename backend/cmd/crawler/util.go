@@ -28,8 +28,8 @@ type DatabaseConfig struct {
 }
 
 type CrawlerModule struct {
-	Active           bool  `yaml:"active"`
-	InitialCacheSize int64 `yaml:"initialCacheSize"`
+	Active           bool   `yaml:"active"`
+	InitialCacheSize uint64 `yaml:"initialCacheSize"`
 }
 
 type APIModule struct {
