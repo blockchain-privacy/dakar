@@ -1,0 +1,128 @@
+package upgrades
+
+import (
+	"backend/db"
+	"backend/db/status"
+	"backend/external"
+	"backend/testhelper"
+	"errors"
+	"github.com/stretchr/testify/require"
+	"testing"
+)
+
+var dbHandle = &testhelper.TestDB{IsDirty: true}
+
+func TestMain(m *testing.M) {
+	InitLogger()
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
+}
+
+func getUpgradesWithError() map[uint64]UpgradePackage {
+	fun := func(database external.Database) error { return nil }
+	errorFun := func(database external.Database) error { return errors.New("error") }
+	return map[uint64]UpgradePackage{
+		2: {upgrades: []schemaUpgrade{fun, fun, fun}},
+		3: {upgrades: []schemaUpgrade{fun, errorFun, fun}},
+	}
+}
+
+func getUpgrades() map[uint64]UpgradePackage {
+	fun := func(database external.Database) error { return nil }
+	upgrades := map[uint64]UpgradePackage{}
+	for i := range db.SchemaVersion {
+		upgrades[i+1] = UpgradePackage{upgrades: []schemaUpgrade{fun, fun, fun}}
+	}
+
+	return upgrades
+}
+
+func Test_upgradeDatabaseToNextVersion(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	upgrades := getUpgradesWithError()
+	tests := []struct {
+		upgrades             map[uint64]UpgradePackage
+		currentSchemaVersion uint64
+		wantErr              bool
+	}{
+		{
+			upgrades: nil,
+			wantErr:  true,
+		},
+		{
+			upgrades:             map[uint64]UpgradePackage{2: {upgrades: nil}},
+			currentSchemaVersion: 1,
+			wantErr:              true,
+		},
+		// currentSchemaVersion is to low, so should fail
+		{
+			upgrades:             upgrades,
+			currentSchemaVersion: 0,
+			wantErr:              true,
+		},
+		{
+			upgrades:             upgrades,
+			currentSchemaVersion: 1,
+			wantErr:              false,
+		},
+		// fails because one of the upgrades fails
+		{
+			upgrades:             upgrades,
+			currentSchemaVersion: 2,
+			wantErr:              true,
+		},
+	}
+	for _, tt := range tests {
+		err := upgradeDatabaseToNextVersion(dbHandle, tt.upgrades, tt.currentSchemaVersion)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
+func Test_applyUpgrades(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	require.NoError(t, status.SetMeta(dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[uint64](1)}))
+
+	tests := []struct {
+		upgrades map[uint64]UpgradePackage
+		wantErr  bool
+	}{
+		{
+			upgrades: nil,
+			wantErr:  true,
+		},
+		{
+			upgrades: map[uint64]UpgradePackage{2: {upgrades: nil}},
+			wantErr:  true,
+		},
+		// this test case has to be executed before a successful upgrade,
+		// so the schema version is still low enough
+		{
+			upgrades: getUpgradesWithError(),
+			wantErr:  true,
+		},
+		{
+			upgrades: getUpgrades(),
+			wantErr:  false,
+		},
+		// schema should already be updated, so nothing should happen
+		{
+			upgrades: getUpgrades(),
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		err := applyUpgrades(dbHandle, tt.upgrades)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
