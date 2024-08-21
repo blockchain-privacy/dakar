@@ -8,6 +8,7 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
+	"backend/db/upgrades"
 	"backend/external"
 	"backend/jsonrpc"
 	"backend/processor"
@@ -59,6 +60,7 @@ func initAllLoggers(fileHandle *os.File) {
 	server.InitLogger()
 	userserver.InitLogger()
 	workspace.InitLogger()
+	upgrades.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -73,6 +75,7 @@ func setCommandFlags(c *Commands) {
 	flag.BoolVar(&c.ResetDB, "reset", false, "Remove all data from the database (default: false)")
 	flag.BoolVar(&c.IgnoreSafeGuard, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
 	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information (default: false)")
+	flag.BoolVar(&c.UpgradeDatabase, "upgradedatabase", false, "Upgrade the database schema to the newest version (default: false)")
 	flag.StringVar(&c.CPUProfilePath, "cpuprofile", "", "Path where the cpu profile should be stored (default: <empty>)")
 }
 
@@ -112,39 +115,35 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 // resetDatabaseDialog asks the user if the database should be reset and performs the reset if necessary.
 // Returns false if the program should be shutdown.
-func resetDatabaseDialog(database external.Database, blockchainMode string) bool {
+func resetDatabaseDialog(database external.Database, blockchainMode string) error {
 	// get confirmation for database deletion
 	var userAnswer string
 	info("All data in the database will we deleted! Do you want to continue (yes/no)?")
 	if _, err := fmt.Scanln(&userAnswer); err != nil {
-		warn(err)
-		return false
+		return err
 	}
 
 	if strings.TrimSpace(strings.ToLower(userAnswer)) != "yes" {
 		info("Exiting program. Database was not modified.")
-		return false
+		return nil
 	}
 
 	if err := db.DropAll(database); err != nil {
-		warn(err)
-		return false
+		return err
 	}
 	info("Dropped all data.")
 
 	if err := db.SetupSchema(database); err != nil {
-		warn(err)
-		return false
+		return err
 	}
 	info("Successfully set up new schema.")
 
 	if err := status.InitializeMeta(database, blockchainMode); err != nil {
-		warn(err)
-		return false
+		return err
 	}
 	info("Successfully initialized database")
 
-	return true
+	return nil
 }
 
 // connectBlockchainRPCClient connects to blockchain RPC client specified in the given configuration.
@@ -286,9 +285,17 @@ func main() {
 	}
 
 	if commands.ResetDB {
-		if !resetDatabaseDialog(graphDB, newConfig.BlockchainMode) {
-			return
+		if err = resetDatabaseDialog(graphDB, newConfig.BlockchainMode); err != nil {
+			warn(err)
 		}
+		return
+	}
+
+	if commands.UpgradeDatabase {
+		if err = upgrades.UpgradeDatabase(graphDB); err != nil {
+			warn(err)
+		}
+		return
 	}
 
 	// exit if no module is active (excluding the metrics module)

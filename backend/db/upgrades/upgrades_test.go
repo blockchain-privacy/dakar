@@ -18,8 +18,8 @@ func TestMain(m *testing.M) {
 }
 
 func getUpgradesWithError() map[uint64]UpgradePackage {
-	fun := func(database external.Database) error { return nil }
-	errorFun := func(database external.Database) error { return errors.New("error") }
+	fun := func(external.Database) error { return nil }
+	errorFun := func(external.Database) error { return errors.New("error") }
 	return map[uint64]UpgradePackage{
 		2: {upgrades: []schemaUpgrade{fun, fun, fun}},
 		3: {upgrades: []schemaUpgrade{fun, errorFun, fun}},
@@ -27,7 +27,7 @@ func getUpgradesWithError() map[uint64]UpgradePackage {
 }
 
 func getUpgrades() map[uint64]UpgradePackage {
-	fun := func(database external.Database) error { return nil }
+	fun := func(external.Database) error { return nil }
 	upgrades := map[uint64]UpgradePackage{}
 	for i := range db.SchemaVersion {
 		upgrades[i+1] = UpgradePackage{upgrades: []schemaUpgrade{fun, fun, fun}}
