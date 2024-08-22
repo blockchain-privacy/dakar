@@ -147,16 +147,17 @@ type connectionRequest struct {
 	} `json:"heuristics,omitempty"`
 
 	Selectors []struct {
-		UID         string       `json:"uid,omitempty"`
-		Created     string       `json:"created,omitempty"`
-		Modified    string       `json:"modified,omitempty"`
-		Type        string       `json:"type,omitempty"`
-		Status      string       `json:"status,omitempty"`
-		Options     string       `json:"options,omitempty"`
-		Parent      *db.UIDNode  `json:"parent,omitempty"`
-		Children    []db.UIDNode `json:"children,omitempty"`
-		ResultCount *int         `json:"resultCount,omitempty"`
-		Results     []db.UIDNode `json:"results,omitempty"`
+		UID              string       `json:"uid,omitempty"`
+		Created          string       `json:"created,omitempty"`
+		Modified         string       `json:"modified,omitempty"`
+		Type             string       `json:"type,omitempty"`
+		Status           string       `json:"status,omitempty"`
+		Options          string       `json:"options,omitempty"`
+		Parent           *db.UIDNode  `json:"parent,omitempty"`
+		Children         []db.UIDNode `json:"children,omitempty"`
+		ResultCount      *int         `json:"resultCount,omitempty"`
+		TotalResultCount *int         `json:"totalResultCount,omitempty"`
+		Results          []db.UIDNode `json:"results,omitempty"`
 	} `json:"selectors,omitempty"`
 }
 
@@ -178,13 +179,14 @@ type Node struct {
 	PrivacyType     *uint16 `json:"privacyType,omitempty"`
 
 	// selector
-	SelectorCreated     string               `json:"selectorCreated,omitempty"`
-	SelectorModified    string               `json:"selectorModified,omitempty"`
-	SelectorType        string               `json:"selectorType,omitempty"`
-	SelectorStatus      string               `json:"selectorStatus,omitempty"`
-	SelectorResultCount *int                 `json:"selectorResultCount,omitempty"`
-	SelectorOptions     *Options             `json:"selectorOptions,omitempty"`
-	HeuristicOptions    *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
+	SelectorCreated          string               `json:"selectorCreated,omitempty"`
+	SelectorModified         string               `json:"selectorModified,omitempty"`
+	SelectorType             string               `json:"selectorType,omitempty"`
+	SelectorStatus           string               `json:"selectorStatus,omitempty"`
+	SelectorResultCount      *int                 `json:"selectorResultCount,omitempty"`
+	SelectorTotalResultCount *int                 `json:"selectorTotalResultCount,omitempty"`
+	SelectorOptions          *Options             `json:"selectorOptions,omitempty"`
+	HeuristicOptions         *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`
