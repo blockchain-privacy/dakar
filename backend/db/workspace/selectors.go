@@ -158,6 +158,11 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 					`
 	}
 
+	maxItems := selectorMaxItems
+	if o.MaxItems != nil {
+		maxItems = *o.MaxItems
+	}
+
 	query := `{
 				` + selectorQuery + `
 
@@ -171,7 +176,7 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 					count:count(uid)
 				}
 				
-				q(func: uid(withSums), first: ` + strconv.Itoa(o.MaxItems) + `)` + queryFilter + `{
+				q(func: uid(withSums), first: ` + strconv.Itoa(maxItems) + `)` + queryFilter + `{
 					uid
 				}
 			  }`

@@ -82,7 +82,7 @@ type Options struct {
 	// EndDate is the end of the time range selection
 	EndDate *time.Time `json:"endDate,omitempty"`
 	// MaxItems is the maximum number of items the selector stores. Can not be higher than selectorMaxItems
-	MaxItems int `json:"maxItems,omitempty"`
+	MaxItems *int `json:"maxItems,omitempty"`
 	// PrivacyTypes contains the privacy types which are included in the selection
 	PrivacyTypes []string `json:"privacyTypes,omitempty"`
 	// ExcludePrivacyTransactions determines if all transactions with a privacy type should be excluded
@@ -98,7 +98,8 @@ type Options struct {
 }
 
 func (o Options) IsValid(hasParent bool) bool {
-	if o.MaxItems <= 0 || o.MaxItems > selectorMaxItems {
+	// if maxItems is set, it has to be in a valid range
+	if o.MaxItems != nil && (*o.MaxItems <= 0 || *o.MaxItems > selectorMaxItems) {
 		return false
 	}
 
