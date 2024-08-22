@@ -22,6 +22,8 @@ const (
 	PrivacyTypeCollateralPayment  = "collateral payment"
 )
 
+const selectorMaxItems = 200
+
 var validTypes = map[string]bool{TypeTransactionProperties: true, TypeHeuristic: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
@@ -45,15 +47,16 @@ func IsPrivacyTypeValid(s string) bool {
 }
 
 type Selector struct {
-	UID      string      `json:"uid,omitempty"`
-	Created  string      `json:"Selector.created,omitempty"`
-	Modified string      `json:"Selector.modified,omitempty"`
-	Type     string      `json:"Selector.type,omitempty"`
-	Status   string      `json:"Selector.status,omitempty"`
-	Parent   *db.UIDNode `json:"Selector.parent,omitempty"`
-	Options  string      `json:"Selector.options,omitempty"`
-	Results  []any       `json:"Selector.results,omitempty"`
-	DType    []string    `json:"dgraph.type,omitempty"`
+	UID              string      `json:"uid,omitempty"`
+	Created          string      `json:"Selector.created,omitempty"`
+	Modified         string      `json:"Selector.modified,omitempty"`
+	Type             string      `json:"Selector.type,omitempty"`
+	Status           string      `json:"Selector.status,omitempty"`
+	Parent           *db.UIDNode `json:"Selector.parent,omitempty"`
+	Options          string      `json:"Selector.options,omitempty"`
+	Results          []any       `json:"Selector.results,omitempty"`
+	TotalResultCount *int        `json:"Selector.totalResultCount,omitempty"`
+	DType            []string    `json:"dgraph.type,omitempty"`
 }
 
 func (s *Selector) SetDType() {
@@ -78,6 +81,8 @@ type Options struct {
 	StartDate *time.Time `json:"startDate,omitempty"`
 	// EndDate is the end of the time range selection
 	EndDate *time.Time `json:"endDate,omitempty"`
+	// MaxItems is the maximum number of items the selector stores. Can not be higher than selectorMaxItems
+	MaxItems int `json:"maxItems,omitempty"`
 	// PrivacyTypes contains the privacy types which are included in the selection
 	PrivacyTypes []string `json:"privacyTypes,omitempty"`
 	// ExcludePrivacyTransactions determines if all transactions with a privacy type should be excluded
@@ -93,6 +98,10 @@ type Options struct {
 }
 
 func (o Options) IsValid(hasParent bool) bool {
+	if o.MaxItems <= 0 || o.MaxItems > selectorMaxItems {
+		return false
+	}
+
 	if !hasParent {
 		// both dates must be set
 		if o.StartDate == nil || o.EndDate == nil {
