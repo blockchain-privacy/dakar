@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 24 24"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <style id="style1">
+    .path { fill:currentColor; stroke:currentColor; }
+  </style>
+  <g
+     id="g1"
+     transform="translate(0.7501975)">
+    <path
+      class="path"
+       d="m 20.437605,6 h -9.17 l 6,6 -6,6 h 9.17 v 2 H 8.4376052 V 18 L 14.437605,12 8.4376052,6 V 4 H 20.437605 Z"
+       id="path1" />
+    <path
+       d="m 2.562,11.46065 v 1.078701 H 9.0342082 L 6.0677794,15.505779 6.8336574,16.271657 11.105314,12 6.8336574,7.728343 6.0677794,8.49422 9.0342082,11.46065 Z"
+       id="path1-5"
+       class="path"
+       style="fill:currentColor;stroke:currentColor;stroke-width:1;stroke-dasharray:none" />
+  </g>
+</svg>
