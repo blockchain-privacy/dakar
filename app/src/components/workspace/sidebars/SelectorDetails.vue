@@ -36,94 +36,86 @@
       </v-row>
       <v-row>
         <v-col
-          v-if="selectorData.inputSum?.min"
+          v-if="selectorData.inputSum?.min || selectorData.inputSum?.max"
           cols="12"
           xs="12"
           sm="6"
         >
           <icon-item
-            title="Input Sum Min"
+            title="Input Sum"
             :icon="mdiSigma"
           >
-            {{ convertAmount(selectorData.inputSum.min) }}
+            {{ selectorData.inputSum?.min? convertAmount(selectorData.inputSum.min):0 }} - {{ selectorData.inputSum?.max?convertAmount(selectorData.inputSum.max):'*' }}
           </icon-item>
         </v-col>
-        <v-col v-if="selectorData.inputSum?.max">
+        <v-col v-if="selectorData.outputSum?.min || selectorData.outputSum?.max">
           <icon-item
-            title="Input Sum Max"
+            title="Output Sum"
             :icon="mdiSigma"
           >
-            {{ convertAmount(selectorData.inputSum.max) }}
+            {{ selectorData.outputSum?.min? convertAmount(selectorData.outputSum.min):0 }} - {{ selectorData.outputSum?.max?convertAmount(selectorData.outputSum.max):'*' }}
           </icon-item>
         </v-col>
       </v-row>
       <v-row>
         <v-col
-          v-if="selectorData.outputSum?.min"
+          v-if="selectorData.inputRange?.min || selectorData.inputRange?.max"
           cols="12"
           xs="12"
           sm="6"
         >
           <icon-item
-            title="Output Sum Min"
-            :icon="mdiSigma"
+            title="Input Range"
+            :icon="mdiCurrencyUsd"
           >
-            {{ convertAmount(selectorData.outputSum.min) }}
+            {{ selectorData.inputRange?.min? convertAmount(selectorData.inputRange.min):0 }} - {{ selectorData.inputRange?.max?convertAmount(selectorData.inputRange.max):'*' }}
           </icon-item>
         </v-col>
-        <v-col v-if="selectorData.outputSum?.max">
+        <v-col v-if="selectorData.outputRange?.min || selectorData.outputRange?.max">
           <icon-item
-            title="Output Sum Max"
-            :icon="mdiSigma"
+            title="Output Range"
+            :icon="mdiCurrencyUsd"
           >
-            {{ convertAmount(selectorData.outputSum.max) }}
+            {{ selectorData.outputRange?.min? convertAmount(selectorData.outputRange.min):0 }} - {{ selectorData.outputRange?.max?convertAmount(selectorData.outputRange.max):'*' }}
           </icon-item>
         </v-col>
       </v-row>
       <v-row>
         <v-col
-          v-if="selectorData.inputRange?.min"
+          v-if="selectorData.excludePrivacyTransactions"
           cols="12"
           xs="12"
           sm="6"
         >
           <icon-item
-            title="Input Range Min"
-            :icon="mdiCurrencyUsd"
+            title="Exclude Priv. Transactions"
+            :icon="mdiIncognito"
           >
-            {{ convertAmount(selectorData.inputRange.min) }}
+            {{ selectorData.excludePrivacyTransactions }}
           </icon-item>
         </v-col>
-        <v-col v-if="selectorData.inputRange?.max">
-          <icon-item
-            title="Input Range Max"
-            :icon="mdiCurrencyUsd"
-          >
-            {{ convertAmount(selectorData.inputRange.max) }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.outputRange?.min"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Output Range Min"
-            :icon="mdiCurrencyUsd"
-          >
-            {{ convertAmount(selectorData.outputRange.min) }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="selectorData.outputRange?.max">
-          <icon-item
-            title="Output Range Max"
-            :icon="mdiCurrencyUsd"
-          >
-            {{ convertAmount(selectorData.outputRange.max) }}
-          </icon-item>
+        <v-col v-else-if="selectorData.privacyTypes">
+          <p class="text-subtitle-1 mb-2 text-center">
+            Privacy Type Filter
+          </p>
+          <div class="d-flex justify-center flex-wrap">
+            <v-chip
+              v-for="p in selectorData.privacyTypes"
+              :key="p"
+              rounded
+              class="me-2 mb-4"
+            >
+              <template #prepend>
+                <v-sheet
+                  style="width:15px; height:15px"
+                  rounded
+                  :color="colorMap.get(p)"
+                  class="me-2"
+                />
+              </template>
+              {{ capitalize(p) }}
+            </v-chip>
+          </div>
         </v-col>
       </v-row>
       <v-row v-if="selectorData.transactions?.length > 0">
@@ -212,18 +204,22 @@
 <script setup>
 import IconItem from '@/components/common/IconItem.vue';
 import {
-	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiCurrencyUsd, mdiPoundBoxOutline, mdiSigma,
+	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiCurrencyUsd, mdiIncognito, mdiPoundBoxOutline, mdiSigma,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
-import {convertAmount, plural} from '@/utilities/index.js';
+import {
+	capitalize, convertAmount, getColorMap, plural,
+} from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
 
 const props = defineProps({selectorData: {type: Object, required: true}});
+
+const colorMap = getColorMap();
 
 let svgHistogram = null;
 const enoughDataForGraph = ref(true);
