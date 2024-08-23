@@ -204,7 +204,7 @@
 <script setup>
 import IconItem from '@/components/common/IconItem.vue';
 import {
-	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiCurrencyUsd, mdiIncognito, mdiPoundBoxOutline, mdiSigma,
+	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognito, mdiPoundBoxOutline,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
