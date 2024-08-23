@@ -43,7 +43,7 @@
         >
           <icon-item
             title="Input Sum"
-            icon="$sigmaLeftIcon"
+            :icon="sigmaLeft"
           >
             {{ selectorData.inputSum?.min? convertAmount(selectorData.inputSum.min):0 }} - {{ selectorData.inputSum?.max?convertAmount(selectorData.inputSum.max):'*' }}
           </icon-item>
@@ -51,7 +51,7 @@
         <v-col v-if="selectorData.outputSum?.min || selectorData.outputSum?.max">
           <icon-item
             title="Output Sum"
-            icon="$sigmaRightIcon"
+            :icon="sigmaRight"
           >
             {{ selectorData.outputSum?.min? convertAmount(selectorData.outputSum.min):0 }} - {{ selectorData.outputSum?.max?convertAmount(selectorData.outputSum.max):'*' }}
           </icon-item>
@@ -66,7 +66,7 @@
         >
           <icon-item
             title="Input Range"
-            icon="$cashLeftIcon"
+            :icon="cashLeft"
           >
             {{ selectorData.inputRange?.min? convertAmount(selectorData.inputRange.min):0 }} - {{ selectorData.inputRange?.max?convertAmount(selectorData.inputRange.max):'*' }}
           </icon-item>
@@ -74,7 +74,7 @@
         <v-col v-if="selectorData.outputRange?.min || selectorData.outputRange?.max">
           <icon-item
             title="Output Range"
-            icon="$cashRightIcon"
+            :icon="cashRight"
           >
             {{ selectorData.outputRange?.min? convertAmount(selectorData.outputRange.min):0 }} - {{ selectorData.outputRange?.max?convertAmount(selectorData.outputRange.max):'*' }}
           </icon-item>
@@ -216,6 +216,9 @@ import {
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {
+	cashLeft, cashRight, sigmaLeft, sigmaRight,
+} from '@/customIcons/index.js';
 
 const props = defineProps({selectorData: {type: Object, required: true}});
 

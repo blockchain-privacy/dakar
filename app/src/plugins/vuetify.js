@@ -3,10 +3,6 @@ import {createVuetify} from 'vuetify';
 import {aliases, mdi} from 'vuetify/iconsets/mdi-svg';
 // Custom icons
 import graph from '../assets/graph.svg';
-import cashRight from '../assets/cash-right.svg';
-import cashLeft from '../assets/cash-left.svg';
-import sigmaLeft from '../assets/sigma-left.svg';
-import sigmaRight from '../assets/sigma-right.svg';
 
 import {md3} from 'vuetify/blueprints';
 const darkTheme = {
@@ -131,10 +127,6 @@ export default createVuetify({
 		aliases: {
 			...aliases,
 			graphIcon: graph,
-			cashRightIcon: cashRight,
-			cashLeftIcon: cashLeft,
-			sigmaLeftIcon: sigmaLeft,
-			sigmaRightIcon: sigmaRight,
 		},
 		sets: {
 			mdi,
