@@ -72,6 +72,15 @@
             <div class="text-subtitle-2 mb-3">
               Select transactions based on their properties. Results are limited to 50 transactions.
             </div>
+            <v-text-field
+              v-model="selectorOptions.maxItems"
+              :rules="parameterRules.get('int')"
+              hide-details
+              placeholder="50"
+              :label="`Maximum stored results (max: ${SELECTOR_MAX_ITEMS})`"
+              :error="maxResultsError"
+              @update:model-value="maxResultsError = false"
+            />
             <named-divider title="Select" />
             <template v-if="!hasParent">
               <div class="d-flex justify-center mt-2 text-subtitle-1">
@@ -260,7 +269,12 @@ import SideBar from '@/components/common/SideBar.vue';
 import {
 	computed, onMounted, onUpdated, ref, toRaw,
 } from 'vue';
-import {CLUSTER_TYPE_CUSTOM, SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP} from '@/constants/index.js';
+import {
+	CLUSTER_TYPE_CUSTOM,
+	SELECTOR_MAX_ITEMS,
+	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_TX_PROP,
+} from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
@@ -282,6 +296,7 @@ const heuristicTypeModel = ref([]);
 const heuristicTypes = ref([]);
 
 const selectorOptions = ref({
+	maxItems: 50,
 	startDate: null,
 	endDate: null,
 	excludePrivacyTransactions: false,
@@ -301,6 +316,7 @@ const heuristicOptions = ref({
 
 const startDateError = ref(false);
 const endDateError = ref(false);
+const maxResultsError = ref(false);
 const parameterRules = new Map([
 	['int', [v => {
 		if (!/^\d+$/.test(v)) {
@@ -341,6 +357,7 @@ onUpdated(() => {
 
 	startDateError.value = false;
 	endDateError.value = false;
+	maxResultsError.value = false;
 });
 
 // Computed
@@ -435,9 +452,9 @@ function isDateRangeToBig(startDate, endDate) {
 	return Math.round(Math.abs((endDate - startDate) / milliSecondsPerDay)) > 60;
 }
 
-// Checks if besides 'startDate' and 'endDate' another option is set
+// Checks if besides 'startDate', 'endDate' and 'maxItems' another option is set
 function isOptionsEmpty(options) {
-	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate');
+	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate' && k !== 'maxItems');
 }
 
 function buildSelectorOptions() {
@@ -464,9 +481,17 @@ function buildSelectorOptions() {
 		options.endDate = options.endDate.toISOString();
 	}
 
+	maxResultsError.value = false;
 	startDateError.value = false;
 	endDateError.value = false;
 
+	if (options.maxItems > SELECTOR_MAX_ITEMS || options.maxItems <= 0) {
+		maxResultsError.value = true;
+		setErrorMessage('invalid number of maximum stored results');
+		return;
+	}
+
+	options.maxItems = parseInt(options.maxItems, 10);
 	options.inputSum.min = getAmount(options.inputSum.min);
 	options.inputSum.max = getAmount(options.inputSum.max);
 	options.outputSum.min = getAmount(options.outputSum.min);

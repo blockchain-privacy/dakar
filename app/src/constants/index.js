@@ -66,3 +66,5 @@ export const SELECTOR_TYPE_TX_PROP = 'transactionProperties';
 export const SELECTOR_STATUS_WAITING = 'waiting';
 export const SELECTOR_STATUS_ERROR = 'error';
 export const SELECTOR_STATUS_SUCCESS = 'success';
+
+export const SELECTOR_MAX_ITEMS = 200;
