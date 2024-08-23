@@ -133,10 +133,18 @@
           sm="6"
         >
           <icon-item
-            title="Number of transactions"
+            title="Total transaction count"
             :icon="mdiPoundBoxOutline"
           >
-            {{ transactionCount }}
+            {{ selectorData.selectorTotalResultCount.toLocaleString() }}
+          </icon-item>
+        </v-col>
+        <v-col>
+          <icon-item
+            title="Stored transaction count"
+            :icon="mdiPoundBoxOutline"
+          >
+            {{ transactionCount.toLocaleString() }}
           </icon-item>
         </v-col>
       </v-row>

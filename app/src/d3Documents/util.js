@@ -24,7 +24,7 @@ export function abbreviateNumber(number) {
 	const scaled = number / scale;
 
 	// Format number and add suffix
-	return scaled.toFixed(1) + suffix;
+	return Number(scaled.toFixed(1)).toLocaleString() + suffix;
 }
 
 // Returns the ratio of a shortened line

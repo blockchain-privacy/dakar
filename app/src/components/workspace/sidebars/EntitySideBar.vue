@@ -407,6 +407,7 @@ async function getSelectorData() {
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
 			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
+			tmpEntityData.selectorTotalResultCount = props.auxiliaryData.selectorTotalResultCount;
 			tmpEntityData.transactions = [];
 
 			// Check if data has to be loaded from backend

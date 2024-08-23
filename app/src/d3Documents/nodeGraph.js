@@ -1087,12 +1087,18 @@ export default class NodeGraph {
 			.attr('fill', 'white')
 			.attr('font-size', 12)
 			.attr('y', 1)
-			.text(d => {
+			.text(function (d) {
 				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
 					return '';
 				}
 
-				return abbreviateNumber(d.selectorResultCount);
+				const nodeText = abbreviateNumber(d.selectorTotalResultCount);
+
+				if (nodeText.length > 3) {
+					d3Select(this).attr('font-size',	9);
+				}
+
+				return nodeText;
 			});
 
 		textContainer
