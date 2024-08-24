@@ -14,30 +14,24 @@
       filter
       :mandatory="mandatory"
       :disabled="disabled"
-      selected-class=""
+
       class="ms-2"
       @update:model-value="handleModelChange"
     >
-      <v-chip
-        v-for="item in items"
-        :key="item.text"
-        rounded
-      >
-        <template #prepend>
-          <color-sheet
-            :color="item.color"
-            class="me-2"
-          />
-        </template>
-        {{ capitalize( item.text) }}
-      </v-chip>
+      <div class="d-flex align-center justify-center flex-wrap">
+        <color-chip
+          v-for="item in items"
+          :key="item.text"
+          :title="item.text"
+          :color="item.color"
+        />
+      </div>
     </v-chip-group>
   </div>
 </template>
 
 <script setup>
-import {capitalize} from '@/utilities';
-import ColorSheet from '@/components/common/ColorSheet.vue';
+import ColorChip from '@/components/common/ColorChip.vue';
 
 const model = defineModel({type: Array});
 
