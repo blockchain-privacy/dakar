@@ -130,26 +130,17 @@
               :items="privacyTypeItems"
             >
               <template #selection="{ item }">
-                <v-chip rounded>
-                  <template #prepend>
-                    <v-sheet
-                      style="width:15px; height:15px"
-                      rounded
-                      :color="item.raw.color?item.raw.color:'black'"
-                      class="me-2"
-                    />
-                  </template>
-                  {{ item.title }}
-                </v-chip>
+                <color-chip
+                  :title="item.title"
+                  :color="item.raw.color"
+                />
               </template>
               <template #item="i">
                 <v-list-item v-bind="i.props">
                   <template #prepend="{isSelected}">
                     <v-checkbox-btn :model-value="isSelected" />
-                    <v-sheet
-                      style="width:15px; height:15px"
-                      rounded
-                      :color="i.item.raw.color?i.item.raw.color:'black'"
+                    <color-sheet
+                      :color="i.item.raw.color"
                       class="me-2"
                     />
                   </template>
@@ -278,6 +269,8 @@ import {
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
+import ColorChip from '@/components/common/ColorChip.vue';
+import ColorSheet from '@/components/common/ColorSheet.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);

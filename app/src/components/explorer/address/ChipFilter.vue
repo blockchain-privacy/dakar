@@ -24,10 +24,8 @@
         rounded
       >
         <template #prepend>
-          <v-sheet
-            style="width:15px; height:15px"
-            rounded
-            :color="item.color?item.color:'black'"
+          <color-sheet
+            :color="item.color"
             class="me-2"
           />
         </template>
@@ -39,6 +37,7 @@
 
 <script setup>
 import {capitalize} from '@/utilities';
+import ColorSheet from '@/components/common/ColorSheet.vue';
 
 const model = defineModel({type: Array});
 

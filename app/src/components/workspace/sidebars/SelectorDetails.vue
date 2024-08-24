@@ -99,22 +99,13 @@
             Privacy Type Filter
           </p>
           <div class="d-flex justify-center flex-wrap">
-            <v-chip
+            <color-chip
               v-for="p in selectorData.privacyTypes"
               :key="p"
-              rounded
               class="me-2 mb-4"
-            >
-              <template #prepend>
-                <v-sheet
-                  style="width:15px; height:15px"
-                  rounded
-                  :color="colorMap.get(p)"
-                  class="me-2"
-                />
-              </template>
-              {{ capitalize(p) }}
-            </v-chip>
+              :title="p"
+              :color="colorMap.get(p)"
+            />
           </div>
         </v-col>
       </v-row>
@@ -219,6 +210,7 @@ import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
 import {
 	cashLeft, cashRight, sigmaLeft, sigmaRight,
 } from '@/customIcons/index.js';
+import ColorChip from '@/components/common/ColorChip.vue';
 
 const props = defineProps({selectorData: {type: Object, required: true}});
 
