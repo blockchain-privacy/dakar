@@ -203,7 +203,7 @@ import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
 import {
-	capitalize, convertAmount, getColorMap, plural,
+	convertAmount, getColorMap, plural,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
