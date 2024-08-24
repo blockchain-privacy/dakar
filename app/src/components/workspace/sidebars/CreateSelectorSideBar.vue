@@ -113,7 +113,7 @@
               v-else
               class="text-subtitle-1"
             >
-              Using transactions of the parent node
+              Using stored transactions of the parent node
             </div>
             <named-divider title="Filter by Type" />
             <v-switch

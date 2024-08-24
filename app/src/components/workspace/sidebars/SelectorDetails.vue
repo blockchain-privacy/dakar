@@ -172,21 +172,24 @@
       </v-card>
       <template v-if="selectorData.transactions?.length > 0">
         <v-divider />
-        <v-list>
-          <v-list-item
-            v-for="t in selectorData.transactions"
-            :key="t.txhash"
-          >
-            <v-list-item-title>
+        <v-data-table
+          :items="tableItems"
+          :headers="tableHeaders"
+        >
+          <template #item.txhash="{item}">
+            <td>
               <workspace-link
-                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: t.txhash }}"
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: item.txhash }}"
                 class="shorten"
               >
-                {{ t.txhash }}
+                {{ item.txhash }}
               </workspace-link>
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
+            </td>
+          </template>
+          <template #item.ts="{item}">
+            <td>{{ new Date(item.ts).toLocaleString() }}</td>
+          </template>
+        </v-data-table>
       </template>
     </v-card-text>
   </v-card>
@@ -215,8 +218,16 @@ import ColorChip from '@/components/common/ColorChip.vue';
 const props = defineProps({selectorData: {type: Object, required: true}});
 
 const colorMap = getColorMap();
-
 let svgHistogram = null;
+const tableHeaders = [
+	{
+		key: 'txhash', title: 'Tranasaction Hash', sortable: false, align: 'left',
+	},
+	{
+		key: 'ts', title: 'Timestamp', align: 'right',
+	},
+];
+
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);
 
@@ -227,6 +238,18 @@ const transactionCount = computed(() => {
 	}
 
 	return props.selectorData.transactions.length;
+});
+
+const tableItems = computed(() => {
+	if (!props.selectorData.transactions) {
+		return [];
+	}
+
+	return props.selectorData.transactions.map(d => {
+		d.ts = new Date(d.ts).getTime();
+
+		return d;
+	});
 });
 
 // Hooks
