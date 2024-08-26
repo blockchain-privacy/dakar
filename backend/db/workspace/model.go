@@ -186,7 +186,7 @@ type Node struct {
 	SelectorResultCount      *int                 `json:"selectorResultCount,omitempty"`
 	SelectorTotalResultCount *int                 `json:"selectorTotalResultCount,omitempty"`
 	TxPropOptions            *TxPropOptions       `json:"txPropOptions,omitempty"`
-	TxGraphOptions           *TxGraphOptions      `json:"TxGraphOptions,omitempty"`
+	TxGraphOptions           *TxGraphOptions      `json:"txGraphOptions,omitempty"`
 	HeuristicOptions         *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
 
 	// note

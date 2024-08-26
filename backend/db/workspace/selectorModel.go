@@ -169,8 +169,8 @@ type TxGraphOptions struct {
 	IsForward bool `json:"isForward,omitempty"`
 	// Depth determines how many levels the transaction graph will be traversed
 	Depth *int `json:"depth,omitempty"`
-	// TraversePrivacyTransactions determines if privacy transactions should be traversed
-	TraversePrivacyTransactions bool `json:"traversePrivacyTransactions,omitempty"`
+	// ExcludePrivacyTransactions determines if privacy transactions should be traversed
+	ExcludePrivacyTransactions bool `json:"excludePrivacyTransactions,omitempty"`
 }
 
 func (o TxGraphOptions) IsValid(_ bool) bool {

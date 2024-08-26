@@ -296,8 +296,8 @@ func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions
 
 	var lookupDirectionQuery string
 	var privacyFilter string
-	if o.TraversePrivacyTransactions {
-		privacyFilter = "@filter(has(privacytype))"
+	if o.ExcludePrivacyTransactions {
+		privacyFilter = "@filter(not has(privacytype))"
 	}
 
 	if o.IsForward {
@@ -326,7 +326,8 @@ func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions
 				}
 			  }`
 
-	resp, err := c.Query(ctx, query, map[string]string{"$depth": strconv.Itoa(*o.Depth), "$parent": parentUID})
+	// depth has to be doubled because in recurse both outputs and transactions are traversed
+	resp, err := c.Query(ctx, query, map[string]string{"$depth": strconv.Itoa(*o.Depth * 2), "$parent": parentUID})
 	if err != nil {
 		return nil, 0, serror.New(err)
 	}
