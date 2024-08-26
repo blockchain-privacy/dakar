@@ -162,7 +162,7 @@ import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
@@ -408,7 +408,22 @@ async function getSelectorData() {
 
 			break;
 		case SELECTOR_TYPE_TX_PROP:
-			tmpEntityData = props.auxiliaryData.selectorOptions;
+			tmpEntityData = props.auxiliaryData.txPropOptions;
+			tmpEntityData.selectorUid = props.auxiliaryData.uid;
+			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
+			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
+			tmpEntityData.selectorTotalResultCount = props.auxiliaryData.selectorTotalResultCount;
+			tmpEntityData.transactions = [];
+
+			// Check if data has to be loaded from backend
+			if (!tmpEntityData.selectorCount) {
+				entityData.value = tmpEntityData;
+				return;
+			}
+
+			break;
+		case SELECTOR_TYPE_TX_GRAPH:
+			tmpEntityData = props.auxiliaryData.txGraphOptions;
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
 			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;

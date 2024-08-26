@@ -73,7 +73,7 @@
               Select transactions based on their properties. Results are limited to 50 transactions.
             </div>
             <v-text-field
-              v-model="selectorOptions.maxItems"
+              v-model="txPropOptions.maxItems"
               :rules="parameterRules.get('int')"
               hide-details
               placeholder="50"
@@ -94,14 +94,14 @@
               </div>
               <div class="d-flex align-center mb-5">
                 <date-input
-                  v-model="selectorOptions.startDate"
+                  v-model="txPropOptions.startDate"
                   :rules="parameterRules.get('date')"
                   :error="startDateError"
                   label="From"
                   @update:model-value="handleDateChange"
                 />
                 <date-input
-                  v-model="selectorOptions.endDate"
+                  v-model="txPropOptions.endDate"
                   :rules="parameterRules.get('date')"
                   :error="endDateError"
                   label="To"
@@ -117,12 +117,12 @@
             </div>
             <named-divider title="Filter by Type" />
             <v-switch
-              v-model="selectorOptions.excludePrivacyTransactions"
+              v-model="txPropOptions.excludePrivacyTransactions"
               label="Exclude Privacy Transactions"
             />
             <v-select
-              v-model="selectorOptions.privacyTypes"
-              :disabled="selectorOptions.excludePrivacyTransactions"
+              v-model="txPropOptions.privacyTypes"
+              :disabled="txPropOptions.excludePrivacyTransactions"
               max-width="330px"
               multiple
               label="Transaction Types"
@@ -153,7 +153,7 @@
             </div>
             <div class="d-flex align-center mb-5">
               <v-text-field
-                v-model="selectorOptions.inputSum.min"
+                v-model="txPropOptions.inputSum.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -162,7 +162,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.inputSum.max"
+                v-model="txPropOptions.inputSum.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -175,7 +175,7 @@
             </div>
             <div class="d-flex align-center mb-5">
               <v-text-field
-                v-model="selectorOptions.outputSum.min"
+                v-model="txPropOptions.outputSum.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -184,7 +184,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.outputSum.max"
+                v-model="txPropOptions.outputSum.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -197,7 +197,7 @@
             </div>
             <div class="d-flex align-center mb-5">
               <v-text-field
-                v-model="selectorOptions.inputRange.min"
+                v-model="txPropOptions.inputRange.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -206,7 +206,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.inputRange.max"
+                v-model="txPropOptions.inputRange.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -219,7 +219,7 @@
             </div>
             <div class="d-flex align-center">
               <v-text-field
-                v-model="selectorOptions.outputRange.min"
+                v-model="txPropOptions.outputRange.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -228,7 +228,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.outputRange.max"
+                v-model="txPropOptions.outputRange.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -263,7 +263,7 @@ import {
 import {
 	CLUSTER_TYPE_CUSTOM,
 	SELECTOR_MAX_ITEMS,
-	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
 	SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
@@ -288,7 +288,7 @@ const heuristicTypeModel = ref([]);
 // Heuristic select items
 const heuristicTypes = ref([]);
 
-const selectorOptions = ref({
+const txPropOptions = ref({
 	maxItems: 50,
 	startDate: null,
 	endDate: null,
@@ -405,12 +405,12 @@ function isAmountRangeEmpty(obj) {
 }
 
 function handleDateChange() {
-	if (selectorOptions.value.startDate === null) {
-		selectorOptions.value.startDate = selectorOptions.value.endDate;
+	if (txPropOptions.value.startDate === null) {
+		txPropOptions.value.startDate = txPropOptions.value.endDate;
 	}
 
-	if (selectorOptions.value.endDate === null) {
-		selectorOptions.value.endDate = selectorOptions.value.startDate;
+	if (txPropOptions.value.endDate === null) {
+		txPropOptions.value.endDate = txPropOptions.value.startDate;
 	}
 }
 
@@ -450,8 +450,8 @@ function isOptionsEmpty(options) {
 	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate' && k !== 'maxItems');
 }
 
-function buildSelectorOptions() {
-	const options = structuredClone(toRaw(selectorOptions.value));
+function buildTxPropOptions() {
+	const options = structuredClone(toRaw(txPropOptions.value));
 
 	if (props.hasParent) {
 		delete options.startDate;
@@ -524,6 +524,11 @@ function buildSelectorOptions() {
 	return options;
 }
 
+function buildTxGraphOptions() {
+	// Todo
+	return undefined;
+}
+
 async function addNewSelectorAction(event) {
 	// Check if form is valid
 	const res = await event;
@@ -538,7 +543,10 @@ async function addNewSelectorAction(event) {
 			options = buildHeuristicOptions();
 			break;
 		case SELECTOR_TYPE_TX_PROP:
-			options = buildSelectorOptions();
+			options = buildTxPropOptions();
+			break;
+		case SELECTOR_TYPE_TX_GRAPH:
+			options = buildTxGraphOptions();
 			break;
 		default:
 			setErrorMessage('invalid selector type');

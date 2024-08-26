@@ -61,6 +61,7 @@ export const WORKSPACE_NODE_TYPE_NOTE = 'note';
 // Selector type
 export const SELECTOR_TYPE_HEURISTIC = 'heuristic';
 export const SELECTOR_TYPE_TX_PROP = 'transactionProperties';
+export const SELECTOR_TYPE_TX_GRAPH = 'transactionGraph';
 
 // Selector status
 export const SELECTOR_STATUS_WAITING = 'waiting';

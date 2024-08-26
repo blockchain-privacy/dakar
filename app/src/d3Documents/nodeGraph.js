@@ -17,7 +17,7 @@ import {
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	SELECTOR_STATUS_WAITING,
 	SELECTOR_STATUS_ERROR,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP, SELECTOR_TYPE_TX_GRAPH,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
 import {
@@ -1037,15 +1037,21 @@ export default class NodeGraph {
 							return title;
 						}
 					} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
-						if (!d.selectorOptions.startDate || !d.selectorOptions.endDate) {
+						if (!d.txPropOptions.startDate || !d.txPropOptions.endDate) {
 							return '';
 						}
 
 						const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
-						const startDateStr = new Date(d.selectorOptions.startDate).toLocaleDateString(undefined, dateOptions);
-						const endDateStr = new Date(d.selectorOptions.endDate).toLocaleDateString(undefined, dateOptions);
+						const startDateStr = new Date(d.txPropOptions.startDate).toLocaleDateString(undefined, dateOptions);
+						const endDateStr = new Date(d.txPropOptions.endDate).toLocaleDateString(undefined, dateOptions);
 
 						return `${startDateStr} - ${endDateStr}`;
+					} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH) {
+						if (!d.txGraphOptions) {
+							return '';
+						}
+
+						return `${d.txGraphOptions.depth}`;
 					}
 				}
 
@@ -1131,24 +1137,24 @@ export default class NodeGraph {
 					}
 
 					parameter = d.heuristicOptions.parameter;
-				} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.selectorOptions) {
-					if (d.selectorOptions.excludePrivacyTransactions) {
+				} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.txPropOptions) {
+					if (d.txPropOptions.excludePrivacyTransactions) {
 						icons.push(mdiIncognito);
 					}
 
-					if (d.selectorOptions.inputRange) {
+					if (d.txPropOptions.inputRange) {
 						icons.push(cashLeft);
 					}
 
-					if (d.selectorOptions.outputRange) {
+					if (d.txPropOptions.outputRange) {
 						icons.push(cashRight);
 					}
 
-					if (d.selectorOptions.inputSum) {
+					if (d.txPropOptions.inputSum) {
 						icons.push(sigmaLeft);
 					}
 
-					if (d.selectorOptions.outputSum) {
+					if (d.txPropOptions.outputSum) {
 						icons.push(sigmaRight);
 					}
 				}

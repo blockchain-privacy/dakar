@@ -194,7 +194,7 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH,
 } from '@/constants';
 import {
 	getColorMap, handleError, getPrivacyTypeLabel,
@@ -671,34 +671,49 @@ async function addNewSelector(type, options) {
 
 	let parent;
 	let heuristicOptions;
-	let selectorOptions;
+	let txPropOptions;
+	let txGraphOptions;
 
-	if (type === SELECTOR_TYPE_HEURISTIC) {
-		if (!currentNode || !currentNode.uid) {
-			setErrorMessage('could not determine parent node');
-			return;
-		}
+	switch (type) {
+		case SELECTOR_TYPE_HEURISTIC:
+			{
+				if (!currentNode || !currentNode.uid) {
+					setErrorMessage('could not determine parent node');
+					return;
+				}
 
-		parent = currentNode.uid;
+				parent = currentNode.uid;
 
-		heuristicOptions = options;
-		const nodes = nodeGraph.getNodes();
-		const txHash = getHeuristicTransaction(nodes, currentNode.uid);
-		if (!txHash) {
-			setErrorMessage('could not determine heuristic transaction');
-			return;
-		}
+				heuristicOptions = options;
+				const txHash = getHeuristicTransaction(nodeGraph.getNodes(), currentNode.uid);
+				if (!txHash) {
+					setErrorMessage('could not determine heuristic transaction');
+					return;
+				}
 
-		heuristicOptions.transactionHash = txHash;
-	} else if (type === SELECTOR_TYPE_TX_PROP) {
-		if (currentNode?.uid) {
+				heuristicOptions.transactionHash = txHash;
+			}
+
+			break;
+		case SELECTOR_TYPE_TX_PROP:
+			if (currentNode?.uid) {
+				parent = currentNode.uid;
+			}
+
+			txPropOptions = options;
+			break;
+		case SELECTOR_TYPE_TX_GRAPH:
+			if (!currentNode || !currentNode.uid) {
+				setErrorMessage('parent not set');
+				return;
+			}
+
 			parent = currentNode.uid;
-		}
-
-		selectorOptions = options;
-	} else {
-		setErrorMessage('invalid selector type');
-		return;
+			txGraphOptions = options;
+			break;
+		default:
+			setErrorMessage('invalid selector type');
+			return;
 	}
 
 	await lockAutosave();
@@ -706,7 +721,7 @@ async function addNewSelector(type, options) {
 	try {
 		const response = await dakar.workspace.workspacesSelectorPost({
 			selector: {
-				parent, type, heuristicOptions, selectorOptions, workspaceUID: workspaceUID.value,
+				parent, type, heuristicOptions, txPropOptions, txGraphOptions, workspaceUID: workspaceUID.value,
 			},
 		});
 
