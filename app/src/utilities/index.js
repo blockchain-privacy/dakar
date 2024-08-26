@@ -257,6 +257,10 @@ export function isMixing(privacyType) {
 
 // IsOrigin returns true if the provided privacyType is in the range of origin transactions
 export function isOrigin(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
@@ -285,6 +289,10 @@ export function isDestination(privacyType) {
 // IsCollateralCreation returns true if the provided privacyType is in the range of
 // collateral creation transactions
 export function isCollateralCreation(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
@@ -297,6 +305,10 @@ export function isCollateralCreation(privacyType) {
 // IsCollateralPayment returns true if the provided privacyType is in the range of
 // collateral payment transactions
 export function isCollateralPayment(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {

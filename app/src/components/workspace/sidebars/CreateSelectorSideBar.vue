@@ -36,10 +36,7 @@
               </template>
             </v-select>
             <template v-if="heuristicTypeModel">
-              <div
-                class="text-subtitle-2 mb-3"
-                style="max-width:260px"
-              >
+              <div class="text-subtitle-2 my-3">
                 {{ heuristicTypeModel.description }}
               </div>
               <v-text-field
@@ -70,16 +67,16 @@
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
             <div class="text-subtitle-2 mb-3">
-              Select transactions based on their properties. Results are limited to 50 transactions.
+              Select transactions based on their properties.
             </div>
-            <v-text-field
+            <v-label text="Maximum Stored Results" />
+            <v-slider
               v-model="txPropOptions.maxItems"
-              :rules="parameterRules.get('int')"
+              :max="SELECTOR_MAX_ITEMS"
+              :min="1"
+              :step="1"
+              thumb-label
               hide-details
-              placeholder="50"
-              :label="`Maximum stored results (max: ${SELECTOR_MAX_ITEMS})`"
-              :error="maxResultsError"
-              @update:model-value="maxResultsError = false"
             />
             <named-divider title="Select" />
             <template v-if="!hasParent">
@@ -237,6 +234,48 @@
               />
             </div>
           </template>
+          <template v-else-if="selectorType === SELECTOR_TYPE_TX_GRAPH">
+            <div class="text-subtitle-2 mb-3">
+              Select transactions based on their distance to the starting node.
+            </div>
+            <v-label text="Maximum Stored Results" />
+            <v-slider
+              v-model="txGraphOptions.maxItems"
+              :max="SELECTOR_MAX_ITEMS"
+              :min="1"
+              :step="1"
+              thumb-label
+              hide-details
+            />
+            <v-label text="Traversal Depth" />
+            <v-slider
+              v-model="txGraphOptions.depth"
+              :max="5"
+              :min="1"
+              :step="1"
+              thumb-label
+              hide-details
+            />
+            <v-label text="Traversal Direction" />
+            <v-chip-group
+              v-model="traversalDirection"
+              selected-class="text-primary"
+              mandatory
+            >
+              <v-chip
+                text="Forward"
+                rounded
+              />
+              <v-chip
+                text="Backward"
+                rounded
+              />
+            </v-chip-group>
+            <v-switch
+              v-model="txGraphOptions.excludePrivacyTransactions"
+              label="Exclude Privacy Transactions"
+            />
+          </template>
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -288,6 +327,8 @@ const heuristicTypeModel = ref([]);
 // Heuristic select items
 const heuristicTypes = ref([]);
 
+const traversalDirection = ref(0);
+
 const txPropOptions = ref({
 	maxItems: 50,
 	startDate: null,
@@ -298,6 +339,12 @@ const txPropOptions = ref({
 	outputSum: {min: undefined, max: undefined},
 	inputRange: {min: undefined, max: undefined},
 	outputRange: {min: undefined, max: undefined},
+});
+
+const txGraphOptions = ref({
+	maxItems: 50,
+	depth: 2,
+	isForward: false,
 });
 
 const heuristicOptions = ref({
@@ -474,15 +521,8 @@ function buildTxPropOptions() {
 		options.endDate = options.endDate.toISOString();
 	}
 
-	maxResultsError.value = false;
 	startDateError.value = false;
 	endDateError.value = false;
-
-	if (options.maxItems > SELECTOR_MAX_ITEMS || options.maxItems <= 0) {
-		maxResultsError.value = true;
-		setErrorMessage('invalid number of maximum stored results');
-		return;
-	}
 
 	options.maxItems = parseInt(options.maxItems, 10);
 	options.inputSum.min = getAmount(options.inputSum.min);
@@ -525,8 +565,9 @@ function buildTxPropOptions() {
 }
 
 function buildTxGraphOptions() {
-	// Todo
-	return undefined;
+	const options = structuredClone(toRaw(txGraphOptions.value));
+	options.isForward = traversalDirection.value === 0;
+	return options;
 }
 
 async function addNewSelectorAction(event) {

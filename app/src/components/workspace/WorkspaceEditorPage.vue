@@ -85,8 +85,9 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-selector="openCreateSelectorSheet(false, true)"
-          @add-heuristic="openCreateSelectorSheet(true, true)"
+          @add-tx-prop="openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true)"
+          @add-tx-graph="openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true)"
+          @add-heuristic="openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, true)"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
@@ -148,7 +149,10 @@
           transition="fade-transition"
           :target="[contextMenuModel.x,contextMenuModel.y]"
         >
-          <v-list class="py-0">
+          <v-list
+            class="py-0"
+            slim
+          >
             <template
               v-for="(item, index) in contextMenuModel.items"
               :key="index"
@@ -194,7 +198,7 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN,
 } from '@/constants';
 import {
 	getColorMap, handleError, getPrivacyTypeLabel,
@@ -275,15 +279,24 @@ const contextMenuModel = ref({
 		{
 			title: 'Add CoinJoin Heuristic',
 			icon: mdiPlus,
-			show: () => isHeuristicNode(nodeGraph.getContextNode()) || isDestiationNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(true, true),
+			show: () => isHeuristicNode(nodeGraph.getContextNode())
+			|| isDestiationNode(nodeGraph.getContextNode())
+			|| isOriginNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
-			title: 'Add Selector',
+			title: 'Add TxProp Selector',
 			icon: mdiPlus,
 			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(false, true),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true),
+			disabled: () => nodeGraph.getContextNode()?.loading,
+		},
+		{
+			title: 'Add TxGraph Selector',
+			icon: mdiPlus,
+			show: () => isTransactionNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -447,6 +460,14 @@ async function lockAutosave() {
 	}
 }
 
+function isTransactionNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_TRANSACTION;
+}
+
 function isTxPropNode(node) {
 	if (!node) {
 		return false;
@@ -469,6 +490,14 @@ function isDestiationNode(node) {
 	}
 
 	return node.privacyTypeLabel === PRIVACY_TYPE_DESTINATION;
+}
+
+function isOriginNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.privacyTypeLabel === PRIVACY_TYPE_ORIGIN;
 }
 
 function isEditEnabled(contextNode) {
@@ -812,18 +841,12 @@ function openConnectionSheet(d) {
 function showCreateSelectorSheetFromButton() {
 	// So no parent is set
 	nodeGraph.resetContextNode();
-	openCreateSelectorSheet(false, false);
+	openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, false);
 }
 
-function openCreateSelectorSheet(isHeuristic, withParent) {
-	if (isHeuristic) {
-		selectorCreationType.value = SELECTOR_TYPE_HEURISTIC;
-	} else {
-		selectorCreationType.value = SELECTOR_TYPE_TX_PROP;
-	}
-
+function openCreateSelectorSheet(selectorType, withParent) {
+	selectorCreationType.value = selectorType;
 	isSelectorParentSet.value = withParent;
-
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isCreateSelectorSheetOpen.value = true;

@@ -36,12 +36,24 @@
           class="me-2"
           :prepend-icon="mdiPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @click="handleAddSelectorClick"
+          @click="handleAddTxPropClick"
         >
-          Add Selector
+          Add Transaction Property Selector
         </v-chip>
         <v-chip
-          v-if="isHeuristic || isDestination(entityData[0]?.privacytype)"
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length"
+          rounded
+          color="primary"
+          variant="tonal"
+          class="me-2"
+          :prepend-icon="mdiPlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @click="handleAddTxGraphClick"
+        >
+          Add Transaction Graph Selector
+        </v-chip>
+        <v-chip
+          v-if="isHeuristic || isDestination(entityData[0]?.privacytype) || isOrigin(entityData[0]?.privacytype)"
           rounded
           color="primary"
           variant="tonal"
@@ -125,7 +137,7 @@
             :heuristic-data="entityData"
           />
           <selector-details
-            v-else-if="isTxProp"
+            v-else-if="isTxProp || isTxGraph"
             :selector-data="entityData"
           />
           <div v-else>
@@ -160,7 +172,7 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
-import {getCurrentDate, isDestination} from '@/utilities/index.js';
+import {getCurrentDate, isDestination, isOrigin} from '@/utilities/index.js';
 import {
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
@@ -179,7 +191,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addSelector', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addTxGraph', 'addTxProp', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -218,10 +230,10 @@ const title = computed(() => {
 
 const isHeuristic = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
 	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC);
-
 const isTxProp = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
 	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP);
-
+const isTxGraph = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
+	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_GRAPH);
 // Hooks
 onUpdated(async () => {
 	if (props.identifier && props.identifier !== oldIdentifier) {
@@ -315,6 +327,7 @@ function setSelectableEntities() {
 				case SELECTOR_TYPE_HEURISTIC:
 					setSelectableHeuristicElements();
 					break;
+				case SELECTOR_TYPE_TX_GRAPH:
 				case SELECTOR_TYPE_TX_PROP:
 					setSelectableSelectorElements();
 					break;
@@ -536,10 +549,13 @@ function handleAddHeuristicClick() {
 	emit('addHeuristic');
 }
 
-function handleAddSelectorClick() {
-	emit('addSelector');
+function handleAddTxPropClick() {
+	emit('addTxProp');
 }
 
+function handleAddTxGraphClick() {
+	emit('addTxGraph');
+}
 </script>
 
 <style scoped>
