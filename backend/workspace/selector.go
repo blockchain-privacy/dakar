@@ -15,31 +15,31 @@ import (
 	"strconv"
 )
 
-type SelectorWork struct {
-	opt          workspace.Options
+type Options interface {
+	workspace.TxPropOptions | workspace.TxGraphOptions | dbHeuristic.Options
+	// IsValid returns true if the Options are valid. hasParent should be set to true if the associated selector has a parent.
+	IsValid(hasParent bool) bool
+}
+
+type TxPropWork struct {
+	opt          workspace.TxPropOptions
 	selectorUID  string
 	workspaceUID string
 	userUID      string
 	parentUID    string
 }
 
-type Options interface {
-	workspace.Options | dbHeuristic.Options
-	// IsValid returns true if the Options are valid. hasParent should be set to true if the associated selector has a parent.
-	IsValid(hasParent bool) bool
-}
-
-func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
+func NewTxPropWork(item workspace.WorkItem) (*TxPropWork, error) {
 	if item.SelectorOptions == "" {
 		return nil, serror.FromStrWithContext("empty selector options", "item", item)
 	}
 
-	var opt workspace.Options
+	var opt workspace.TxPropOptions
 	if err := json.Unmarshal([]byte(item.SelectorOptions), &opt); err != nil {
-		return nil, err
+		return nil, serror.New(err)
 	}
 
-	return &SelectorWork{
+	return &TxPropWork{
 		opt:          opt,
 		workspaceUID: item.WorkspaceUID,
 		userUID:      item.UserUID,
@@ -49,7 +49,7 @@ func NewSelectorWork(item workspace.WorkItem) (*SelectorWork, error) {
 }
 
 // Run processes the selector and updates it into the workspace
-func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
+func (s TxPropWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
@@ -57,6 +57,57 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	status := workspace.StatusSuccess
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
+	if err == nil {
+		newNodes = make([]any, len(results))
+		for i, result := range results {
+			newNodes[i] = db.UIDNode{UID: result}
+		}
+	} else {
+		// despite the error, we don't return here because we want to store the error state in the db
+		status = workspace.StatusError
+		warn(err, "options", s.opt)
+	}
+
+	// 2. Store work
+	return updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+}
+
+type TxGraphWork struct {
+	opt          workspace.TxGraphOptions
+	selectorUID  string
+	workspaceUID string
+	userUID      string
+	parentUID    string
+}
+
+func NewTxGraphWork(item workspace.WorkItem) (*TxGraphWork, error) {
+	if item.SelectorOptions == "" {
+		return nil, serror.FromStrWithContext("empty selector options", "item", item)
+	}
+
+	var opt workspace.TxGraphOptions
+	if err := json.Unmarshal([]byte(item.SelectorOptions), &opt); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return &TxGraphWork{
+		opt:          opt,
+		workspaceUID: item.WorkspaceUID,
+		userUID:      item.UserUID,
+		selectorUID:  item.SelectorUID,
+		parentUID:    item.ParentUID,
+	}, nil
+}
+
+// Run processes the selector and updates it into the workspace
+func (s TxGraphWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	// 1. Do work
+	status := workspace.StatusSuccess
+	var newNodes []any
+	results, totalResultCount, err := workspace.DoGraphSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
 		newNodes = make([]any, len(results))
 		for i, result := range results {
@@ -120,12 +171,18 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
 		}
 		newNode.HeuristicOptions = &opt
-	case workspace.TypeTransactionProperties:
-		opt, ok := any(options).(workspace.Options)
+	case workspace.TypeTxProp:
+		opt, ok := any(options).(workspace.TxPropOptions)
 		if !ok {
 			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
 		}
-		newNode.SelectorOptions = &opt
+		newNode.TxPropOptions = &opt
+	case workspace.TypeTxGraph:
+		opt, ok := any(options).(workspace.TxGraphOptions)
+		if !ok {
+			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+		}
+		newNode.TxGraphOptions = &opt
 	default:
 		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
 	}

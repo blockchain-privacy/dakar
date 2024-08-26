@@ -316,12 +316,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			children = append(children, selectorClusters)
 		}
 
-		var opt Options
-		if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
-			err = serror.NewWithContext(err, "opt", s.Options)
-			return
-		}
-		selectorNodes = append(selectorNodes, Node{
+		newNode := Node{
 			UID:                      s.UID,
 			Type:                     NodeTypeSelector,
 			Children:                 children,
@@ -331,8 +326,29 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			SelectorTotalResultCount: s.TotalResultCount,
 			SelectorCreated:          s.Created,
 			SelectorModified:         s.Modified,
-			SelectorOptions:          &opt,
-		})
+		}
+
+		if s.Type == TypeTxProp {
+			var opt TxPropOptions
+			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
+				err = serror.NewWithContext(err, "opt", s.Options)
+				return
+			}
+
+			newNode.TxPropOptions = &opt
+		} else if s.Type == TypeTxGraph {
+			var opt TxGraphOptions
+			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
+				err = serror.NewWithContext(err, "opt", s.Options)
+				return
+			}
+			newNode.TxGraphOptions = &opt
+		} else {
+			err = serror.FromStr("invalid selector type")
+			return
+		}
+
+		selectorNodes = append(selectorNodes, newNode)
 	}
 
 	connectedTransactions := map[string]NodeConnectionsMap{}

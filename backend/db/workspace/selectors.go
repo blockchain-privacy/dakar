@@ -37,7 +37,7 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 }
 
 // DoSelection returns transactions specified by the options. It also returns the number of total results.
-func DoSelection(ctx context.Context, c external.Database, o Options, parentUID string) ([]string, int, error) {
+func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, parentUID string) ([]string, int, error) {
 	if !o.IsValid(parentUID != "") {
 		return nil, 0, serror.New(ErrInvalidOptions)
 	}
@@ -282,6 +282,76 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 	}
 
 	return insertUID, nil
+}
+
+// DoGraphSelection returns transactions specified by the options. It also returns the number of total results.
+func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions, parentUID string) ([]string, int, error) {
+	if !o.IsValid(parentUID != "") || parentUID == "" {
+		return nil, 0, serror.New(ErrInvalidOptions)
+	}
+	maxItems := selectorMaxItems
+	if o.MaxItems != nil {
+		maxItems = *o.MaxItems
+	}
+
+	var lookupDirectionQuery string
+	var privacyFilter string
+	if o.TraversePrivacyTransactions {
+		privacyFilter = "@filter(has(privacytype))"
+	}
+
+	if o.IsForward {
+		lookupDirectionQuery = `
+								tx_outputs
+								t as ~tx_inputs` + privacyFilter + `
+								`
+	} else {
+		lookupDirectionQuery = `
+								tx_inputs
+								t as ~tx_outputs` + privacyFilter + `
+								`
+	}
+
+	query := `query Q($depth:int, $parent:string){
+				var(func: uid($parent))@recurse(depth:$depth, loop: false){
+					` + lookupDirectionQuery + `
+				}
+				
+				count(func: uid(t)){
+					count:count(uid)
+				}
+
+				q(func: uid(t), first: ` + strconv.Itoa(maxItems) + `){
+					uid
+				}
+			  }`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$depth": strconv.Itoa(*o.Depth), "$parent": parentUID})
+	if err != nil {
+		return nil, 0, serror.New(err)
+	}
+
+	var r struct {
+		Count []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"count,omitempty"`
+		Q []db.UIDNode `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, 0, serror.New(err)
+	}
+
+	if len(r.Count) != 1 {
+		return nil, 0, serror.FromStr("invalid result")
+	}
+
+	uids := make([]string, len(r.Q))
+	for i, ts := range r.Q {
+		uids[i] = ts.UID
+	}
+
+	return uids, r.Count[0].Count, nil
 }
 
 // UpdateSelector updates a selector. Modifying the selector's parent is not allowed.

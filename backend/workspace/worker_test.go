@@ -42,7 +42,7 @@ func TestWorker_work(t *testing.T) {
 	valPoint01 := int64(1000000)
 	valPoint1 := int64(10000000)
 
-	opt := workspace.Options{
+	opt := workspace.TxPropOptions{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
 		InputSum:    &workspace.AmountRange{Min: &val1},
@@ -56,15 +56,15 @@ func TestWorker_work(t *testing.T) {
 
 	// insert 3 selectors into db
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	wrapper := graph.NewWrapper(ctx, dbHandle)

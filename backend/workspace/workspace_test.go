@@ -54,7 +54,7 @@ func TestAddSelector(t *testing.T) {
 	valPoint01 := int64(1000000)
 	valPoint1 := int64(10000000)
 
-	opt := workspace.Options{
+	opt := workspace.TxPropOptions{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
 		InputSum:    &workspace.AmountRange{Min: &val1},
@@ -65,11 +65,11 @@ func TestAddSelector(t *testing.T) {
 	m := NewMutex()
 	ctx := context.Background()
 	parentSelector, _, err := AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTransactionProperties, "", workspaceUID, userUID)
+		workspace.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	tests := []struct {
-		options      workspace.Options
+		options      workspace.TxPropOptions
 		selectorType string
 		parent       string
 		wantErr      bool
@@ -79,12 +79,12 @@ func TestAddSelector(t *testing.T) {
 		},
 		{
 			options:      opt,
-			selectorType: workspace.TypeTransactionProperties,
+			selectorType: workspace.TypeTxProp,
 			wantErr:      false,
 		},
 		{
 			options:      opt,
-			selectorType: workspace.TypeTransactionProperties,
+			selectorType: workspace.TypeTxProp,
 			parent:       parentSelector,
 			wantErr:      false,
 		},

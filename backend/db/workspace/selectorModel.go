@@ -12,8 +12,9 @@ const (
 	StatusError   = "error"
 	StatusSuccess = "success"
 
-	TypeTransactionProperties = "transactionProperties"
-	TypeHeuristic             = "heuristic"
+	TypeTxProp    = "transactionProperties"
+	TypeTxGraph   = "transactionGraph"
+	TypeHeuristic = "heuristic"
 
 	PrivacyTypeOrigin             = "origin"
 	PrivacyTypeMixing             = "mixing"
@@ -24,7 +25,7 @@ const (
 
 const selectorMaxItems = 200
 
-var validTypes = map[string]bool{TypeTransactionProperties: true, TypeHeuristic: true}
+var validTypes = map[string]bool{TypeTxProp: true, TypeTxGraph: true, TypeHeuristic: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
 
@@ -76,7 +77,7 @@ func (a AmountRange) IsValid() bool {
 	return !((a.Min == nil && a.Max == nil) || (a.Max != nil && a.Min != nil && *a.Min > *a.Max))
 }
 
-type Options struct {
+type TxPropOptions struct {
 	// StartDate is the start of the time range selection
 	StartDate *time.Time `json:"startDate,omitempty"`
 	// EndDate is the end of the time range selection
@@ -97,7 +98,7 @@ type Options struct {
 	OutputRange *AmountRange `json:"outputRange,omitempty"`
 }
 
-func (o Options) IsValid(hasParent bool) bool {
+func (o TxPropOptions) IsValid(hasParent bool) bool {
 	// if maxItems is set, it has to be in a valid range
 	if o.MaxItems != nil && (*o.MaxItems <= 0 || *o.MaxItems > selectorMaxItems) {
 		return false
@@ -159,6 +160,26 @@ func (o Options) IsValid(hasParent bool) bool {
 	}
 
 	return true
+}
+
+type TxGraphOptions struct {
+	// MaxItems is the maximum number of items the selector stores. Can not be higher than selectorMaxItems
+	MaxItems *int `json:"maxItems,omitempty"`
+	// IsForward determines the direction of the graph lookup: foward or backward
+	IsForward bool `json:"isForward,omitempty"`
+	// Depth determines how many levels the transaction graph will be traversed
+	Depth *int `json:"depth,omitempty"`
+	// TraversePrivacyTransactions determines if privacy transactions should be traversed
+	TraversePrivacyTransactions bool `json:"traversePrivacyTransactions,omitempty"`
+}
+
+func (o TxGraphOptions) IsValid(_ bool) bool {
+	// if maxItems is set, it has to be in a valid range
+	if o.MaxItems != nil && (*o.MaxItems <= 0 || *o.MaxItems > selectorMaxItems) {
+		return false
+	}
+
+	return o.MaxItems != nil && o.Depth != nil && *o.Depth > 0 && *o.Depth <= 5
 }
 
 type WorkItem struct {

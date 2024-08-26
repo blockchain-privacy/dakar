@@ -26,28 +26,28 @@ func TestDoSelection(t *testing.T) {
 	yes := true
 
 	tests := []struct {
-		o       Options
+		o       TxPropOptions
 		wantErr bool
 	}{
 		{
-			o:       Options{},
+			o:       TxPropOptions{},
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 			},
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
 			},
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
 				InputSum:  &AmountRange{Min: &valPoint1, Max: &valPoint01},
@@ -55,7 +55,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
 				OutputSum: &AmountRange{Min: &valPoint1, Max: &valPoint01},
@@ -63,7 +63,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
 				OutputSum: &AmountRange{Min: &valPoint1},
@@ -71,7 +71,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
 				InputSum:  &AmountRange{Min: &valPoint1},
@@ -80,7 +80,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &startDate1,
 				EndDate:   &endDate1,
 				InputSum:  &AmountRange{Min: &val1, Max: &valPoint1},
@@ -88,7 +88,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:  &startDate1,
 				EndDate:    &endDate1,
 				InputRange: &AmountRange{Min: &valPoint01, Max: &val1},
@@ -97,7 +97,7 @@ func TestDoSelection(t *testing.T) {
 		},
 
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:   &startDate1,
 				EndDate:     &endDate1,
 				OutputRange: &AmountRange{Min: &valPoint01, Max: &val1},
@@ -105,7 +105,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:  &startDate1,
 				EndDate:    &endDate1,
 				InputRange: &AmountRange{Min: &valPoint01, Max: &valPoint1},
@@ -113,7 +113,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:   &startDate1,
 				EndDate:     &endDate1,
 				InputRange:  &AmountRange{Min: &valPoint01, Max: &valPoint1},
@@ -122,7 +122,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:   &startDate1,
 				EndDate:     &endDate1,
 				InputSum:    &AmountRange{Min: &val1},
@@ -132,7 +132,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:    &startDate1,
 				EndDate:      &endDate1,
 				PrivacyTypes: []string{PrivacyTypeOrigin, PrivacyTypeMixing},
@@ -143,7 +143,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:                  &startDate1,
 				EndDate:                    &endDate1,
 				PrivacyTypes:               []string{PrivacyTypeOrigin, PrivacyTypeMixing},
@@ -152,7 +152,7 @@ func TestDoSelection(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			o: Options{
+			o: TxPropOptions{
 				StartDate:                  &startDate1,
 				EndDate:                    &endDate1,
 				ExcludePrivacyTransactions: &yes,
@@ -161,7 +161,7 @@ func TestDoSelection(t *testing.T) {
 		},
 		{
 			// start date after end date
-			o: Options{
+			o: TxPropOptions{
 				StartDate: &endDate1,
 				EndDate:   &startDate1,
 			},
@@ -208,7 +208,7 @@ func doSelection() ([]string, []byte, error) {
 	valPoint01 := int64(1000000)
 	valPoint1 := int64(10000000)
 
-	opt := Options{
+	opt := TxPropOptions{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
 		InputSum:    &AmountRange{Min: &val1},
@@ -248,7 +248,7 @@ func TestInsertSelector(t *testing.T) {
 
 	// for parent test
 	parentSelectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
+		Type:    TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -279,7 +279,7 @@ func TestInsertSelector(t *testing.T) {
 		},
 		{
 			selector: &Selector{
-				Type:    TypeTransactionProperties,
+				Type:    TypeTxProp,
 				Status:  StatusSuccess,
 				Options: string(optJSON),
 				Results: results,
@@ -291,7 +291,7 @@ func TestInsertSelector(t *testing.T) {
 		// invalid parent UID
 		{
 			selector: &Selector{
-				Type:    TypeTransactionProperties,
+				Type:    TypeTxProp,
 				Status:  StatusError,
 				Options: string(optJSON),
 				Parent:  &db.UIDNode{UID: "0x123"},
@@ -303,7 +303,7 @@ func TestInsertSelector(t *testing.T) {
 		// empty parent UID
 		{
 			selector: &Selector{
-				Type:    TypeTransactionProperties,
+				Type:    TypeTxProp,
 				Status:  StatusError,
 				Options: string(optJSON),
 				Parent:  &db.UIDNode{UID: ""},
@@ -314,7 +314,7 @@ func TestInsertSelector(t *testing.T) {
 		},
 		{
 			selector: &Selector{
-				Type:    TypeTransactionProperties,
+				Type:    TypeTxProp,
 				Status:  StatusSuccess,
 				Options: string(optJSON),
 				Parent:  &db.UIDNode{UID: parentSelectorUID},
@@ -351,7 +351,7 @@ func TestGetSelectorResultsByUID(t *testing.T) {
 	}
 	ctx := context.Background()
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
+		Type:    TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -402,7 +402,7 @@ func TestUpdateSelector(t *testing.T) {
 	}
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
+		Type:    TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -416,7 +416,7 @@ func TestUpdateSelector(t *testing.T) {
 	}{
 		{
 			status:       StatusError,
-			selectorType: TypeTransactionProperties,
+			selectorType: TypeTxProp,
 			wantErr:      false,
 		},
 		{
@@ -461,7 +461,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 	}
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
+		Type:    TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -494,7 +494,7 @@ func TestGetWaitingSelectors(t *testing.T) {
 	}
 
 	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
+		Type:    TypeTxProp,
 		Status:  StatusWaiting,
 		Options: string(optJSON),
 		Results: results,
@@ -543,7 +543,7 @@ func TestGetSelectorStatus(t *testing.T) {
 	require.Error(t, err)
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTransactionProperties,
+		Type:    TypeTxProp,
 		Status:  StatusWaiting,
 		Options: string(optJSON),
 		Results: results,
@@ -553,4 +553,60 @@ func TestGetSelectorStatus(t *testing.T) {
 	status, err := GetSelectorStatus(ctx, dbHandle, selectorUID, workspaceUID, userUID)
 	require.NoError(t, err)
 	require.EqualValues(t, StatusWaiting, status)
+}
+
+func TestDoGraphSelection(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	uid, err := db.GetTransactionUID(ctx, dbHandle, "4652f5875e3805d9cc7b15d6f5796bfacd8fc58b3a289e1ea187055f3d9d3916")
+	require.NoError(t, err)
+
+	tests := []struct {
+		o         TxGraphOptions
+		parentUID string
+		wantErr   bool
+	}{
+		{
+			o:         TxGraphOptions{},
+			parentUID: "",
+			wantErr:   true,
+		},
+		{
+			o: TxGraphOptions{
+				Depth: testhelper.GetPointer(10),
+			},
+			parentUID: "",
+			wantErr:   true,
+		},
+		{
+			o: TxGraphOptions{
+				Depth: testhelper.GetPointer(2),
+			},
+			parentUID: "",
+			wantErr:   true,
+		},
+		{
+			o: TxGraphOptions{
+				Depth:     testhelper.GetPointer(2),
+				IsForward: true,
+				MaxItems:  testhelper.GetPointer(5),
+			},
+			parentUID: uid,
+			wantErr:   false,
+		},
+	}
+	for _, tt := range tests {
+		selection, totalResultCount, err := DoGraphSelection(context.Background(), dbHandle, tt.o, tt.parentUID)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.NotEmpty(t, selection)
+			require.NotZero(t, totalResultCount)
+		}
+	}
 }
