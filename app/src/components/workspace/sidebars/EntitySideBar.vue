@@ -34,7 +34,7 @@
           color="primary"
           variant="tonal"
           class="me-2"
-          :prepend-icon="mdiFilterPlus"
+          :prepend-icon="mdiPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddSelectorClick"
         >
@@ -46,11 +46,11 @@
           color="primary"
           variant="tonal"
           class="me-2"
-          :prepend-icon="mdiFilterPlus"
+          :prepend-icon="mdiPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddHeuristicClick"
         >
-          Add Heuristic
+          Add CoinJoin Heuristic
         </v-chip>
         <fingerprint-chip
           v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.privacytype)"
@@ -139,10 +139,11 @@
 
 <script setup>
 import {
+	mdiBlender,
 	mdiCardBulletedOutline,
 	mdiDelete,
-	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus,
-	mdiNotePlus,
+	mdiFileDownloadOutline, mdiFilter,
+	mdiNotePlus, mdiPlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -206,10 +207,10 @@ const title = computed(() => {
 			return `Address ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
 			if (props.auxiliaryData?.selectorType === SELECTOR_TYPE_HEURISTIC) {
-				return 'Heuristic Properties';
+				return 'CoinJoin Heuristic';
 			}
 
-			return 'Selector Properties';
+			return 'Transaction Property Selector';
 		default:
 			return 'Unknown entity type';
 	}
@@ -254,6 +255,10 @@ const sideBarIcon = computed(() => {
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
+			if (props.auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC) {
+				return mdiBlender;
+			}
+
 			return mdiFilter;
 		default:
 			return mdiShapeCirclePlus;

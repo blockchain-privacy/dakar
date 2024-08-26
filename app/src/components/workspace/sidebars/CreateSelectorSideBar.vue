@@ -2,7 +2,7 @@
   <side-bar
     v-model="model"
     :title="title"
-    :icon="mdiFilterPlus"
+    :icon="mdiPlus"
     max-width="330px"
   >
     <template #body>
@@ -254,7 +254,7 @@
 
 <script setup>
 import {useRoute} from 'vue-router';
-import {mdiFilterPlus, mdiInformationOutline} from '@mdi/js';
+import {mdiInformationOutline, mdiPlus} from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
 import {
@@ -357,7 +357,7 @@ onUpdated(() => {
 const title = computed(() => {
 	switch (props.selectorType) {
 		case SELECTOR_TYPE_HEURISTIC:
-			return 'Add Heuristic';
+			return 'Add CoinJoin Heuristic';
 		case SELECTOR_TYPE_TX_PROP:
 			return 'Add Selector';
 		default:

@@ -75,7 +75,7 @@
       @click="onAddSelector"
     >
       <v-icon
-        :icon="mdiFilterPlus"
+        :icon="mdiPlus"
         class="me-1"
       />
       Add Selector
@@ -145,8 +145,8 @@
 
 <script setup>
 import {
-	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached,	mdiImageFilterCenterFocus,
-	mdiMagnify, mdiChartTimelineVariant, mdiFilterPlus, mdiCog,
+	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
+	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiPlus,
 } from '@mdi/js';
 import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';

@@ -180,9 +180,9 @@
 <script setup>
 import {
 	mdiCheckCircle,
-	mdiDelete, mdiFilterPlus,
+	mdiDelete,
 	mdiNoteEdit,
-	mdiNotePlus,
+	mdiNotePlus, mdiPlus,
 } from '@mdi/js';
 import CreateSelectorSideBar from './sidebars/CreateSelectorSideBar.vue';
 import {
@@ -273,15 +273,15 @@ const contextMenuModel = ref({
 	y: 0,
 	items: [
 		{
-			title: 'Add Heuristic',
-			icon: mdiFilterPlus,
+			title: 'Add CoinJoin Heuristic',
+			icon: mdiPlus,
 			show: () => isHeuristicNode(nodeGraph.getContextNode()) || isDestiationNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(true, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Add Selector',
-			icon: mdiFilterPlus,
+			icon: mdiPlus,
 			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(false, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,

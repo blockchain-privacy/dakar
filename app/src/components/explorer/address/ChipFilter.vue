@@ -14,7 +14,7 @@
       filter
       :mandatory="mandatory"
       :disabled="disabled"
-
+      selected-class=""
       class="ms-2"
       @update:model-value="handleModelChange"
     >
