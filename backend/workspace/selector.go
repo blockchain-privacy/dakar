@@ -81,8 +81,8 @@ type TxGraphWork struct {
 }
 
 func NewTxGraphWork(item workspace.WorkItem) (*TxGraphWork, error) {
-	if item.SelectorOptions == "" {
-		return nil, serror.FromStrWithContext("empty selector options", "item", item)
+	if item.SelectorOptions == "" || item.ParentUID == "" {
+		return nil, serror.FromStrWithContext("invalid selector", "item", item)
 	}
 
 	var opt workspace.TxGraphOptions
@@ -264,13 +264,6 @@ func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.
 	if err != nil {
 		return err
 	}
-
-	// todo check if this is still necessary, status is set in InsertNodeConnectionsAndHeuristics() too
-	// try to set node status
-	//if newNode, ok := nodeMap[selectorUID]; ok {
-	//	newNode.SelectorStatus = status
-	//	nodeMap[selectorUID] = newNode
-	//}
 
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
 
