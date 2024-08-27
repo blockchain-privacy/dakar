@@ -227,16 +227,17 @@ const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const colorMap = getColorMap();
-colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
+colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#fff23e');
 // Non-privacy transaction
-colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
-colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4CAF50');
-colorMap.set(SELECTOR_TYPE_TX_PROP, '#872154');
+colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#d9d9d9');
+colorMap.set(SELECTOR_TYPE_HEURISTIC, '#344e41');
+colorMap.set(SELECTOR_TYPE_TX_PROP, '#588157');
+colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#a3b18a');
 
 const nodeTypeLabels = [
-	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#4CAF50'},
-	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#CDDC39'},
-	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
+	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#588157'},
+	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#fff23e'},
+	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#d9d9d9'},
 ];
 
 const nodeGraph = new NodeGraph(colorMap);
