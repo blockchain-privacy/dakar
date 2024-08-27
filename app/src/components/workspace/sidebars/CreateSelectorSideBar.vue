@@ -238,7 +238,9 @@
             <div class="text-subtitle-2 mb-3">
               Select transactions based on their distance to the starting node.
             </div>
-            <v-label text="Maximum Stored Results" />
+            <div class="text-center text-subtitle-1 my-2">
+              Maximum Stored Results
+            </div>
             <v-slider
               v-model="txGraphOptions.maxItems"
               :max="SELECTOR_MAX_ITEMS"
@@ -247,7 +249,9 @@
               thumb-label
               hide-details
             />
-            <v-label text="Traversal Depth" />
+            <div class="text-center text-subtitle-1 my-2">
+              Traversal Depth
+            </div>
             <v-slider
               v-model="txGraphOptions.depth"
               :max="5"
@@ -256,21 +260,26 @@
               thumb-label
               hide-details
             />
-            <v-label text="Traversal Direction" />
-            <v-chip-group
-              v-model="traversalDirection"
-              selected-class="text-primary"
-              mandatory
-            >
-              <v-chip
-                text="Forward"
-                rounded
-              />
-              <v-chip
-                text="Backward"
-                rounded
-              />
-            </v-chip-group>
+            <div class="text-center text-subtitle-1 my-2">
+              Traversal Direction
+            </div>
+            <div class="d-flex justify-center">
+              <v-btn-toggle
+                v-model="traversalDirection"
+                rounded="lg"
+                mandatory
+                variant="text"
+                color="primary"
+              >
+                <v-btn size="small">
+                  Backward
+                </v-btn>
+                <v-btn size="small">
+                  Forward
+                </v-btn>
+              </v-btn-toggle>
+            </div>
+
             <v-switch
               v-model="txGraphOptions.excludePrivacyTransactions"
               label="Exclude Privacy Transactions"
@@ -327,6 +336,7 @@ const heuristicTypeModel = ref([]);
 // Heuristic select items
 const heuristicTypes = ref([]);
 
+// Set direction to backward by default
 const traversalDirection = ref(0);
 
 const txPropOptions = ref({
@@ -566,7 +576,7 @@ function buildTxPropOptions() {
 
 function buildTxGraphOptions() {
 	const options = structuredClone(toRaw(txGraphOptions.value));
-	options.isForward = traversalDirection.value === 0;
+	options.isForward = traversalDirection.value === 1;
 	return options;
 }
 
