@@ -1265,7 +1265,7 @@ export default class NodeGraph {
 			.classed('arrowText', true)
 			.text(d => {
 				if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-					return d.source.selectorResultCount;
+					return abbreviateNumber(d.source.selectorResultCount);
 				}
 
 				return null;
