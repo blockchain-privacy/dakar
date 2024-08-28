@@ -36,6 +36,7 @@ var availableUpgrades = map[uint64]UpgradePackage{
 	6: {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
 	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
 	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
+	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
 }
 
 var thisLogger *slog.Logger
@@ -310,4 +311,22 @@ func DropTypeHeuristicResult(c external.Database) error {
 	}
 
 	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "HeuristicResult"})
+}
+
+func AlterSchemaAddSelectorTotalResultCount(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Selector.totalResultCount: int . # number of results found by the selector (can be higher than number of stored results)
+
+			type Selector {
+				Selector.created
+				Selector.modified
+				Selector.type
+				Selector.status
+				Selector.parent
+				Selector.options
+				Selector.results
+				Selector.totalResultCount
+			}`,
+	})
 }

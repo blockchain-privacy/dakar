@@ -36,9 +36,10 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 	return filter + "(" + fiterSubject + "," + strconv.FormatInt(*number, 10) + ")"
 }
 
-func DoSelection(ctx context.Context, c external.Database, o Options, parentUID string) ([]string, error) {
+// DoSelection returns transactions specified by the options. It also returns the number of total results.
+func DoSelection(ctx context.Context, c external.Database, o Options, parentUID string) ([]string, int, error) {
 	if !o.IsValid(parentUID != "") {
-		return nil, serror.New(ErrInvalidOptions)
+		return nil, 0, serror.New(ErrInvalidOptions)
 	}
 
 	var queryBody string
@@ -122,7 +123,7 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 			case PrivacyTypeCollateralPayment:
 				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralPaymentFirst + "," + constants.StrPrivacyCollateralPaymentLast + ")"
 			default:
-				return nil, serror.FromStrWithContext("invalid privacy type", "privacy type", privacyType)
+				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", privacyType)
 			}
 		}
 	}
@@ -157,6 +158,11 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 					`
 	}
 
+	maxItems := selectorMaxItems
+	if o.MaxItems != nil {
+		maxItems = *o.MaxItems
+	}
+
 	query := `{
 				` + selectorQuery + `
 
@@ -165,23 +171,34 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 				withSums as var(func: uid(f)){
 					` + queryBody + `
 				}
+
+				count(func: uid(withSums))` + queryFilter + `{
+					count:count(uid)
+				}
 				
-				q(func: uid(withSums), first: 50)` + queryFilter + `{
+				q(func: uid(withSums), first: ` + strconv.Itoa(maxItems) + `)` + queryFilter + `{
 					uid
 				}
 			  }`
 
 	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
-		return nil, serror.New(err)
+		return nil, 0, serror.New(err)
 	}
 
 	var r struct {
+		Count []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"count,omitempty"`
 		Q []db.UIDNode `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.New(err)
+		return nil, 0, serror.New(err)
+	}
+
+	if len(r.Count) != 1 {
+		return nil, 0, serror.FromStr("invalid result")
 	}
 
 	uids := make([]string, len(r.Q))
@@ -189,7 +206,7 @@ func DoSelection(ctx context.Context, c external.Database, o Options, parentUID 
 		uids[i] = ts.UID
 	}
 
-	return uids, nil
+	return uids, r.Count[0].Count, nil
 }
 
 // InsertSelector inserts the given selector into the database. Returns its UID.

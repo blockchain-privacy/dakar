@@ -56,7 +56,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	// 1. Do work
 	status := workspace.StatusSuccess
 	var newNodes []any
-	results, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
+	results, totalResultCount, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
 		newNodes = make([]any, len(results))
 		for i, result := range results {
@@ -69,7 +69,7 @@ func (s SelectorWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.W
 	}
 
 	// 2. Store work
-	return updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes)
+	return updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
 }
 
 func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.UIDNode, error) {
@@ -182,11 +182,12 @@ type HeuristicWork struct {
 
 // updateSelector updates the selector both in the workspace state and in the db.
 func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.Database,
-	selectorUID string, workspaceUID string, userUID string, status string, newNodes []any) error {
+	selectorUID string, workspaceUID string, userUID string, status string, newNodes []any, totalResults int) error {
 	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
-		UID:     selectorUID,
-		Status:  status,
-		Results: newNodes,
+		UID:              selectorUID,
+		Status:           status,
+		Results:          newNodes,
+		TotalResultCount: &totalResults,
 	}, userUID, workspaceUID); updateErr != nil {
 		return updateErr
 	}
@@ -207,11 +208,12 @@ func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.
 		return err
 	}
 
+	// todo check if this is still necessary, status is set in InsertNodeConnectionsAndHeuristics() too
 	// try to set node status
-	if newNode, ok := nodeMap[selectorUID]; ok {
-		newNode.SelectorStatus = status
-		nodeMap[selectorUID] = newNode
-	}
+	//if newNode, ok := nodeMap[selectorUID]; ok {
+	//	newNode.SelectorStatus = status
+	//	nodeMap[selectorUID] = newNode
+	//}
 
 	frontEndNodes := append(cliutil.GetMapValues(nodeMap), notes...)
 
@@ -238,7 +240,7 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, c external.Database, g *graph.
 	defer cancel()
 
 	// 2. Store work
-	return updateSelector(ctx, workspaceMutex, c, h.selectorUID, h.workspaceUID, h.userUID, status, newNodes)
+	return updateSelector(ctx, workspaceMutex, c, h.selectorUID, h.workspaceUID, h.userUID, status, newNodes, len(newNodes))
 }
 
 func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {

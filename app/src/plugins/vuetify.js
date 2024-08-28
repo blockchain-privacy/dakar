@@ -1,6 +1,7 @@
 import 'vuetify/styles';
 import {createVuetify} from 'vuetify';
 import {aliases, mdi} from 'vuetify/iconsets/mdi-svg';
+// Custom icons
 import graph from '../assets/graph.svg';
 
 import {md3} from 'vuetify/blueprints';

@@ -14,7 +14,7 @@ import (
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the the schema version.
-const SchemaVersion uint64 = 8
+const SchemaVersion uint64 = 9
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -156,6 +156,7 @@ func SetupSchema(c external.Database) error {
 			Selector.parent: uid @reverse . # parent node from which a selector can use data
 			Selector.options: string . # JSON encoded options of the selector
 			Selector.results: [uid] @reverse . # results of the selector
+			Selector.totalResultCount: int . # number of results found by the selector (can be higher than number of stored results)
 
 			type Selector {
 				Selector.created
@@ -165,6 +166,7 @@ func SetupSchema(c external.Database) error {
 				Selector.parent
 				Selector.options
 				Selector.results
+				Selector.totalResultCount
 			}
 
 			Cluster.type: string @index(hash) . # the cluster type

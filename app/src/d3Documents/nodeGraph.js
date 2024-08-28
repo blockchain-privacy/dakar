@@ -7,7 +7,7 @@ import {
 	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
 } from '@/d3Documents/util';
 import {
-	mdiClockAlertOutline, mdiExclamationThick, mdiMerge, mdiPlaylistRemove, mdiTune,
+	mdiClockAlertOutline, mdiExclamationThick, mdiIncognito, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
@@ -20,6 +20,9 @@ import {
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
+import {
+	cashLeft, cashRight, sigmaLeft, sigmaRight,
+} from '@/customIcons/index.js';
 
 // In ms
 const animationDuration = 175;
@@ -709,7 +712,7 @@ export default class NodeGraph {
 		// Remove all children
 		iconGroup.selectAll('*').remove();
 
-		icons.forEach((icon, i) => {
+		icons.forEach(async (icon, i) => {
 			iconGroup.append('path')
 				.attr('transform', `translate(${(iconWidth * i) + (iconMargin * i)},${iconY}) scale(0.45,0.45)`)
 				.attr('fill', 'currentColor')
@@ -1087,38 +1090,70 @@ export default class NodeGraph {
 			.attr('fill', 'white')
 			.attr('font-size', 12)
 			.attr('y', 1)
-			.text(d => {
+			.text(function (d) {
 				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
 					return '';
 				}
 
-				return abbreviateNumber(d.selectorResultCount);
+				const nodeText = abbreviateNumber(d.selectorTotalResultCount);
+
+				if (nodeText.length > 3) {
+					d3Select(this).attr('font-size',	9);
+				}
+
+				return nodeText;
 			});
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorType !== SELECTOR_TYPE_HEURISTIC || !d.heuristicOptions) {
+				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
 					return;
 				}
 
 				const icons = [];
-				if (d.heuristicOptions.excludeAddresses) {
-					icons.push(mdiPlaylistRemove);
+				let parameter;
+
+				if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
+					if (d.heuristicOptions.excludeAddresses) {
+						icons.push(mdiPlaylistRemove);
+					}
+
+					if (d.heuristicOptions.clusterTypes?.length > 0) {
+						icons.push(mdiMerge);
+					}
+
+					if (d.heuristicOptions.excludeSpendingGaps) {
+						icons.push(mdiClockAlertOutline);
+					}
+
+					if (d.heuristicOptions.parameter) {
+						icons.push(mdiTune);
+					}
+
+					parameter = d.heuristicOptions.parameter;
+				} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.selectorOptions) {
+					if (d.selectorOptions.excludePrivacyTransactions) {
+						icons.push(mdiIncognito);
+					}
+
+					if (d.selectorOptions.inputRange) {
+						icons.push(cashLeft);
+					}
+
+					if (d.selectorOptions.outputRange) {
+						icons.push(cashRight);
+					}
+
+					if (d.selectorOptions.inputSum) {
+						icons.push(sigmaLeft);
+					}
+
+					if (d.selectorOptions.outputSum) {
+						icons.push(sigmaRight);
+					}
 				}
 
-				if (d.heuristicOptions.clusterTypes?.length > 0) {
-					icons.push(mdiMerge);
-				}
-
-				if (d.heuristicOptions.excludeSpendingGaps) {
-					icons.push(mdiClockAlertOutline);
-				}
-
-				if (d.heuristicOptions.parameter) {
-					icons.push(mdiTune);
-				}
-
-				self.drawIcons(d3Select(this), icons, d.heuristicOptions.parameter);
+				self.drawIcons(d3Select(this), icons, parameter);
 			});
 	}
 

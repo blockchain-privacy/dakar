@@ -129,6 +129,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 						children: ~Selector.parent{uid}
 						options: Selector.options
 						resultCount: count(Selector.results)
+						totalResultCount: Selector.totalResultCount
 						results: Selector.results@filter(uid(t)){uid}
 					}
 
@@ -267,15 +268,16 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		}
 
 		selectorNodes = append(selectorNodes, Node{
-			UID:                 h.UID,
-			Type:                NodeTypeSelector,
-			Children:            children,
-			SelectorType:        h.Type,
-			SelectorStatus:      h.Status,
-			SelectorResultCount: h.ResultCount,
-			SelectorCreated:     h.Created,
-			SelectorModified:    h.Modified,
-			HeuristicOptions:    &opt,
+			UID:                      h.UID,
+			Type:                     NodeTypeSelector,
+			Children:                 children,
+			SelectorType:             h.Type,
+			SelectorStatus:           h.Status,
+			SelectorResultCount:      h.ResultCount,
+			SelectorTotalResultCount: h.ResultCount,
+			SelectorCreated:          h.Created,
+			SelectorModified:         h.Modified,
+			HeuristicOptions:         &opt,
 		})
 	}
 
@@ -320,15 +322,16 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			return
 		}
 		selectorNodes = append(selectorNodes, Node{
-			UID:                 s.UID,
-			Type:                NodeTypeSelector,
-			Children:            children,
-			SelectorType:        s.Type,
-			SelectorStatus:      s.Status,
-			SelectorResultCount: s.ResultCount,
-			SelectorCreated:     s.Created,
-			SelectorModified:    s.Modified,
-			SelectorOptions:     &opt,
+			UID:                      s.UID,
+			Type:                     NodeTypeSelector,
+			Children:                 children,
+			SelectorType:             s.Type,
+			SelectorStatus:           s.Status,
+			SelectorResultCount:      s.ResultCount,
+			SelectorTotalResultCount: s.TotalResultCount,
+			SelectorCreated:          s.Created,
+			SelectorModified:         s.Modified,
+			SelectorOptions:          &opt,
 		})
 	}
 

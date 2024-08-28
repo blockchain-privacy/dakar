@@ -169,12 +169,13 @@ func TestDoSelection(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		selection, err := DoSelection(context.Background(), dbHandle, tt.o, "")
+		selection, totalResultCount, err := DoSelection(context.Background(), dbHandle, tt.o, "")
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
 			require.NotEmpty(t, selection)
+			require.NotZero(t, totalResultCount)
 		}
 	}
 }
@@ -220,7 +221,7 @@ func doSelection() ([]string, []byte, error) {
 		return nil, nil, err
 	}
 
-	selection, err := DoSelection(context.Background(), dbHandle, opt, "")
+	selection, _, err := DoSelection(context.Background(), dbHandle, opt, "")
 	if err != nil {
 		return nil, nil, err
 	}

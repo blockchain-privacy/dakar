@@ -36,94 +36,77 @@
       </v-row>
       <v-row>
         <v-col
-          v-if="selectorData.inputSum?.min"
+          v-if="selectorData.inputSum?.min || selectorData.inputSum?.max"
           cols="12"
           xs="12"
           sm="6"
         >
           <icon-item
-            title="Input Sum Min"
-            :icon="mdiSigma"
+            title="Input Sum"
+            :icon="sigmaLeft"
           >
-            {{ convertAmount(selectorData.inputSum.min) }}
+            {{ selectorData.inputSum?.min? convertAmount(selectorData.inputSum.min):0 }} - {{ selectorData.inputSum?.max?convertAmount(selectorData.inputSum.max):'*' }}
           </icon-item>
         </v-col>
-        <v-col v-if="selectorData.inputSum?.max">
+        <v-col v-if="selectorData.outputSum?.min || selectorData.outputSum?.max">
           <icon-item
-            title="Input Sum Max"
-            :icon="mdiSigma"
+            title="Output Sum"
+            :icon="sigmaRight"
           >
-            {{ convertAmount(selectorData.inputSum.max) }}
+            {{ selectorData.outputSum?.min? convertAmount(selectorData.outputSum.min):0 }} - {{ selectorData.outputSum?.max?convertAmount(selectorData.outputSum.max):'*' }}
           </icon-item>
         </v-col>
       </v-row>
       <v-row>
         <v-col
-          v-if="selectorData.outputSum?.min"
+          v-if="selectorData.inputRange?.min || selectorData.inputRange?.max"
           cols="12"
           xs="12"
           sm="6"
         >
           <icon-item
-            title="Output Sum Min"
-            :icon="mdiSigma"
+            title="Input Range"
+            :icon="cashLeft"
           >
-            {{ convertAmount(selectorData.outputSum.min) }}
+            {{ selectorData.inputRange?.min? convertAmount(selectorData.inputRange.min):0 }} - {{ selectorData.inputRange?.max?convertAmount(selectorData.inputRange.max):'*' }}
           </icon-item>
         </v-col>
-        <v-col v-if="selectorData.outputSum?.max">
+        <v-col v-if="selectorData.outputRange?.min || selectorData.outputRange?.max">
           <icon-item
-            title="Output Sum Max"
-            :icon="mdiSigma"
+            title="Output Range"
+            :icon="cashRight"
           >
-            {{ convertAmount(selectorData.outputSum.max) }}
+            {{ selectorData.outputRange?.min? convertAmount(selectorData.outputRange.min):0 }} - {{ selectorData.outputRange?.max?convertAmount(selectorData.outputRange.max):'*' }}
           </icon-item>
         </v-col>
       </v-row>
       <v-row>
         <v-col
-          v-if="selectorData.inputRange?.min"
+          v-if="selectorData.excludePrivacyTransactions"
           cols="12"
           xs="12"
           sm="6"
         >
           <icon-item
-            title="Input Range Min"
-            :icon="mdiCurrencyUsd"
+            title="Exclude Priv. Transactions"
+            :icon="mdiIncognito"
           >
-            {{ convertAmount(selectorData.inputRange.min) }}
+            {{ selectorData.excludePrivacyTransactions }}
           </icon-item>
         </v-col>
-        <v-col v-if="selectorData.inputRange?.max">
-          <icon-item
-            title="Input Range Max"
-            :icon="mdiCurrencyUsd"
-          >
-            {{ convertAmount(selectorData.inputRange.max) }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.outputRange?.min"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Output Range Min"
-            :icon="mdiCurrencyUsd"
-          >
-            {{ convertAmount(selectorData.outputRange.min) }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="selectorData.outputRange?.max">
-          <icon-item
-            title="Output Range Max"
-            :icon="mdiCurrencyUsd"
-          >
-            {{ convertAmount(selectorData.outputRange.max) }}
-          </icon-item>
+        <v-col v-else-if="selectorData.privacyTypes">
+          <p class="text-subtitle-1 mb-2 text-center">
+            Privacy Type Filter
+          </p>
+          <div class="d-flex justify-center flex-wrap">
+            <color-chip
+              v-for="p in selectorData.privacyTypes"
+              :key="p"
+              class="me-2 mb-4"
+              :title="p"
+              :color="colorMap.get(p)"
+            />
+          </div>
         </v-col>
       </v-row>
       <v-row v-if="selectorData.transactions?.length > 0">
@@ -133,10 +116,18 @@
           sm="6"
         >
           <icon-item
-            title="Number of transactions"
+            title="Total transaction count"
             :icon="mdiPoundBoxOutline"
           >
-            {{ transactionCount }}
+            {{ selectorData.selectorTotalResultCount.toLocaleString() }}
+          </icon-item>
+        </v-col>
+        <v-col>
+          <icon-item
+            title="Stored transaction count"
+            :icon="mdiPoundBoxOutline"
+          >
+            {{ transactionCount.toLocaleString() }}
           </icon-item>
         </v-col>
       </v-row>
@@ -181,21 +172,24 @@
       </v-card>
       <template v-if="selectorData.transactions?.length > 0">
         <v-divider />
-        <v-list>
-          <v-list-item
-            v-for="t in selectorData.transactions"
-            :key="t.txhash"
-          >
-            <v-list-item-title>
+        <v-data-table
+          :items="tableItems"
+          :headers="tableHeaders"
+        >
+          <template #item.txhash="{item}">
+            <td>
               <workspace-link
-                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: t.txhash }}"
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: item.txhash }}"
                 class="shorten"
               >
-                {{ t.txhash }}
+                {{ item.txhash }}
               </workspace-link>
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
+            </td>
+          </template>
+          <template #item.ts="{item}">
+            <td>{{ new Date(item.ts).toLocaleString() }}</td>
+          </template>
+        </v-data-table>
       </template>
     </v-card-text>
   </v-card>
@@ -204,20 +198,36 @@
 <script setup>
 import IconItem from '@/components/common/IconItem.vue';
 import {
-	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiCurrencyUsd, mdiPoundBoxOutline, mdiSigma,
+	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognito, mdiPoundBoxOutline,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
-import {convertAmount, plural} from '@/utilities/index.js';
+import {
+	convertAmount, getColorMap, plural,
+} from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {
+	cashLeft, cashRight, sigmaLeft, sigmaRight,
+} from '@/customIcons/index.js';
+import ColorChip from '@/components/common/ColorChip.vue';
 
 const props = defineProps({selectorData: {type: Object, required: true}});
 
+const colorMap = getColorMap();
 let svgHistogram = null;
+const tableHeaders = [
+	{
+		key: 'txhash', title: 'Tranasaction Hash', sortable: false, align: 'left',
+	},
+	{
+		key: 'ts', title: 'Timestamp', align: 'right',
+	},
+];
+
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);
 
@@ -228,6 +238,18 @@ const transactionCount = computed(() => {
 	}
 
 	return props.selectorData.transactions.length;
+});
+
+const tableItems = computed(() => {
+	if (!props.selectorData.transactions) {
+		return [];
+	}
+
+	return props.selectorData.transactions.map(d => {
+		d.ts = new Date(d.ts).getTime();
+
+		return d;
+	});
 });
 
 // Hooks

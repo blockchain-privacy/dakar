@@ -17,11 +17,14 @@
       />
     </template>
     <v-card>
+      <!-- todo: to determine the first day of the week locale.weekInfo or getWeekInfo() can be used. Firefox does not support this yet
+        (see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/getWeekInfo) -->
       <v-date-picker
         v-model="model"
         hide-header
         :allowed-dates="isDateAllowed"
         show-adjacent-months
+        :first-day-of-week="1"
       />
       <v-card-actions>
         <v-btn

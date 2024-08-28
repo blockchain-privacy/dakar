@@ -4,8 +4,6 @@ import (
 	"backend/db"
 	"backend/external"
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"github.com/qrest/gomisc/serror"
@@ -47,35 +45,6 @@ func CreateNewUser(c external.Database) (string, error) {
 	}
 
 	return userUID, nil
-}
-
-// GetUserCount returns the number of user currently in the database
-func GetUserCount(c external.Database) (userCount int, err error) {
-	query := `{
-				q(func: type(User)){
-					count(uid)
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
-	if err != nil {
-		return
-	}
-
-	// json struct
-	var r struct {
-		Users []struct {
-			Count int `json:"count"`
-		} `json:"q"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	userCount = r.Users[0].Count
-	return
 }
 
 // existsUser checks if a User with the given uid exists
@@ -133,15 +102,4 @@ func DeleteUser(ctx context.Context, c external.Database, uid string) (err error
 	}
 
 	return nil
-}
-
-// generateRandomPassword returns a random string if fixed length of 22
-func generateRandomPassword() (string, error) {
-	// Generate a Salt
-	pwByte := make([]byte, 16)
-	if _, err := rand.Read(pwByte); err != nil {
-		return "", serror.New(err)
-	}
-
-	return base64.RawStdEncoding.EncodeToString(pwByte), nil
 }
