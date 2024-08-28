@@ -337,11 +337,11 @@ export function plural(subject, count) {
 export function getColorMap() {
 	const colorMap = new Map();
 
-	colorMap.set('origin', '#D55E00');
+	colorMap.set('origin', '#CB5599');
 	colorMap.set('mixing', '#56B4E9');
 	colorMap.set('destination', '#0072B2');
 	colorMap.set('collateral creation', '#E69F00');
-	colorMap.set('collateral payment', '#d00000');
+	colorMap.set('collateral payment', '#D00000');
 
 	return colorMap;
 }
