@@ -38,7 +38,7 @@ func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
 
-	hoursToLookForward, err := strconv.ParseUint(c.Parameter, 10, 32)
+	hoursToLookForward, err := strconv.ParseInt(c.Parameter, 10, 64)
 	if err != nil {
 		return serror.New(err)
 	}
@@ -48,7 +48,7 @@ func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
 	}
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
-	h.parameterDescription = strconv.FormatUint(hoursToLookForward, 10)
+	h.parameterDescription = strconv.FormatInt(hoursToLookForward, 10)
 	h.c = c
 
 	return nil

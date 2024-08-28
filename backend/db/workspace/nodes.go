@@ -671,9 +671,9 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 	// json struct
 	var r struct {
 		Transactions []struct {
-			UID         string `json:"uid,omitempty"`
-			Hash        string `json:"txhash,omitempty"`
-			PrivacyType *int   `json:"privacytype,omitempty"`
+			UID         string  `json:"uid,omitempty"`
+			Hash        string  `json:"txhash,omitempty"`
+			PrivacyType *uint16 `json:"privacytype,omitempty"`
 		} `json:"transaction,omitempty"`
 		Address []struct {
 			UID      string `json:"uid,omitempty"`

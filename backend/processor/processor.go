@@ -259,11 +259,13 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 		isCoinbaseTransaction = true
 	} else {
 		// process inputs if transaction is not a coinbase transaction
-		for i, d := range rawTransaction.Vin {
-			if processErr := processTxVin(&txDetails, externalOutputs, d, uint32(i), txHashMap, cache); processErr != nil {
+		i := uint32(0)
+		for _, d := range rawTransaction.Vin {
+			if processErr := processTxVin(&txDetails, externalOutputs, d, i, txHashMap, cache); processErr != nil {
 				err = processErr
 				return
 			}
+			i++
 		}
 	}
 
@@ -502,7 +504,7 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 		warn(serror.New(errBlockIDsDoNotMatch), "continuing...")
 	}
 
-	if state.hash, err = client.GetBlockHash(int64(state.id)); err != nil {
+	if state.hash, err = client.GetBlockHash(state.id); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -639,8 +641,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 		txCounter = 0
 	}
 
-	blockID := int64(state.id)
-	transactionOutputs, err := db.GetOutputs(dgraph, blockID, blockID)
+	transactionOutputs, err := db.GetOutputs(dgraph, state.id, state.id)
 	if err != nil {
 		return
 	}

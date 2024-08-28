@@ -37,7 +37,7 @@ func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
 
-	duration, err := strconv.ParseUint(c.Parameter, 10, 32)
+	duration, err := strconv.ParseInt(c.Parameter, 10, 64)
 	if err != nil {
 		return serror.New(err)
 	}
@@ -47,7 +47,7 @@ func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
 	}
 
 	h.lookBackTime = time.Duration(duration) * time.Hour
-	h.parameterDescription = strconv.FormatUint(duration, 10)
+	h.parameterDescription = strconv.FormatInt(duration, 10)
 	h.c = c
 
 	return nil

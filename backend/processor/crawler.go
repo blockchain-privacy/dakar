@@ -24,13 +24,13 @@ type Crawler struct {
 
 	currentBlock *jsonrpc.GetBlockVerboseResult
 
-	initialBlockCacheSize int64
+	initialBlockCacheSize uint64
 	cache                 *outputCache
 }
 
 // NewCrawler creates a new Crawler object
 func NewCrawler(ctx context.Context, database external.Database,
-	rpc external.RPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
+	rpc external.RPCClient, initialBlockCacheSize uint64, cfg Config) *Crawler {
 	return &Crawler{
 		config:                cfg,
 		db:                    database,
@@ -105,7 +105,7 @@ func (c *Crawler) CalculateInitialState() error {
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
 	info(fmt.Sprintf("Loading UTXOs of last %d blocks ...", c.initialBlockCacheSize))
-	c.cache, err = newUTXOCache(c.db, int64(state.id), c.initialBlockCacheSize)
+	c.cache, err = newUTXOCache(c.db, state.id, c.initialBlockCacheSize)
 	if err != nil {
 		return err
 	}

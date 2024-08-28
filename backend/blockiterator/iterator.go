@@ -158,10 +158,10 @@ func StartIteration(iterator BlockIterator, postIterationHook func()) (err error
 
 		// metrics
 		numIteratedBlocks += iterator.Props().ProcessedBlockCount
-		blocksSinceLastPrint := int64(numIteratedBlocks - lastMetricPrintBlockID)
+		blocksSinceLastPrint := numIteratedBlocks - lastMetricPrintBlockID
 		if blocksSinceLastPrint >= 1000 {
 			info(iterator, fmt.Sprintf("avg %d blocks: %v ms/block", blocksSinceLastPrint,
-				time.Since(timerGlobal).Milliseconds()/blocksSinceLastPrint))
+				uint64(time.Since(timerGlobal).Milliseconds())/blocksSinceLastPrint))
 			timerGlobal = time.Now()
 			lastMetricPrintBlockID = numIteratedBlocks
 		}

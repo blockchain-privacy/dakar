@@ -28,8 +28,8 @@ type DatabaseConfig struct {
 }
 
 type CrawlerModule struct {
-	Active           bool  `yaml:"active"`
-	InitialCacheSize int64 `yaml:"initialCacheSize"`
+	Active           bool   `yaml:"active"`
+	InitialCacheSize uint64 `yaml:"initialCacheSize"`
 }
 
 type APIModule struct {
@@ -106,6 +106,7 @@ type Commands struct {
 	ResetDB         bool
 	IgnoreSafeGuard bool
 	ShowVersion     bool
+	UpgradeDatabase bool
 	CPUProfilePath  string
 }
 
@@ -219,7 +220,7 @@ func checkMeta(db external.Database, blockchainMode string) bool {
 	// check if the database schema version matches the schema version of the executable
 	if *meta.SchemaVersion != database.SchemaVersion {
 		// The log message looks wrong, but is right ("executable schema version", database.SchemaVersion)
-		info("Database is using a different schema version than executable. You may have to upgrade the database schema or use a different version of the executable.",
+		info("Database is using a different schema version than the executable. You may have to upgrade the database schema (CLI option: -upgradedatabase) or use a different version of the executable.",
 			"database schema version", *meta.SchemaVersion,
 			"executable schema version", database.SchemaVersion)
 		return false

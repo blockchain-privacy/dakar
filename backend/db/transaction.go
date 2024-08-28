@@ -730,7 +730,7 @@ func GetTransactionUID(ctx context.Context, c external.Database, txHash string) 
 }
 
 // GetOutputs returns the transaction outputs of the given block range
-func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
+func GetOutputs(c external.Database, fromBlockID uint64, toBlockID uint64) (transactions []Transaction, err error) {
 	const query = `query Q($id1:int,$id2:int){
 					var(func: between(id,$id1, $id2)){
 						t as transactions
@@ -748,8 +748,8 @@ func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transa
 				}`
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
-		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
-			"$id2": strconv.FormatInt(toBlockID, 10)})
+		map[string]string{"$id1": strconv.FormatUint(fromBlockID, 10),
+			"$id2": strconv.FormatUint(toBlockID, 10)})
 	if err != nil {
 		return
 	}

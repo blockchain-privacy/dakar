@@ -174,8 +174,8 @@ type Node struct {
 	ClusterType string `json:"clusterType,omitempty"`
 
 	// transaction
-	TransactionHash string `json:"transactionHash,omitempty"`
-	PrivacyType     *int   `json:"privacyType,omitempty"`
+	TransactionHash string  `json:"transactionHash,omitempty"`
+	PrivacyType     *uint16 `json:"privacyType,omitempty"`
 
 	// selector
 	SelectorCreated     string               `json:"selectorCreated,omitempty"`

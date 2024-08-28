@@ -1,10 +1,153 @@
-package db
+package upgrades
 
 import (
+	"backend/db"
+	"backend/db/analytics/clustering"
+	"backend/db/analytics/heuristics"
+	"backend/db/status"
 	"backend/external"
 	"context"
 	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/qrest/gomisc/serror"
+	"log/slog"
+	"reflect"
+	"runtime"
 )
+
+// availableUpgrades contains all available schema upgrades.
+// The key is the schema version to which the dabatase should
+// be set after its updates haven been applied.
+var availableUpgrades = map[uint64]UpgradePackage{
+	4: {upgrades: []schemaUpgrade{AlterSchemaAddWorkspaces}},
+	5: {
+		upgrades: []schemaUpgrade{
+			clustering.DeleteAllFMIClusters,
+			func() schemaUpgrade {
+				return func(c external.Database) error {
+					zero := uint64(0)
+					return status.SetClusteringFMIStatus(c, status.ClusteringFlatMultiInputStatus{
+						LastClusteredBlockID: &zero,
+					})
+				}
+			}(),
+			DropPredicateHex,
+			AlterSchemaRemoveHex},
+	},
+	6: {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
+	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
+	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
+}
+
+var thisLogger *slog.Logger
+
+// InitLogger creates new loggers with the given parameters.
+func InitLogger() {
+	thisLogger = slog.With(slog.String("module", "database upgrade"))
+}
+
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func getFunctionName(i interface{}) string {
+	f := runtime.FuncForPC(reflect.ValueOf(i).Pointer())
+	if f == nil {
+		return "<unknown function name>"
+	}
+	return f.Name()
+}
+
+// GetSchemaVersion returns the schema version of the database
+func GetSchemaVersion(db external.Database) (uint64, error) {
+	meta, err := status.GetMeta(db)
+	if err != nil {
+		return 0, err
+	}
+
+	if meta.SchemaVersion == nil {
+		return 0, serror.FromStr("received nil schema version")
+	}
+
+	return *meta.SchemaVersion, nil
+}
+
+type schemaUpgrade func(database external.Database) error
+
+type UpgradePackage struct {
+	upgrades []schemaUpgrade
+}
+
+// upgradeDatabaseToNextVersion upgrades the database to the next schema version
+func upgradeDatabaseToNextVersion(c external.Database, upgrades map[uint64]UpgradePackage, currentSchemaVersion uint64) error {
+	upgradePackage, ok := upgrades[currentSchemaVersion+1]
+	if !ok {
+		return serror.FromStrWithContext("can not find upgrade package",
+			"current database version", currentSchemaVersion)
+	}
+
+	if len(upgradePackage.upgrades) == 0 {
+		return serror.FromStr("upgrade package contains no upgrades")
+	}
+
+	for _, upgrade := range upgradePackage.upgrades {
+		info("applyling upgrade", "function name", getFunctionName(upgrade))
+		if err := upgrade(c); err != nil {
+			return err
+		}
+	}
+
+	if err := status.SetSchemaVersion(c, currentSchemaVersion+1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpgradeDatabase upgrades the database schema to the newest version
+func UpgradeDatabase(c external.Database) error {
+	return applyUpgrades(c, availableUpgrades)
+}
+
+// applyUpgrades upgrades the database schema to the newest version, by applying  the given UpgradePackages
+func applyUpgrades(c external.Database, upgrades map[uint64]UpgradePackage) error {
+	currentSchemaVersion, err := GetSchemaVersion(c)
+	if err != nil {
+		return err
+	}
+
+	if db.SchemaVersion < currentSchemaVersion {
+		return serror.FromStrWithContext("invalid schema version",
+			"executable schema version", db.SchemaVersion, "database schema version", currentSchemaVersion)
+	}
+
+	if db.SchemaVersion == currentSchemaVersion {
+		info("database schema is already up to date. No upgrades a necessary.")
+		return nil
+	}
+
+	info("starting upgrade process", "current version", currentSchemaVersion, "target version", db.SchemaVersion)
+
+	for currentSchemaVersion < db.SchemaVersion {
+		info("upgrading database schema", "current version", currentSchemaVersion)
+		if err := upgradeDatabaseToNextVersion(c, upgrades, currentSchemaVersion); err != nil {
+			return err
+		}
+
+		newVersion, err := GetSchemaVersion(c)
+		if err != nil {
+			return err
+		}
+
+		if newVersion != currentSchemaVersion+1 {
+			return serror.FromStr("database schema upgrade did not increase version")
+		}
+
+		currentSchemaVersion = newVersion
+		info("database schema upgrade complete", "current version", currentSchemaVersion)
+	}
+
+	return nil
+}
 
 // AlterSchemaAddWorkspaces adds the workspace type
 func AlterSchemaAddWorkspaces(c external.Database) error {
