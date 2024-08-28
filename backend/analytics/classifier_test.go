@@ -4,6 +4,7 @@ import (
 	"backend/blockiterator"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
 	"backend/testhelper"
@@ -358,17 +359,20 @@ func TestNewClassifier(t *testing.T) {
 func TestClassifier_IncrementState(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{})
 
-	for range 100 {
+	for range 10 {
+		classifier.blocksProcessed = 1
 		require.NoError(t, classifier.IncrementState())
 	}
 
-	require.EqualValues(t, 100, classifier.state.ID)
+	require.EqualValues(t, 10, classifier.state.ID)
 }
 
 func TestClassifier_Empty(t *testing.T) {
 	classifier := NewClassifier(context.Background(), nil, Config{})
 
 	require.False(t, classifier.Empty())
+	// simulate a block having been processed
+	classifier.blocksProcessed = 1
 	require.NoError(t, classifier.IncrementState())
 	require.True(t, classifier.Empty())
 }
@@ -512,7 +516,7 @@ func TestClassifier_NextBlock(t *testing.T) {
 	classifier.state.ID = testhelper.BlockFileFirstBlock
 	classifier.state.Top = testhelper.BlockFileFirstBlock
 
-	got, err := classifier.NextBlock()
+	got, err := classifier.Next()
 	require.NoError(t, err)
 	require.True(t, got)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, classifier.state.Top)
@@ -528,13 +532,10 @@ func TestClassifier_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	const firstBlock = 1557778
-
-	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
-		IsCrawling: &no,
+		IsCrawling: testhelper.GetPointer(false),
 		// first block of the file
-		LastBlockID: testhelper.GetPointer[uint64](firstBlock),
+		LastBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileFirstBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
@@ -546,11 +547,51 @@ func TestClassifier_Iterate(t *testing.T) {
 	_, err := classifier.Iterate()
 	require.Error(t, err)
 
-	classifier.state.ID = firstBlock
-	classifier.state.Top = firstBlock
+	classifier.state.ID = testhelper.ClassifierFileFirstBlock
+	classifier.state.Top = testhelper.ClassifierFileFirstBlock
+
+	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
 
 	_, err = classifier.Iterate()
 	require.NoError(t, err)
+
+	// check mixing count after classification
+	mixingCount, _, _, _, _, err := analytics.GetPrivacyTransactionCount(dbHandle)
+	require.NoError(t, err)
+	require.NotEmpty(t, mixingCount)
+}
+
+func TestMultipleBlockIteration(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	fileBlockCount := uint64(testhelper.ClassifierFileLastBlock - testhelper.ClassifierFileFirstBlock)
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
+
+	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling:  testhelper.GetPointer(false),
+		LastBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileLastBlock),
+	}))
+	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
+		IsClassifying:         testhelper.GetPointer(false),
+		LastClassifiedBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileFirstBlock),
+	}))
+
+	classifier2 := NewClassifier(ctx, dbHandle, NewDashConfig())
+	classifier2.RegisterMetrics(prometheus.NewRegistry())
+
+	classifier2.state.ID = testhelper.ClassifierFileFirstBlock
+	classifier2.state.Top = testhelper.ClassifierFileLastBlock
+	var numIteratedBlocks uint64
+	require.NoError(t, blockiterator.StartIteration(classifier2, func() {
+		numIteratedBlocks += classifier2.Props().ProcessedBlockCount
+		if numIteratedBlocks >= fileBlockCount {
+			cancelFunc()
+		}
+	}))
 }
 
 func TestClassifier_PostExecution(t *testing.T) {
@@ -614,6 +655,8 @@ func Test_isCollateralCreation(t *testing.T) {
 	require.NoError(t, err)
 	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
+	largeAmount, err := db.GetTransaction(dbHandle, "cb94ed9e7c1e45c2e26585e7b24f8ab1d779cd9b8cd37d74bc7179211734ca85")
+	require.NoError(t, err)
 
 	tests := []struct {
 		t       db.Transaction
@@ -624,6 +667,7 @@ func Test_isCollateralCreation(t *testing.T) {
 		{t: cpTx, want: false, wantErr: false},
 		{t: mixingTx, want: false, wantErr: false},
 		{t: unclassifiedTx, want: false, wantErr: false},
+		{t: largeAmount, want: false, wantErr: false},
 	}
 	for _, tt := range tests {
 		got, err := isCollateralCreation(dbHandle, tt.t)
@@ -856,23 +900,27 @@ func TestBlockIterator(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	const firstBlock = 1557778
-
-	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
-		IsCrawling: &no,
+		IsCrawling: testhelper.GetPointer(false),
 		// let's classify 2 blocks
-		LastBlockID: testhelper.GetPointer[uint64](firstBlock + 1),
+		LastBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileFirstBlock + 3),
 	}))
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
-		IsClassifying: &no,
+		IsClassifying: testhelper.GetPointer(false),
 		// let's classify 3 blocks
-		LastClassifiedBlockID: testhelper.GetPointer[uint64](firstBlock),
+		LastClassifiedBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileFirstBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancelFunc()
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 	classifier.RegisterMetrics(prometheus.NewRegistry())
-	require.NoError(t, blockiterator.StartIteration(classifier))
+
+	numIteratedBlocks := uint64(0)
+	require.NoError(t, blockiterator.StartIteration(classifier, func() {
+		numIteratedBlocks += classifier.Props().ProcessedBlockCount
+		if numIteratedBlocks >= 3 {
+			cancelFunc()
+		}
+	}))
 }

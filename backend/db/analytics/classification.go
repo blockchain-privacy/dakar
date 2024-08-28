@@ -4,6 +4,7 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"encoding/json"
@@ -13,17 +14,17 @@ import (
 	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
-// ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block and
+// ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block range and
 // the origin privacy type for all transactions which are connected to mixing
 // transactions in this block. Additionally, it returns all transactions connected to newly
 // classified origin transaction which have no privacy type set yet.
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themselves.
-func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (toClassify []db.Transaction,
+func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint64, toBlockID uint64) (toClassify []db.Transaction,
 	origins []db.Transaction, err error) {
-	const query = `query Q($bid: string) {
-				b as var(func: eq(id,$bid)){t as ts}
+	query := `query Q($from:int,$to:int) {
+				b as var(func: between(id, $from, $to))
 				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
@@ -43,7 +44,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 					tx_outputs{
 						# do not limit by number of inputs as there could be multiple with the same address
 						to_classify as ~tx_inputs@filter(not has(privacytype) and le(count(tx_outputs),2))@cascade{
-							~transactions@filter(le(ts,val(t)))
+							~transactions@filter(le(id,$to))
 						}
 					}
 				}
@@ -89,7 +90,8 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$bid": strconv.FormatUint(blockID, 10)},
+		Vars: map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
+			"$to": strconv.FormatUint(toBlockID, 10)},
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(dest), 0))",
@@ -241,14 +243,11 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 // the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
 	blockHeight uint64) (outputTransactions []db.Transaction, err error) {
-	uidList := db.CreateCommaArray(txUids)
-
-	query := `query Q($uids: string, $bid: string){
-				var(func: eq(id,$bid)){t as ts}
+	const query = `query Q($uids:string,$bid:int){
 				var (func: uid($uids)){
 					tx_outputs{
 						v as ~tx_inputs@filter(le(count(tx_outputs),2))@cascade{
-							~transactions@filter(le(ts,val(t)))
+							~transactions@filter(le(id,$bid))
 						}
 					}
 				}
@@ -274,7 +273,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$uids": uidList, "$bid": strconv.FormatUint(blockHeight, 10)})
+		map[string]string{"$uids": db.CreateCommaArray(txUids), "$bid": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
 		return
 	}
@@ -291,4 +290,15 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	outputTransactions = r.Q
 
 	return
+}
+
+// RemovePrivacyTypeOfAllTransactions removes the privacy type of all transactions
+func RemovePrivacyTypeOfAllTransactions(ctx context.Context, c external.Database) (err error) {
+	req := &api.Request{
+		Query:     "{t as var(func: has(txhash))}",
+		Mutations: []*api.Mutation{{DelNquads: []byte("uid(t) <privacytype> * .")}},
+		CommitNow: true,
+	}
+
+	return db.MutationWithRetry(ctx, c, req)
 }

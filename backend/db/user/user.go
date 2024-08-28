@@ -89,9 +89,7 @@ func existsUser(ctx context.Context, c external.Database, uid string) (found boo
 	}
 
 	var r struct {
-		Q []struct {
-			UID string
-		} `json:"q,omitempty"`
+		Q []db.UIDNode `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {

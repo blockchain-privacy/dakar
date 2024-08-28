@@ -150,7 +150,7 @@ func GetCollateralCreationTransactions(c external.Database, numNodes int, offset
 }
 
 // GetPrivacyTransactionCount gets the number of transaction per privacy type
-func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCount int, ccCount int,
+func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCount int, ccCount int, cpCount int,
 	destinationCount int, err error) {
 	const query = `{
 				mixing(func: between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
@@ -169,6 +169,11 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 
 				cc(func: between(privacytype,` +
 		constants.StrPrivacyCollateralCreationFirst + "," + constants.StrPrivacyCollateralCreationLast + `)){
+					count(uid)
+				}
+
+				cp(func: between(privacytype,` +
+		constants.StrPrivacyCollateralPaymentFirst + "," + constants.StrPrivacyCollateralPaymentLast + `)){
 					count(uid)
 				}
 			  }`
@@ -194,6 +199,9 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 		CC []struct {
 			Count int `json:"count,omitempty"`
 		} `json:"cc,omitempty"`
+		CP []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"cp,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -201,7 +209,7 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 		return
 	}
 
-	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 || len(r.CC) != 1 {
+	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 || len(r.CC) != 1 || len(r.CP) != 1 {
 		err = serror.FromStr("invalid response from database")
 		return
 	}
@@ -210,6 +218,7 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 	originCount = r.Origin[0].Count
 	destinationCount = r.Destination[0].Count
 	ccCount = r.CC[0].Count
+	cpCount = r.CP[0].Count
 
 	return
 }

@@ -60,13 +60,17 @@ func (c *Crawler) RegisterMetrics(req prometheus.Registerer) {
 
 func (c *Crawler) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                "processor",
-		Context:             c.ctx,
-		Logger:              thisLogger,
-		CurrentBlock:        c.state.id,
-		ProcessedBlockCount: 1,
+		Name:                        "processor",
+		Context:                     c.ctx,
+		Logger:                      thisLogger,
+		CurrentBlock:                c.state.id,
+		ProcessedBlockCount:         1,
+		SupportsMultiBlockIteration: false,
 	}
 }
+
+// SetMaxBlocks is not supported for crawler, so do nothing
+func (c *Crawler) SetMaxBlocks(uint64) {}
 
 // IncrementState increments the state one block
 func (c *Crawler) IncrementState() error {
@@ -116,8 +120,8 @@ func (c *Crawler) PostExecution() error {
 	return dbstat.SetCrawling(c.db, false)
 }
 
-// NextBlock tries to increase the internal state to the next block
-func (c *Crawler) NextBlock() (bool, error) {
+// Next tries to increase the internal state to the next block
+func (c *Crawler) Next() (bool, error) {
 	if !c.state.incremented {
 		// state is on next block
 		block, err := c.rpc.GetBlockVerbose(c.state.hash)

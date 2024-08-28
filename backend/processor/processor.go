@@ -541,7 +541,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
 func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (map[string]map[uint32]db.Output, error) {
 	if len(outputs) == 0 {
-		return nil, nil
+		return map[string]map[uint32]db.Output{}, nil
 	}
 
 	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, cliutil.GetMapKeys(outputs))

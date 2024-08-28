@@ -201,10 +201,10 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	return r.Transactions, nil
 }
 
-// GetTransactionByBlock gets transaction information from the database by block id
-func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []Transaction, err error) {
-	const query = `query Q($block:string) {
-				var(func: eq(id, $block)){
+// GetTransactionsByBlock returns the transaction contained in the requested block
+func GetTransactionsByBlock(c external.Database, fromBlockID uint64, toBlockID uint64) (transactions []Transaction, err error) {
+	const query = `query Q($from:int,$to:int) {
+				var(func: between(id, $from, $to)){
 					txs as transactions
 				}
 
@@ -229,7 +229,9 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 			  }`
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$block": strconv.FormatUint(blockID, 10)})
+		map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
+			"$to": strconv.FormatUint(toBlockID, 10)})
+
 	if err != nil {
 		return
 	}
@@ -241,7 +243,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	}
 
 	if len(r.Q) == 0 {
-		err = serror.NewWithContext(ErrTransactionNotFound, "block", blockID)
+		err = serror.NewWithContext(ErrTransactionNotFound, "block from", fromBlockID, "block to", toBlockID)
 		return
 	}
 

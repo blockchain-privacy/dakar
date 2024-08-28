@@ -1,6 +1,6 @@
 services:
   dgraph_db:
-    image: dgraph/standalone:v24.0.1
+    image: dgraph/standalone:v24.0.2
     network_mode: "bridge"
     container_name: dgraph_db
     ports:

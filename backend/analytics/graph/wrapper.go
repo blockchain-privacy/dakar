@@ -77,6 +77,9 @@ func (w *Wrapper) RegisterMetrics(req prometheus.Registerer) {
 	req.MustRegister(w.blockHeight)
 }
 
+// SetMaxBlocks is not supported, so do nothing
+func (w *Wrapper) SetMaxBlocks(uint64) {}
+
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded
 func (w *Wrapper) IsTransactionGraphLoaded() bool {
 	w.transactionGraphMutex.RLock()
@@ -195,6 +198,10 @@ func (w *Wrapper) LoadGraphs() error {
 	}
 
 	txGraph, err := LoadTransactionGraph(w.db, numTxToLoad)
+	if errors.Is(err, ErrDBContainsNoPrivacyTransactions) {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
@@ -210,11 +217,12 @@ func (w *Wrapper) LoadGraphs() error {
 
 func (w *Wrapper) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                "graph wrapper",
-		Context:             w.context,
-		Logger:              graphLogger,
-		CurrentBlock:        w.state.ID,
-		ProcessedBlockCount: 1,
+		Name:                        "graph wrapper",
+		Context:                     w.context,
+		Logger:                      graphLogger,
+		CurrentBlock:                w.state.ID,
+		ProcessedBlockCount:         1,
+		SupportsMultiBlockIteration: false,
 	}
 }
 
@@ -229,8 +237,8 @@ func (w *Wrapper) CalculateInitialState() error {
 	return nil
 }
 
-// NextBlock tries to increase the internal state to the next block
-func (w *Wrapper) NextBlock() (bool, error) {
+// Next tries to increase the internal state to the next block
+func (w *Wrapper) Next() (bool, error) {
 	if w.db == nil {
 		return false, serror.FromStr("database handle is not set")
 	}

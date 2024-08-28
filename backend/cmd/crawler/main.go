@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"syscall"
@@ -71,7 +72,8 @@ func warn(err error, v ...any) {
 func setCommandFlags(c *Commands) {
 	flag.BoolVar(&c.ResetDB, "reset", false, "Remove all data from the database (default: false)")
 	flag.BoolVar(&c.IgnoreSafeGuard, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
-	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information")
+	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information (default: false)")
+	flag.StringVar(&c.CPUProfilePath, "cpuprofile", "", "Path where the cpu profile should be stored (default: <empty>)")
 }
 
 // selectConfig returns processor and analytics configurations based on the given blockchain mode.
@@ -104,7 +106,7 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 	// disable FMI clustering if it is disabled per configuration
 	if !analyserConfig.IsFMIClusteringEnabled {
-		config.Modules.FMI.Active = false
+		config.Modules.FMI = false
 	}
 }
 
@@ -214,6 +216,22 @@ func main() {
 		return
 	}
 
+	////// CPU PROFILING //////
+
+	if commands.CPUProfilePath != "" {
+		f, err := os.Create(commands.CPUProfilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err = pprof.StartCPUProfile(f); err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	////// SETUP //////
 
 	// setup Logging
@@ -275,7 +293,7 @@ func main() {
 
 	// exit if no module is active (excluding the metrics module)
 	if !newConfig.Modules.Classifier && !newConfig.Modules.Crawler.Active &&
-		!newConfig.Modules.HMI && !newConfig.Modules.FMI.Active &&
+		!newConfig.Modules.HMI && !newConfig.Modules.FMI &&
 		!newConfig.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
@@ -345,7 +363,7 @@ func main() {
 			crawler := processor.NewCrawler(appContext, graphDB, client,
 				newConfig.Modules.Crawler.InitialCacheSize, processorConfig)
 			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
-			if processorErr := blockiterator.StartIteration(crawler); processorErr != nil {
+			if processorErr := blockiterator.StartIteration(crawler, nil); processorErr != nil {
 				warn(processorErr)
 			}
 		}()
@@ -372,7 +390,7 @@ func main() {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					if iterErr := blockiterator.StartIteration(graphWrapper); iterErr != nil {
+					if iterErr := blockiterator.StartIteration(graphWrapper, nil); iterErr != nil {
 						warn(iterErr)
 					}
 				}()
@@ -385,7 +403,7 @@ func main() {
 					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 
-					if classifierErr := blockiterator.StartIteration(classifier); classifierErr != nil {
+					if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
 						warn(classifierErr)
 					}
 				}()
@@ -410,7 +428,7 @@ func main() {
 			}()
 			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
-			if classifierErr := blockiterator.StartIteration(classifier); classifierErr != nil {
+			if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
 				warn(classifierErr)
 			}
 		}()
@@ -427,23 +445,23 @@ func main() {
 
 			hmi := clustering.NewHierarchicalMultiInput(appContext, graphDB)
 			hmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(hmi); clusteringErr != nil {
+			if clusteringErr := blockiterator.StartIteration(hmi, nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
 	}
 
 	// activate FMI clustering
-	if newConfig.Modules.FMI.Active {
+	if newConfig.Modules.FMI {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			defer func() {
 				chFMIClusteringStopped <- true
 			}()
-			fmi := clustering.NewFlatMultiInput(appContext, graphDB, newConfig.Modules.FMI.MaxBlocks)
+			fmi := clustering.NewFlatMultiInput(appContext, graphDB)
 			fmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(fmi); clusteringErr != nil {
+			if clusteringErr := blockiterator.StartIteration(fmi, nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -479,7 +497,7 @@ func main() {
 	var crawlerStopped = !newConfig.Modules.Crawler.Active
 	var classifierStopped = !newConfig.Modules.Classifier
 	var clusteringHMIStopped = !newConfig.Modules.HMI
-	var clusteringFMIStopped = !newConfig.Modules.FMI.Active
+	var clusteringFMIStopped = !newConfig.Modules.FMI
 	var interrupted bool
 
 	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped)) {

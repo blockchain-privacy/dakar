@@ -31,7 +31,7 @@ func TestCrawler_IncrementState(t *testing.T) {
 	require.Error(t, crawler.IncrementState())
 
 	require.NoError(t, crawler.CalculateInitialState())
-	block, err := crawler.NextBlock()
+	block, err := crawler.Next()
 	require.NoError(t, err)
 	require.True(t, block)
 
@@ -48,7 +48,7 @@ func TestCrawler_Empty(t *testing.T) {
 	require.True(t, crawler.Empty())
 
 	require.NoError(t, crawler.CalculateInitialState())
-	isNewBlock, err := crawler.NextBlock()
+	isNewBlock, err := crawler.Next()
 	require.NoError(t, err)
 	require.True(t, isNewBlock)
 
@@ -85,11 +85,11 @@ func TestCrawler_NextBlock(t *testing.T) {
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
 	crawler.RegisterMetrics(prometheus.NewRegistry())
-	_, err := crawler.NextBlock()
+	_, err := crawler.Next()
 	require.Error(t, err)
 
 	require.NoError(t, crawler.CalculateInitialState())
-	isNewBlock, err := crawler.NextBlock()
+	isNewBlock, err := crawler.Next()
 	require.NoError(t, err)
 	require.True(t, isNewBlock)
 }
@@ -105,7 +105,7 @@ func TestCrawler_Iterate(t *testing.T) {
 	require.Error(t, err)
 
 	require.NoError(t, crawler.CalculateInitialState())
-	isNewBlock, err := crawler.NextBlock()
+	isNewBlock, err := crawler.Next()
 	require.NoError(t, err)
 	require.True(t, isNewBlock)
 

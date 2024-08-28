@@ -10,6 +10,7 @@ import (
 	"backend/processor"
 	"backend/server"
 	"backend/workspace"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/qrest/gomisc/config"
@@ -262,7 +263,7 @@ func main() {
 		newConfig.OriginGap.Active ||
 		newConfig.DestinationCount.Active {
 		g, err = graph.LoadTransactionGraph(dgraph, 0)
-		if err != nil {
+		if err != nil && !errors.Is(err, graph.ErrDBContainsNoPrivacyTransactions) {
 			warn(err)
 			return
 		}

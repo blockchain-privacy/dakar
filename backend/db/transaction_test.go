@@ -142,11 +142,11 @@ func TestGetTransactionByBlock(t *testing.T) {
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
-	transactions, err := GetTransactionByBlock(dbHandle, 1)
+	transactions, err := GetTransactionsByBlock(dbHandle, 1, 1)
 	require.Error(t, err)
 	require.Nil(t, transactions)
 
-	transactions, err = GetTransactionByBlock(dbHandle, 60001)
+	transactions, err = GetTransactionsByBlock(dbHandle, 60001, 60001)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 }
@@ -167,7 +167,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionByBlock(dbHandle, 60001)
+	transactions, err := GetTransactionsByBlock(dbHandle, 60001, 60001)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 
@@ -251,7 +251,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionByBlock(dbHandle, 60005)
+	transactions, err := GetTransactionsByBlock(dbHandle, 60005, 60005)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 
@@ -288,7 +288,7 @@ func TestUpdateTransactions(t *testing.T) {
 	require.Error(t, UpdateTransactions(dbHandle, nil))
 	require.Error(t, UpdateTransactions(dbHandle, []Transaction{}))
 
-	transactions, err := GetTransactionByBlock(dbHandle, 60001)
+	transactions, err := GetTransactionsByBlock(dbHandle, 60001, 60001)
 	require.NoError(t, err)
 
 	// no mixing transactions should be in this block
@@ -303,7 +303,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	require.NoError(t, UpdateTransactions(dbHandle, transactions))
 
-	transactions, err = GetTransactionByBlock(dbHandle, 60001)
+	transactions, err = GetTransactionsByBlock(dbHandle, 60001, 60001)
 	require.NoError(t, err)
 
 	// all transactions should now have the privacy type set to 'mixing'
@@ -382,7 +382,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionByBlock(dbHandle, 60005)
+	transactions, err := GetTransactionsByBlock(dbHandle, 60005, 60005)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 

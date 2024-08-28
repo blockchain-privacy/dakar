@@ -7,11 +7,10 @@ import (
 	"backend/db/analytics"
 	dbstat "backend/db/status"
 	"backend/external"
-	"github.com/qrest/gomisc/serror"
-	"slices"
-
 	"context"
+	"github.com/qrest/gomisc/serror"
 	"log"
+	"slices"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -46,7 +45,7 @@ import (
 //   │C Payment├─┤C Payment│          └─┤C Creation├─┤C Payment│
 //   └─────────┘ └─────────┘            └──────────┘ └─────────┘
 
-// NumDenominations is the number of Dash PrivateSend denominations existing
+// NumDenominations is the number of Dash PrivateSend denominations
 const NumDenominations = 5
 
 const (
@@ -97,10 +96,16 @@ func CountAmountDenominations(amounts []int64) (denominations [NumDenominations]
 
 // Classifier implements BlockIterator which classifies the transactions of each traversed block
 type Classifier struct {
-	config       Config
-	db           external.Database
-	ctx          context.Context
-	state        blockiterator.State
+	config Config
+	db     external.Database
+	ctx    context.Context
+	state  blockiterator.State
+
+	// how many blocks are processed in one interation at maximum
+	maxBlocks uint64
+	// number of blocks which have been processed by the last Iterate call
+	blocksProcessed uint64
+
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
 	blockHeight  prometheus.Gauge
@@ -109,9 +114,10 @@ type Classifier struct {
 // NewClassifier creates a new Classifier object
 func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *Classifier {
 	return &Classifier{
-		config: cfg,
-		db:     dgraph,
-		ctx:    ctx,
+		config:    cfg,
+		db:        dgraph,
+		ctx:       ctx,
+		maxBlocks: 1,
 	}
 }
 
@@ -135,17 +141,22 @@ func (c *Classifier) RegisterMetrics(req prometheus.Registerer) {
 
 func (c *Classifier) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                "classifier",
-		Context:             c.ctx,
-		Logger:              analyticsLogger,
-		CurrentBlock:        c.state.ID,
-		ProcessedBlockCount: 1,
+		Name:                        "classifier",
+		Context:                     c.ctx,
+		Logger:                      analyticsLogger,
+		CurrentBlock:                c.state.ID,
+		ProcessedBlockCount:         c.blocksProcessed,
+		SupportsMultiBlockIteration: true,
 	}
+}
+
+func (c *Classifier) SetMaxBlocks(max uint64) {
+	c.maxBlocks = max
 }
 
 // IncrementState increments the state one block
 func (c *Classifier) IncrementState() error {
-	c.state.ID++
+	c.state.ID += c.blocksProcessed
 	return nil
 }
 
@@ -179,7 +190,7 @@ func (c *Classifier) CalculateInitialState() error {
 	}
 
 	if classifierStatus.LastClassifiedBlockID == nil {
-		return serror.FromStr("error last classified block is not set")
+		return serror.FromStr("last classified block is not set")
 	}
 
 	var state blockiterator.State
@@ -224,7 +235,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 
 		// no mixing transaction should be recognized in this step
 		if len(mixing) > 0 {
-			err = serror.FromStr("error mixing transaction after secondary classification loop")
+			err = serror.FromStr("mixing transaction occured after secondary classification loop")
 			return
 		}
 
@@ -251,9 +262,9 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 	return
 }
 
-// NextBlock tries to increase the internal state to the next block.
+// Next tries to increase the internal state to the next block.
 // Returns true if the top block id was changed
-func (c *Classifier) NextBlock() (bool, error) {
+func (c *Classifier) Next() (bool, error) {
 	status, err := dbstat.GetCrawlerStatus(c.db)
 	if err != nil {
 		return false, err
@@ -273,12 +284,19 @@ func (c *Classifier) NextBlock() (bool, error) {
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
 func (c *Classifier) Iterate() (bool, error) {
+	if c.maxBlocks == 0 {
+		return false, serror.FromStr("max blocks must be higher than zero")
+	}
+
 	if c.Empty() {
 		return false, serror.FromStr("got empty state")
 	}
 
+	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
+	toBlockID := min(c.state.Top, c.state.ID+c.maxBlocks-1)
+
 	// get the transaction of the current block height
-	transactions, err := db.GetTransactionByBlock(c.db, c.state.ID)
+	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID, toBlockID)
 	if err != nil {
 		return false, err
 	}
@@ -289,11 +307,11 @@ func (c *Classifier) Iterate() (bool, error) {
 		return false, err
 	}
 
-	// the classifications of step 1 are in some cases only indications of the classifications.
+	// the classifications of step 1 are in some cases only indications of the true classifications.
 	// step 2: either insert the classified directly into the db or only if they are connected
 	// to a certain type of transactions
 
-	// step 2.1: set the privacy type of mixing transactions.
+	// step 2.1: store the privacy type of mixing transactions.
 	if len(mixingTransactions) > 0 {
 		if updateErr := db.UpdateTransactions(c.db, mixingTransactions); updateErr != nil {
 			return false, updateErr
@@ -306,7 +324,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
-		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID)
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID, toBlockID)
 	if classErr != nil {
 		return false, classErr
 	}
@@ -316,7 +334,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
 		// been found they are getting classified, before appending them to the set of transactions
 		// which is getting inserted into the db
-		originCC, originCP, err := getConnectedCollaterals(c.db, potentialCollateralTransactions, c.state.ID)
+		originCC, originCP, err := getConnectedCollaterals(c.db, potentialCollateralTransactions, toBlockID)
 		if err != nil {
 			return false, err
 		}
@@ -357,7 +375,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		}
 	}
 
-	// step 2.4: set collateral creation type
+	// step 2.4: set collateral payment type
 	if len(cpTransactions) > 0 {
 		var insertedSum uint64
 		var numInserted uint64 = 1
@@ -380,13 +398,14 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, c.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
-	c.blocks.Inc()
+	c.blocksProcessed = toBlockID - c.state.ID + 1
+	c.blocks.Add(float64(c.blocksProcessed))
 	c.transactions.Add(float64(len(mixingTransactions)))
-	c.blockHeight.Set(float64(c.state.ID))
+	c.blockHeight.Set(float64(toBlockID))
 
 	return true, nil
 }
@@ -418,13 +437,19 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 		return false, nil
 	}
 
+	outputSum := *t.Outputs[0].Amount + *t.Outputs[1].Amount
 	// must have at least enough to pay maxCollateral
-	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < maxCollateral {
+	if outputSum < maxCollateral {
 		return false, nil
 	}
 
 	// check if both outputs do not fulfill the minimum collateral amount
 	if *t.Outputs[0].Amount < minCollateral && *t.Outputs[1].Amount < minCollateral {
+		return false, nil
+	}
+
+	// one output must be smaller or equal to the old maximum collateral
+	if *t.Outputs[0].Amount > oldMaxCollateral*2 && *t.Outputs[1].Amount > oldMaxCollateral*2 {
 		return false, nil
 	}
 

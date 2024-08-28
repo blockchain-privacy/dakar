@@ -20,8 +20,7 @@ type FlatMultiInput struct {
 	state blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
-	maxBlocks uint
-
+	maxBlocks uint64
 	// number of blocks which have been processed by the last Iterate call
 	blocksProcessed uint64
 
@@ -33,11 +32,11 @@ type FlatMultiInput struct {
 }
 
 // NewFlatMultiInput creates a new flat multi-input clustering object
-func NewFlatMultiInput(ctx context.Context, dgraph external.Database, maxBlocks uint) *FlatMultiInput {
+func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
 	return &FlatMultiInput{
 		db:        dgraph,
 		ctx:       ctx,
-		maxBlocks: maxBlocks,
+		maxBlocks: 1,
 	}
 }
 
@@ -180,7 +179,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	}
 
 	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
-	toBlockID := min(m.state.Top, m.state.ID+uint64(m.maxBlocks)-1)
+	toBlockID := min(m.state.Top, m.state.ID+m.maxBlocks-1)
 	// get the transaction of the current block height
 	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, toBlockID, clustering.TypeFMI)
 	if err != nil {
@@ -230,7 +229,8 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		// insert new clusters
 		if len(operations) > 0 {
-			// ProcessClusterOperations uses a long running transaction, thus we have to handly retrying manually
+			// ProcessClusterOperations uses a long running transaction,
+			// therefore transaction retrying has to be handled manually
 			if err = db.WithRetry(func() error {
 				return clustering.ProcessClusterOperations(m.db, operations)
 			}, 5); err != nil {
@@ -260,16 +260,17 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 func (m *FlatMultiInput) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                "flat multi-input clustering",
-		Context:             m.ctx,
-		Logger:              clusteringLogger,
-		CurrentBlock:        m.state.ID,
-		ProcessedBlockCount: m.blocksProcessed,
+		Name:                        "flat multi-input clustering",
+		Context:                     m.ctx,
+		Logger:                      clusteringLogger,
+		CurrentBlock:                m.state.ID,
+		ProcessedBlockCount:         m.blocksProcessed,
+		SupportsMultiBlockIteration: true,
 	}
 }
 
-// NextBlock tries to increase the internal state to the next block
-func (m *FlatMultiInput) NextBlock() (bool, error) {
+// Next tries to increase the internal state to the next block
+func (m *FlatMultiInput) Next() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
 		return false, err
@@ -287,6 +288,10 @@ func (m *FlatMultiInput) NextBlock() (bool, error) {
 
 func (m *FlatMultiInput) PostExecution() error {
 	return dbstat.SetClusteringFMI(m.db, false)
+}
+
+func (m *FlatMultiInput) SetMaxBlocks(blockCount uint64) {
+	m.maxBlocks = blockCount
 }
 
 func (m *FlatMultiInput) IncrementState() error {

@@ -507,7 +507,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// db handle not set -> error
-	flag, err := w.NextBlock()
+	flag, err := w.Next()
 	require.Error(t, err)
 	require.False(t, flag)
 
@@ -518,7 +518,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 	require.NoError(t, w.LoadGraphs())
 
 	// false because w.state.top is higher than most recent classified block
-	flag, err = w.NextBlock()
+	flag, err = w.Next()
 	require.NoError(t, err)
 	require.False(t, flag)
 }
