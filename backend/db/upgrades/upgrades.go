@@ -15,7 +15,7 @@ import (
 )
 
 // availableUpgrades contains all available schema upgrades.
-// The key is the schema version to which the dabatase should
+// The key is the schema version to which the database should
 // be set after its updates haven been applied.
 var availableUpgrades = map[uint64]UpgradePackage{
 	4: {upgrades: []schemaUpgrade{AlterSchemaAddWorkspaces}},

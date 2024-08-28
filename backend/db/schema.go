@@ -13,7 +13,7 @@ import (
 // SchemaVersion is the identifier for the schema defined in SetupSchema.
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required.
-// Use status.SetSchemaVersion to increase the the schema version.
+// Use status.SetSchemaVersion to increase the schema version.
 const SchemaVersion uint64 = 9
 
 // SetupSchema installs a schema into dgraph
