@@ -49,15 +49,24 @@ export default class Histogram {
 		documentSvg.innerHTML = '';
 	}
 
+	// Draws the graph.
+	// Set the click handler before calling this function.
 	draw(graphData) {
-		this.drawStacked(graphData, [], null);
+		this.drawStacked(graphData, null);
 	}
 
-	drawStacked(graphData, categories, colorMap) {
+	// Draws the graph. If colorMap is set, draws a stacked graph.
+	// Set the click handler before calling this function.
+	drawStacked(graphData, colorMap) {
 		let lowestDate = null;
 		let highestDate = null;
 
-		const detailArray = graphData.map(d => {
+		const detailArray = [];
+		for (const d of graphData) {
+			if (d.dateTime === undefined && d.ts === undefined) {
+				continue;
+			}
+
 			if (d.dateTime === undefined) {
 				d.dateTime = new Date(d.ts);
 			}
@@ -70,10 +79,13 @@ export default class Histogram {
 				highestDate = d.dateTime;
 			}
 
-			return d;
-		});
+			detailArray.push(d);
+		}
 
-		const duration = highestDate - lowestDate;
+		let duration = 0;
+		if (highestDate !== null && lowestDate !== null) {
+			duration = highestDate - lowestDate;
+		}
 
 		// Check if there is enough data to draw the diagram; 1000 * 60 * 60 * 3 = 10800000
 		if (duration < 180000) {
@@ -119,7 +131,7 @@ export default class Histogram {
 		y.domain([0, max(bins, d => d.length)]);
 
 		let bars;
-		if (categories.length === 0) {
+		if (colorMap === null) {
 			// Append bar rectangles to the svg element
 			bars = svgGroup.selectAll('rect')
 				.data(bins)
@@ -178,23 +190,26 @@ export default class Histogram {
 
 			// Const self = this;
 			// set overlay which animates the bars and has event handler attached
-			bars.append('rect')
-				.attr('class', 'overlay')
-				.attr('x', 1)
-				.attr('opacity', 0)
-				.attr('width', d => x(d.x1) - x(d.x0) - 1)
-				.attr('height', d => height - y(d.length))
-				.on('click', (e, d) => {
-					this.clickCallBack(d);
-				})
-			// eslint-disable-next-line func-names
-				.on('mouseout', function mouseOut() {
-					d3Select(this).attr('opacity', 0);
-				})
-			// eslint-disable-next-line func-names
-				.on('mouseover', function mouseOver() {
-					d3Select(this).attr('opacity', 1);
-				});
+
+			if (this.clickCallBack !== null) {
+				bars.append('rect')
+					.attr('class', 'overlay')
+					.attr('x', 1)
+					.attr('opacity', 0)
+					.attr('width', d => x(d.x1) - x(d.x0) - 1)
+					.attr('height', d => height - y(d.length))
+					.on('click', (e, d) => {
+						this.clickCallBack(d);
+					})
+				// eslint-disable-next-line func-names
+					.on('mouseout', function mouseOut() {
+						d3Select(this).attr('opacity', 0);
+					})
+				// eslint-disable-next-line func-names
+					.on('mouseover', function mouseOver() {
+						d3Select(this).attr('opacity', 0.7);
+					});
+			}
 		}
 
 		if (this.enableTransition) {
@@ -209,7 +224,7 @@ export default class Histogram {
 		// Add the x Axis
 		svgGroup.append('g')
 			.attr('transform', `translate(0,${height})`)
-			.call(axisBottom(x));
+			.call(axisBottom(x).ticks(6));
 
 		// Add x title description
 		svgGroup.append('text')
@@ -225,7 +240,7 @@ export default class Histogram {
 			.text(`${lowestDate.toLocaleString()} - ${highestDate.toLocaleString()}`);
 
 		// Only allow integer on scale
-		const yAxisTicks = y.ticks().filter(tick => Number.isInteger(tick));
+		const yAxisTicks = y.ticks(5).filter(tick => Number.isInteger(tick));
 
 		// Add the y Axis
 		svgGroup.append('g')
@@ -239,7 +254,7 @@ export default class Histogram {
 			.attr('font-size', '1em')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', 0 - margin.left)
-			.attr('x', 0 - (height / 2) - 20)
+			.attr('x', 0 - (height / 2))
 			.attr('dy', '1em')
 			.style('text-anchor', 'middle')
 			.text('Occurrences');

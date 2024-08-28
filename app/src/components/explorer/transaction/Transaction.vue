@@ -67,6 +67,27 @@
               </icon-item>
             </v-col>
           </v-row>
+          <v-row>
+            <v-col
+              cols="12"
+              sm="6"
+            >
+              <icon-item
+                title="Input Sum"
+                :icon="mdiSigma"
+              >
+                {{ convertAmount(inputSum) }}
+              </icon-item>
+            </v-col>
+            <v-col>
+              <icon-item
+                title="Output Sum"
+                :icon="mdiSigma"
+              >
+                {{ convertAmount(outputSum) }}
+              </icon-item>
+            </v-col>
+          </v-row>
           <v-row v-if="isCoinBaseTx(tx)">
             <v-col>
               <icon-item
@@ -77,6 +98,36 @@
               </icon-item>
             </v-col>
           </v-row>
+          <div class="d-flex flex-wrap">
+            <div
+              v-show="enoughDataForInputGraph"
+              style="flex: 1 1 500px"
+            >
+              <p class="text-subtitle-1 text-center">
+                Input Distribution
+              </p>
+              <svg :id="`transaction_inputs_canvas_${tx.txhash}`" />
+            </div>
+            <!-- empty element in case input graph is hidden but output graph is not -->
+            <div
+              v-if="!enoughDataForInputGraph"
+              style="flex: 1 1 500px"
+            />
+            <div
+              v-show="enoughDataForOutputGraph"
+              style="flex: 1 1 500px"
+            >
+              <p class="text-subtitle-1 text-center">
+                Output Distribution
+              </p>
+              <svg :id="`transaction_outputs_canvas_${tx.txhash}`" />
+            </div>
+            <!-- empty element in case output graph is hidden but input graph is not -->
+            <div
+              v-if="!enoughDataForOutputGraph"
+              style="flex: 1 1 500px"
+            />
+          </div>
           <!-- bottom spacer for transition -->
           <div style="height: 10px" />
         </div>
@@ -84,7 +135,7 @@
       <v-btn
         variant="text"
         block
-        size="x-small"
+        size="small"
         style="margin-top:-16px;"
         @click="showTransactionDetails = !showTransactionDetails"
       >
@@ -92,8 +143,8 @@
       </v-btn>
       <v-row class="outputContainer">
         <v-col v-if="tx.inputs && getInputs.length > 0">
-          <p class="ms-2">
-            {{ getLabel(tx.inputs.length, 'Input') }}
+          <p class="text-center">
+            {{ `${tx.inputs.length} ${plural('Input',tx.inputs.length)}` }}
           </p>
           <template
             v-for="(i,y) in getInputs"
@@ -152,8 +203,8 @@
           class="emptyCol"
         />
         <v-col v-if="tx.outputs && getOutputs.length > 0">
-          <p class="ms-2">
-            {{ getLabel(tx.outputs.length, 'Output') }}
+          <p class="text-center">
+            {{ `${tx.outputs.length} ${plural('Output',tx.outputs.length)}` }}
           </p>
           <template
             v-for="(i,y) in getOutputs"
@@ -234,19 +285,22 @@ import {
 	mdiChevronUp,
 	mdiFormatHeaderPound,
 	mdiFormatListNumbered,
-	mdiPickaxe,
+	mdiPickaxe, mdiSigma,
 	mdiTransfer,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
-import {convertAmount, isDestination, shortenHash} from '@/utilities';
+import {
+	convertAmount, getColorMap, getPrivacyTypeLabel, isDestination, plural, shortenHash,
+} from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef, isRef,
+	computed, isProxy, ref, toRaw, toRef, isRef, onUpdated, onMounted, watch, nextTick,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
+import Histogram from '@/d3Documents/histogram.js';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -264,8 +318,15 @@ const showTransactionDetails = toRef(props.showDetails);
 const showAllOutputs = ref(false);
 const maxOutputs = ref(3);
 
-// Computed
+let svgInputGraph = null;
+let svgOutputGraph = null;
+const colorMap = getColorMap();
+// Set color for non-privacy transaction
+colorMap.set('', '#607D8B');
+const enoughDataForInputGraph = ref(true);
+const enoughDataForOutputGraph = ref(true);
 
+// Computed
 const filteredInputs = computed(() => props.tx.inputs
 	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
 const filteredOutputs = computed(() => props.tx.outputs
@@ -285,14 +346,58 @@ const areItemsLimited = computed(() => {
 
 	return Boolean(props.tx.outputs && props.tx.outputs.length > maxOutputs.value);
 });
+const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
+const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
+
+// Hooks
+onUpdated(() => {
+	init();
+});
+
+onMounted(() => {
+	init();
+});
+
+watch(showTransactionDetails, newVal => {
+	if (newVal) {
+		// Wait until DOM is updated
+		nextTick(() => init());
+	}
+});
 
 // Functions
-function getLabel(count, label) {
-	if (count > 1) {
-		return `${count} ${label}s`;
+function init() {
+	updateInputGraph();
+	updateOutputGraph();
+}
+
+function setPrivacyLabel(items) {
+	return items.map(d => {
+		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacytype);
+		return d;
+	});
+}
+
+function updateInputGraph() {
+	if (!props.tx.inputs) {
+		enoughDataForInputGraph.value = false;
+		return;
 	}
 
-	return `${count} ${label}`;
+	svgInputGraph = new Histogram(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgInputGraph.drawStacked(setPrivacyLabel(props.tx.inputs), colorMap);
+	enoughDataForInputGraph.value = !svgInputGraph.empty;
+}
+
+function updateOutputGraph() {
+	if (!props.tx.outputs) {
+		enoughDataForOutputGraph.value = false;
+		return;
+	}
+
+	svgOutputGraph = new Histogram(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgOutputGraph.drawStacked(setPrivacyLabel(props.tx.outputs), colorMap);
+	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }
 
 function sortByTimestamp(outputs) {
@@ -366,6 +471,16 @@ function getResidualItems(items) {
   .emptyCol {
     display: none;
   }
+}
+
+/* css for d3 graph  */
+:deep(.bar) {
+  fill: rgb(var(--v-theme-primary));
+}
+
+:deep(.hide) {
+  display: none;
+  height: 0;
 }
 
 </style>

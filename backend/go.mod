@@ -6,7 +6,7 @@ require (
 	github.com/btcsuite/btcd v0.24.2
 	github.com/dgraph-io/dgo/v230 v230.0.1
 	github.com/prometheus/client_golang v1.20.0
-	github.com/qrest/gomisc v0.0.10
+	github.com/qrest/gomisc v0.0.11
 	github.com/stretchr/testify v1.9.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/grpc v1.65.0
