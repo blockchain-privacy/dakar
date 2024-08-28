@@ -1258,6 +1258,23 @@ export default class NodeGraph {
 			.attr('x2', d => reduceX(d, this.#nodeRadius))
 			.attr('y2', d => reduceY(d, this.#nodeRadius));
 
+		const arrowText = this.#lineGroup
+			.selectAll('.arrowText')
+			.data(links, d => `${d.source}${d.target}`)
+			.join('text')
+			.classed('arrowText', true)
+			.text(d => {
+				if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+					return d.source.selectorResultCount;
+				}
+
+				return null;
+			})
+			.attr('font-size', 10)
+			.attr('fill', 'currentColor')
+			.attr('text-anchor', 'middle')
+			.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+
 		const self = this;
 		shadowLinks
 			.on('click', function (e, d) {
@@ -1312,6 +1329,7 @@ export default class NodeGraph {
 				.attr('y2', d => reduceY(d, this.#nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
+			arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
 		});
 
 		this.#lasso.items(node.selectAll('.node,.note'));
