@@ -36,10 +36,11 @@ var (
 	// ErrTransactionNotFound is returned if a requested transaction has not been found
 	ErrTransactionNotFound = errors.New("no transaction found")
 	// ErrAddressNotFound is returned if no address has been found
-	ErrAddressNotFound      = errors.New("no address found")
-	ErrEmptyRequestArgument = errors.New("received empty argument")
-	errInvalidTimeout       = errors.New("invalid timeout")
-	errInvalidResult        = errors.New("invalid result")
+	ErrAddressNotFound        = errors.New("no address found")
+	ErrEmptyRequestArgument   = errors.New("received empty argument")
+	ErrInvalidRequestArgument = errors.New("received invalid argument")
+	errInvalidTimeout         = errors.New("invalid timeout")
+	errInvalidResult          = errors.New("invalid result")
 	// ErrNoMutationHappened is returned if no mutation occurred
 	ErrNoMutationHappened = errors.New("no mutation happened")
 )

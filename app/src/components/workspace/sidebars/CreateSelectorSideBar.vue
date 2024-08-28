@@ -74,8 +74,14 @@
             </div>
             <named-divider title="Select" />
             <template v-if="!hasParent">
-              <div class="d-flex justify-center my-2 text-subtitle-1">
+              <div class="d-flex justify-center mt-2 text-subtitle-1">
                 Time Range
+              </div>
+              <div class="d-flex justify-center mb-2 text-caption">
+                <v-icon
+                  class="me-1"
+                  :icon="mdiInformationOutline"
+                /> Maximum Range: 60 days
               </div>
               <div class="d-flex align-center mb-5">
                 <date-input
@@ -248,7 +254,7 @@
 
 <script setup>
 import {useRoute} from 'vue-router';
-import {mdiFilterPlus} from '@mdi/js';
+import {mdiFilterPlus, mdiInformationOutline} from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
 import {
@@ -422,6 +428,18 @@ function buildHeuristicOptions() {
 	return options;
 }
 
+// Returns true if the two dates are more than 60 days apart
+function isDateRangeToBig(startDate, endDate) {
+	// 24 * 60 * 60 * 1000 = 86400000
+	const milliSecondsPerDay = 86400000;
+	return Math.round(Math.abs((endDate - startDate) / milliSecondsPerDay)) > 60;
+}
+
+// Checks if besides 'startDate' and 'endDate' another option is set
+function isOptionsEmpty(options) {
+	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate');
+}
+
 function buildSelectorOptions() {
 	const options = structuredClone(toRaw(selectorOptions.value));
 
@@ -432,6 +450,13 @@ function buildSelectorOptions() {
 		if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
 			startDateError.value = true;
 			endDateError.value = true;
+			return;
+		}
+
+		if (isDateRangeToBig(options.startDate, options.endDate)) {
+			startDateError.value = true;
+			endDateError.value = true;
+			setErrorMessage('time range is larger than 60 days');
 			return;
 		}
 
@@ -502,8 +527,12 @@ async function addNewSelectorAction(event) {
 			return;
 	}
 
+	if (!options) {
+		return;
+	}
+
 	// Check for empty object
-	if (Object.keys(options).length === 0) {
+	if (isOptionsEmpty(options)) {
 		setErrorMessage('at least one filter must be set');
 		return;
 	}
