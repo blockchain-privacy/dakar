@@ -6,6 +6,7 @@ import {
 	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import {
+	mdiArrowCollapseDown, mdiArrowLeft, mdiArrowRight,
 	mdiClockAlertOutline, mdiIncognito, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import {
@@ -32,6 +33,7 @@ export function setNodesDisplayAttributes(nodes, heuristicTypeMap) {
 // - icons: a string array with the svg paths of the icons
 // - parameter: a heuristic parameter if any
 // or null if not applicable
+// eslint-disable-next-line complexity
 function getNodeIconObject(d) {
 	if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
 		return null;
@@ -78,6 +80,22 @@ function getNodeIconObject(d) {
 		if (d.txPropOptions.outputSum) {
 			icons.push(sigmaRight);
 		}
+	} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH && d.txGraphOptions) {
+		if (d.txGraphOptions.excludePrivacyTransactions) {
+			icons.push(mdiIncognito);
+		}
+
+		if (d.txGraphOptions.isForward) {
+			icons.push(mdiArrowRight);
+		} else {
+			icons.push(mdiArrowLeft);
+		}
+
+		if (d.txGraphOptions.depth) {
+			icons.push(mdiArrowCollapseDown);
+		}
+
+		parameter = d.txGraphOptions.depth;
 	}
 
 	return {icons, parameter};
@@ -119,11 +137,8 @@ function getNodeTitle(d, heuristicTypeMap) {
 
 			return `${startDateStr} - ${endDateStr}`;
 		} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH) {
-			if (!d.txGraphOptions) {
-				return '';
-			}
-
-			return `${d.txGraphOptions.depth}`;
+			// Only show icons
+			return '';
 		}
 	}
 

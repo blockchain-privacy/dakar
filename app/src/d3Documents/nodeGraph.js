@@ -701,7 +701,7 @@ export default class NodeGraph {
 		let iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
 
 		if (!isTitleSet) {
-			iconY = this.#nodeRadius + textAreaMargin;
+			iconY = this.#nodeRadius + 3 + textAreaMargin;
 		}
 
 		// Remove all children

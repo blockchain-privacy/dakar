@@ -222,7 +222,7 @@
 import IconItem from '@/components/common/IconItem.vue';
 import {
 	mdiArrowCollapseDown,
-	mdiArrowDown, mdiArrowLeft, mdiArrowRight,
+	mdiArrowLeft, mdiArrowRight,
 	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognito, mdiPoundBoxOutline,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
