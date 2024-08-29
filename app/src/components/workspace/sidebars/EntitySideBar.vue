@@ -34,7 +34,7 @@
           color="primary"
           variant="tonal"
           class="me-2"
-          :prepend-icon="mdiPlus"
+          :prepend-icon="mdiFilterPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddTxPropClick"
         >
@@ -46,7 +46,7 @@
           color="primary"
           variant="tonal"
           class="me-2"
-          :prepend-icon="mdiPlus"
+          :prepend-icon="graphPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddTxGraphClick"
         >
@@ -58,7 +58,7 @@
           color="primary"
           variant="tonal"
           class="me-2"
-          :prepend-icon="mdiPlus"
+          :prepend-icon="blenderPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddHeuristicClick"
         >
@@ -154,8 +154,8 @@ import {
 	mdiBlender,
 	mdiCardBulletedOutline,
 	mdiDelete,
-	mdiFileDownloadOutline, mdiFilter, mdiGraph,
-	mdiNotePlus, mdiPlus,
+	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus, mdiGraph,
+	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -183,6 +183,7 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
+import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const props = defineProps({
 	identifier: {type: String, required: true},

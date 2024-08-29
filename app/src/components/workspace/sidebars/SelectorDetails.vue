@@ -109,6 +109,29 @@
           </div>
         </v-col>
       </v-row>
+      <v-row>
+        <v-col
+          v-if="selectorData.depth"
+          cols="12"
+          xs="12"
+          sm="6"
+        >
+          <icon-item
+            title="Traversal Depth"
+            :icon="mdiArrowCollapseDown"
+          >
+            {{ selectorData.depth }}
+          </icon-item>
+        </v-col>
+        <v-col>
+          <icon-item
+            title="Traversal Direction"
+            :icon="selectorData.isForward?mdiArrowRight:mdiArrowLeft"
+          >
+            {{ selectorData.isForward?'forward':'backward' }}
+          </icon-item>
+        </v-col>
+      </v-row>
       <v-row v-if="selectorData.transactions?.length > 0">
         <v-col
           cols="12"
@@ -116,7 +139,7 @@
           sm="6"
         >
           <icon-item
-            title="Total transaction count"
+            title="Total Transaction Count"
             :icon="mdiPoundBoxOutline"
           >
             {{ selectorData.selectorTotalResultCount.toLocaleString() }}
@@ -124,7 +147,7 @@
         </v-col>
         <v-col>
           <icon-item
-            title="Stored transaction count"
+            title="Stored Transaction Count"
             :icon="mdiPoundBoxOutline"
           >
             {{ transactionCount.toLocaleString() }}
@@ -198,6 +221,8 @@
 <script setup>
 import IconItem from '@/components/common/IconItem.vue';
 import {
+	mdiArrowCollapseDown,
+	mdiArrowDown, mdiArrowLeft, mdiArrowRight,
 	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognito, mdiPoundBoxOutline,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
