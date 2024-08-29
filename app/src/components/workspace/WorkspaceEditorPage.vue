@@ -221,6 +221,7 @@ import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
+import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -283,7 +284,7 @@ const contextMenuModel = ref({
 	items: [
 		{
 			title: 'Add CoinJoin Heuristic',
-			icon: mdiBlender,
+			icon: blenderPlus,
 			show: () => isHeuristicNode(nodeGraph.getContextNode())
 			|| isDestiationNode(nodeGraph.getContextNode())
 			|| isOriginNode(nodeGraph.getContextNode()),
@@ -301,7 +302,7 @@ const contextMenuModel = ref({
 		},
 		{
 			title: 'Add Graph Selector',
-			icon: mdiGraph,
+			icon: graphPlus,
 			show: () => isTransactionNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,

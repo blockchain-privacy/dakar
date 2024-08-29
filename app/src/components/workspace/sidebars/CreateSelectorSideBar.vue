@@ -303,7 +303,7 @@
 <script setup>
 import {useRoute} from 'vue-router';
 import {
-	mdiBlender, mdiFilter, mdiGraph, mdiInformationOutline, mdiShapeCirclePlus,
+	mdiBlender, mdiFilter, mdiFilterPlus, mdiGraph, mdiInformationOutline, mdiShapeCirclePlus,
 } from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
@@ -321,6 +321,7 @@ import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
+import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
@@ -425,9 +426,9 @@ const title = computed(() => {
 
 const icon = computed(() => {
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC: return mdiBlender;
-		case SELECTOR_TYPE_TX_PROP: return mdiFilter;
-		case SELECTOR_TYPE_TX_GRAPH: return mdiGraph;
+		case SELECTOR_TYPE_HEURISTIC: return blenderPlus;
+		case SELECTOR_TYPE_TX_PROP: return mdiFilterPlus;
+		case SELECTOR_TYPE_TX_GRAPH: return graphPlus;
 		default: return mdiShapeCirclePlus;
 	}
 });
