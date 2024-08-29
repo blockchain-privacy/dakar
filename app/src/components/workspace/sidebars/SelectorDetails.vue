@@ -89,7 +89,7 @@
         >
           <icon-item
             title="Exclude Priv. Transactions"
-            :icon="mdiIncognito"
+            :icon="mdiIncognitoOff"
           >
             {{ selectorData.excludePrivacyTransactions }}
           </icon-item>
@@ -223,7 +223,7 @@ import IconItem from '@/components/common/IconItem.vue';
 import {
 	mdiArrowCollapseDown,
 	mdiArrowLeft, mdiArrowRight,
-	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognito, mdiPoundBoxOutline,
+	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognitoOff, mdiPoundBoxOutline,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';

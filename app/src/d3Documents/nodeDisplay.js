@@ -7,7 +7,7 @@ import {
 } from '@/constants/index.js';
 import {
 	mdiArrowCollapseDown, mdiArrowLeft, mdiArrowRight,
-	mdiClockAlertOutline, mdiIncognito, mdiMerge, mdiPlaylistRemove, mdiTune,
+	mdiClockAlertOutline, mdiIncognitoOff, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import {
 	cashLeft, cashRight, sigmaLeft, sigmaRight,
@@ -62,7 +62,7 @@ function getNodeIconObject(d) {
 		parameter = d.heuristicOptions.parameter;
 	} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.txPropOptions) {
 		if (d.txPropOptions.excludePrivacyTransactions) {
-			icons.push(mdiIncognito);
+			icons.push(mdiIncognitoOff);
 		}
 
 		if (d.txPropOptions.inputRange) {
@@ -82,7 +82,7 @@ function getNodeIconObject(d) {
 		}
 	} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH && d.txGraphOptions) {
 		if (d.txGraphOptions.excludePrivacyTransactions) {
-			icons.push(mdiIncognito);
+			icons.push(mdiIncognitoOff);
 		}
 
 		if (d.txGraphOptions.isForward) {
