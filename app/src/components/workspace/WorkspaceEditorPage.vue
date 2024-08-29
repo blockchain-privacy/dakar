@@ -1074,14 +1074,6 @@ async function refreshData() {
 			throw Error('heuristic descriptor list is empty');
 		}
 
-		if (response.workspace) {
-			data = response.workspace;
-			workspaceName.value = data.name;
-			data.nodes &&= setNodesDisplayAttributes(data.nodes);
-		} else {
-			data = null;
-		}
-
 		heuristicDescriptors.value = response.descriptors.map(e => {
 			// Add valid property
 			if (e.parameter) {
@@ -1103,6 +1095,14 @@ async function refreshData() {
 
 		heuristicTypeMap.clear();
 		heuristicDescriptors.value.forEach(e => heuristicTypeMap.set(e.type, e.title));
+
+		if (response.workspace) {
+			data = response.workspace;
+			workspaceName.value = data.name;
+			data.nodes &&= setNodesDisplayAttributes(data.nodes);
+		} else {
+			data = null;
+		}
 
 		msgStore.resetMessages();
 	} catch (e) {
