@@ -183,10 +183,10 @@
 
 <script setup>
 import {
-	mdiCheckCircle, mdiClockAlertOutline,
-	mdiDelete, mdiIncognito, mdiMerge,
+	mdiCheckCircle,
+	mdiDelete,
 	mdiNoteEdit,
-	mdiNotePlus, mdiPlaylistRemove, mdiPlus, mdiTune,
+	mdiNotePlus, mdiPlus,
 } from '@mdi/js';
 import CreateSelectorSideBar from './sidebars/CreateSelectorSideBar.vue';
 import {
@@ -198,10 +198,10 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN, SELECTOR_STATUS_SUCCESS,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN,
 } from '@/constants';
 import {
-	getColorMap, handleError, getPrivacyTypeLabel,
+	getColorMap, handleError,
 } from '@/utilities';
 import {
 	computed,
@@ -211,7 +211,7 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
-import {abbreviateNumber, sleep} from '@/d3Documents/util';
+import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/sidebars/EntitySideBar.vue';
 import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
 import ConnectionSideBar from '@/components/workspace/sidebars/ConnectionSideBar.vue';
@@ -219,9 +219,7 @@ import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
-import {
-	cashLeft, cashRight, sigmaLeft, sigmaRight,
-} from '@/customIcons/index.js';
+import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -595,7 +593,7 @@ async function addMultipleNodes(nodes) {
 			},
 		});
 		if (response.nodes) {
-			response.nodes = setNodesDisplayAttributes(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -606,123 +604,6 @@ async function addMultipleNodes(nodes) {
 	}
 
 	releaseAutosaveLock();
-}
-
-// Sets
-// - result count (number in center of node)
-// - node title
-// - node icons
-// - transaction privacy type label
-function setNodesDisplayAttributes(nodes) {
-	return nodes.map(d => {
-		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
-		d.nodeDisplayTitle = getNodeTitle(d);
-		d.nodeDisplayResultCount = getResultCount(d);
-		d.nodeDisplayIconObject = getNodeIconObject(d);
-		return d;
-	});
-}
-
-// Returns an object containing
-// - icons: a string array with the svg paths of the icons
-// - parameter: a heuristic parameter if any
-// or null if not applicable
-function getNodeIconObject(d) {
-	if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
-		return null;
-	}
-
-	const icons = [];
-	let parameter;
-
-	if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-		if (d.heuristicOptions.excludeAddresses) {
-			icons.push(mdiPlaylistRemove);
-		}
-
-		if (d.heuristicOptions.clusterTypes?.length > 0) {
-			icons.push(mdiMerge);
-		}
-
-		if (d.heuristicOptions.excludeSpendingGaps) {
-			icons.push(mdiClockAlertOutline);
-		}
-
-		if (d.heuristicOptions.parameter) {
-			icons.push(mdiTune);
-		}
-
-		parameter = d.heuristicOptions.parameter;
-	} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.txPropOptions) {
-		if (d.txPropOptions.excludePrivacyTransactions) {
-			icons.push(mdiIncognito);
-		}
-
-		if (d.txPropOptions.inputRange) {
-			icons.push(cashLeft);
-		}
-
-		if (d.txPropOptions.outputRange) {
-			icons.push(cashRight);
-		}
-
-		if (d.txPropOptions.inputSum) {
-			icons.push(sigmaLeft);
-		}
-
-		if (d.txPropOptions.outputSum) {
-			icons.push(sigmaRight);
-		}
-	}
-
-	return {icons, parameter};
-}
-
-// Returns the result count which is displayed centered on the node
-function getResultCount(d) {
-	if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
-		return '';
-	}
-
-	return abbreviateNumber(d.selectorTotalResultCount);
-}
-
-// Returns the display title of the node
-function getNodeTitle(d) {
-	if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
-		return d.addressHash;
-	}
-
-	if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
-		return d.transactionHash;
-	}
-
-	if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-		if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-			const title = heuristicTypeMap.get(d.heuristicOptions.type);
-			if (title !== undefined) {
-				return title;
-			}
-		} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
-			if (!d.txPropOptions.startDate || !d.txPropOptions.endDate) {
-				return '';
-			}
-
-			const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
-			const startDateStr = new Date(d.txPropOptions.startDate).toLocaleDateString(undefined, dateOptions);
-			const endDateStr = new Date(d.txPropOptions.endDate).toLocaleDateString(undefined, dateOptions);
-
-			return `${startDateStr} - ${endDateStr}`;
-		} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH) {
-			if (!d.txGraphOptions) {
-				return '';
-			}
-
-			return `${d.txGraphOptions.depth}`;
-		}
-	}
-
-	return d.uid;
 }
 
 async function handleGraphQuery(query) {
@@ -782,7 +663,7 @@ async function addNewNote(noteText, noteUID, childUID) {
 			},
 		});
 		if (response.nodes) {
-			response.nodes = setNodesDisplayAttributes(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -870,7 +751,7 @@ async function addNewSelector(type, options) {
 			},
 		});
 
-		response.nodes = setNodesDisplayAttributes(response.nodes);
+		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 		nodeGraph.removeAllNodes(false);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
@@ -904,7 +785,7 @@ async function checkWork(selectorUID) {
 			selector: {workspaceUID: workspaceUID.value, selectorUID},
 		});
 		if (response.nodes) {
-			response.nodes = setNodesDisplayAttributes(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
@@ -1099,7 +980,7 @@ async function refreshData() {
 		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
-			data.nodes &&= setNodesDisplayAttributes(data.nodes);
+			data.nodes &&= setNodesDisplayAttributes(data.nodes, heuristicTypeMap);
 		} else {
 			data = null;
 		}
