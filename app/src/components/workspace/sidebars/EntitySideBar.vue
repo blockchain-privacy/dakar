@@ -212,19 +212,23 @@ const selectableEntities = new Map();
 
 // Computed
 const title = computed(() => {
+	const unkownType = 'Unkown Entity Type';
 	switch (props.type) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			return `Transaction ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			if (props.auxiliaryData?.selectorType === SELECTOR_TYPE_HEURISTIC) {
-				return 'CoinJoin Heuristic';
+			switch (props.auxiliaryData?.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC: return 'CoinJoin Heuristic';
+				case SELECTOR_TYPE_TX_GRAPH: return 'Transaction Graph Selector';
+				case SELECTOR_TYPE_TX_PROP: return 'Transaction Property Selector';
+				default:
+					return unkownType;
 			}
 
-			return 'Transaction Property Selector';
 		default:
-			return 'Unknown entity type';
+			return unkownType;
 	}
 });
 
