@@ -183,10 +183,10 @@
 
 <script setup>
 import {
-	mdiCheckCircle,
-	mdiDelete,
+	mdiCheckCircle, mdiClockAlertOutline,
+	mdiDelete, mdiIncognito, mdiMerge,
 	mdiNoteEdit,
-	mdiNotePlus, mdiPlus,
+	mdiNotePlus, mdiPlaylistRemove, mdiPlus, mdiTune,
 } from '@mdi/js';
 import CreateSelectorSideBar from './sidebars/CreateSelectorSideBar.vue';
 import {
@@ -198,7 +198,7 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN, SELECTOR_STATUS_SUCCESS,
 } from '@/constants';
 import {
 	getColorMap, handleError, getPrivacyTypeLabel,
@@ -211,7 +211,7 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
-import {sleep} from '@/d3Documents/util';
+import {abbreviateNumber, sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/sidebars/EntitySideBar.vue';
 import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
 import ConnectionSideBar from '@/components/workspace/sidebars/ConnectionSideBar.vue';
@@ -219,6 +219,9 @@ import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
+import {
+	cashLeft, cashRight, sigmaLeft, sigmaRight,
+} from '@/customIcons/index.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -229,7 +232,7 @@ const context = {addMessage: msgStore.addMessage, $route: route};
 const colorMap = getColorMap();
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#fff23e');
 // Non-privacy transaction
-colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#d9d9d9');
+colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
 colorMap.set(SELECTOR_TYPE_HEURISTIC, '#344e41');
 colorMap.set(SELECTOR_TYPE_TX_PROP, '#588157');
 colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#a3b18a');
@@ -237,7 +240,7 @@ colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#a3b18a');
 const nodeTypeLabels = [
 	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#588157'},
 	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#fff23e'},
-	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#d9d9d9'},
+	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
 ];
 
 const nodeGraph = new NodeGraph(colorMap);
@@ -262,6 +265,8 @@ const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
+// Holds a mapping between heuristic type and title
+const heuristicTypeMap = new Map();
 const connectionData = ref({});
 const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
@@ -590,7 +595,7 @@ async function addMultipleNodes(nodes) {
 			},
 		});
 		if (response.nodes) {
-			response.nodes = setPrivacyLabels(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -603,11 +608,121 @@ async function addMultipleNodes(nodes) {
 	releaseAutosaveLock();
 }
 
-function setPrivacyLabels(nodes) {
+// Sets
+// - result count (number in center of node)
+// - node title
+// - node icons
+// - transaction privacy type label
+function setNodesDisplayAttributes(nodes) {
 	return nodes.map(d => {
 		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
+		d.nodeDisplayTitle = getNodeTitle(d);
+		d.nodeDisplayResultCount = getResultCount(d);
+		d.nodeDisplayIconObject = getNodeIconObject(d);
 		return d;
 	});
+}
+
+// Returns an object containing
+// - icons: a string array with the svg paths of the icons
+// - parameter: a heuristic parameter if any
+// or null if not applicable
+function getNodeIconObject(d) {
+	if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+		return null;
+	}
+
+	const icons = [];
+	let parameter;
+
+	if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
+		if (d.heuristicOptions.excludeAddresses) {
+			icons.push(mdiPlaylistRemove);
+		}
+
+		if (d.heuristicOptions.clusterTypes?.length > 0) {
+			icons.push(mdiMerge);
+		}
+
+		if (d.heuristicOptions.excludeSpendingGaps) {
+			icons.push(mdiClockAlertOutline);
+		}
+
+		if (d.heuristicOptions.parameter) {
+			icons.push(mdiTune);
+		}
+
+		parameter = d.heuristicOptions.parameter;
+	} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.txPropOptions) {
+		if (d.txPropOptions.excludePrivacyTransactions) {
+			icons.push(mdiIncognito);
+		}
+
+		if (d.txPropOptions.inputRange) {
+			icons.push(cashLeft);
+		}
+
+		if (d.txPropOptions.outputRange) {
+			icons.push(cashRight);
+		}
+
+		if (d.txPropOptions.inputSum) {
+			icons.push(sigmaLeft);
+		}
+
+		if (d.txPropOptions.outputSum) {
+			icons.push(sigmaRight);
+		}
+	}
+
+	return {icons, parameter};
+}
+
+// Returns the result count which is displayed centered on the node
+function getResultCount(d) {
+	if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
+		return '';
+	}
+
+	return abbreviateNumber(d.selectorTotalResultCount);
+}
+
+// Returns the display title of the node
+function getNodeTitle(d) {
+	if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
+		return d.addressHash;
+	}
+
+	if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+		return d.transactionHash;
+	}
+
+	if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+		if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
+			const title = heuristicTypeMap.get(d.heuristicOptions.type);
+			if (title !== undefined) {
+				return title;
+			}
+		} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
+			if (!d.txPropOptions.startDate || !d.txPropOptions.endDate) {
+				return '';
+			}
+
+			const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
+			const startDateStr = new Date(d.txPropOptions.startDate).toLocaleDateString(undefined, dateOptions);
+			const endDateStr = new Date(d.txPropOptions.endDate).toLocaleDateString(undefined, dateOptions);
+
+			return `${startDateStr} - ${endDateStr}`;
+		} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH) {
+			if (!d.txGraphOptions) {
+				return '';
+			}
+
+			return `${d.txGraphOptions.depth}`;
+		}
+	}
+
+	return d.uid;
 }
 
 async function handleGraphQuery(query) {
@@ -667,7 +782,7 @@ async function addNewNote(noteText, noteUID, childUID) {
 			},
 		});
 		if (response.nodes) {
-			response.nodes = setPrivacyLabels(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -755,7 +870,7 @@ async function addNewSelector(type, options) {
 			},
 		});
 
-		response.nodes = setPrivacyLabels(response.nodes);
+		response.nodes = setNodesDisplayAttributes(response.nodes);
 		nodeGraph.removeAllNodes(false);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
@@ -789,7 +904,7 @@ async function checkWork(selectorUID) {
 			selector: {workspaceUID: workspaceUID.value, selectorUID},
 		});
 		if (response.nodes) {
-			response.nodes = setPrivacyLabels(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
@@ -962,7 +1077,7 @@ async function refreshData() {
 		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
-			data.nodes &&= setPrivacyLabels(data.nodes);
+			data.nodes &&= setNodesDisplayAttributes(data.nodes);
 		} else {
 			data = null;
 		}
@@ -985,6 +1100,9 @@ async function refreshData() {
 
 			return 0;
 		});
+
+		heuristicTypeMap.clear();
+		heuristicDescriptors.value.forEach(e => heuristicTypeMap.set(e.type, e.title));
 
 		msgStore.resetMessages();
 	} catch (e) {
@@ -1096,8 +1214,6 @@ async function whenMounted() {
 	if (!await refreshData()) {
 		return false;
 	}
-
-	nodeGraph.populateHeuristicMap(heuristicDescriptors.value);
 
 	// Update page title
 	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;

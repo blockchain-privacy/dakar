@@ -6,23 +6,16 @@ import {forceCollide, forceLink, forceSimulation} from 'd3-force';
 import {
 	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
 } from '@/d3Documents/util';
-import {
-	mdiClockAlertOutline, mdiExclamationThick, mdiIncognito, mdiMerge, mdiPlaylistRemove, mdiTune,
-} from '@mdi/js';
+import {mdiExclamationThick} from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
-	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_NOTE,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	SELECTOR_STATUS_WAITING,
 	SELECTOR_STATUS_ERROR,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP, SELECTOR_TYPE_TX_GRAPH,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
-import {
-	cashLeft, cashRight, sigmaLeft, sigmaRight,
-} from '@/customIcons/index.js';
 
 // In ms
 const animationDuration = 175;
@@ -142,8 +135,6 @@ export default class NodeGraph {
 	#filterNodeTypes = [];
 	#filterPrivacyTypes = [];
 	#changedData = new Map();
-	// Heuristic type map
-	#heuristicTypeMap = new Map();
 	// Node type
 	#nodeTypeColorMap = null;
 	enableInteractions = true;
@@ -1021,42 +1012,7 @@ export default class NodeGraph {
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
 			.attr('y', this.#nodeRadius + textHeight + textAreaMargin)
-			.text(d => {
-				if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
-					return d.addressHash;
-				}
-
-				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
-					return d.transactionHash;
-				}
-
-				if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-					if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-						const title = this.#heuristicTypeMap.get(d.heuristicOptions.type);
-						if (title !== undefined) {
-							return title;
-						}
-					} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
-						if (!d.txPropOptions.startDate || !d.txPropOptions.endDate) {
-							return '';
-						}
-
-						const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
-						const startDateStr = new Date(d.txPropOptions.startDate).toLocaleDateString(undefined, dateOptions);
-						const endDateStr = new Date(d.txPropOptions.endDate).toLocaleDateString(undefined, dateOptions);
-
-						return `${startDateStr} - ${endDateStr}`;
-					} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH) {
-						if (!d.txGraphOptions) {
-							return '';
-						}
-
-						return `${d.txGraphOptions.depth}`;
-					}
-				}
-
-				return d.uid;
-			})
+			.text(d => d.nodeDisplayTitle)
 			.each(elide);
 
 		// Privacy type subtitle
@@ -1097,69 +1053,20 @@ export default class NodeGraph {
 			.attr('font-size', 12)
 			.attr('y', 1)
 			.text(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
-					return '';
-				}
-
-				const nodeText = abbreviateNumber(d.selectorTotalResultCount);
-
-				if (nodeText.length > 3) {
+				if (d.nodeDisplayResultCount.length > 3) {
 					d3Select(this).attr('font-size',	9);
 				}
 
-				return nodeText;
+				return d.nodeDisplayResultCount;
 			});
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+				if (!d.nodeDisplayIconObject) {
 					return;
 				}
 
-				const icons = [];
-				let parameter;
-
-				if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-					if (d.heuristicOptions.excludeAddresses) {
-						icons.push(mdiPlaylistRemove);
-					}
-
-					if (d.heuristicOptions.clusterTypes?.length > 0) {
-						icons.push(mdiMerge);
-					}
-
-					if (d.heuristicOptions.excludeSpendingGaps) {
-						icons.push(mdiClockAlertOutline);
-					}
-
-					if (d.heuristicOptions.parameter) {
-						icons.push(mdiTune);
-					}
-
-					parameter = d.heuristicOptions.parameter;
-				} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.txPropOptions) {
-					if (d.txPropOptions.excludePrivacyTransactions) {
-						icons.push(mdiIncognito);
-					}
-
-					if (d.txPropOptions.inputRange) {
-						icons.push(cashLeft);
-					}
-
-					if (d.txPropOptions.outputRange) {
-						icons.push(cashRight);
-					}
-
-					if (d.txPropOptions.inputSum) {
-						icons.push(sigmaLeft);
-					}
-
-					if (d.txPropOptions.outputSum) {
-						icons.push(sigmaRight);
-					}
-				}
-
-				self.drawIcons(d3Select(this), icons, parameter);
+				self.drawIcons(d3Select(this), d.nodeDisplayIconObject.icons, d.nodeDisplayIconObject.parameter);
 			});
 	}
 
@@ -1473,10 +1380,5 @@ export default class NodeGraph {
 
 		this.#lassoResetCallback = callback;
 		return true;
-	}
-
-	populateHeuristicMap(heuristicDescriptions) {
-		// Titles to map
-		heuristicDescriptions.forEach(e => this.#heuristicTypeMap.set(e.type, e.title));
 	}
 }
