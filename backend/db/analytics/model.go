@@ -86,7 +86,7 @@ type AddressNode struct {
 // MixingActivity contains the timestamp and privacytype of a privacy transaction
 type MixingActivity struct {
 	TransactionHash string `json:"txhash"`
-	PrivacyType     int64  `json:"privacytype,omitempty"`
+	PrivacyType     int64  `json:"privacyType,omitempty"`
 	Block           []struct {
 		BlockTimestamp string `json:"ts,omitempty"`
 	} `json:"block,omitempty"`

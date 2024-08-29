@@ -578,7 +578,7 @@ async function updateSvgData(pullNewData) {
 		let minDate = null;
 
 		activities.value = mixingActivity.data.activities.map(d => {
-			d.privacyTypeLabel = getPrivacyTypeLabel(d.privacytype);
+			d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
 			d.dateTime = new Date(d.block[0].ts);
 
 			if (maxDate === null || d.dateTime > maxDate) {
