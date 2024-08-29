@@ -3,6 +3,11 @@ import {
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
+	PRIVACY_TYPE_CC,
+	PRIVACY_TYPE_CP,
+	PRIVACY_TYPE_DESTINATION,
+	PRIVACY_TYPE_MIXING,
+	PRIVACY_TYPE_ORIGIN,
 	ROUTE_NAME_LOGIN_PAGE,
 } from '@/constants';
 
@@ -203,29 +208,25 @@ export function getPrivacyTypeLabel(privacyType) {
 
 // GetPrivacyTypeTooltip returns the corresponding tooltip path
 export function getPrivacyTypeTooltip(privacyType) {
-	const t = parseInt(privacyType, 10);
 	const folder = 'transactionTypes';
-	if (Number.isNaN(t) || t < 0 || t > 499) {
-		return '';
-	}
 
-	if (t <= 99) {
+	if (privacyType === PRIVACY_TYPE_MIXING) {
 		return `${folder}/mixingTransaction.md`;
 	}
 
-	if (t <= 199) {
+	if (privacyType === PRIVACY_TYPE_DESTINATION) {
 		return `${folder}/destinationTransaction.md`;
 	}
 
-	if (t <= 299) {
+	if (privacyType === PRIVACY_TYPE_ORIGIN) {
 		return `${folder}/originTransaction.md`;
 	}
 
-	if (t <= 399) {
+	if (privacyType === PRIVACY_TYPE_CC) {
 		return `${folder}/collateralCreationTransaction.md`;
 	}
 
-	if (t <= 499) {
+	if (privacyType === PRIVACY_TYPE_CP) {
 		return `${folder}/collateralPaymentTransaction.md`;
 	}
 
@@ -246,76 +247,30 @@ export function getClusterTypeLabel(clusterType) {
 
 // IsMixing returns true if the provided privacyType is in the range of mixing transactions
 export function isMixing(privacyType) {
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t <= 99;
+	return privacyType === PRIVACY_TYPE_MIXING;
 }
 
 // IsOrigin returns true if the provided privacyType is in the range of origin transactions
 export function isOrigin(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 200 && t <= 299;
+	return privacyType === PRIVACY_TYPE_ORIGIN;
 }
 
 // IsDestination returns true if the provided privacyType is in the range of
 // destination transactions
 export function isDestination(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 100 && t <= 199;
+	return privacyType === PRIVACY_TYPE_CC;
 }
 
 // IsCollateralCreation returns true if the provided privacyType is in the range of
 // collateral creation transactions
 export function isCollateralCreation(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 300 && t <= 399;
+	return privacyType === PRIVACY_TYPE_DESTINATION;
 }
 
 // IsCollateralPayment returns true if the provided privacyType is in the range of
 // collateral payment transactions
 export function isCollateralPayment(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 400 && t <= 499;
+	return privacyType === PRIVACY_TYPE_CP;
 }
 
 // IsFunction returns true if the provided argument is a function

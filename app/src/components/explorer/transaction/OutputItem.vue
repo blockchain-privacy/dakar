@@ -39,8 +39,8 @@
               on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
             </div>
             <privacy-chip
-              v-if="privacyType"
-              :privacy-type="privacyType"
+              v-if="transactionType"
+              :transaction-type="transactionType"
               size="small"
             />
           </div>
@@ -139,7 +139,7 @@ defineProps({
 	outputIndex: {type: Number, required: false, default: -1},
 	txHash: {type: String, required: false, default: ''},
 	timestamp: {type: String, required: false, default: ''},
-	privacyType: {type: Number, required: false, default: -1},
+	transactionType: {type: String, required: false, default: ''},
 	highlight: {type: Boolean, required: false, default: false},
 });
 

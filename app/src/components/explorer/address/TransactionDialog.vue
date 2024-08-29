@@ -17,7 +17,7 @@
       </v-card-title>
       <v-card-text>
         <p class="text-subtitle-1">
-          Privacy Type: {{ privacyType }}
+          Privacy Type: {{ transactionType }}
         </p>
         <p class="text-subtitle-1">
           Timestamp: {{ dateTime.toLocaleString() }}

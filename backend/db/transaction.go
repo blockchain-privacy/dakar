@@ -105,7 +105,7 @@ type FrontendTransactionOutput struct {
 	KeyAsm      string  `json:"keyasm,omitempty"`
 
 	// This is data from either the transaction where this output is generated or spent
-	TransactionType string `json:"Transaction.type,omitempty"`
+	TransactionType string `json:"txtype,omitempty"`
 	Hash            string `json:"txhash,omitempty"`
 	BlockTimestamp  string `json:"ts,omitempty"`
 
@@ -377,7 +377,7 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 					txhash
 					Transaction.type
 					fee
-					inputs: tx_inputs @normalize{
+					inputs: tx_inputs@normalize{
 						...fOutput
 						~tx_outputs {
 							...fOutputTransaction

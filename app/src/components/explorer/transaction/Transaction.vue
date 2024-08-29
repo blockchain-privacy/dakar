@@ -7,12 +7,12 @@
       :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}:null"
     >
       <privacy-chip
-        v-if="tx.privacytype >= 0"
-        :privacy-type="tx.privacytype"
+        v-if="tx.txtype"
+        :transaction-type="tx.txtype"
         class="ms-2"
       />
       <fingerprint-chip
-        v-if="showFingerprintLink && isDestination(tx.privacytype)"
+        v-if="showFingerprintLink && isDestination(tx.txtype)"
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
@@ -160,7 +160,7 @@
               :output-index="i.outputindex"
               :input-index="i.inputindex"
               :timestamp="i.ts"
-              :privacy-type="Number(i.privacytype)"
+              :transaction-type="i.txtype"
               :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
             />
             <v-divider
@@ -186,7 +186,7 @@
                   :output-index="i.outputindex"
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
-                  :privacy-type="Number(i.privacytype)"
+                  :transaction-type="i.txtype"
                   :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
                 />
                 <v-divider
@@ -220,7 +220,7 @@
               :output-index="i.outputindex"
               :input-index="i.inputindex"
               :timestamp="i.ts"
-              :privacy-type="Number(i.privacytype)"
+              :transaction-type="i.txtype"
               :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
             />
             <v-divider
@@ -247,7 +247,7 @@
                   :output-index="i.outputindex"
                   :input-index="i.inputindex"
                   :timestamp="i.ts"
-                  :privacy-type="Number(i.privacytype)"
+                  :transaction-type="i.txtype"
                   :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
                 />
                 <v-divider
@@ -290,7 +290,7 @@ import {
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {
-	convertAmount, getColorMap, getPrivacyTypeLabel, isDestination, plural, shortenHash,
+	convertAmount, getColorMap, isDestination, plural, shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
@@ -322,7 +322,7 @@ let svgInputGraph = null;
 let svgOutputGraph = null;
 const colorMap = getColorMap();
 // Set color for non-privacy transaction
-colorMap.set('', '#607D8B');
+colorMap.set(undefined, '#607D8B');
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
 
@@ -371,13 +371,6 @@ function init() {
 	updateOutputGraph();
 }
 
-function setPrivacyLabel(items) {
-	return items.map(d => {
-		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacytype);
-		return d;
-	});
-}
-
 function updateInputGraph() {
 	if (!props.tx.inputs) {
 		enoughDataForInputGraph.value = false;
@@ -385,7 +378,7 @@ function updateInputGraph() {
 	}
 
 	svgInputGraph = new Histogram(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
-	svgInputGraph.drawStacked(setPrivacyLabel(props.tx.inputs), colorMap);
+	svgInputGraph.drawStacked(props.tx.inputs, colorMap);
 	enoughDataForInputGraph.value = !svgInputGraph.empty;
 }
 
@@ -396,7 +389,7 @@ function updateOutputGraph() {
 	}
 
 	svgOutputGraph = new Histogram(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
-	svgOutputGraph.drawStacked(setPrivacyLabel(props.tx.outputs), colorMap);
+	svgOutputGraph.drawStacked(props.tx.outputs, colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }
 
