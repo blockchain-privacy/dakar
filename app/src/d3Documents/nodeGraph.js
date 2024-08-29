@@ -684,7 +684,7 @@ export default class NodeGraph {
 		this.#rootSvg.transition().duration(250).call(this.#zoom.translateTo, centerX, centerY);
 	}
 
-	drawIcons(groupElement, icons, parameter) {
+	drawIcons(groupElement, isTitleSet, icons, parameter) {
 		if (icons.length === 0) {
 			return;
 		}
@@ -698,7 +698,11 @@ export default class NodeGraph {
 		const textHeight = 12;
 		const iconWidth = 12;
 		const iconMargin = 1;
-		const iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
+		let iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
+
+		if (!isTitleSet) {
+			iconY = this.#nodeRadius + textAreaMargin;
+		}
 
 		// Remove all children
 		iconGroup.selectAll('*').remove();
@@ -1066,7 +1070,7 @@ export default class NodeGraph {
 					return;
 				}
 
-				self.drawIcons(d3Select(this), d.nodeDisplayIconObject.icons, d.nodeDisplayIconObject.parameter);
+				self.drawIcons(d3Select(this), Boolean(d.nodeDisplayTitle), d.nodeDisplayIconObject.icons, d.nodeDisplayIconObject.parameter);
 			});
 	}
 
