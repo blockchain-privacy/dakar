@@ -183,8 +183,9 @@
 
 <script setup>
 import {
+	mdiBlender,
 	mdiCheckCircle,
-	mdiDelete,
+	mdiDelete, mdiFilterPlus, mdiGraph,
 	mdiNoteEdit,
 	mdiNotePlus, mdiPlus,
 } from '@mdi/js';
@@ -282,7 +283,7 @@ const contextMenuModel = ref({
 	items: [
 		{
 			title: 'Add CoinJoin Heuristic',
-			icon: mdiPlus,
+			icon: mdiBlender,
 			show: () => isHeuristicNode(nodeGraph.getContextNode())
 			|| isDestiationNode(nodeGraph.getContextNode())
 			|| isOriginNode(nodeGraph.getContextNode()),
@@ -290,15 +291,17 @@ const contextMenuModel = ref({
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
-			title: 'Add TxProp Selector',
-			icon: mdiPlus,
-			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
+			title: 'Add Property Selector',
+			icon: mdiFilterPlus,
+			show: () => isTxPropNode(nodeGraph.getContextNode())
+			|| isTxGraphNode(nodeGraph.getContextNode())
+			|| isHeuristicNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
-			title: 'Add TxGraph Selector',
-			icon: mdiPlus,
+			title: 'Add Graph Selector',
+			icon: mdiGraph,
 			show: () => isTransactionNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
@@ -470,6 +473,14 @@ function isTransactionNode(node) {
 	}
 
 	return node.type === WORKSPACE_NODE_TYPE_TRANSACTION;
+}
+
+function isTxGraphNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_TX_GRAPH;
 }
 
 function isTxPropNode(node) {

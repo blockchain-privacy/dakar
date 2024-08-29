@@ -2,7 +2,7 @@
   <side-bar
     v-model="model"
     :title="title"
-    :icon="mdiPlus"
+    :icon="icon"
     max-width="330px"
   >
     <template #body>
@@ -302,7 +302,9 @@
 
 <script setup>
 import {useRoute} from 'vue-router';
-import {mdiInformationOutline, mdiPlus} from '@mdi/js';
+import {
+	mdiBlender, mdiFilter, mdiGraph, mdiInformationOutline, mdiPlus, mdiShapeCirclePlus,
+} from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
 import {
@@ -413,12 +415,20 @@ onUpdated(() => {
 // Computed
 const title = computed(() => {
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC:
-			return 'Add CoinJoin Heuristic';
-		case SELECTOR_TYPE_TX_PROP:
-			return 'Add Selector';
+		case SELECTOR_TYPE_HEURISTIC: return 'Add CoinJoin Heuristic';
+		case SELECTOR_TYPE_TX_PROP: return 'Add Property Selector';
+		case SELECTOR_TYPE_TX_GRAPH: return 'Add Graph Selector';
 		default:
 			return 'Add Selector';
+	}
+});
+
+const icon = computed(() => {
+	switch (props.selectorType) {
+		case SELECTOR_TYPE_HEURISTIC: return mdiBlender;
+		case SELECTOR_TYPE_TX_PROP: return mdiFilter;
+		case SELECTOR_TYPE_TX_GRAPH: return mdiGraph;
+		default: return mdiShapeCirclePlus;
 	}
 });
 

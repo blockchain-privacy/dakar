@@ -75,10 +75,10 @@
       @click="onAddSelector"
     >
       <v-icon
-        :icon="mdiPlus"
+        :icon="mdiFilterPlus"
         class="me-1"
       />
-      Add Selector
+      Add Property Selector
     </v-btn>
 
     <v-btn
@@ -146,7 +146,7 @@
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
-	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiPlus,
+	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiFilterPlus,
 } from '@mdi/js';
 import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';

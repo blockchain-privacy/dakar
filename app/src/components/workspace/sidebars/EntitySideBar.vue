@@ -29,7 +29,7 @@
       </v-chip>
       <template v-if="!isLoading && entityData">
         <v-chip
-          v-if="isTxProp || isHeuristic"
+          v-if="isTxGraph || isTxProp || isHeuristic"
           rounded
           color="primary"
           variant="tonal"
@@ -38,7 +38,7 @@
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddTxPropClick"
         >
-          Add Transaction Property Selector
+          Add Property Selector
         </v-chip>
         <v-chip
           v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length"
@@ -50,7 +50,7 @@
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddTxGraphClick"
         >
-          Add Transaction Graph Selector
+          Add Graph Selector
         </v-chip>
         <v-chip
           v-if="isHeuristic || isDestination(entityData[0]?.privacytype) || isOrigin(entityData[0]?.privacytype)"
@@ -154,7 +154,7 @@ import {
 	mdiBlender,
 	mdiCardBulletedOutline,
 	mdiDelete,
-	mdiFileDownloadOutline, mdiFilter,
+	mdiFileDownloadOutline, mdiFilter, mdiGraph,
 	mdiNotePlus, mdiPlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
@@ -221,8 +221,8 @@ const title = computed(() => {
 		case WORKSPACE_NODE_TYPE_SELECTOR:
 			switch (props.auxiliaryData?.selectorType) {
 				case SELECTOR_TYPE_HEURISTIC: return 'CoinJoin Heuristic';
-				case SELECTOR_TYPE_TX_GRAPH: return 'Transaction Graph Selector';
-				case SELECTOR_TYPE_TX_PROP: return 'Transaction Property Selector';
+				case SELECTOR_TYPE_TX_GRAPH: return 'Graph Selector';
+				case SELECTOR_TYPE_TX_PROP: return 'Property Selector';
 				default:
 					return unkownType;
 			}
@@ -271,11 +271,13 @@ const sideBarIcon = computed(() => {
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			if (props.auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC) {
-				return mdiBlender;
+			switch (props.auxiliaryData.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC: return mdiBlender;
+				case SELECTOR_TYPE_TX_PROP: return mdiFilter;
+				case SELECTOR_TYPE_TX_GRAPH: return mdiGraph;
+				default: return mdiShapeCirclePlus;
 			}
 
-			return mdiFilter;
 		default:
 			return mdiShapeCirclePlus;
 	}
