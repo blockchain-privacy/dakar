@@ -187,7 +187,7 @@ import {
 	mdiCheckCircle,
 	mdiDelete, mdiFilterPlus, mdiGraph,
 	mdiNoteEdit,
-	mdiNotePlus, mdiPlus,
+	mdiNotePlus,
 } from '@mdi/js';
 import CreateSelectorSideBar from './sidebars/CreateSelectorSideBar.vue';
 import {
