@@ -303,7 +303,7 @@
 <script setup>
 import {useRoute} from 'vue-router';
 import {
-	mdiBlender, mdiFilter, mdiFilterPlus, mdiGraph, mdiInformationOutline, mdiShapeCirclePlus,
+	mdiFilterPlus, mdiInformationOutline, mdiShapeCirclePlus,
 } from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';

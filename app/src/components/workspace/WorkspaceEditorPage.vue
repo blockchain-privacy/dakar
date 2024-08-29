@@ -183,9 +183,8 @@
 
 <script setup>
 import {
-	mdiBlender,
 	mdiCheckCircle,
-	mdiDelete, mdiFilterPlus, mdiGraph,
+	mdiDelete, mdiFilterPlus,
 	mdiNoteEdit,
 	mdiNotePlus,
 } from '@mdi/js';
