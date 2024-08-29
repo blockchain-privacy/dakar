@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics"
 	"backend/testhelper"
@@ -166,9 +167,9 @@ func Test_pruneNodes(t *testing.T) {
 
 	// unset time should cause error
 	g.AddNode(TransactionNode{
-		TS:          time.Time{},
-		id:          0,
-		PrivacyType: 0,
+		TS:   time.Time{},
+		id:   0,
+		Type: constants.TypeMixing,
 	})
 	require.Error(t, pruneNodes(g))
 

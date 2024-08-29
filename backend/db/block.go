@@ -150,7 +150,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 					transactions{
 						uid
 						txhash
-						privacytype
+						Transaction.type
 						fee
 						dgraph.type
 						tx_outputs {
@@ -247,7 +247,7 @@ func GetFrontendBlock(ctx context.Context, c external.Database, blockHash string
 				}
 				x(func: uid(t), first: 10, offset: %d){
 					txhash
-					privacytype
+					Transaction.type
 					fee
 					inputs: tx_inputs @normalize{
 						...fOutput
@@ -275,11 +275,11 @@ func GetFrontendBlock(ctx context.Context, c external.Database, blockHash string
 	var r struct {
 		Blocks       []FrontendBlock `json:"q,omitempty"`
 		Transactions []struct {
-			Hash        string                      `json:"txhash,omitempty"`
-			PrivacyType *int64                      `json:"privacytype,omitempty"`
-			Fee         *int64                      `json:"fee,omitempty"`
-			Outputs     []FrontendTransactionOutput `json:"outputs,omitempty"`
-			Inputs      []FrontendTransactionOutput `json:"inputs,omitempty"`
+			Hash    string                      `json:"txhash,omitempty"`
+			Type    string                      `json:"Transaction.type,omitempty"`
+			Fee     *int64                      `json:"fee,omitempty"`
+			Outputs []FrontendTransactionOutput `json:"outputs,omitempty"`
+			Inputs  []FrontendTransactionOutput `json:"inputs,omitempty"`
 		} `json:"x,omitempty"`
 	}
 
@@ -304,15 +304,9 @@ func GetFrontendBlock(ctx context.Context, c external.Database, blockHash string
 			fee = *t.Fee
 		}
 
-		// t.PrivacyType can be nil
-		pType := int64(-1)
-		if t.PrivacyType != nil {
-			pType = *t.PrivacyType
-		}
-
 		block.Transactions = append(block.Transactions, FrontendTransaction{
 			Hash:           t.Hash,
-			PrivacyType:    pType,
+			Type:           t.Type,
 			Fee:            fee,
 			BlockHash:      block.Hash,
 			BlockID:        block.ID,

@@ -2,6 +2,7 @@ package main
 
 import (
 	mgraph "backend/analytics/graph"
+	"backend/constants"
 	"backend/db/analytics/exclusion"
 	"backend/external"
 	"fmt"
@@ -113,7 +114,7 @@ func getNodeNumbers(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime tim
 			}
 
 			// if it is not a mixing transaction save it and stop following that edge
-			if !toNode.PrivacyType.IsMixing() {
+			if toNode.Type != constants.TypeMixing {
 				globalEndpointMap[toNode.ID()] = true
 				return false
 			}
@@ -133,7 +134,7 @@ func getNodeNumbers(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime tim
 			globalEndpointMap[n.ID()] = true
 		}
 
-		if g.Node(n.ID()).(mgraph.TransactionNode).PrivacyType.IsMixing() {
+		if g.Node(n.ID()).(mgraph.TransactionNode).Type == constants.TypeMixing {
 			globalMixingMap[n.ID()] = true
 		}
 

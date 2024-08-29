@@ -17,20 +17,20 @@ const transactionDType = "Transaction"
 
 // Transaction is the database representation of a blockchain transaction
 type Transaction struct {
-	UID         string                 `json:"uid,omitempty"`
-	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
-	Fee         *int64                 `json:"fee,omitempty"`
-	Outputs     []Output               `json:"tx_outputs,omitempty"`
-	Inputs      []Output               `json:"tx_inputs,omitempty"`
-	Hash        string                 `json:"txhash,omitempty"`
-	DType       []string               `json:"dgraph.type,omitempty"`
+	UID     string   `json:"uid,omitempty"`
+	Type    string   `json:"Transaction.type,omitempty"`
+	Fee     *int64   `json:"fee,omitempty"`
+	Outputs []Output `json:"tx_outputs,omitempty"`
+	Inputs  []Output `json:"tx_inputs,omitempty"`
+	Hash    string   `json:"txhash,omitempty"`
+	DType   []string `json:"dgraph.type,omitempty"`
 }
 
 func (t *Transaction) String() string {
 	output := fmt.Sprintf("UID: %s, Hash: %s", t.UID, t.Hash)
 
-	if t.PrivacyType != nil {
-		output += fmt.Sprintf(", Privacy type: %d", *t.PrivacyType)
+	if t.Type != "" {
+		output += ", Privacy type:" + t.Type
 	}
 
 	if t.Fee != nil {
@@ -81,13 +81,13 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 // IsMixingTransaction evaluates the privacy type of the transaction and
 // returns true if the transaction is a mixing transaction. Inputs and Outputs are not checked
 func (t *Transaction) IsMixingTransaction() bool {
-	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
+	return t.Type == constants.TypeMixing
 }
 
 // IsDestinationTransaction evaluates the privacy type of the transaction and
 // returns true if the transaction is a destination transaction. Inputs and Outputs are not checked
 func (t *Transaction) IsDestinationTransaction() bool {
-	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
+	return t.Type == constants.TypeDestination
 }
 
 type transactionQuery struct {
@@ -105,9 +105,9 @@ type FrontendTransactionOutput struct {
 	KeyAsm      string  `json:"keyasm,omitempty"`
 
 	// This is data from either the transaction where this output is generated or spent
-	PrivacyType    int64  `json:"privacytype,omitempty"`
-	Hash           string `json:"txhash,omitempty"`
-	BlockTimestamp string `json:"ts,omitempty"`
+	TransactionType string `json:"Transaction.type,omitempty"`
+	Hash            string `json:"txhash,omitempty"`
+	BlockTimestamp  string `json:"ts,omitempty"`
 
 	// set to true if the output should be highlighted on the frontend
 	Highlight *bool `json:"highlight,omitempty"`
@@ -118,7 +118,7 @@ type FrontendTransaction struct {
 	Hash           string                      `json:"txhash,omitempty"`
 	BlockHash      string                      `json:"bhash,omitempty"`
 	Fee            int64                       `json:"fee"`
-	PrivacyType    int64                       `json:"privacytype,omitempty"`
+	Type           string                      `json:"txtype,omitempty"`
 	BlockID        uint64                      `json:"bid"`
 	BlockTimestamp string                      `json:"bts,omitempty"`
 	Outputs        []FrontendTransactionOutput `json:"outputs,omitempty"`
@@ -127,14 +127,14 @@ type FrontendTransaction struct {
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockID: %d, "+
-		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
-		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.PrivacyType, f.BlockTimestamp, len(f.Outputs), len(f.Inputs))
+		"Fee: %d, type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.Type, f.BlockTimestamp, len(f.Outputs), len(f.Inputs))
 }
 
 const FrontendTransactionFragments = `
 				fragment fOutputTransaction {
 					txhash:txhash
-					privacytype:privacytype
+					txtype:Transaction.type
 					~transactions{
 						ts:ts
 					}
@@ -212,7 +212,7 @@ func GetTransactionsByBlock(c external.Database, fromBlockID uint64, toBlockID u
 					uid
 					txhash
 					fee
-					privacytype
+					Transaction.type
 					tx_inputs{
 						uid
 						amount
@@ -264,7 +264,7 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 					uid
 					txhash
 					fee
-					privacytype
+					Transaction.type
 					tx_inputs{
 						uid
 						amount
@@ -375,7 +375,7 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 	const query = `query Q($hash: string){
 				q(func: eq(txhash,$hash)){
 					txhash
-					privacytype
+					Transaction.type
 					fee
 					inputs: tx_inputs @normalize{
 						...fOutput
@@ -407,12 +407,12 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Hash        string                      `json:"txhash,omitempty"`
-			PrivacyType *int64                      `json:"privacytype,omitempty"`
-			Fee         *int64                      `json:"fee,omitempty"`
-			Outputs     []FrontendTransactionOutput `json:"outputs,omitempty"`
-			Inputs      []FrontendTransactionOutput `json:"inputs,omitempty"`
-			Block       []struct {
+			Hash    string                      `json:"txhash,omitempty"`
+			Type    string                      `json:"Transaction.type,omitempty"`
+			Fee     *int64                      `json:"fee,omitempty"`
+			Outputs []FrontendTransactionOutput `json:"outputs,omitempty"`
+			Inputs  []FrontendTransactionOutput `json:"inputs,omitempty"`
+			Block   []struct {
 				Hash string `json:"blockhash,omitempty"`
 				TS   string `json:"ts,omitempty"`
 				ID   uint64 `json:"id,omitempty"`
@@ -442,15 +442,9 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 			fee = *t.Fee
 		}
 
-		// t.PrivacyType can be nil
-		pType := int64(-1)
-		if t.PrivacyType != nil {
-			pType = *t.PrivacyType
-		}
-
 		transactions = append(transactions, FrontendTransaction{
 			Hash:           t.Hash,
-			PrivacyType:    pType,
+			Type:           t.Type,
 			Fee:            fee,
 			BlockHash:      t.Block[0].Hash,
 			BlockID:        t.Block[0].ID,
@@ -474,7 +468,7 @@ func GetFrontendTransactionsByUID(ctx context.Context, c external.Database, txUi
 				txs as var(func: uid($uids))
 				q(func: uid(txs))@normalize{
 					txhash:txhash
-					privacytype:privacytype
+					txtype:Transaction.type
 					~transactions{
 						bid:id
 						bts:ts
@@ -507,7 +501,7 @@ func GetFrontendTransactionsByUID(ctx context.Context, c external.Database, txUi
 type AmountTransaction struct {
 	Hash         string `json:"txhash,omitempty"`
 	Fee          *int64 `json:"fee,omitempty"`
-	PrivacyType  *int64 `json:"privacytype,omitempty"`
+	Type         string `json:"txtype,omitempty"`
 	Timestamp    string `json:"ts,omitempty"`
 	InputAmount  *int64 `json:"inputAmount,omitempty"`
 	OutputAmount *int64 `json:"outputAmount,omitempty"`
@@ -536,7 +530,7 @@ func GetFrontendTransactionAmounts(ctx context.Context, c external.Database, txU
 			
 			q(func: uid(t)){
 				txhash
-				privacytype
+				Transaction.type
 				fee
 				~transactions{
 					ts
@@ -555,10 +549,10 @@ func GetFrontendTransactionAmounts(ctx context.Context, c external.Database, txU
 	// json struct
 	var r struct {
 		Transactions []struct {
-			Hash        string `json:"txhash,omitempty"`
-			Fee         *int64 `json:"fee,omitempty"`
-			PrivacyType *int64 `json:"privacytype,omitempty"`
-			Block       []struct {
+			Hash  string `json:"txhash,omitempty"`
+			Fee   *int64 `json:"fee,omitempty"`
+			Type  string `json:"Transaction.type,omitempty"`
+			Block []struct {
 				Timestamp string `json:"ts,omitempty"`
 			} `json:"~transactions,omitempty"`
 			InputAmount  *int64 `json:"inputAmount,omitempty"`
@@ -579,7 +573,7 @@ func GetFrontendTransactionAmounts(ctx context.Context, c external.Database, txU
 		txs[i] = AmountTransaction{
 			Hash:         tx.Hash,
 			Fee:          tx.Fee,
-			PrivacyType:  tx.PrivacyType,
+			Type:         tx.Type,
 			Timestamp:    tx.Block[0].Timestamp,
 			InputAmount:  tx.InputAmount,
 			OutputAmount: tx.OutputAmount,

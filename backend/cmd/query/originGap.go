@@ -2,6 +2,7 @@ package main
 
 import (
 	mgraph "backend/analytics/graph"
+	"backend/constants"
 	"encoding/csv"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
@@ -42,7 +43,7 @@ func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration,
 	nodes := g.Nodes()
 	for nodes.Next() {
 		txNode, ok := nodes.Node().(mgraph.TransactionNode)
-		if !ok || !txNode.PrivacyType.IsMixing() || txNode.TS.Before(year2016) {
+		if !ok || txNode.Type != constants.TypeMixing || txNode.TS.Before(year2016) {
 			continue
 		}
 

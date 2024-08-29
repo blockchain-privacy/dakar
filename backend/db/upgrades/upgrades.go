@@ -33,10 +33,11 @@ var availableUpgrades = map[uint64]UpgradePackage{
 			DropPredicateHex,
 			AlterSchemaRemoveHex},
 	},
-	6: {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
-	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
-	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
-	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
+	6:  {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
+	7:  {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
+	8:  {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
+	9:  {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
+	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType}},
 }
 
 var thisLogger *slog.Logger
@@ -327,6 +328,25 @@ func AlterSchemaAddSelectorTotalResultCount(c external.Database) error {
 				Selector.options
 				Selector.results
 				Selector.totalResultCount
+			}`,
+	})
+}
+
+func DropPrivacyType(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{DropAttr: "privacytype"})
+}
+
+func AlterSchemaAddTransactionType(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Transaction.type: string @index(hash) .
+
+			type Transaction {
+				txhash
+				Transaction.type
+				fee
+				tx_outputs
+				tx_inputs
 			}`,
 	})
 }

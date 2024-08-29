@@ -118,7 +118,7 @@ func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max in
 // numTxToLoad > 0: load numTxToLoad transactions of each privacy type
 func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
 	mixingCount, originCount, ccCount, cpCount, destinationCount, getErr :=
-		analytics.GetPrivacyTransactionCount(c)
+		analytics.GetTransactionTypeCount(c)
 	if getErr != nil {
 		return nil, getErr
 	}
@@ -180,7 +180,7 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 			return err
 		}
 
-		g.AddNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
+		g.AddNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, Type: node.TransactionType})
 	}
 
 	return nil
@@ -194,7 +194,7 @@ func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 			return err
 		}
 
-		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
+		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, Type: node.TransactionType})
 	}
 
 	return nil
@@ -208,7 +208,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 			return err
 		}
 
-		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.TS, PrivacyType: node.PrivacyType})
+		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.TS, Type: node.Type})
 
 		for _, input := range node.Inputs {
 			inputUID, parseErr := ToInteger(input.InputTransaction)

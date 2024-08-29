@@ -197,7 +197,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		for _, tx := range transactions {
 			// tx inputs
 			if len(tx.InputAddresses) > 0 {
-				if tx.PrivacyType != nil && constants.PrivacyType(*tx.PrivacyType).IsMixing() {
+				if tx.Type == constants.TypeMixing {
 					// treat inputs of mixing transations not with the multi-input heuristic
 					processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				} else {

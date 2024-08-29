@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"backend/constants"
 	"backend/db"
 	"time"
 )
@@ -15,12 +16,6 @@ const (
 	TypeTxProp    = "transactionProperties"
 	TypeTxGraph   = "transactionGraph"
 	TypeHeuristic = "heuristic"
-
-	PrivacyTypeOrigin             = "origin"
-	PrivacyTypeMixing             = "mixing"
-	PrivacyTypeDestination        = "destination"
-	PrivacyTypeCollateralCreation = "collateral creation"
-	PrivacyTypeCollateralPayment  = "collateral payment"
 )
 
 const selectorMaxItems = 200
@@ -28,9 +23,6 @@ const selectorMaxItems = 200
 var validTypes = map[string]bool{TypeTxProp: true, TypeTxGraph: true, TypeHeuristic: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
-
-var validPrivacyTypes = map[string]bool{PrivacyTypeOrigin: true, PrivacyTypeMixing: true,
-	PrivacyTypeDestination: true, PrivacyTypeCollateralCreation: true, PrivacyTypeCollateralPayment: true}
 
 // IsTypeValid returns true if the provided type is valid
 func IsTypeValid(t string) bool {
@@ -40,11 +32,6 @@ func IsTypeValid(t string) bool {
 // IsStatusValid returns true if the provided status is valid
 func IsStatusValid(s string) bool {
 	return validStates[s]
-}
-
-// IsPrivacyTypeValid returns true if the provided privacy type is valid
-func IsPrivacyTypeValid(s string) bool {
-	return validPrivacyTypes[s]
 }
 
 type Selector struct {
@@ -84,8 +71,8 @@ type TxPropOptions struct {
 	EndDate *time.Time `json:"endDate,omitempty"`
 	// MaxItems is the maximum number of items the selector stores. Can not be higher than selectorMaxItems
 	MaxItems *int `json:"maxItems,omitempty"`
-	// PrivacyTypes contains the privacy types which are included in the selection
-	PrivacyTypes []string `json:"privacyTypes,omitempty"`
+	// TransactionTypes contains the privacy types which are included in the selection
+	TransactionTypes []string `json:"txTypes,omitempty"`
 	// ExcludePrivacyTransactions determines if all transactions with a privacy type should be excluded
 	ExcludePrivacyTransactions *bool `json:"excludePrivacyTransactions,omitempty"`
 	// InputSum is an amount range of the summed up inputs each transaction has to fullfil
@@ -123,7 +110,7 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 	// at least one option must be set
 	if o.OutputSum == nil && o.InputSum == nil &&
 		o.InputRange == nil && o.OutputRange == nil &&
-		o.PrivacyTypes == nil && o.ExcludePrivacyTransactions == nil {
+		o.TransactionTypes == nil && o.ExcludePrivacyTransactions == nil {
 		return false
 	}
 
@@ -144,17 +131,17 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 	}
 
 	// can not exclude all privacy transactions and at the same time filter for privacy transactions
-	if o.PrivacyTypes != nil && o.ExcludePrivacyTransactions != nil && *o.ExcludePrivacyTransactions {
+	if o.TransactionTypes != nil && o.ExcludePrivacyTransactions != nil && *o.ExcludePrivacyTransactions {
 		return false
 	}
 
 	// there are only 5 privacy types
-	if len(o.PrivacyTypes) > 5 {
+	if len(o.TransactionTypes) > 5 {
 		return false
 	}
 
-	for _, privacyType := range o.PrivacyTypes {
-		if !IsPrivacyTypeValid(privacyType) {
+	for _, transactionType := range o.TransactionTypes {
+		if !constants.IsValidTransactionType(transactionType) {
 			return false
 		}
 	}

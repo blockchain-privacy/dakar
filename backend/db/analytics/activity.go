@@ -40,20 +40,18 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 						}
 					}
 					
-					not_mixing as var(func: uid(t1,t2))@filter(between(privacytype,`+
-		constants.StrPrivacyDestinationFirst+","+constants.StrPrivacyCollateralPaymentLast+`))
+					not_mixing as var(func: uid(t1,t2))@filter(has(Transaction.type) and not eq(Transaction.type,"`+constants.TypeMixing+`"))
 					
 					var(func: uid(not_mixing))@recurse{
 						tx_outputs
-						c_not_mixing as ~tx_inputs@filter(between(privacytype,`+
-		constants.StrPrivacyDestinationFirst+","+constants.StrPrivacyCollateralPaymentLast+`))
+						c_not_mixing as ~tx_inputs@filter(has(Transaction.type) and not eq(Transaction.type,"`+constants.TypeMixing+`"))
 					}
 					
 					all_not_mixing as var(func: uid(not_mixing, c_not_mixing))
 					
 					var(func: uid(all_not_mixing)){
 						tx_outputs {
-							mixing as ~tx_inputs@filter(between(privacytype,0,`+constants.StrPrivacyMixingLast+`))
+							mixing as ~tx_inputs@filter(eq(Transaction.type,"`+constants.TypeMixing+`"))
 						}
 					}
 					
@@ -61,7 +59,7 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 					
 					q(func: uid(transactions)){
 						txhash
-						privacytype
+						Transaction.type
 						block:~transactions{
 						ts
 						}
@@ -91,7 +89,7 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 	for i, ma := range r.Q {
 		newActivity := MixingActivity{
 			TransactionHash: ma.TransactionHash,
-			PrivacyType:     ma.PrivacyType,
+			TransactionType: ma.TransactionType,
 			Block:           ma.Block,
 		}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	mgraph "backend/analytics/graph"
+	"backend/constants"
 	"backend/db/analytics"
 	"backend/external"
 	"encoding/csv"
@@ -119,7 +120,7 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 	mixingTransactions := make([]exportTransaction, 0, nodes.Len())
 	for nodes.Next() {
 		txNode, ok := nodes.Node().(mgraph.TransactionNode)
-		if !ok || !txNode.PrivacyType.IsMixing() || txNode.TS.Before(year2016) {
+		if !ok || txNode.Type != constants.TypeMixing || txNode.TS.Before(year2016) {
 			continue
 		}
 
@@ -205,7 +206,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 			}
 
 			// if it is not a mixing transaction save it and stop following that edge
-			if !toNode.PrivacyType.IsMixing() {
+			if toNode.Type != constants.TypeMixing {
 				return false
 			}
 
@@ -227,7 +228,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 
 		// collect mixing nodes start
 		txNode, ok := n.(mgraph.TransactionNode)
-		if !ok || !txNode.PrivacyType.IsMixing() {
+		if !ok || txNode.Type != constants.TypeMixing {
 			return false
 		}
 

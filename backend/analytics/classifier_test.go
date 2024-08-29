@@ -186,7 +186,7 @@ func TestIsMixing(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.EqualValues(t, !c.shouldFail, isMixing(c.tx) >= 0)
+		require.EqualValues(t, !c.shouldFail, isMixing(c.tx))
 	}
 }
 
@@ -447,7 +447,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 	for i, hash := range txHashes {
 		transaction, err := db.GetTransaction(dbHandle, hash)
 		require.NoError(t, err)
-		transaction.PrivacyType = nil
+		transaction.Type = ""
 		txs[i] = transaction
 	}
 
@@ -550,13 +550,13 @@ func TestClassifier_Iterate(t *testing.T) {
 	classifier.state.ID = testhelper.ClassifierFileFirstBlock
 	classifier.state.Top = testhelper.ClassifierFileFirstBlock
 
-	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
+	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
 
 	_, err = classifier.Iterate()
 	require.NoError(t, err)
 
 	// check mixing count after classification
-	mixingCount, _, _, _, _, err := analytics.GetPrivacyTransactionCount(dbHandle)
+	mixingCount, _, _, _, _, err := analytics.GetTransactionTypeCount(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, mixingCount)
 }
@@ -570,7 +570,7 @@ func TestMultipleBlockIteration(t *testing.T) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancelFunc()
 
-	require.NoError(t, analytics.RemovePrivacyTypeOfAllTransactions(ctx, dbHandle))
+	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  testhelper.GetPointer(false),
 		LastBlockID: testhelper.GetPointer[uint64](testhelper.ClassifierFileLastBlock),
@@ -681,24 +681,23 @@ func Test_isCollateralCreation(t *testing.T) {
 }
 
 func Test_newCollateralCreationTransaction(t *testing.T) {
-	cc := constants.PrivacyCollateralCreation
 	tests := []struct {
 		uid  string
 		want db.Transaction
 	}{
 		{
 			uid:  "some_uid",
-			want: db.Transaction{UID: "some_uid", PrivacyType: &cc},
+			want: db.Transaction{UID: "some_uid", Type: constants.TypeCC},
 		},
 		{
 			uid:  "some_uid2",
-			want: db.Transaction{UID: "some_uid2", PrivacyType: &cc},
+			want: db.Transaction{UID: "some_uid2", Type: constants.TypeCC},
 		},
 	}
 	for _, tt := range tests {
 		tx := newCollateralCreationTransaction(tt.uid)
 		require.Equal(t, tt.want.UID, tx.UID)
-		require.Equal(t, *tt.want.PrivacyType, *tx.PrivacyType)
+		require.Equal(t, tt.want.Type, tx.Type)
 	}
 }
 
@@ -730,24 +729,23 @@ func Test_isCollateralPayment(t *testing.T) {
 }
 
 func Test_newCollateralPaymentTransaction(t *testing.T) {
-	cp := constants.PrivacyCollateralPayment
 	tests := []struct {
 		uid  string
 		want db.Transaction
 	}{
 		{
 			uid:  "some_uid",
-			want: db.Transaction{UID: "some_uid", PrivacyType: &cp},
+			want: db.Transaction{UID: "some_uid", Type: constants.TypeCP},
 		},
 		{
 			uid:  "some_uid2",
-			want: db.Transaction{UID: "some_uid2", PrivacyType: &cp},
+			want: db.Transaction{UID: "some_uid2", Type: constants.TypeCP},
 		},
 	}
 	for _, tt := range tests {
 		tx := newCollateralPaymentTransaction(tt.uid)
 		require.Equal(t, tt.want.UID, tx.UID)
-		require.Equal(t, *tt.want.PrivacyType, *tx.PrivacyType)
+		require.Equal(t, tt.want.Type, tx.Type)
 	}
 }
 
@@ -768,13 +766,13 @@ func Test_isMixing(t *testing.T) {
 
 	tests := []struct {
 		t    db.Transaction
-		want int
+		want bool
 	}{
-		{t: cp, want: -1},
-		{t: ccTx, want: -1},
-		{t: mixingTx, want: 3},
-		{t: mixingTx2, want: 4},
-		{t: unclassifiedTx, want: -1},
+		{t: cp, want: false},
+		{t: ccTx, want: false},
+		{t: mixingTx, want: true},
+		{t: mixingTx2, want: true},
+		{t: unclassifiedTx, want: false},
 	}
 	for _, tt := range tests {
 		require.EqualValues(t, tt.want, isMixing(tt.t))
@@ -783,63 +781,54 @@ func Test_isMixing(t *testing.T) {
 
 func Test_newMixingTransaction(t *testing.T) {
 	tests := []struct {
-		uid                   string
-		denominationTypeIndex int
-		want                  db.Transaction
+		uid  string
+		want db.Transaction
 	}{
 		{
-			uid:                   "some_uid",
-			denominationTypeIndex: 3,
-			want:                  db.Transaction{UID: "some_uid", PrivacyType: testhelper.GetPointer[constants.PrivacyType](constants.MixingTypes[3])},
-		},
-		{
-			uid:                   "some_uid2",
-			denominationTypeIndex: 0,
-			want:                  db.Transaction{UID: "some_uid2", PrivacyType: testhelper.GetPointer[constants.PrivacyType](constants.MixingTypes[0])},
+			uid:  "some_uid",
+			want: db.Transaction{UID: "some_uid", Type: constants.TypeMixing},
 		},
 	}
 	for _, tt := range tests {
-		tx := newMixingTransaction(tt.uid, tt.denominationTypeIndex)
+		tx := newMixingTransaction(tt.uid)
 		require.Equal(t, tt.want.UID, tx.UID)
-		require.EqualValues(t, *tt.want.PrivacyType, *tx.PrivacyType)
+		require.EqualValues(t, tt.want.Type, tx.Type)
 	}
 }
 
 func Test_newOriginTransaction(t *testing.T) {
-	cp := constants.PrivacyOrigin
 	tests := []struct {
 		uid  string
 		want db.Transaction
 	}{
 		{
 			uid:  "some_uid",
-			want: db.Transaction{UID: "some_uid", PrivacyType: &cp},
+			want: db.Transaction{UID: "some_uid", Type: constants.TypeOrigin},
 		},
 		{
 			uid:  "some_uid2",
-			want: db.Transaction{UID: "some_uid2", PrivacyType: &cp},
+			want: db.Transaction{UID: "some_uid2", Type: constants.TypeOrigin},
 		},
 	}
 	for _, tt := range tests {
 		tx := newOriginTransaction(tt.uid)
 		require.Equal(t, tt.want.UID, tx.UID)
-		require.Equal(t, *tt.want.PrivacyType, *tx.PrivacyType)
+		require.Equal(t, tt.want.Type, tx.Type)
 	}
 }
 
-func Test_hasValidPrivacyType(t *testing.T) {
+func Test_hasValidTransactionType(t *testing.T) {
 	tests := []struct {
 		tx   db.Transaction
 		want bool
 	}{
-		{tx: db.Transaction{PrivacyType: nil}, want: false},
-		{tx: db.Transaction{PrivacyType: testhelper.GetPointer[constants.PrivacyType](0)}, want: true},
-		{tx: db.Transaction{PrivacyType: testhelper.GetPointer[constants.PrivacyType](constants.PrivacyCollateralPaymentLast + 1)},
-			want: false},
-		{tx: db.Transaction{PrivacyType: testhelper.GetPointer[constants.PrivacyType](5)}, want: true},
+		{tx: db.Transaction{Type: ""}, want: false},
+		{tx: db.Transaction{Type: constants.TypeMixing}, want: true},
+		{tx: db.Transaction{Type: constants.TypeCP + "asdf"}, want: false},
+		{tx: db.Transaction{Type: constants.TypeDestination}, want: true},
 	}
 	for _, tt := range tests {
-		require.Equal(t, tt.want, hasValidPrivacyType(tt.tx))
+		require.Equal(t, tt.want, hasValidTransactionType(tt.tx))
 	}
 }
 
@@ -857,7 +846,7 @@ func Test_classifyTransactions(t *testing.T) {
 	for i, hash := range txHashes {
 		transaction, err := db.GetTransaction(dbHandle, hash)
 		require.NoError(t, err)
-		transaction.PrivacyType = nil
+		transaction.Type = ""
 		txs[i] = transaction
 	}
 

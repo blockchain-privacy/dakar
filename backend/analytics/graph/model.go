@@ -1,16 +1,15 @@
 package graph
 
 import (
-	"backend/constants"
 	"gonum.org/v1/gonum/graph"
 
 	"time"
 )
 
 type TransactionNode struct {
-	TS          time.Time
-	id          int64
-	PrivacyType constants.PrivacyType
+	TS   time.Time
+	id   int64
+	Type string
 }
 
 func (n TransactionNode) ID() int64      { return n.id }

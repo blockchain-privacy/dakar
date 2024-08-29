@@ -77,11 +77,10 @@ func TestTransaction_IsMixingTransaction(t *testing.T) {
 	}
 	require.False(t, tx.IsMixingTransaction())
 
-	tx.PrivacyType = &constants.MixingTypes[0]
+	tx.Type = constants.TypeMixing
 	require.True(t, tx.IsMixingTransaction())
 
-	collateralType := constants.PrivacyCollateralCreation
-	tx.PrivacyType = &collateralType
+	tx.Type = constants.TypeCC
 	require.False(t, tx.IsMixingTransaction())
 }
 
@@ -92,11 +91,10 @@ func TestTransaction_IsDestinationTransaction(t *testing.T) {
 	}
 	require.False(t, tx.IsDestinationTransaction())
 
-	tx.PrivacyType = &constants.MixingTypes[0]
+	tx.Type = constants.TypeMixing
 	require.False(t, tx.IsDestinationTransaction())
 
-	destinationType := constants.PrivacyDestination
-	tx.PrivacyType = &destinationType
+	tx.Type = constants.TypeDestination
 	require.True(t, tx.IsDestinationTransaction())
 }
 
@@ -234,7 +232,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, txHash1, transaction[0].Hash)
 	require.Equal(t, blockHash, transaction[0].BlockHash)
 	require.Equal(t, int64(0), transaction[0].Fee)
-	require.Equal(t, int64(-1), transaction[0].PrivacyType)
+	require.Equal(t, "", transaction[0].Type)
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638"
@@ -244,7 +242,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, txHash2, transaction[0].Hash)
 	require.Equal(t, blockHash, transaction[0].BlockHash)
 	require.Equal(t, int64(100000), transaction[0].Fee)
-	require.Equal(t, int64(-1), transaction[0].PrivacyType)
+	require.Equal(t, "", transaction[0].Type)
 }
 
 func TestGetFrontendTransactionsByUID(t *testing.T) {
@@ -298,7 +296,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	// set all transactions to be a mixing transaction
 	for i := range transactions {
-		transactions[i].PrivacyType = &constants.MixingTypes[0]
+		transactions[i].Type = constants.TypeMixing
 	}
 
 	require.NoError(t, UpdateTransactions(dbHandle, transactions))

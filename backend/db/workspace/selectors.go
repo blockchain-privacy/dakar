@@ -104,55 +104,55 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 					}`
 	}
 
-	var privacyTypeFilter string
-	if o.PrivacyTypes != nil {
-		for _, privacyType := range o.PrivacyTypes {
-			if privacyTypeFilter != "" {
-				privacyTypeFilter += " or "
+	var transactionTypeFilter string
+	if o.TransactionTypes != nil {
+		for _, txType := range o.TransactionTypes {
+			if transactionTypeFilter != "" {
+				transactionTypeFilter += " or "
 			}
 
-			switch privacyType {
-			case PrivacyTypeMixing:
-				privacyTypeFilter += "between(privacytype,0," + constants.StrPrivacyMixingLast + ")"
-			case PrivacyTypeDestination:
-				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + ")"
-			case PrivacyTypeOrigin:
-				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + ")"
-			case PrivacyTypeCollateralCreation:
-				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralCreationFirst + "," + constants.StrPrivacyCollateralCreationLast + ")"
-			case PrivacyTypeCollateralPayment:
-				privacyTypeFilter += "between(privacytype," + constants.StrPrivacyCollateralPaymentFirst + "," + constants.StrPrivacyCollateralPaymentLast + ")"
+			switch txType {
+			case constants.TypeMixing:
+				transactionTypeFilter += "eq(Transaction.type," + constants.TypeMixing + ")"
+			case constants.TypeDestination:
+				transactionTypeFilter += "eq(Transaction.type," + constants.TypeDestination + ")"
+			case constants.TypeOrigin:
+				transactionTypeFilter += "eq(Transaction.type," + constants.TypeOrigin + ")"
+			case constants.TypeCC:
+				transactionTypeFilter += "eq(Transaction.type," + constants.TypeCC + ")"
+			case constants.TypeCP:
+				transactionTypeFilter += "eq(Transaction.type," + constants.TypeCP + ")"
 			default:
-				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", privacyType)
+				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", txType)
 			}
 		}
 	}
 
-	// construct @filter(between(privacytype, ..., ...) or between(privacytype, ..., ....) ...)
-	if privacyTypeFilter != "" {
-		privacyTypeFilter = "@filter(" + privacyTypeFilter + ")"
+	// construct @filter(eq(Transaction.type, ..., ...) or eq(Transaction.type, ..., ....) ...)
+	if transactionTypeFilter != "" {
+		transactionTypeFilter = "@filter(" + transactionTypeFilter + ")"
 	}
 
 	if o.ExcludePrivacyTransactions != nil && *o.ExcludePrivacyTransactions {
-		privacyTypeFilter = "@filter(not has(privacytype))"
+		transactionTypeFilter = "@filter(not has(Transaction.type))"
 	}
 
 	var selectorQuery string
 
 	if parentUID == "" {
 		selectorQuery = `var(func: between(ts,"` + o.StartDate.Format(time.RFC3339) + `","` + o.EndDate.Format(time.RFC3339) + `")){
-							t as transactions` + privacyTypeFilter + `
+							t as transactions` + transactionTypeFilter + `
 						}`
 	} else {
 		selectorQuery = `
 					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + TypeHeuristic + `)){
 						Selector.results{
-							hr as HeuristicCluster.results` + privacyTypeFilter + `
+							hr as HeuristicCluster.results` + transactionTypeFilter + `
 						}
 					}
 
 					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + TypeHeuristic + `)){
-						sr as Selector.results` + privacyTypeFilter + `
+						sr as Selector.results` + transactionTypeFilter + `
 					}
 					t as var(func: uid(hr,sr))
 					`
@@ -295,20 +295,20 @@ func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions
 	}
 
 	var lookupDirectionQuery string
-	var privacyFilter string
+	var typeFilter string
 	if o.ExcludePrivacyTransactions {
-		privacyFilter = "@filter(not has(privacytype))"
+		typeFilter = "@filter(not has(Transaction.type))"
 	}
 
 	if o.IsForward {
 		lookupDirectionQuery = `
 								tx_outputs
-								t as ~tx_inputs` + privacyFilter + `
+								t as ~tx_inputs` + typeFilter + `
 								`
 	} else {
 		lookupDirectionQuery = `
 								tx_inputs
-								t as ~tx_outputs` + privacyFilter + `
+								t as ~tx_outputs` + typeFilter + `
 								`
 	}
 

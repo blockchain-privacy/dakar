@@ -127,7 +127,7 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
-						v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
+						v as ~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeMixing + `"))
 					}
 				}
 				

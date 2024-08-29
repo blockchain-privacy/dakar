@@ -468,8 +468,7 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 
 // newCollateralPaymentTransaction returns a new collateral creation transaction with the given uid
 func newCollateralCreationTransaction(uid string) db.Transaction {
-	pt := constants.PrivacyCollateralCreation
-	return db.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, Type: constants.TypeCC}
 }
 
 // isCollateralPayment checks if the transactions is a collateral payment transaction
@@ -493,18 +492,15 @@ func isCollateralPayment(t db.Transaction) bool {
 
 // newCollateralPaymentTransaction returns a new collateral payment transaction with the given uid
 func newCollateralPaymentTransaction(uid string) db.Transaction {
-	pt := constants.PrivacyCollateralPayment
-	return db.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, Type: constants.TypeCP}
 }
 
 // isMixing checks if the transactions is a mixing transaction
-// -1: not a mixing transaction
-// 0-4: denomination type
-func isMixing(t db.Transaction) int {
+func isMixing(t db.Transaction) bool {
 	// At least 3 clients per mixing transaction -> more than 2 inputs/outputs
 	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
 	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
-		return -1
+		return false
 	}
 
 	denominationIn := countOutputDenominations(t.Inputs)
@@ -513,42 +509,38 @@ func isMixing(t db.Transaction) int {
 	for i := range denominationIn {
 		// inputs and outputs should have the same amount of each denomination type
 		if denominationIn[i] != denominationOut[i] {
-			return -1
+			return false
 		}
 
 		if denominationIn[i] > 0 {
 			// there is more than one denomination type
 			if denominationIndex >= 0 {
-				return -1
+				return false
 			}
 			// the number of denominations should be the same as the inputs/outputs
 			if denominationIn[i] != len(t.Inputs) {
-				return -1
+				return false
 			}
 			denominationIndex = i
 		}
 	}
 
-	return denominationIndex
+	return true
 }
 
 // newMixingTransaction returns a new mixing transaction with the given type and uid.
-// bit must be a value between 0 and 4
-func newMixingTransaction(uid string, bit int) db.Transaction {
-	pt := constants.MixingTypes[bit]
-	return db.Transaction{UID: uid, PrivacyType: &pt}
+func newMixingTransaction(uid string) db.Transaction {
+	return db.Transaction{UID: uid, Type: constants.TypeMixing}
 }
 
 // newOriginTransaction returns a new origin transaction with the given uid
 func newOriginTransaction(uid string) db.Transaction {
-	pt := constants.PrivacyOrigin
-	return db.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, Type: constants.TypeOrigin}
 }
 
-// hasValidPrivacyType check is the transaction has a valid privacy type
-func hasValidPrivacyType(tx db.Transaction) bool {
-	t := tx.PrivacyType
-	return t != nil && *t <= constants.PrivacyCollateralPaymentLast
+// hasValidTransactionType check is the transaction has a valid privacy type
+func hasValidTransactionType(tx db.Transaction) bool {
+	return constants.IsValidTransactionType(tx.Type)
 }
 
 // classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
@@ -557,12 +549,12 @@ func classifyTransactions(dgraph external.Database, transactions []db.Transactio
 	cc []db.Transaction, cp []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
-		if hasValidPrivacyType(transaction) {
+		if hasValidTransactionType(transaction) {
 			continue
 		}
 
-		if dIndex := isMixing(transaction); dIndex >= 0 {
-			mixing = append(mixing, newMixingTransaction(transaction.UID, dIndex))
+		if isMixing(transaction) {
+			mixing = append(mixing, newMixingTransaction(transaction.UID))
 			continue
 		}
 

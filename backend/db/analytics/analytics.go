@@ -46,12 +46,11 @@ import (
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
 func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNodes int,
-	privacyRangeFirst constants.PrivacyType, privacyRangeLast constants.PrivacyType) ([]ConnectedNode, error) {
+	transactionType string) ([]ConnectedNode, error) {
 	query := fmt.Sprintf(`{
-				q(func: between(privacytype,`+
-		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){
+				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
 					uid
-					privacytype
+					Transaction.type
 					block:~transactions{
 						ts
 					}
@@ -94,13 +93,11 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 }
 
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
-func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
-	privacyRangeLast constants.PrivacyType) ([]Node, error) {
+func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
 	query := fmt.Sprintf(`{
-				q(func: between(privacytype,`+
-		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){
+				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
 					uid
-					privacytype
+					Transaction.type
 					block:~transactions{
 						ts
 					}
@@ -126,54 +123,48 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 // GetMixingTransactions gets the first numNodes mixing transactions including their input transactions
 // from the database. If maxTx is equal to 0, all mixing transaction are returned.
 func GetMixingTransactions(c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, 0, constants.PrivacyMixingLast)
+	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeMixing)
 }
 
 // GetDestinationTransactions gets the first numNodes destination transactions including their input transactions
 // from the database. If maxTx is equal to 0, all destination transaction are returned.
 func GetDestinationTransactions(c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyDestinationFirst,
-		constants.PrivacyDestinationLast)
+	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeDestination)
 }
 
 // GetOriginTransactions gets the first numNodes origin transactions from the database.
 // If maxTx is equal to 0, all origin transaction are returned.
 func GetOriginTransactions(c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyOriginFirst, constants.PrivacyOriginLast)
+	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeOrigin)
 }
 
 // GetCollateralCreationTransactions gets the numNodes maxTx cc transactions from the database.
 // If maxTx is equal to 0, all cc transaction are returned.
 func GetCollateralCreationTransactions(c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyCollateralCreationFirst,
-		constants.PrivacyCollateralCreationLast)
+	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeCC)
 }
 
-// GetPrivacyTransactionCount gets the number of transaction per privacy type
-func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCount int, ccCount int, cpCount int,
+// GetTransactionTypeCount gets the number of transaction per transaction type
+func GetTransactionTypeCount(c external.Database) (mixingCount int, originCount int, ccCount int, cpCount int,
 	destinationCount int, err error) {
 	const query = `{
-				mixing(func: between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
+				mixing(func: eq(Transaction.type,"` + constants.TypeMixing + `")){
 					count(uid)
 				}
 
-				origin(func: between(privacytype,` +
-		constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + `)){
+				origin(func: eq(Transaction.type,"` + constants.TypeOrigin + `")){
 					count(uid)
 				}
 
-				destination(func: between(privacytype,` +
-		constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + `)){
+				destination(func: eq(Transaction.type,"` + constants.TypeDestination + `")){
 					count(uid)
 				}
 
-				cc(func: between(privacytype,` +
-		constants.StrPrivacyCollateralCreationFirst + "," + constants.StrPrivacyCollateralCreationLast + `)){
+				cc(func: eq(Transaction.type,"` + constants.TypeCC + `")){
 					count(uid)
 				}
 
-				cp(func: between(privacytype,` +
-		constants.StrPrivacyCollateralPaymentFirst + "," + constants.StrPrivacyCollateralPaymentLast + `)){
+				cp(func: eq(Transaction.type,"` + constants.TypeCP + `")){
 					count(uid)
 				}
 			  }`
@@ -232,14 +223,13 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 					txs as transactions
 				}
 				# get mixing transactions
-				mx as var(func: uid(txs))@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
+				mx as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeMixing + `")){
 					tx_inputs{
 						mxi as ~tx_outputs
 					}
 				}
 				# get destination transactions
-				dst as var(func: uid(txs))@filter(between(privacytype,` + constants.StrPrivacyDestinationFirst + "," +
-		constants.StrPrivacyDestinationLast + `)){
+				dst as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDestination + `")){
 					tx_inputs{
 						dsti as ~tx_outputs
 					}
@@ -247,7 +237,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 				
 				connected(func: uid(mx,dst)){
 					uid
-					privacytype
+					Transaction.type
 					block:~transactions{
 						ts
 					}
@@ -263,7 +253,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 
 				single(func: uid(mxi,dsti)){
 					uid
-					privacytype
+					Transaction.type
 					block:~transactions{
 						ts
 					}
@@ -299,11 +289,16 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	return connectedNodes, r.Single, nil
 }
 
-// GetPrivacyTypeData returns timestamps when the transactions of the specified privacyType occur.
-// If the string is empty then all privacy transactions are considered.
-func GetPrivacyTypeData(c external.Database, startRange string, stopRange string) (ts []time.Time, err error) {
-	const query = `query Q($ge:string,$le:string){
-				q(func:between(privacytype,$ge,$le))@normalize{
+// GetTransactionTypeData returns timestamps when the transactions of the specified type occur.
+// If the type is empty then all transaction types are considered.
+func GetTransactionTypeData(c external.Database, transactionType string) (ts []time.Time, err error) {
+	funcQuery := "eq(Transaction.type,$txType)"
+	if transactionType == "" {
+		funcQuery = "has(Transaction.type)"
+	}
+
+	query := `query Q($txType:string){
+				q(func:` + funcQuery + `)@normalize{
 					~transactions{
 						ts:ts
 					}
@@ -311,7 +306,7 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$ge": startRange, "$le": stopRange})
+		map[string]string{"$txType": transactionType})
 	if err != nil {
 		return
 	}
@@ -342,7 +337,7 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 	const query = `query Q($txhash: string) {
 				var(func: eq(txhash, $txhash))@recurse(depth:3){
 					tx_outputs
-					~tx_inputs@filter(has(privacytype))
+					~tx_inputs@filter(has(Transaction.type))
 					pt as txhash
 				}
 
@@ -393,7 +388,7 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 					transactions@filter(uid(pt)){
 						uid
 						txhash
-						privacytype
+						Transaction.type
 						fee
 						dgraph.type
 						tx_outputs {
@@ -482,7 +477,7 @@ func GetDestinationTransactionSpenders(c external.Database) (
 	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
 	usingDestinationTransactionsCount int, err error) {
 	const query = `{
-		destinations as var(func: between(privacytype,100,199))@cascade{
+		destinations as var(func: eq(Transaction.type,"` + constants.TypeDestination + `"))@cascade{
 			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
 		}
 
@@ -500,7 +495,7 @@ func GetDestinationTransactionSpenders(c external.Database) (
 			uid
 			txhash
 			tx_inputs@normalize{
-				~tx_outputs@filter(between(privacytype,100,199)){
+				~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDestination + `")){
 					uid:uid
 					txhash:txhash
 				}
@@ -670,17 +665,17 @@ func GetAllFMIClusters(c external.Database) (uids []string, err error) {
 // False: Only inputs are traversed
 // withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
 func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Database, txFrom string, txTo string,
-	withPrivacyTransactions bool, anyDirection bool) ([]db.FrontendTransaction, error) {
+	withTransactionTypes bool, anyDirection bool) ([]db.FrontendTransaction, error) {
 	/* Full query
 	query Q($txFrom:string, $txTo:string){
 					f as var(func: eq(txhash,$txFrom))
 					t as var(func: eq(txhash,$txTo))
 					path as shortest(from: uid(f), to: uid(t), depth: 20){
 						tx_inputs
-						~tx_outputs@filter(NOT has(privacytype)) tx_outputs ~tx_inputs@filter(NOT has(privacytype)) }
+						~tx_outputs@filter(NOT has(Transaction.type)) tx_outputs ~tx_inputs@filter(NOT has(Transaction.type)) }
 					path(func: uid(path))@normalize{
 						txhash:txhash
-						privacytype:privacytype
+						txtype:Transaction.type
 						~transactions{
 							bid:id
 							bts:ts
@@ -690,16 +685,16 @@ func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Data
 				  }
 	*/
 
-	privacyFlag := " " // spaces are needed
+	typeFlag := " " // spaces are needed
 
-	if !withPrivacyTransactions {
-		privacyFlag = "@filter(NOT has(privacytype)) " // spaces are needed
+	if !withTransactionTypes {
+		typeFlag = "@filter(NOT has(Transaction.type)) " // spaces are needed
 	}
 
 	var anyDirectionFlag string
 
 	if anyDirection {
-		anyDirectionFlag = "tx_outputs ~tx_inputs" + privacyFlag
+		anyDirectionFlag = "tx_outputs ~tx_inputs" + typeFlag
 	}
 
 	query := `query Q($txFrom:string, $txTo:string){
@@ -707,10 +702,10 @@ func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Data
 				t as var(func: eq(txhash,$txTo))
 				path as shortest(from: uid(f), to: uid(t), depth: 20){
 					tx_inputs
-					~tx_outputs` + privacyFlag + anyDirectionFlag + `}
+					~tx_outputs` + typeFlag + anyDirectionFlag + `}
 				path(func: uid(path))@normalize{
 					txhash:txhash
-					privacytype:privacytype
+					txtype:Transaction.type
 					~transactions{
 						bid:id
 						bts:ts

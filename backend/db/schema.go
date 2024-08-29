@@ -14,7 +14,7 @@ import (
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version.
-const SchemaVersion uint64 = 9
+const SchemaVersion uint64 = 10
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -46,14 +46,14 @@ func SetupSchema(c external.Database) error {
 			}
 
 			txhash: string @index(hash) @upsert .
-			privacytype: int @index(int) .
 			fee: int .
 			tx_inputs: [uid] @reverse .
 			tx_outputs: [uid] @reverse .
+			Transaction.type: string @index(hash) .
 
 			type Transaction {
 				txhash
-				privacytype
+				Transaction.type
 				fee
 				tx_outputs
 				tx_inputs
