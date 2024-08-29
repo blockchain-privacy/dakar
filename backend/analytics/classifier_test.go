@@ -173,6 +173,21 @@ func TestIsMixing(t *testing.T) {
 		},
 	}
 
+	noDenominations := db.Transaction{
+		Fee:  new(int64),
+		Hash: "some_hash",
+		Outputs: []db.Output{
+			{Amount: &one},
+			{Amount: &one},
+			{Amount: &one},
+		},
+		Inputs: []db.Output{
+			{Amount: &one},
+			{Amount: &one},
+			{Amount: &one},
+		},
+	}
+
 	var cases = []transactionTest{
 		{shouldWork1, false},
 		{shouldWork2, false},
@@ -183,6 +198,7 @@ func TestIsMixing(t *testing.T) {
 		{notEqualAmountsOfInputsAndOutputs, true},
 		{mixedDenominations, true},
 		{notOnlyDenominations, true},
+		{noDenominations, true},
 	}
 
 	for _, c := range cases {

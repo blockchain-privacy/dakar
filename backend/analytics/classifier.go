@@ -505,7 +505,8 @@ func isMixing(t db.Transaction) bool {
 
 	denominationIn := countOutputDenominations(t.Inputs)
 	denominationOut := countOutputDenominations(t.Outputs)
-	denominationIndex := -1
+	foundDenominations := false
+
 	for i := range denominationIn {
 		// inputs and outputs should have the same amount of each denomination type
 		if denominationIn[i] != denominationOut[i] {
@@ -514,18 +515,18 @@ func isMixing(t db.Transaction) bool {
 
 		if denominationIn[i] > 0 {
 			// there is more than one denomination type
-			if denominationIndex >= 0 {
+			if foundDenominations {
 				return false
 			}
 			// the number of denominations should be the same as the inputs/outputs
 			if denominationIn[i] != len(t.Inputs) {
 				return false
 			}
-			denominationIndex = i
+			foundDenominations = true
 		}
 	}
 
-	return true
+	return foundDenominations
 }
 
 // newMixingTransaction returns a new mixing transaction with the given type and uid.
