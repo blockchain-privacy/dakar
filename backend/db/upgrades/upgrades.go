@@ -33,11 +33,13 @@ var availableUpgrades = map[uint64]UpgradePackage{
 			DropPredicateHex,
 			AlterSchemaRemoveHex},
 	},
-	6:  {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
-	7:  {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
-	8:  {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
-	9:  {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
-	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType}},
+	6: {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
+	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
+	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
+	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
+	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType, func() schemaUpgrade {
+		return func(c external.Database) error { return status.SetLastClassifiedBlockID(c, 0) }
+	}()}},
 }
 
 var thisLogger *slog.Logger
