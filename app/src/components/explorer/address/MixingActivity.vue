@@ -12,7 +12,7 @@
         <v-row class="mt-2">
           <v-col class="d-flex align-center justify-center flex-wrap">
             <p class="v-label me-2">
-              Filter by Privacy Type
+              Filter by ransaction type
             </p>
             <chip-filter
               v-model="chipFilterModel"
@@ -178,7 +178,7 @@
                   {{ tooManyTransactionsThreshold }} transactions.
                   Displaying a large number of items in a force graph may severely degrade
                   the performance of your browser.
-                  Consider filtering the results by time or privacy type.
+                  Consider filtering the results by time or transaction type.
                 </v-alert>
                 <v-btn
                   color="primary"
