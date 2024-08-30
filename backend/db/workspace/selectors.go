@@ -113,15 +113,15 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 
 			switch txType {
 			case constants.TypeMixing:
-				transactionTypeFilter += "eq(Transaction.type," + constants.TypeMixing + ")"
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeMixing + "\")"
 			case constants.TypeDestination:
-				transactionTypeFilter += "eq(Transaction.type," + constants.TypeDestination + ")"
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDestination + "\")"
 			case constants.TypeOrigin:
-				transactionTypeFilter += "eq(Transaction.type," + constants.TypeOrigin + ")"
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeOrigin + "\")"
 			case constants.TypeCC:
-				transactionTypeFilter += "eq(Transaction.type," + constants.TypeCC + ")"
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeCC + "\")"
 			case constants.TypeCP:
-				transactionTypeFilter += "eq(Transaction.type," + constants.TypeCP + ")"
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeCP + "\")"
 			default:
 				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", txType)
 			}
