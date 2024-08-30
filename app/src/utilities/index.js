@@ -256,14 +256,13 @@ export function plural(subject, count) {
 
 // Returns a mapping between transaction types and their colors
 export function getColorMap() {
+	// Colors from https://sashamaps.net/docs/resources/20-colors/
 	const colorMap = new Map();
-
-	colorMap.set('origin', '#CB5599');
-	colorMap.set('mixing', '#56B4E9');
-	colorMap.set('destination', '#0072B2');
-	colorMap.set('collateral creation', '#E69F00');
-	colorMap.set('collateral payment', '#D00000');
-
+	colorMap.set('origin', '#800000');
+	colorMap.set('mixing', '#e6194B');
+	colorMap.set('destination', '#fabed4');
+	colorMap.set('collateral creation', '#3cb44b');
+	colorMap.set('collateral payment', '#bfef45');
 	return colorMap;
 }
 

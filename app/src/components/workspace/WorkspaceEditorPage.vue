@@ -229,17 +229,18 @@ const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const colorMap = getColorMap();
-colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#fff23e');
+colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
-colorMap.set(SELECTOR_TYPE_HEURISTIC, '#344e41');
-colorMap.set(SELECTOR_TYPE_TX_PROP, '#588157');
-colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#a3b18a');
+
+colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
+colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
+colorMap.set(SELECTOR_TYPE_TX_PROP, '#000075');
 
 const nodeTypeLabels = [
-	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#588157'},
-	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#fff23e'},
-	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
+	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: colorMap.get(SELECTOR_TYPE_TX_PROP)},
+	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: colorMap.get(WORKSPACE_NODE_TYPE_CLUSTER)},
+	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: colorMap.get(WORKSPACE_NODE_TYPE_TRANSACTION)},
 ];
 
 const nodeGraph = new NodeGraph(colorMap);
