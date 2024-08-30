@@ -59,7 +59,7 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 					
 					q(func: uid(transactions)){
 						txhash
-						Transaction.type
+						txtype:Transaction.type
 						block:~transactions{
 						ts
 						}
