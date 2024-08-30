@@ -175,37 +175,6 @@ export function isAdminIdentity(session) {
 	return isRole(session, 'admin');
 }
 
-// GetPrivacyTypeLabel translates the integer representation of privacy types to string
-export function getPrivacyTypeLabel(privacyType) {
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0 || t > 499) {
-		return '';
-	}
-
-	if (t <= 99) {
-		return 'mixing';
-	}
-
-	if (t <= 199) {
-		return 'destination';
-	}
-
-	if (t <= 299) {
-		return 'origin';
-	}
-
-	if (t <= 399) {
-		return 'collateral creation';
-	}
-
-	if (t <= 499) {
-		return 'collateral payment';
-	}
-
-	return '';
-}
-
 // GetPrivacyTypeTooltip returns the corresponding tooltip path
 export function getPrivacyTypeTooltip(privacyType) {
 	const folder = 'transactionTypes';

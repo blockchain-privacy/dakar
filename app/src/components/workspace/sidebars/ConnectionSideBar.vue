@@ -46,8 +46,8 @@
                     {{ item.txhash }}
                   </store-link>
                 </template>
-                <template #item.privacytype="{ item }">
-                  <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
+                <template #item.txtype="{ item }">
+                  <span>{{ capitalize(item.txtype) }}</span>
                 </template>
                 <template #item.ts="{ item }">
                   <span>{{ item.ts.toLocaleString() }}</span>
@@ -118,7 +118,7 @@ import {
 	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import {convertAmount, getPrivacyTypeLabel} from '../../../utilities/index.js';
+import {capitalize, convertAmount} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import StoreLink from '@/components/common/WorkspaceLink.vue';
