@@ -176,7 +176,7 @@ type Node struct {
 
 	// transaction
 	TransactionHash string `json:"transactionHash,omitempty"`
-	TransactionType string `json:"transactionType,omitempty"`
+	TransactionType string `json:"txtype,omitempty"`
 
 	// selector
 	SelectorCreated          string               `json:"selectorCreated,omitempty"`

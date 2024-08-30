@@ -175,8 +175,8 @@ export function isAdminIdentity(session) {
 	return isRole(session, 'admin');
 }
 
-// GetPrivacyTypeTooltip returns the corresponding tooltip path
-export function getPrivacyTypeTooltip(privacyType) {
+// Returns the corresponding tooltip path
+export function getTransactionTypeTooltip(privacyType) {
 	const folder = 'transactionTypes';
 
 	if (privacyType === PRIVACY_TYPE_MIXING) {
@@ -214,35 +214,32 @@ export function getClusterTypeLabel(clusterType) {
 	}
 }
 
-// IsMixing returns true if the provided privacyType is in the range of mixing transactions
-export function isMixing(privacyType) {
-	return privacyType === PRIVACY_TYPE_MIXING;
+// Returns true if the provided transaction type is mixing
+export function isMixing(type) {
+	return type === PRIVACY_TYPE_MIXING;
 }
 
-// IsOrigin returns true if the provided privacyType is in the range of origin transactions
-export function isOrigin(privacyType) {
-	return privacyType === PRIVACY_TYPE_ORIGIN;
+// Returns true if the provided transaction type is origin
+export function isOrigin(type) {
+	return type === PRIVACY_TYPE_ORIGIN;
 }
 
-// IsDestination returns true if the provided privacyType is in the range of
-// destination transactions
-export function isDestination(privacyType) {
-	return privacyType === PRIVACY_TYPE_CC;
+// Returns true if the provided transaction type is destination
+export function isDestination(type) {
+	return type === PRIVACY_TYPE_CC;
 }
 
-// IsCollateralCreation returns true if the provided privacyType is in the range of
-// collateral creation transactions
-export function isCollateralCreation(privacyType) {
-	return privacyType === PRIVACY_TYPE_DESTINATION;
+// Returns true if the provided transaction type is collateral creation
+export function isCollateralCreation(type) {
+	return type === PRIVACY_TYPE_DESTINATION;
 }
 
-// IsCollateralPayment returns true if the provided privacyType is in the range of
-// collateral payment transactions
-export function isCollateralPayment(privacyType) {
-	return privacyType === PRIVACY_TYPE_CP;
+// Returns true if the provided transaction type is collateral payment
+export function isCollateralPayment(type) {
+	return type === PRIVACY_TYPE_CP;
 }
 
-// IsFunction returns true if the provided argument is a function
+// Returns true if the provided argument is a function
 export function isFunction(functionToCheck) {
 	if (!functionToCheck) {
 		return false;
@@ -252,7 +249,7 @@ export function isFunction(functionToCheck) {
 	return fnType === '[object Function]' || fnType === '[object AsyncFunction]';
 }
 
-// Plural appends an 's' at the end of subject if count is higher than one
+// Appends an 's' at the end of subject if count is higher than one
 export function plural(subject, count) {
 	return count > 1 ? `${subject}s` : subject;
 }

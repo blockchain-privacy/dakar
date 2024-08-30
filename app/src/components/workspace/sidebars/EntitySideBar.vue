@@ -53,7 +53,7 @@
           Add Graph Selector
         </v-chip>
         <v-chip
-          v-if="isHeuristic || isDestination(entityData[0]?.privacytype) || isOrigin(entityData[0]?.privacytype)"
+          v-if="isHeuristic || isDestination(entityData[0]?.txtype) || isOrigin(entityData[0]?.txtype)"
           rounded
           color="primary"
           variant="tonal"
@@ -65,13 +65,13 @@
           Add CoinJoin Heuristic
         </v-chip>
         <fingerprint-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.privacytype)"
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.txtype)"
           :transaction-hash="identifier"
           class="me-2"
         />
         <privacy-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION&& entityData[0]?.privacytype >= 0"
-          :privacy-type="entityData[0].privacytype"
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.txtype"
+          :privacy-type="entityData[0].txtype"
         />
         <exclusion-chip
           v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"

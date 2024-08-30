@@ -17,7 +17,7 @@
           :shortest-path-enabled="isShortestPathLookupEnabled"
           :add-entity-enabled="!isModifyingWorkspace"
           :node-type-items="nodeTypeLabels"
-          :privacy-type-items="privacyTypeLabels"
+          :transaction-type-items="transactionTypeLabels"
           @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
           @rearrange="handleMenuRearrange"
           @center="handleMenuCenter"
@@ -370,7 +370,7 @@ watch(
 );
 
 // Computed
-const privacyTypeLabels = computed(() => {
+const transactionTypeLabels = computed(() => {
 	const labels = [];
 
 	getColorMap().forEach((v, k) => {
@@ -504,7 +504,7 @@ function isDestiationNode(node) {
 		return false;
 	}
 
-	return node.privacyTypeLabel === PRIVACY_TYPE_DESTINATION;
+	return node.txtype === PRIVACY_TYPE_DESTINATION;
 }
 
 function isOriginNode(node) {
@@ -512,7 +512,7 @@ function isOriginNode(node) {
 		return false;
 	}
 
-	return node.privacyTypeLabel === PRIVACY_TYPE_ORIGIN;
+	return node.txtype === PRIVACY_TYPE_ORIGIN;
 }
 
 function isEditEnabled(contextNode) {
@@ -526,7 +526,7 @@ function isDeleteEnabled(contextNode) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && contextNode.privacyTypeLabel !== PRIVACY_TYPE_DESTINATION) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && contextNode.txtype !== PRIVACY_TYPE_DESTINATION) {
 		return true;
 	}
 

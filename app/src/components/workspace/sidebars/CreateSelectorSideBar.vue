@@ -124,7 +124,7 @@
               multiple
               label="Transaction Types"
               hide-details
-              :items="privacyTypeItems"
+              :items="transactionTypeItems"
             >
               <template #selection="{ item }">
                 <color-chip
@@ -392,12 +392,12 @@ const parameterRules = new Map([
 	['date', [v => Boolean(v)]],
 ]);
 
-const privacyTypeItems = [];
+const transactionTypeItems = [];
 
 // Hooks
 onMounted(() => {
 	getColorMap().forEach((v, k) => {
-		privacyTypeItems.push({title: capitalize(k), value: k, color: v});
+		transactionTypeItems.push({title: capitalize(k), value: k, color: v});
 	});
 });
 
