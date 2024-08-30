@@ -71,7 +71,7 @@
         />
         <privacy-chip
           v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.txtype"
-          :privacy-type="entityData[0].txtype"
+          :transaction-type="entityData[0].txtype"
         />
         <exclusion-chip
           v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
