@@ -28,6 +28,9 @@
           <template #item.dateTime="{ item }">
             <span>{{ item.dateTime.toLocaleString() }}</span>
           </template>
+          <template #item.txtype="{ item }">
+            <span>{{ capitalize(item.txtype) }}</span>
+          </template>
         </v-data-table>
       </v-card-text>
     </v-card>
@@ -37,6 +40,7 @@
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import StoreLink from '@/components/common/WorkspaceLink.vue';
+import {capitalize} from '../../../utilities/index.js';
 
 defineProps({
 	transactions: {type: Array, required: true},

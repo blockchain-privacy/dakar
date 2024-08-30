@@ -17,7 +17,7 @@
             <chip-filter
               v-model="chipFilterModel"
               mandatory
-              :items="privacyLabels"
+              :items="transactionTypes"
               :disabled="!activities || activities.length === 0"
               @changed="handleChipFilterChanged"
             />
@@ -137,8 +137,8 @@
                 style="text-align: center"
               >
                 {{
-                  selectedPrivacyLabel.length === 5 ? 'All Privacy'
-                  : selectedPrivacyLabel.map(capitalize).join(', ')
+                  selectedTransactionType.length === 5 ? 'All Privacy'
+                  : selectedTransactionType.map(capitalize).join(', ')
                 }}
                 Transactions
               </div>
@@ -207,7 +207,7 @@
             v-model="showNodeDialog"
             :input-txs="clickedNode.input_txs?clickedNode.input_txs:[]"
             :date-time="clickedNode.dateTime"
-            :privacy-type="clickedNode.privacyTypeLabel"
+            :transaction-type="clickedNode.txtype"
             :tx-hash="clickedNode.txhash"
           />
           <div
@@ -245,7 +245,7 @@
 
 <script setup>
 import Histogram from '@/d3Documents/histogram';
-import {getColorMap, getPrivacyTypeLabel, capitalize} from '@/utilities';
+import {getColorMap, capitalize} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
@@ -297,7 +297,7 @@ const barTable = ref({
 		title: 'Transaction', align: 'start', key: 'txhash',
 	},
 	{title: 'Timestamp', key: 'dateTime'},
-	{title: 'Privacy Type', key: 'privacyTypeLabel'}],
+	{title: 'Type', key: 'txtype'}],
 	transactions: [],
 	startDate: '',
 	endDate: '',
@@ -307,13 +307,13 @@ const clickedNode = ref({
 	// eslint-disable-next-line camelcase
 	input_txs: [],
 	dateTime: null,
-	privacyTypeLabel: '',
+	txtype: '',
 	txhash: '',
 });
 const showNodeDialog = ref(false);
 const hasLoaded = ref(false);
-const privacyLabels = [...colorMap.entries()].map(d => ({text: d[0], color: d[1]}));
-const chipFilterModel = ref([...privacyLabels.keys()]);
+const transactionTypes = [...colorMap.entries()].map(d => ({text: d[0], color: d[1]}));
+const chipFilterModel = ref([...transactionTypes.keys()]);
 
 watch(() => props.addressHash, () => {
 	// Prop was changed -> pull new data
@@ -322,7 +322,7 @@ watch(() => props.addressHash, () => {
 
 // Computed
 
-const selectedPrivacyLabel = computed(() => chipFilterModel.value.map(d => privacyLabels[d].text));
+const selectedTransactionType = computed(() => chipFilterModel.value.map(d => transactionTypes[d].text));
 
 // Returns truer if min and max or on the same calendar day
 const isSameDay = computed(() => {
@@ -430,8 +430,8 @@ function getFilteredData(withGraphData) {
 	const numActivities = activities.value.length;
 
 	const items = activities.value.map(d => toRaw(d)).filter(d => {
-		if (selectedPrivacyLabel.value.length < 5
-			&& !selectedPrivacyLabel.value.includes(d.privacyTypeLabel)) {
+		if (selectedTransactionType.value.length < 5
+			&& !selectedTransactionType.value.includes(d.txtype)) {
 			return false;
 		}
 
@@ -578,7 +578,6 @@ async function updateSvgData(pullNewData) {
 		let minDate = null;
 
 		activities.value = mixingActivity.data.activities.map(d => {
-			d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
 			d.dateTime = new Date(d.block[0].ts);
 
 			if (maxDate === null || d.dateTime > maxDate) {

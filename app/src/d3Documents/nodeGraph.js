@@ -184,8 +184,8 @@ export default class NodeGraph {
 			return false;
 		}
 
-		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION && node.privacyTypeLabel) {
-			return this.#filterPrivacyTypes.includes(node.privacyTypeLabel);
+		if (node.type === WORKSPACE_NODE_TYPE_TRANSACTION && node.txtype) {
+			return this.#filterPrivacyTypes.includes(node.txtype);
 		}
 
 		return true;
@@ -861,8 +861,8 @@ export default class NodeGraph {
 
 					if (d.selectorType) {
 						nodeColor = this.#nodeTypeColorMap.get(d.selectorType);
-					} else if (d.privacyTypeLabel) {
-						nodeColor = this.#nodeTypeColorMap.get(d.privacyTypeLabel);
+					} else if (d.txtype) {
+						nodeColor = this.#nodeTypeColorMap.get(d.txtype);
 					} else {
 						nodeColor = this.#nodeTypeColorMap.get(d.type);
 					}
@@ -1032,8 +1032,8 @@ export default class NodeGraph {
 		// 	.attr('fill', 'currentColor')
 		// 	.attr('y', this.#nodeRadius + textHeight * 2 + textAreaMargin)
 		// 	.text(d => {
-		// 		if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.privacyTypeLabel) {
-		// 			return d.privacyTypeLabel;
+		// 		if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.txtype) {
+		// 			return d.txtype;
 		// 		}
 		//
 		// 		return '';
