@@ -37,7 +37,17 @@ func AddWorkspace(ctx context.Context, c external.Database, name string, userUID
 		return
 	}
 
-	resp, err := c.Mutate(ctx, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true})
+	resp, err := c.Mutate(ctx, &api.Request{
+		Query: `query Q($userUID: string) {
+					u as var(func: uid($userUID))@filter(type(User))
+				  }`,
+		Vars: map[string]string{"$userUID": userUID},
+		Mutations: []*api.Mutation{{
+			Cond:    "@if(eq(len(u), 1))",
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	})
 	if err != nil {
 		err = serror.New(err)
 		return
