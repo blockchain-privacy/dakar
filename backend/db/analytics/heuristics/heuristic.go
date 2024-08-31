@@ -62,7 +62,7 @@ func DeleteAllHeuristics(c external.Database) error {
 func GetHeuristicTransactions(c external.Database, heuristicUID string) (results []HeuristicTransaction,
 	attributionMap map[ClusterUID][]string, err error) {
 	const query = `query Q($uid:string) {
-				var (func: uid($uid)){ x as Heuristic.clusters }
+				var (func: uid($uid)){ x as Selector.results }
 				
 				q(func: uid(x)){
 					uid

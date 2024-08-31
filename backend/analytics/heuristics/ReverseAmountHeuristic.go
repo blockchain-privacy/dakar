@@ -116,13 +116,12 @@ func (h *reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	inputDenominationCounts := getDenominationCounts(transaction)
-
 	originAmounts := buildSourceAmounts(origins)
 
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {
-			// save all transaction uids of a particular cluster to the return set
+			// add all transaction uids of a particular cluster to the return set
 			for _, tx := range sourceTransactionMap[clusterID] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], db.UIDNode{UID: tx.UID})
 			}
