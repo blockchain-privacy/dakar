@@ -147,6 +147,30 @@ func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.
 	return parentIndex, parentNode, nil
 }
 
+// isValidParent checks if the parent is a selector, if it belongs to the user and if it was successfully executed
+func isValidParent(ctx context.Context, dgraph external.Database, selectorParent string, workspaceUID string, userUID string) (bool, error) {
+	parentType, err := db.GetTypeByUID(ctx, dgraph, selectorParent)
+	if err != nil {
+		return false, err
+	}
+
+	if parentType != workspace.SelectorDType {
+		return true, nil
+	}
+
+	// check if parent belongs to user and if status is correct
+	status, err := workspace.GetSelectorStatus(ctx, dgraph, selectorParent, workspaceUID, userUID)
+	if err != nil {
+		if errors.Is(err, workspace.ErrInvalidSelector) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return status == workspace.StatusSuccess, nil
+}
+
 // AddSelector adds a new selector to the workspace. It returns UID the updated workspace.
 func AddSelector[O Options](ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options O,
 	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, []workspace.Node, error) {
@@ -188,23 +212,13 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
 	}
 
-	parentType, err := db.GetTypeByUID(ctx, dgraph, selectorParent)
-	if err != nil {
-		return "", nil, err
-	}
-
-	if parentType == workspace.SelectorDType {
-		// check if parent belongs to user and if status is correct
-		status, err := workspace.GetSelectorStatus(ctx, dgraph, selectorParent, workspaceUID, userUID)
+	if selectorParent != "" {
+		isValid, err := isValidParent(ctx, dgraph, selectorParent, workspaceUID, userUID)
 		if err != nil {
-			if errors.Is(err, workspace.ErrInvalidSelector) {
-				return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "parent", selectorParent)
-			}
-
 			return "", nil, err
 		}
-		if status != workspace.StatusSuccess {
-			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "parent", selectorParent, "parent status", status)
+		if !isValid {
+			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "parent", selectorParent)
 		}
 	}
 
