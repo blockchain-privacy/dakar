@@ -36,6 +36,22 @@ const (
 	heuristicCategoryForward = "Forward"
 )
 
+const (
+	heuristicTypeReverseLookup    = "reverse_lookup"
+	heuristicTypeOneSource        = "one_source"
+	heuristicTypeReverseAmount    = "reverse_amount"
+	heuristicTypePerfect          = "perfect_match"
+	heuristicTypeDenominationType = "denomination_type"
+	heuristicTypeForwardAmount    = "forward_amount"
+	heuristicTypeForwardLookup    = "forward_lookup"
+)
+
+const parentTypeTransaction = "transaction"
+
+var validParentTypes = map[string]bool{parentTypeTransaction: true, heuristicTypeDenominationType: true,
+	heuristicTypeForwardAmount: true, heuristicTypeOneSource: true, heuristicTypePerfect: true,
+	heuristicTypeReverseLookup: true, heuristicTypeReverseAmount: true, heuristicTypeForwardLookup: true}
+
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
@@ -45,9 +61,8 @@ func init() {
 		newPerfectMatchHeuristic,
 		newDenominationTypeHeuristic,
 		newReverseLookupHeuristic,
-		newForwardLookupHeuristic,
 		newForwardAmountHeuristic,
-		newSimpleForwardHeuristic,
+		newForwardLookupHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
@@ -65,18 +80,26 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
 }
 
+// IsValidParent retursn true if the given parent type is a valid parent
+func IsValidParent(parentType string) bool {
+	return validParentTypes[parentType]
+}
+
+type DescriptorParameter struct {
+	DefaultValue string `json:"value,omitempty"`
+	Description  string `json:"description,omitempty"`
+	// Type must be one of the following values: 'int', 'string'
+	Type string `json:"type,omitempty"`
+}
+
 type Descriptor struct {
 	Title       string `json:"title,omitempty"`
 	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
 	Category    string `json:"category,omitempty"`
 	// pointer so Parameter does not appear in JSON if not set
-	Parameter *struct {
-		DefaultValue string `json:"value,omitempty"`
-		Description  string `json:"description,omitempty"`
-		// Type must be one of the following values: 'int', 'string'
-		Type string `json:"type,omitempty"`
-	} `json:"parameter,omitempty"`
+	Parameter      *DescriptorParameter `json:"parameter,omitempty"`
+	AllowedParents []string             `json:"allowedParents,omitempty"`
 }
 
 type heuristic interface {

@@ -18,7 +18,7 @@ type perfectMatchHeuristic struct {
 }
 
 func newPerfectMatchHeuristic() heuristic {
-	return &perfectMatchHeuristic{heuristicType: "perfect_match"}
+	return &perfectMatchHeuristic{heuristicType: heuristicTypePerfect}
 }
 
 func (h *perfectMatchHeuristic) getType() string {
@@ -56,6 +56,7 @@ func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 			"origins of sources, which have denominations " +
 			"without a perfect match for the denominations of " +
 			"the destination transaction.",
+		AllowedParents: []string{heuristicTypeReverseLookup, heuristicTypeOneSource, heuristicTypeReverseAmount, heuristicTypeDenominationType},
 	}
 }
 
@@ -78,34 +79,32 @@ func (h *perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	{ // separate enclosure so the results slice can be garbage collected
-		var results []heuristics.HeuristicTransaction
-		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	var results []heuristics.HeuristicTransaction
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if parentHeuristicSet {
+		// get origins from parent heuristic
+		var err error
+		results, attributionMap, err = heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, err
 		}
-
-		if parentHeuristicSet {
-			// get origins from parent heuristic
-			var err error
-			results, attributionMap, err = heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			var err error
-			results, attributionMap, err = getDestinationTxOrigins(ctx, dgraph, g, h.c.TransactionHash, h.c)
-			if err != nil {
-				return nil, err
-			}
+	} else {
+		var err error
+		results, attributionMap, err = getDestinationTxOrigins(ctx, dgraph, g, h.c.TransactionHash, h.c)
+		if err != nil {
+			return nil, err
 		}
+	}
 
-		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
+	sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
 
-		// Convert from slice to Hash
-		for _, r := range results {
-			origins[r.UID] = r
-		}
+	// Convert from slice to Hash
+	for _, r := range results {
+		origins[r.UID] = r
 	}
 
 	if len(origins) == 0 {

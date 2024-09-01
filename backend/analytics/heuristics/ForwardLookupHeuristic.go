@@ -12,27 +12,27 @@ import (
 	"time"
 )
 
-// forwardLookupHeuristic - see exec for description
-type forwardLookupHeuristic struct {
+// forwardHeuristic - see exec for description
+type forwardHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	lookForwardTime      time.Duration
 	c                    heuristics.Options
+	lookForwardTime      time.Duration
 }
 
 func newForwardLookupHeuristic() heuristic {
-	return &forwardLookupHeuristic{heuristicType: "forward_lookup"}
+	return &forwardHeuristic{heuristicType: heuristicTypeForwardLookup}
 }
 
-func (h *forwardLookupHeuristic) getType() string {
+func (h *forwardHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *forwardLookupHeuristic) getParameterString() string {
+func (h *forwardHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *forwardLookupHeuristic) setConfig(c heuristics.Options) error {
+func (h *forwardHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -53,75 +53,68 @@ func (h *forwardLookupHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *forwardLookupHeuristic) getConfig() heuristics.Options {
+func (h *forwardHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 
-func (h *forwardLookupHeuristic) String() string {
+func (h *forwardHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
 }
 
-func (h *forwardLookupHeuristic) GetDescriptor() Descriptor {
+func (h *forwardHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Forward Lookup",
-		Type:     h.heuristicType,
-		Category: heuristicCategoryForward,
-		Description: "Performs a forward lookup for each origin " +
-			"transaction of the parent heuristic. " +
-			"If this heuristic " +
-			"is placed at the root level a reverse lookup with the same " +
-			"time as the forward lookup will be performed.",
-		Parameter: &struct {
-			DefaultValue string `json:"value,omitempty"`
-			Description  string `json:"description,omitempty"`
-			Type         string `json:"type,omitempty"`
-		}{
+		Title:       "Forward Lookup",
+		Type:        h.heuristicType,
+		Category:    heuristicCategoryForward,
+		Description: "Performs a forward lookup for the provided origin transaction.",
+		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look forward time in hours",
 			Type:         "int",
 		},
+		AllowedParents: []string{parentTypeTransaction},
 	}
 }
 
 // forwardLookupHeuristic applies the following heuristics:
-// - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+//   - parent == transaction: By traversing the mixing graph forward limited by time,
+//     find all destination transactions connected to this transaction.
+//   - parent == heuristic: None, this is not allowed.
+func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
-	var results []heuristics.HeuristicTransaction
-	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
-	var resultAttributionMap map[heuristics.ClusterUID][]string
-
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	{ // separate enclosure so the results slice can be garbage collected
-		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
-		if err != nil {
-			return nil, err
-		}
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+	// heuristic is only allowed to be connected to a transaction
+	if parentHeuristicSet {
+		return nil, serror.New(errHeuristicNotValid)
+	}
 
-		if parentHeuristicSet {
-			// get origins from parent heuristic
-			var err error
-			results, resultAttributionMap, err = heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			var err error
-			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(ctx, dgraph, g,
-				h.c.TransactionHash, h.lookForwardTime, h.c)
-			if err != nil {
-				return nil, err
-			}
-		}
+	uid, err := db.GetTransactionUID(ctx, dgraph, h.c.TransactionHash)
+	if err != nil {
+		return nil, err
+	}
 
-		if len(results) == 0 {
-			return nil, serror.New(errNoOriginsAtStart)
-		}
+	// get tx details for each uid
+	parentResults, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(parentResults) > 1 {
+		return nil, serror.FromFormat("received wrong amount of transactions: %d", len(parentResults))
+	}
+
+	if len(parentResults) == 0 {
+		return nil, serror.New(errNoOriginsAtStart)
 	}
 
 	var exclusions []string
@@ -133,21 +126,19 @@ func (h *forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
-	for _, o := range results {
-		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime,
-			exclusions, h.c.ExcludeSpendingGaps)
-		if err != nil {
-			return nil, err
-		}
-
-		result := make([]db.UIDNode, 0, len(uidMap))
-		for k := range uidMap {
-			result = append(result, db.UIDNode{UID: k})
-		}
-
-		resultClusters[o.Cluster] = result
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode, 1)
+	uidMap, err := getOriginDestinationTimeLimited(g, []string{parentResults[0].UID}, h.lookForwardTime,
+		exclusions, h.c.ExcludeSpendingGaps)
+	if err != nil {
+		return nil, err
 	}
+
+	result := make([]db.UIDNode, 0, len(uidMap))
+	for k := range uidMap {
+		result = append(result, db.UIDNode{UID: k})
+	}
+
+	resultClusters[parentResults[0].Cluster] = result
 
 	return createHeuristicClusters(resultClusters, resultAttributionMap), nil
 }

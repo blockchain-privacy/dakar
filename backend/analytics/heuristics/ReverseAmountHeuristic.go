@@ -18,7 +18,7 @@ type reverseAmountHeuristic struct {
 }
 
 func newReverseAmountHeuristic() heuristic {
-	return &reverseAmountHeuristic{heuristicType: "reverse_amount"}
+	return &reverseAmountHeuristic{heuristicType: heuristicTypeReverseAmount}
 }
 
 func (h *reverseAmountHeuristic) getType() string {

@@ -18,7 +18,7 @@ type denominationTypeHeuristic struct {
 }
 
 func newDenominationTypeHeuristic() heuristic {
-	return &denominationTypeHeuristic{heuristicType: "denomination_type"}
+	return &denominationTypeHeuristic{heuristicType: heuristicTypeDenominationType}
 }
 
 func (h *denominationTypeHeuristic) getType() string {
@@ -63,6 +63,7 @@ func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 			"transaction spends 5 × 10.0001 and 10 × 1.00001. Now " +
 			"all clusters are excluded which do not have these exact " +
 			"two types of denominations.",
+		AllowedParents: []string{heuristicTypeReverseLookup, heuristicTypeOneSource},
 	}
 }
 

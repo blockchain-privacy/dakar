@@ -21,7 +21,7 @@ type oneSourceHeuristic struct {
 }
 
 func newOneSourceHeuristic() heuristic {
-	return &oneSourceHeuristic{heuristicType: "one_source"}
+	return &oneSourceHeuristic{heuristicType: heuristicTypeOneSource}
 }
 
 func (h *oneSourceHeuristic) getType() string {
@@ -67,15 +67,12 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 		Type:        h.heuristicType,
 		Category:    heuristicCategoryReverse,
 		Description: "Filters by time, direct input transaction amount filter and omni sources",
-		Parameter: &struct {
-			DefaultValue string `json:"value,omitempty"`
-			Description  string `json:"description,omitempty"`
-			Type         string `json:"type,omitempty"`
-		}{
+		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",
 			Type:         "int",
 		},
+		AllowedParents: []string{parentTypeTransaction},
 	}
 }
 

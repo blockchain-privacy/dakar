@@ -22,7 +22,7 @@ type reverseLookupHeuristic struct {
 }
 
 func newReverseLookupHeuristic() heuristic {
-	return &reverseLookupHeuristic{heuristicType: "reverse_lookup"}
+	return &reverseLookupHeuristic{heuristicType: heuristicTypeReverseLookup}
 }
 
 func (h *reverseLookupHeuristic) getType() string {
@@ -70,11 +70,7 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 		Description: "Performs a reverse lookup for the given duration and returns " +
 			"all found origins. If this heuristic has a parent heuristic, only origins " +
 			"which also occur in the parent heuristic will be returned. ",
-		Parameter: &struct {
-			DefaultValue string `json:"value,omitempty"`
-			Description  string `json:"description,omitempty"`
-			Type         string `json:"type,omitempty"`
-		}{
+		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",
 			Type:         "int",
