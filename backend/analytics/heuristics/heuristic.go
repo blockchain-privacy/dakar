@@ -48,10 +48,6 @@ const (
 
 const parentTypeTransaction = "transaction"
 
-var validParentTypes = map[string]bool{parentTypeTransaction: true, heuristicTypeDenominationType: true,
-	heuristicTypeForwardAmount: true, heuristicTypeOneSource: true, heuristicTypePerfect: true,
-	heuristicTypeReverseLookup: true, heuristicTypeReverseAmount: true, heuristicTypeForwardLookup: true}
-
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
@@ -78,11 +74,6 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 
 	// for now only one additional cluster type exists
 	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
-}
-
-// IsValidParent retursn true if the given parent type is a valid parent
-func IsValidParent(parentType string) bool {
-	return validParentTypes[parentType]
 }
 
 type DescriptorParameter struct {
