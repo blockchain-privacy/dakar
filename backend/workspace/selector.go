@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 )
@@ -185,6 +186,26 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		newNode.TxGraphOptions = &opt
 	default:
 		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+	}
+
+	parentType, err := db.GetTypeByUID(ctx, dgraph, selectorParent)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if parentType == workspace.SelectorDType {
+		// check if parent belongs to user and if status is correct
+		status, err := workspace.GetSelectorStatus(ctx, dgraph, selectorParent, workspaceUID, userUID)
+		if err != nil {
+			if errors.Is(err, workspace.ErrInvalidSelector) {
+				return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "parent", selectorParent)
+			}
+
+			return "", nil, err
+		}
+		if status != workspace.StatusSuccess {
+			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "parent", selectorParent, "parent status", status)
+		}
 	}
 
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
