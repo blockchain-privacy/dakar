@@ -77,7 +77,7 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look forward time in hours",
 			Type:         "int",
 		},
-		AllowedParents: []string{heuristicTypeForwardLookup},
+		AllowedParents: []string{parentTypeTransaction, heuristicTypeForwardLookup},
 	}
 }
 

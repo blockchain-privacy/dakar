@@ -59,51 +59,42 @@ func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 		Description: "Returns all origins of sources, which " +
 			"have equal or more denominations to fund the " +
 			"destination transaction.",
+		AllowedParents: []string{heuristicTypeReverseLookup, heuristicTypeOneSource, heuristicTypeDenominationType, heuristicTypePerfect},
 	}
 }
 
 // reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h *reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *reverseAmountHeuristic) exec(dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	// origins hold all origins found bei either the parent heuristic
-	// or the destination transaction specified by txHash
-	origins := make(map[string]heuristics.HeuristicTransaction)
-	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
-	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	var attributionMap map[heuristics.ClusterUID][]string
-
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	{ // separate enclosure so the results slice can be garbage collected
-		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
-		if err != nil {
-			return nil, err
-		}
-		var results []heuristics.HeuristicTransaction
-		if parentHeuristicSet {
-			// get origins from parent heuristic
-			var err error
-			results, attributionMap, err = heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			var err error
-			results, attributionMap, err = getDestinationTxOrigins(ctx, dgraph, g, h.c.TransactionHash, h.c)
-			if err != nil {
-				return nil, err
-			}
-		}
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+	// heuristic is only allowed to be connected to another heuristic
+	if !parentHeuristicSet {
+		return nil, serror.New(errHeuristicNotValid)
+	}
 
-		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
+	// get origins from parent heuristic
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
 
-		// Convert from slice to Hash
-		for _, r := range results {
-			origins[r.UID] = r
-		}
+	// maps an address to its origin transactions
+	sourceTransactionMap := addOriginsToMap(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+
+	// origins hold all origins found bei either the parent heuristic
+	// or the destination transaction specified by txHash
+	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
+	// Convert from slice to Hash
+	for _, r := range results {
+		origins[r.UID] = r
 	}
 
 	if len(origins) == 0 {

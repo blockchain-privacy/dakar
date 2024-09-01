@@ -237,18 +237,6 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes)
 }
 
-// getDestinationTxOrigins returns all origins of the given
-// transaction, limited to a look back time of 90 days.
-func getDestinationTxOrigins(ctx context.Context, dgraph external.Database,
-	g *graph.Wrapper, txHash string, c heuristics.Options) ([]heuristics.HeuristicTransaction,
-	map[heuristics.ClusterUID][]string, error) {
-	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(ctx, dgraph, g, txHash, time.Hour*24*90, c)
-	if err != nil {
-		return nil, nil, err
-	}
-	return origins, attributionMapping, nil
-}
-
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
 func getDestinationTxOriginsTimeLimited(ctx context.Context, dgraph external.Database, g *graph.Wrapper,

@@ -110,7 +110,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	if len(parentResults) > 1 {
-		return nil, serror.FromFormat("received wrong amount of transactions: %d", len(parentResults))
+		return nil, serror.FromStr("received more than one transaction")
 	}
 
 	if len(parentResults) == 0 {
@@ -126,7 +126,6 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
-	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode, 1)
 	uidMap, err := getOriginDestinationTimeLimited(g, []string{parentResults[0].UID}, h.lookForwardTime,
 		exclusions, h.c.ExcludeSpendingGaps)
 	if err != nil {
@@ -138,7 +137,5 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		result = append(result, db.UIDNode{UID: k})
 	}
 
-	resultClusters[parentResults[0].Cluster] = result
-
-	return createHeuristicClusters(resultClusters, resultAttributionMap), nil
+	return createHeuristicClusters(map[heuristics.ClusterUID][]db.UIDNode{parentResults[0].Cluster: result}, resultAttributionMap), nil
 }
