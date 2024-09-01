@@ -66,7 +66,7 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 		Title:       "Forward Lookup",
 		Type:        h.heuristicType,
 		Category:    heuristicCategoryForward,
-		Description: "Performs a forward lookup for the provided origin transaction.",
+		Description: "Traverses the transaction graph forward and collects destination transactions.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look forward time in hours",
