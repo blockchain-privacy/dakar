@@ -99,7 +99,6 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	// gather input information
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
