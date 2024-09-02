@@ -580,6 +580,33 @@ export default class NodeGraph {
 		this.centerGraph();
 	}
 
+	getCenterOfNodes() {
+		let xMin;
+		let xMax;
+		let yMin;
+		let yMax;
+
+		this.#filteredNodeMap.forEach(d => {
+			if (d.x < xMin || xMin === undefined) {
+				xMin = d.x;
+			}
+
+			if (d.x > xMax || xMax === undefined) {
+				xMax = d.x;
+			}
+
+			if (d.y < yMin || yMin === undefined) {
+				yMin = d.y;
+			}
+
+			if (d.y > yMax || yMax === undefined) {
+				yMax = d.y;
+			}
+		});
+
+		return {x: xMin + ((xMax - xMin) / 2), y: yMin + ((yMax - yMin) / 2)};
+	}
+
 	// Adds the given node. If a node with the
 	// provided node.uid already exist the existing node is instead updated.
 	// Set draw to false, if the graph should not be redrawn.
@@ -591,12 +618,27 @@ export default class NodeGraph {
 
 		// Check if properties have to be copied
 		const mapNode = this.#nodeMap.get(node.uid);
+		let enableSimulation = false;
 		if (mapNode !== undefined) {
 			node.x = mapNode.x;
 			node.y = mapNode.y;
+		} else if (node.x === undefined) {
+			const centerPosition = this.getCenterOfNodes();
+			if (centerPosition.x !== undefined) {
+				node.x = centerPosition.x;
+				node.y = centerPosition.y;
+				enableSimulation = true;
+			}
 		}
 
-		const n = setFxFy(node);
+		let n;
+		// Enable simulation for nodes added to the center of the graph
+		if (enableSimulation) {
+			n = node;
+		} else {
+			n = setFxFy(node);
+		}
+
 		this.#nodeMap.set(n.uid, n);
 		this.#changedData.set(n.uid, n);
 
@@ -1128,7 +1170,7 @@ export default class NodeGraph {
 		}
 
 		this.simulation = forceSimulation(nodes)
-			.force('link', forceLink(links).id(d => d.uid))
+			.force('link', forceLink(links).id(d => d.uid).strength(30))
 			.force('collide', forceCollide(d => {
 				if (d.type === WORKSPACE_NODE_TYPE_NOTE) {
 					if (d.width && d.height) {
