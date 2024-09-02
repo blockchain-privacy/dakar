@@ -77,7 +77,7 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look forward time in hours",
 			Type:         "int",
 		},
-		AllowedParents: []string{parentTypeTransaction, heuristicTypeForwardLookup},
+		AllowedParents: []string{parentTypeTransaction},
 	}
 }
 
@@ -88,49 +88,49 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
-	// origins hold all origins found bei either the parent heuristic
-	// or the destination transaction specified by txHash
-	origins := make(map[string]heuristics.HeuristicTransaction)
-	// maps a cluster to its origin transactions
-	clusterOrigins := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
-	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	var attributionMap map[heuristics.ClusterUID][]string
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	{ // separate enclosure so the results slice can be garbage collected
-		var results []heuristics.HeuristicTransaction
-		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
-		if err != nil {
-			return nil, err
-		}
-
-		if parentHeuristicSet {
-			// get origins from parent heuristic
-			var err error
-			results, attributionMap, err = heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			var err error
-			results, attributionMap, err = getDestinationTxOriginsTimeLimited(ctx, dgraph, g,
-				h.c.TransactionHash, h.lookForwardTime, h.c)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		clusterOrigins = addOriginsToMap(clusterOrigins, results)
-
-		// Convert from slice to Hash
-		for _, r := range results {
-			origins[r.UID] = r
-		}
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+	// heuristic is only allowed to be connected to a transaction
+	if parentHeuristicSet {
+		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	if len(origins) == 0 || len(clusterOrigins) == 0 {
+	uid, err := db.GetTransactionUID(ctx, dgraph, h.c.TransactionHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) > 1 {
+		return nil, serror.FromStr("received more than one transaction")
+	}
+	if len(results) == 0 {
+		return nil, serror.New(errNoOriginsAtStart)
+	}
+
+	// maps a cluster to its origin transactions
+	clusterToOutputTransactions := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+
+	// outputTransactions hold all outputTransactions found bei either the parent heuristic
+	// or the destination transaction specified by txHash
+	outputTransactions := make(map[string]heuristics.HeuristicTransaction, len(results))
+	for _, r := range results {
+		outputTransactions[r.UID] = r
+	}
+
+	if len(outputTransactions) == 0 || len(clusterToOutputTransactions) == 0 {
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
@@ -148,8 +148,8 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		txs     map[string]heuristics.HeuristicTransaction
 	}
 
-	clusterDestinations := make([]clusterDestination, 0, len(clusterOrigins))
-	for c, txMap := range clusterOrigins {
+	clusterDestinations := make([]clusterDestination, 0, len(clusterToOutputTransactions))
+	for c, txMap := range clusterToOutputTransactions {
 		destinations, err := getOriginDestinationsWithInputs(dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
 			exclusions, h.c.ExcludeSpendingGaps)
 		if err != nil {
@@ -164,7 +164,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		clusterDestinations = append(clusterDestinations, clusterDestination{cluster: c, txs: destinationMap})
 	}
 
-	originAmounts := buildSourceAmounts(origins)
+	originAmounts := buildSourceAmounts(outputTransactions)
 
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for _, destinations := range clusterDestinations {
@@ -178,14 +178,16 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		}
 
-		// get cluster ID of a random origin of this cluster
-		var clusterID heuristics.ClusterUID
-		for _, v := range clusterOrigins[destinations.cluster] {
-			clusterID = v.Cluster
-			break
-		}
+		if len(clusterFilteredDestinations) > 0 {
+			// get cluster ID of a random origin of this cluster
+			var clusterID heuristics.ClusterUID
+			for _, v := range clusterToOutputTransactions[destinations.cluster] {
+				clusterID = v.Cluster
+				break
+			}
 
-		resultClusters[clusterID] = clusterFilteredDestinations
+			resultClusters[clusterID] = clusterFilteredDestinations
+		}
 	}
 
 	return createHeuristicClusters(resultClusters, attributionMap), nil

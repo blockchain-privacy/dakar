@@ -7,7 +7,6 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/db/workspace"
 	"backend/external"
@@ -164,9 +163,8 @@ type clusterDenominations struct {
 	clusters map[heuristics.ClusterUID]int
 }
 
-// addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
-// The returned map contains the provided origins
-func addOriginsToMap(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
+// addTransactionToCluster adds the given transactions to its cluster
+func addTransactionToCluster(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
 	origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
 	for _, o := range origins {
 		// add transaction to sourceTransactionMap
@@ -226,53 +224,6 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
 		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes)
-}
-
-// getDestinationTxOriginsTimeLimited returns all origins of the given
-// transaction, for the given time limit.
-func getDestinationTxOriginsTimeLimited(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	txHash string, dur time.Duration, c heuristics.Options) (
-	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
-	// get uid for txhash
-	uid, err := db.GetTransactionUID(ctx, dgraph, txHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	inputTransactions, err := g.GetInputTransactions(uid)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var exclusions []string
-	if c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, c.UserUID)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	uidMap := make(map[string]bool)
-	// do reverse lookup for all input transactions
-	for _, it := range inputTransactions {
-		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions, c.ExcludeSpendingGaps)
-		if lookupErr != nil {
-			return nil, nil, lookupErr
-		}
-
-		for k := range endpoints {
-			uidMap[k] = true
-		}
-	}
-
-	// get tx details for each uid
-	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, cliutil.GetMapKeys(uidMap),
-		c.UserUID, c.ClusterTypes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return
 }
 
 // getOriginDestinationTimeLimited returns UID map of all destinations of the given origin UIDs
