@@ -161,7 +161,7 @@
               <v-list-item
                 v-else-if="!item.show || item.show()"
                 :key="index"
-                :disabled="item.disabled && item.disabled()"
+                :disabled="isModifyingWorkspace || (item.disabled && item.disabled())"
                 @click="item.action(item)"
               >
                 <template
@@ -198,7 +198,7 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN, SELECTOR_STATUS_SUCCESS,
 } from '@/constants';
 import {
 	getColorMap, handleError,
@@ -289,7 +289,7 @@ const contextMenuModel = ref({
 			|| isDestiationNode(nodeGraph.getContextNode())
 			|| isOriginNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
+			disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 		},
 		{
 			title: 'Add Property Selector',
@@ -298,28 +298,27 @@ const contextMenuModel = ref({
 			|| isTxGraphNode(nodeGraph.getContextNode())
 			|| isHeuristicNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
+			disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 		},
 		{
 			title: 'Add Graph Selector',
 			icon: graphPlus,
 			show: () => isTransactionNode(nodeGraph.getContextNode()),
 			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
+			disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 		},
 		{
 			title: 'Add Note',
 			icon: mdiNotePlus,
 			action: showAddNoteDialog,
 			show: () => nodeGraph.getContextNode()?.type !== WORKSPACE_NODE_TYPE_NOTE,
-			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Edit',
 			icon: mdiNoteEdit,
 			show: () => isEditEnabled(nodeGraph.getContextNode()),
 			action: () => editNote(nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
+			disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 		},
 		{
 			title: 'Delete',
@@ -527,7 +526,7 @@ function isDeleteEnabled(contextNode) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && contextNode.txtype !== PRIVACY_TYPE_DESTINATION) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && !isDestiationNode(contextNode) && !isOriginNode(contextNode)) {
 		return true;
 	}
 
@@ -1112,6 +1111,22 @@ async function whenMounted() {
 
 	startWaitingforSelectors(data.nodes);
 	return true;
+}
+
+// Returns true if to the given node a child can be added.
+// This is generally not the case
+// - if the node is a selector waiting to be executed
+// - if the node is a selector which failed executing
+function acceptsChild(node) {
+	if (!node) {
+		return false;
+	}
+
+	if (node.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+		return true;
+	}
+
+	return node.selectorStatus && node.selectorStatus === SELECTOR_STATUS_SUCCESS;
 }
 
 </script>
