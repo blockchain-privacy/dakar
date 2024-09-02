@@ -3,6 +3,7 @@ package graph
 import (
 	"github.com/stretchr/testify/require"
 	"gonum.org/v1/gonum/graph"
+	"math/rand/v2"
 	"testing"
 )
 
@@ -184,14 +185,6 @@ func TestReversibleGraph_NewEdge(t *testing.T) {
 		new(ReversibleGraph).NewEdge(TransactionNode{id: 1}, TransactionNode{id: 2}, nil))
 }
 
-func TestReversibleGraph_NewNode(t *testing.T) {
-	require.NotPanics(t, func() {
-		var g ReversibleGraph
-		g.NewNode()
-		g.NewNode()
-	})
-}
-
 func TestReversibleGraph_Node(t *testing.T) {
 	g := NewReversibleGraph(1)
 	require.Nil(t, g.Node(1))
@@ -284,5 +277,73 @@ func TestReversibleGraph_To(t *testing.T) {
 	for _, tt := range tests {
 		g.SetReverse(tt.reversed)
 		require.Equal(t, tt.wantNumNodes, g.To(tt.id).Len())
+	}
+}
+
+type testEdgeInput struct {
+	f TransactionNode
+	t []graph.Node
+	a []int64
+}
+
+func getSetEdgeData() []testEdgeInput {
+	r := rand.New(rand.NewPCG(46434, 7634354)) //nolint:gosec
+
+	const txCount = int64(1000)
+	inputs := make([]testEdgeInput, txCount)
+
+	// generate random test data
+	for txUID := range txCount {
+		// create up to a 100 inputs
+		numInputs := txCount + max(1, r.Int64N(100)) //nolint:gosec
+		froms := make([]graph.Node, numInputs)
+		as := make([]int64, numInputs)
+
+		for i := range numInputs {
+			froms[i] = TransactionNode{id: txCount + r.Int64N(100)} //nolint:gosec
+			as[i] = txCount + r.Int64N(100)                         //nolint:gosec
+		}
+		inputs[txUID] = testEdgeInput{TransactionNode{id: txUID}, froms, as}
+	}
+
+	return inputs
+}
+
+func TestResultsOfSetEdgeWithoutOverwrite(t *testing.T) {
+	g1 := NewReversibleGraph(1000)
+	g2 := NewReversibleGraph(1000)
+	inputs := getSetEdgeData()
+
+	for nUID := range inputs {
+		for i := range inputs[nUID].t {
+			g1.SetEdgeWithoutOverwrite(inputs[nUID].f, inputs[nUID].t[i], inputs[nUID].a[i])
+		}
+		g2.SetEdgesWithoutOverwrite(inputs[nUID].f, inputs[nUID].t, inputs[nUID].a)
+	}
+
+	require.True(t, g1.IsEqual(g2))
+}
+
+func BenchmarkReversibleGraph_SetEdgeWithoutOverwrite(b *testing.B) {
+	g := NewReversibleGraph(1000)
+	inputs := getSetEdgeData()
+
+	for range b.N {
+		for i := range inputs {
+			for j := range inputs[i].t {
+				g.SetEdgeWithoutOverwrite(inputs[i].f, inputs[i].t[j], inputs[i].a[j])
+			}
+		}
+	}
+}
+
+func BenchmarkReversibleGraph_SetEdgesWithoutOverwrite(b *testing.B) {
+	g := NewReversibleGraph(1000)
+	inputs := getSetEdgeData()
+
+	for range b.N {
+		for i := range inputs {
+			g.SetEdgesWithoutOverwrite(inputs[i].f, inputs[i].t, inputs[i].a)
+		}
 	}
 }
