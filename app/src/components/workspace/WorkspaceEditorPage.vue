@@ -606,7 +606,6 @@ async function addMultipleNodes(nodes) {
 		});
 		if (response.nodes) {
 			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
@@ -676,7 +675,6 @@ async function addNewNote(noteText, noteUID, childUID) {
 		});
 		if (response.nodes) {
 			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
@@ -764,7 +762,6 @@ async function addNewSelector(type, options) {
 		});
 
 		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-		nodeGraph.removeAllNodes(false);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
 
@@ -798,7 +795,6 @@ async function checkWork(selectorUID) {
 		});
 		if (response.nodes) {
 			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
 			addWork(selectorUID);
