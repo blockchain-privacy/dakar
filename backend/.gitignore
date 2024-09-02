@@ -24,3 +24,5 @@ projectFilesBackup
 *.csv
 
 openapi/client
+swagger.json
+swagger.yaml
