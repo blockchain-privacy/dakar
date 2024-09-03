@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
 // ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block range and

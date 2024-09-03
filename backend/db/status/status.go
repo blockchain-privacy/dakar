@@ -8,7 +8,7 @@ import (
 	"github.com/qrest/gomisc/serror"
 	"time"
 
-	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
 const uidV = "uid(v)"

@@ -4,6 +4,7 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
+	"github.com/dgraph-io/dgo/v240"
 	"github.com/qrest/gomisc/serror"
 
 	"context"
@@ -13,8 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v230"
-	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
