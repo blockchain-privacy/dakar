@@ -31,6 +31,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // versionString displays the version of the Crawler
@@ -99,7 +100,7 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 	// disable classifying if it is disabled per configuration
 	if !analyserConfig.IsClassifyingEnabled {
-		config.Modules.Classifier = false
+		config.Modules.Classifier.Active = false
 	}
 
 	// disable HMI clustering if it is disabled per configuration
@@ -109,7 +110,7 @@ func disableModules(analyserConfig analytics.Config, config *Config) {
 
 	// disable FMI clustering if it is disabled per configuration
 	if !analyserConfig.IsFMIClusteringEnabled {
-		config.Modules.FMI = false
+		config.Modules.FMI.Active = false
 	}
 }
 
@@ -299,8 +300,8 @@ func main() {
 	}
 
 	// exit if no module is active (excluding the metrics module)
-	if !newConfig.Modules.Classifier && !newConfig.Modules.Crawler.Active &&
-		!newConfig.Modules.HMI && !newConfig.Modules.FMI &&
+	if !newConfig.Modules.Classifier.Active && !newConfig.Modules.Crawler.Active &&
+		!newConfig.Modules.HMI && !newConfig.Modules.FMI.Active &&
 		!newConfig.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
@@ -370,7 +371,7 @@ func main() {
 			crawler := processor.NewCrawler(appContext, graphDB, client,
 				newConfig.Modules.Crawler.InitialCacheSize, processorConfig)
 			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
-			if processorErr := blockiterator.StartIteration(crawler, nil); processorErr != nil {
+			if processorErr := blockiterator.StartIteration(crawler, 0, nil); processorErr != nil {
 				warn(processorErr)
 			}
 		}()
@@ -393,11 +394,11 @@ func main() {
 				return
 			}
 
-			if newConfig.Modules.Classifier {
+			if newConfig.Modules.Classifier.Active {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					if iterErr := blockiterator.StartIteration(graphWrapper, nil); iterErr != nil {
+					if iterErr := blockiterator.StartIteration(graphWrapper, 0, nil); iterErr != nil {
 						warn(iterErr)
 					}
 				}()
@@ -410,7 +411,9 @@ func main() {
 					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
 
-					if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
+					if classifierErr := blockiterator.StartIteration(classifier,
+						time.Second*time.Duration(newConfig.Modules.Classifier.TargetDuration),
+						nil); classifierErr != nil {
 						warn(classifierErr)
 					}
 				}()
@@ -425,7 +428,7 @@ func main() {
 	}
 
 	// activate classifier
-	if newConfig.Modules.Classifier && !classifierStarted {
+	if newConfig.Modules.Classifier.Active && !classifierStarted {
 		// in-memory graphs are not loaded -> start classifier
 		wg.Add(1)
 		go func() {
@@ -435,7 +438,9 @@ func main() {
 			}()
 			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
 			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
-			if classifierErr := blockiterator.StartIteration(classifier, nil); classifierErr != nil {
+			if classifierErr := blockiterator.StartIteration(classifier,
+				time.Second*time.Duration(newConfig.Modules.Classifier.TargetDuration),
+				nil); classifierErr != nil {
 				warn(classifierErr)
 			}
 		}()
@@ -452,14 +457,14 @@ func main() {
 
 			hmi := clustering.NewHierarchicalMultiInput(appContext, graphDB)
 			hmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(hmi, nil); clusteringErr != nil {
+			if clusteringErr := blockiterator.StartIteration(hmi, 0, nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
 	}
 
 	// activate FMI clustering
-	if newConfig.Modules.FMI {
+	if newConfig.Modules.FMI.Active {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -468,7 +473,9 @@ func main() {
 			}()
 			fmi := clustering.NewFlatMultiInput(appContext, graphDB)
 			fmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(fmi, nil); clusteringErr != nil {
+			if clusteringErr := blockiterator.StartIteration(fmi,
+				time.Second*time.Duration(newConfig.Modules.FMI.TargetDuration),
+				nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
 		}()
@@ -502,9 +509,9 @@ func main() {
 	////// HANDLE SHUTDOWN //////
 
 	var crawlerStopped = !newConfig.Modules.Crawler.Active
-	var classifierStopped = !newConfig.Modules.Classifier
+	var classifierStopped = !newConfig.Modules.Classifier.Active
 	var clusteringHMIStopped = !newConfig.Modules.HMI
-	var clusteringFMIStopped = !newConfig.Modules.FMI
+	var clusteringFMIStopped = !newConfig.Modules.FMI.Active
 	var interrupted bool
 
 	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped)) {

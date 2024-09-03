@@ -59,14 +59,27 @@ With the `ignoresafeguard` flag the safeguard can be ignored and the crawling be
 
 The crawler is configured via a configuration file.
 
-Create a new config file with the command below. This will create a new config file named `config.yml`.
+### Using the configuartion file
 
+Create a new config file with the command below. This will create a new config file named `config.yml`.
 ```shell script
 ./crawler -createConfig
 ```
 
 Start the crawler with a new config file
-
 ```shell script
 ./crawler -config path/to/config/file.yml
+```
+
+### Target Iteration Duration
+
+Some modules process multiple blocks in one iteration. 
+The target iteration duration can be set in the configuration file via `targetDuration` in the respective module in multiples of seconds.
+Increasing `targetDuration`, increases the relative number of blocks being processed per iteration and therefore also increases the load on the system. 
+If `targetDuration` is set to 0, each iteration will only process one block. 
+Example:
+```yaml
+classifier:
+    active: true
+    targetDuration: 10 # seconds 
 ```
