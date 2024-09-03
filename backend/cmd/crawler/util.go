@@ -49,12 +49,12 @@ type UserModule struct {
 
 type Classifier struct {
 	Active         bool `yaml:"active"`
-	TargetDuration uint `yaml:"targetDuration"`
+	TargetDuration int  `yaml:"targetDuration"`
 }
 
 type FMIModule struct {
 	Active         bool `yaml:"active"`
-	TargetDuration uint `yaml:"targetDuration"`
+	TargetDuration int  `yaml:"targetDuration"`
 }
 
 type ModulesConfig struct {
