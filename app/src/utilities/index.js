@@ -259,7 +259,7 @@ export function getColorMap() {
 	// Colors from https://sashamaps.net/docs/resources/20-colors/
 	const colorMap = new Map();
 	colorMap.set('origin', '#800000');
-	colorMap.set('mixing', '#e6194B');
+	colorMap.set('mixing', '#e6194b');
 	colorMap.set('destination', '#fabed4');
 	colorMap.set('collateral creation', '#3cb44b');
 	colorMap.set('collateral payment', '#bfef45');
