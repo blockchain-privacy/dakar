@@ -76,7 +76,7 @@ func setCommandFlags(c *Commands) {
 	flag.BoolVar(&c.ResetDB, "reset", false, "Remove all data from the database (default: false)")
 	flag.BoolVar(&c.IgnoreSafeGuard, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
 	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information (default: false)")
-	flag.BoolVar(&c.UpgradeDatabase, "upgradedatabase", false, "Upgrade the database schema to the newest version (default: false)")
+	flag.BoolVar(&c.UpgradeSchema, "upgradeschema", false, "Upgrade the database schema to the newest version (default: false)")
 	flag.StringVar(&c.CPUProfilePath, "cpuprofile", "", "Path where the cpu profile should be stored (default: <empty>)")
 }
 
@@ -292,7 +292,7 @@ func main() {
 		return
 	}
 
-	if commands.UpgradeDatabase {
+	if commands.UpgradeSchema {
 		if err = upgrades.UpgradeDatabase(graphDB); err != nil {
 			warn(err)
 		}

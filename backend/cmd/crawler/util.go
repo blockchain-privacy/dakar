@@ -122,7 +122,7 @@ type Commands struct {
 	ResetDB         bool
 	IgnoreSafeGuard bool
 	ShowVersion     bool
-	UpgradeDatabase bool
+	UpgradeSchema   bool
 	CPUProfilePath  string
 }
 
