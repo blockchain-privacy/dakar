@@ -64,6 +64,10 @@ type State struct {
 // The scaling is based on whether the target duration is less than or greater than the iteration duration.
 // The upper limit is capped at 200 blocks.
 func scaleBlocksPerIteration(target time.Duration, iterationDuration time.Duration, blockCount uint64) uint64 {
+	if target <= 0 {
+		return 1
+	}
+
 	upperLimit := time.Duration(float64(target) * 1.1)
 	if iterationDuration > upperLimit {
 		return max(1, uint64(float64(blockCount)*0.75))
