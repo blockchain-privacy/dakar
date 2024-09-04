@@ -123,7 +123,7 @@
             {{ selectorData.depth }}
           </icon-item>
         </v-col>
-        <v-col>
+        <v-col v-if="selectorData.isForward !== undefined">
           <icon-item
             title="Traversal Direction"
             :icon="selectorData.isForward?mdiArrowRight:mdiArrowLeft"
