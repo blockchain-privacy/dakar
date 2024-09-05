@@ -66,7 +66,7 @@
         <fade-transition>
           <v-card
             v-if="showRootPage"
-            flat
+            variant="text"
             max-width="700px"
             class="mx-auto"
           >
@@ -91,23 +91,28 @@
                   >
                     No results
                   </div>
-                  <v-list v-else>
-                    <v-list-item
+                  <div v-else>
+                    <v-card
                       v-for="(item) in searchResults"
                       :key="item.path"
-                      :prepend-icon="mdiBook"
-                      :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}"
+                      class="my-2"
                     >
-                      <v-list-item-title>{{ item.title }}</v-list-item-title>
-                      <!-- html is loaded from safe source -->
-                      <!-- eslint-disable vue/no-v-html -->
-                      <div
-                        v-if="item.fragment"
-                        class="text-subtitle-2"
-                        v-html=" item.fragment"
-                      />
-                    </v-list-item>
-                  </v-list>
+                      <v-card-title class="d-flex align-center">
+                        <v-icon :icon="mdiBook" />
+                        <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
+                          {{ item.title }}
+                        </router-link>
+                      </v-card-title>
+                      <v-card-text v-if="item.fragment">
+                        <!-- html is loaded from safe source -->
+                        <!-- eslint-disable vue/no-v-html -->
+                        <div
+                          class="text-subtitle-2"
+                          v-html="item.fragment"
+                        />
+                      </v-card-text>
+                    </v-card>
+                  </div>
                 </template>
               </v-expand-transition>
             </v-card-text>
@@ -134,7 +139,9 @@
 
 <script setup>
 import {mdiBook, mdiBookOpen} from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
+import {
+	PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT,
+} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
 	computed, inject, onMounted, onUnmounted, ref, watch,
