@@ -69,18 +69,38 @@
             flat
           >
             <v-card-text>
-              <v-autocomplete
+              <v-text-field
                 v-model="query"
-                :items="namePathPairs"
-                item-title="name"
-                item-value="path"
-                label="Search for wiki pages"
-                variant="outlined"
-                :append-icon="mdiMagnify"
-                @update:model-value="navigateToWikiPage"
-                @keydown.enter="navigateToWikiPage"
-                @click:append="navigateToWikiPage"
+                label="Search wiki pages"
+                hide-details
+                @update:model-value="queueSearch"
               />
+              <v-expand-transition>
+                <div
+                  v-if="isSearching"
+                  class="d-flex justify-center mt-3"
+                >
+                  <v-progress-circular indeterminate />
+                </div>
+                <template v-else-if="hasSearched">
+                  <div
+                    v-if="searchResults.length ===0"
+                    class="text-center text-subtitle-1 mt-3"
+                  >
+                    No results
+                  </div>
+                  <v-list v-else>
+                    <v-list-item
+                      v-for="(item) in searchResults"
+                      :key="item.path"
+                      :prepend-icon="mdiBook"
+                      :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}"
+                    >
+                      <v-list-item-title>{{ item.title }}</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </template>
+              </v-expand-transition>
             </v-card-text>
           </v-card>
           <template v-else>
@@ -104,17 +124,16 @@
 </template>
 
 <script setup>
-import {mdiBook, mdiBookOpen, mdiMagnify} from '@mdi/js';
+import {mdiBook, mdiBookOpen} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
-	computed, inject, onMounted, ref, watch,
+	computed, inject, onMounted, onUnmounted, ref, watch,
 } from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
 const route = useRoute();
-const router = useRouter();
 const wikiapi = inject('wikiapi');
 const msgStore = useMsgStore();
 
@@ -126,6 +145,11 @@ const fileSet = ref(null);
 // IsRoot determines if the root page of the wiki is shown
 const showRootPage = ref(true);
 const query = ref(null);
+const searchResults = ref([]);
+// Set to true if search has been executed at least once
+const hasSearched = ref(false);
+const isSearching = ref(false);
+let searchTimer = null;
 
 // Computed
 
@@ -200,22 +224,32 @@ const fileHierarchy = computed(() => {
 	return hierarchyArray;
 });
 
-// NamePathPairs returns an array of name and
-// path pairs [{name: filename, path: filename.md}, ...]
-const namePathPairs = computed(() => {
-	const pairs = [];
+const filepathToFilename = computed(() => {
+	const fileMap = new Map();
 
-	fileHierarchy.value.forEach(d => {
-		if (d.items) {
-			d.items.forEach(l => {
-				pairs.push(l);
-			});
+	if (fileSet.value === null) {
+		return fileMap;
+	}
+
+	fileSet.value.forEach(d => {
+		const pathParts = d.split('/');
+
+		if (pathParts.length > 2) {
+			// Only a depth of 2 is supported
+			return;
+		}
+
+		const [directory, fileName] = pathParts;
+
+		if (fileName) {
+			fileMap.set(d, cleanName(fileName));
 		} else {
-			pairs.push(d);
+			// First split is the actual file path
+			fileMap.set(d, cleanName(directory));
 		}
 	});
 
-	return pairs;
+	return fileMap;
 });
 
 // SeparateWords adds a space before each capitalized letter
@@ -271,12 +305,46 @@ async function getFile(filePath) {
 	}
 }
 
-function navigateToWikiPage() {
-	if (!query.value) {
+function queueSearch(q) {
+	if (searchTimer !== null) {
+		clearTimeout(searchTimer);
+	}
+
+	searchTimer = setTimeout(search, 700, q);
+}
+
+async function search(query) {
+	// Only search if files where loaded
+	if (filepathToFilename.value.size === 0) {
 		return;
 	}
 
-	router.push({name: ROUTE_NAME_WIKI, params: {file: query.value}});
+	if (!query) {
+		return;
+	}
+
+	query = query.trim();
+
+	if (query.length < 3) {
+		return;
+	}
+
+	isSearching.value = true;
+	hasSearched.value = true;
+	let ret = [];
+
+	try {
+		const response = await wikiapi.searchPost({query: {query}});
+
+		if (response.files && response.files.length > 0) {
+			ret = response.files.map(f => ({title: filepathToFilename.value.get(f), path: f})).filter(d => Boolean(d.title));
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	searchResults.value = ret;
+	isSearching.value = false;
 }
 
 watch(route, () => {
@@ -301,6 +369,12 @@ onMounted(async () => {
 
 	if (!showRootPage.value) {
 		await getFile(route.params.file);
+	}
+});
+
+onUnmounted(() => {
+	if (searchTimer !== null) {
+		clearTimeout(searchTimer);
 	}
 });
 
