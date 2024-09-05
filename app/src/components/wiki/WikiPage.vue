@@ -1,144 +1,141 @@
 <template>
-  <div
-    class="fill-height"
-    style="padding: 12px 10px 0 10px"
-  >
-    <v-row class="fill-height">
-      <v-col
-        v-if="!$vuetify.display.smAndDown"
-        cols="auto"
-        class="pa-0"
+  <div>
+    <v-navigation-drawer
+      v-model="drawerModel"
+      :style="{'position':$vuetify.display.mobile?'fixed':'absolute', 'max-height':$vuetify.display.mobile?'300px': undefined}"
+      :location="$vuetify.display.mobile?'bottom':undefined"
+      :temporary="$vuetify.display.mobile"
+    >
+      <v-list-item :to="{name: ROUTE_NAME_WIKI_ROOT}">
+        <template #prepend>
+          <v-icon>{{ mdiMagnify }}</v-icon>
+        </template>
+        <v-list-item-title class="text-h6">
+          Search Wiki
+        </v-list-item-title>
+      </v-list-item>
+      <v-divider />
+      <v-list
+        v-if="fileSet"
+        nav
       >
-        <v-navigation-drawer style="position:absolute">
-          <v-list-item :to="{name: ROUTE_NAME_WIKI_ROOT}">
-            <template #prepend>
-              <v-icon>{{ mdiBookOpen }}</v-icon>
-            </template>
-            <v-list-item-title class="text-h6">
-              Wiki
-            </v-list-item-title>
-          </v-list-item>
-          <v-divider />
-          <v-list
-            v-if="fileSet"
-            nav
+        <div
+          v-for="fileItem in fileHierarchy"
+          :key="fileItem.name"
+        >
+          <v-list-group
+            v-if="fileItem.items"
+            v-model="fileItem.active"
           >
-            <div
-              v-for="fileItem in fileHierarchy"
-              :key="fileItem.name"
-            >
-              <v-list-group
-                v-if="fileItem.items"
-                v-model="fileItem.active"
-              >
-                <template #activator="{props}">
-                  <v-list-item
-                    v-bind="props"
-                    :title="fileItem.name"
-                    :prepend-icon="mdiBook"
-                  />
-                </template>
-                <v-list-item
-                  v-for="child in fileItem.items"
-                  :key="child.title"
-                  :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
-                  :title="child.name"
-                />
-              </v-list-group>
+            <template #activator="{props}">
               <v-list-item
-                v-else
-                :to="{name: ROUTE_NAME_WIKI, params: { file: fileItem.path }}"
+                v-bind="props"
                 :title="fileItem.name"
-              >
-                <template #prepend>
-                  <v-icon>{{ mdiBook }}</v-icon>
-                </template>
-              </v-list-item>
-            </div>
-          </v-list>
-          <v-skeleton-loader
-            v-else
-            type="list-item-three-line,list-item-three-line,list-item-three-line"
-          />
-        </v-navigation-drawer>
-      </v-col>
-      <v-col class="fill-height mx-lg-16">
-        <fade-transition>
-          <v-card
-            v-if="showRootPage"
-            variant="text"
-            max-width="700px"
-            class="mx-auto"
-          >
-            <v-card-text>
-              <v-text-field
-                v-model="query"
-                label="Search wiki pages"
-                hide-details
-                @update:model-value="queueSearch"
+                :prepend-icon="mdiBook"
               />
-              <v-expand-transition>
-                <div
-                  v-if="isSearching"
-                  class="d-flex justify-center mt-3"
-                >
-                  <v-progress-circular indeterminate />
-                </div>
-                <template v-else-if="hasSearched">
-                  <div
-                    v-if="searchResults.length ===0"
-                    class="text-center text-subtitle-1 mt-3"
-                  >
-                    No results
-                  </div>
-                  <div v-else>
-                    <v-card
-                      v-for="(item) in searchResults"
-                      :key="item.path"
-                      class="my-2"
-                    >
-                      <v-card-title class="d-flex align-center">
-                        <v-icon :icon="mdiBook" />
-                        <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
-                          {{ item.title }}
-                        </router-link>
-                      </v-card-title>
-                      <v-card-text v-if="item.fragment">
-                        <!-- html is loaded from safe source -->
-                        <!-- eslint-disable vue/no-v-html -->
-                        <div
-                          class="text-subtitle-2"
-                          v-html="item.fragment"
-                        />
-                      </v-card-text>
-                    </v-card>
-                  </div>
-                </template>
-              </v-expand-transition>
-            </v-card-text>
-          </v-card>
-          <template v-else>
-            <!-- html is loaded from safe source -->
-            <!-- eslint-disable vue/no-v-html -->
+            </template>
+            <v-list-item
+              v-for="child in fileItem.items"
+              :key="child.title"
+              :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
+              :title="child.name"
+            />
+          </v-list-group>
+          <v-list-item
+            v-else
+            :to="{name: ROUTE_NAME_WIKI, params: { file: fileItem.path }}"
+            :title="fileItem.name"
+          >
+            <template #prepend>
+              <v-icon>{{ mdiBook }}</v-icon>
+            </template>
+          </v-list-item>
+        </div>
+      </v-list>
+      <v-skeleton-loader
+        v-else
+        type="list-item-three-line,list-item-three-line,list-item-three-line"
+      />
+    </v-navigation-drawer>
+    <v-btn
+      :icon="mdiMenu"
+      variant="text"
+      @click="drawerModel = !drawerModel"
+    />
+    <fade-transition>
+      <v-card
+        v-if="showRootPage"
+        variant="text"
+        max-width="700px"
+        class="mx-auto"
+      >
+        <v-card-text>
+          <v-text-field
+            v-model="query"
+            label="Search wiki pages"
+            hide-details
+            @update:model-value="queueSearch"
+          />
+          <v-expand-transition>
             <div
-              v-if="fileHTML"
-              :class="{'wikiFileContentFullSize': $vuetify.display.smAndDown,
-                       'wikiFileContent': !$vuetify.display.smAndDown, 'mx-3':true}"
-              v-html="fileHTML"
-            />
-            <v-skeleton-loader
-              v-else
-              type="article"
-            />
-          </template>
-        </fade-transition>
-      </v-col>
-    </v-row>
+              v-if="isSearching"
+              class="d-flex justify-center mt-3"
+            >
+              <v-progress-circular indeterminate />
+            </div>
+            <template v-else-if="hasSearched">
+              <div
+                v-if="searchResults.length ===0"
+                class="text-center text-subtitle-1 mt-3"
+              >
+                No results
+              </div>
+              <div v-else>
+                <v-card
+                  v-for="(item) in searchResults"
+                  :key="item.path"
+                  class="my-4"
+                >
+                  <v-card-title class="d-flex align-center">
+                    <v-icon :icon="mdiBook" />
+                    <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
+                      {{ item.title }}
+                    </router-link>
+                  </v-card-title>
+                  <v-card-text v-if="item.fragment">
+                    <!-- html is loaded from safe source -->
+                    <!-- eslint-disable vue/no-v-html -->
+                    <div
+                      class="text-subtitle-2"
+                      v-html="item.fragment"
+                    />
+                  </v-card-text>
+                </v-card>
+              </div>
+            </template>
+          </v-expand-transition>
+        </v-card-text>
+      </v-card>
+      <template v-else>
+        <!-- html is loaded from safe source -->
+        <!-- eslint-disable vue/no-v-html -->
+        <div
+          v-if="fileHTML"
+          :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
+                   'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
+          v-html="fileHTML"
+        />
+        <v-skeleton-loader
+          v-else
+          type="article"
+        />
+      </template>
+    </fade-transition>
   </div>
 </template>
 
 <script setup>
-import {mdiBook, mdiBookOpen} from '@mdi/js';
+import {mdiBook, mdiMagnify, mdiMenu} from '@mdi/js';
 import {
 	PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT,
 } from '@/constants';
@@ -148,11 +145,14 @@ import {
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {useDisplay} from 'vuetify';
 
 const route = useRoute();
 const wikiapi = inject('wikiapi');
 const msgStore = useMsgStore();
+const display = useDisplay();
 
+const drawerModel = ref(!display.mobile.value);
 const fileHTML = ref('');
 
 // FileSet is going to hold a set with all possible file paths
@@ -375,6 +375,13 @@ watch(route, () => {
 	}
 });
 
+watch(display.mobile, newVal => {
+	if (!newVal) {
+		// Show drawer on desktop;
+		drawerModel.value = true;
+	}
+});
+
 // Hooks
 onMounted(async () => {
 	document.title = `Wiki - ${PAGE_TITLE}`;
@@ -399,11 +406,26 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 .wikiFileContent :deep( img ) {
-  max-width: 40%;
+  display:block;
+  max-width:60%;
+  margin-left: auto;
+  margin-right: auto;
   margin-top:5px;
   margin-bottom: 5px;
+}
+
+ :deep( li ) {
+  margin-left: 15px;
+}
+
+.wikiFileContent{
+  margin-bottom: 50px;
+  max-width:900px
+}
+
+.wikiFileContentFullSize{
+  margin: 0px 10px 60px 10px;
 }
 
 .wikiFileContentFullSize :deep( img ) {
@@ -411,5 +433,4 @@ onUnmounted(() => {
   margin-bottom: 5px;
   max-width: 100%;
 }
-
 </style>
