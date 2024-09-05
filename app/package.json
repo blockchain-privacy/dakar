@@ -14,7 +14,7 @@
     "@fontsource/roboto": "^5.0.14",
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.5",
-    "@neondark/wikiapi": "^1.2.38",
+    "@neondark/wikiapi": "^1.2.39",
     "@ory/client-fetch": "^1.14.5",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",

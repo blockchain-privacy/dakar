@@ -67,6 +67,8 @@
           <v-card
             v-if="showRootPage"
             flat
+            max-width="700px"
+            class="mx-auto"
           >
             <v-card-text>
               <v-text-field
@@ -97,6 +99,13 @@
                       :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}"
                     >
                       <v-list-item-title>{{ item.title }}</v-list-item-title>
+                      <!-- html is loaded from safe source -->
+                      <!-- eslint-disable vue/no-v-html -->
+                      <div
+                        v-if="item.fragment"
+                        class="text-subtitle-2"
+                        v-html=" item.fragment"
+                      />
                     </v-list-item>
                   </v-list>
                 </template>
@@ -109,7 +118,7 @@
             <div
               v-if="fileHTML"
               :class="{'wikiFileContentFullSize': $vuetify.display.smAndDown,
-                       'wikiFileContent': !$vuetify.display.smAndDown}"
+                       'wikiFileContent': !$vuetify.display.smAndDown, 'mx-3':true}"
               v-html="fileHTML"
             />
             <v-skeleton-loader
@@ -336,8 +345,10 @@ async function search(query) {
 	try {
 		const response = await wikiapi.searchPost({query: {query}});
 
-		if (response.files && response.files.length > 0) {
-			ret = response.files.map(f => ({title: filepathToFilename.value.get(f), path: f})).filter(d => Boolean(d.title));
+		if (response.searchResults && response.searchResults.length > 0) {
+			ret = response.searchResults
+				.map(f => ({title: filepathToFilename.value.get(f.filename), path: f.filename, fragment: f.fragment}))
+				.filter(d => Boolean(d.title));
 		}
 	} catch (e) {
 		setErrorMessage(e);
@@ -384,9 +395,13 @@ onUnmounted(() => {
 
 .wikiFileContent :deep( img ) {
   max-width: 40%;
+  margin-top:5px;
+  margin-bottom: 5px;
 }
 
 .wikiFileContentFullSize :deep( img ) {
+  margin-top:5px;
+  margin-bottom: 5px;
   max-width: 100%;
 }
 
