@@ -31,7 +31,7 @@
               <v-list-item
                 v-bind="props"
                 :title="fileItem.name"
-                :prepend-icon="mdiBook"
+                :prepend-icon="mdiFileDocument"
               />
             </template>
             <v-list-item
@@ -47,7 +47,7 @@
             :title="fileItem.name"
           >
             <template #prepend>
-              <v-icon>{{ mdiBook }}</v-icon>
+              <v-icon>{{ mdiFileDocument }}</v-icon>
             </template>
           </v-list-item>
         </div>
@@ -77,13 +77,7 @@
             @update:model-value="queueSearch"
           />
           <v-expand-transition>
-            <div
-              v-if="isSearching"
-              class="d-flex justify-center mt-3"
-            >
-              <v-progress-circular indeterminate />
-            </div>
-            <template v-else-if="hasSearched">
+            <template v-if="hasSearched">
               <div
                 v-if="searchResults.length ===0"
                 class="text-center text-subtitle-1 mt-3"
@@ -97,7 +91,7 @@
                   class="my-4"
                 >
                   <v-card-title class="d-flex align-center">
-                    <v-icon :icon="mdiBook" />
+                    <v-icon :icon="mdiFileDocument" />
                     <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
                       {{ item.title }}
                     </router-link>
@@ -135,10 +129,8 @@
 </template>
 
 <script setup>
-import {mdiBook, mdiMagnify, mdiMenu} from '@mdi/js';
-import {
-	PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT,
-} from '@/constants';
+import {mdiFileDocument, mdiMagnify, mdiMenu} from '@mdi/js';
+import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
 	computed, inject, onMounted, onUnmounted, ref, watch,
@@ -164,7 +156,6 @@ const query = ref(null);
 const searchResults = ref([]);
 // Set to true if search has been executed at least once
 const hasSearched = ref(false);
-const isSearching = ref(false);
 let searchTimer = null;
 
 // Computed
@@ -345,7 +336,6 @@ async function search(query) {
 		return;
 	}
 
-	isSearching.value = true;
 	hasSearched.value = true;
 	let ret = [];
 
@@ -362,7 +352,6 @@ async function search(query) {
 	}
 
 	searchResults.value = ret;
-	isSearching.value = false;
 }
 
 watch(route, () => {
