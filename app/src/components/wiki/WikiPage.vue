@@ -1,4 +1,5 @@
 <template>
+  <!-- single root so it can be transitioned -->
   <div>
     <v-navigation-drawer
       v-model="drawerModel"
@@ -57,74 +58,80 @@
         type="list-item-three-line,list-item-three-line,list-item-three-line"
       />
     </v-navigation-drawer>
-    <v-btn
-      :icon="mdiMenu"
-      variant="text"
-      @click="drawerModel = !drawerModel"
-    />
-    <fade-transition>
-      <v-card
-        v-if="showRootPage"
+    <div class="position-relative mt-5">
+      <v-btn
+        :icon="mdiMenu"
         variant="text"
-        max-width="700px"
-        class="mx-auto"
-      >
-        <v-card-text>
-          <v-text-field
-            v-model="query"
-            label="Search wiki pages"
-            hide-details
-            @update:model-value="queueSearch"
-          />
-          <v-expand-transition>
-            <template v-if="hasSearched">
-              <div
-                v-if="searchResults.length ===0"
-                class="text-center text-subtitle-1 mt-3"
-              >
-                No results
-              </div>
-              <div v-else>
-                <v-card
-                  v-for="(item) in searchResults"
-                  :key="item.path"
-                  class="my-4"
+        class="position-absolute"
+        style="top: -20px"
+        @click="drawerModel = !drawerModel"
+      />
+      <fade-transition>
+        <v-card
+          v-if="showRootPage"
+          variant="text"
+          max-width="700px"
+          class="mx-auto"
+        >
+          <v-card-text>
+            <v-text-field
+              v-model="query"
+              label="Search wiki pages"
+              hide-details
+              @update:model-value="queueSearch"
+            />
+            <v-expand-transition>
+              <template v-if="hasSearched">
+                <div
+                  v-if="searchResults.length ===0"
+                  class="text-center text-subtitle-1 mt-3"
                 >
-                  <v-card-title class="d-flex align-center">
-                    <v-icon :icon="mdiFileDocument" />
-                    <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
-                      {{ item.title }}
-                    </router-link>
-                  </v-card-title>
-                  <v-card-text v-if="item.fragment">
-                    <!-- html is loaded from safe source -->
-                    <!-- eslint-disable vue/no-v-html -->
-                    <div
-                      class="text-subtitle-2"
-                      v-html="item.fragment"
-                    />
-                  </v-card-text>
-                </v-card>
-              </div>
-            </template>
-          </v-expand-transition>
-        </v-card-text>
-      </v-card>
-      <template v-else>
-        <!-- html is loaded from safe source -->
-        <!-- eslint-disable vue/no-v-html -->
-        <div
-          v-if="fileHTML"
-          :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
-                   'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
-          v-html="fileHTML"
-        />
-        <v-skeleton-loader
-          v-else
-          type="article"
-        />
-      </template>
-    </fade-transition>
+                  No results
+                </div>
+                <div v-else>
+                  <v-card
+                    v-for="(item) in searchResults"
+                    :key="item.path"
+                    class="my-4"
+                  >
+                    <v-card-title class="d-flex align-center">
+                      <v-icon :icon="mdiFileDocument" />
+                      <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
+                        {{ item.title }}
+                      </router-link>
+                    </v-card-title>
+                    <v-card-text v-if="item.fragment">
+                      <!-- html is loaded from safe source -->
+                      <!-- eslint-disable vue/no-v-html -->
+                      <div
+                        class="text-subtitle-2"
+                        v-html="item.fragment"
+                      />
+                    </v-card-text>
+                  </v-card>
+                </div>
+              </template>
+            </v-expand-transition>
+          </v-card-text>
+        </v-card>
+        <template v-else>
+          <!-- html is loaded from safe source -->
+          <!-- eslint-disable vue/no-v-html -->
+          <div
+            v-if="fileHTML"
+            :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
+                     'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
+            v-html="fileHTML"
+          />
+          <v-skeleton-loader
+            v-else
+            type="article"
+            :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
+                     'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
+          />
+        </template>
+      </fade-transition>
+    </div>
   </div>
 </template>
 
@@ -416,6 +423,12 @@ onUnmounted(() => {
 :deep( h3) {
   margin-top: 7px;
   margin-bottom: 7px;
+}
+
+/* <em> after <img> */
+:deep( img ~ em ) {
+  display:block;
+  text-align: center;
 }
 
 .wikiFileContent{
