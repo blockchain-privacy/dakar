@@ -402,7 +402,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.wikiFileContent :deep( img ) {
+.wikiFileContent :deep(img){
   display:block;
   max-width:60%;
   margin-left: auto;
@@ -411,22 +411,28 @@ onUnmounted(() => {
   margin-bottom: 5px;
 }
 
- :deep( li ) {
+.wikiFileContentFullSize :deep(img) {
+  margin-top:5px;
+  margin-bottom: 5px;
+  max-width: 100%;
+}
+
+ :deep(li){
   margin-left: 15px;
 }
 
- :deep( h2) {
+ :deep(h2){
    margin-top: 10px;
    margin-bottom: 10px;
  }
 
-:deep( h3) {
+:deep(h3){
   margin-top: 7px;
   margin-bottom: 7px;
 }
 
 /* <em> after <img> */
-:deep( img ~ em ) {
+:deep(img ~ em){
   display:block;
   text-align: center;
 }
@@ -438,11 +444,5 @@ onUnmounted(() => {
 
 .wikiFileContentFullSize{
   margin: 0px 10px 60px 10px;
-}
-
-.wikiFileContentFullSize :deep( img ) {
-  margin-top:5px;
-  margin-bottom: 5px;
-  max-width: 100%;
 }
 </style>
