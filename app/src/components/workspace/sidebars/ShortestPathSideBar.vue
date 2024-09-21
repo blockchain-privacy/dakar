@@ -48,7 +48,7 @@
                 :value="true"
               />
             </v-radio-group>
-            <v-switch
+            <v-checkbox
               v-model="includePrivacyTransactions"
               label="Traverse private transactions"
               class="mx-5"

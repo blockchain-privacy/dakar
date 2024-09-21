@@ -115,7 +115,7 @@
               Using stored transactions of the parent node
             </div>
             <named-divider title="Filter by Type" />
-            <v-switch
+            <v-checkbox
               v-model="txPropOptions.excludePrivacyTransactions"
               label="Exclude Privacy Transactions"
             />
@@ -282,7 +282,7 @@
               </v-btn-toggle>
             </div>
 
-            <v-switch
+            <v-checkbox
               v-model="txGraphOptions.excludePrivacyTransactions"
               label="Exclude Privacy Transactions"
             />
