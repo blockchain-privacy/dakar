@@ -1,11 +1,8 @@
 # Workspaces
 
-A Workspace is a powerful graph visualization tool designed to enhance your analysis of blockchain transactions and address clusters. It provides users with an intuitive interface to explore complex relationships and patterns within the blockchain, enabling deeper insights into transaction behaviors and structures.
+A Workspace is a graph visualization tool designed to enhance your analysis of blockchain transactions and address clusters. It provides users with an intuitive interface to explore complex relationships and patterns within the blockchain, enabling deeper insights into transaction behaviors and structures.
 
-![example graph](img/graph.webp)
-*A workspace showing the connections between transactions and address clusters.*
-
-## Key Features
+## Features
 
 ### Visualize Connections Between Transactions and Address Clusters
 A Workspace allows users to visualize the intricate connections between various transactions and address clusters. This feature helps in understanding how different entities interact within the blockchain ecosystem, making it easier to identify relationships and potential patterns of behavior.
