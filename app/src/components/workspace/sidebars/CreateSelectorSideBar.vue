@@ -12,6 +12,17 @@
       >
         <v-card-text>
           <template v-if="selectorType === SELECTOR_TYPE_HEURISTIC">
+            <div class="text-subtitle-2 mb-3">
+              Find senders and receivers of
+              <wiki-tooltip description-url="coinjoin.md">
+                CoinJoin
+              </wiki-tooltip>
+              transactions.
+              <br>
+              <wiki-tooltip description-url="workspaces/coinJoinHeuristic.md">
+                Learn more
+              </wiki-tooltip>
+            </div>
             <v-select
               v-model="heuristicTypeModel"
               class="mb-3"
@@ -70,6 +81,9 @@
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
             <div class="text-subtitle-2 mb-3">
               Select transactions based on their properties.
+              <wiki-tooltip description-url="workspaces/propertySelector.md">
+                Learn more
+              </wiki-tooltip>
             </div>
             <v-label text="Maximum Stored Results" />
             <v-slider
@@ -112,7 +126,7 @@
               v-else
               class="text-subtitle-1"
             >
-              Using stored transactions of the parent node
+              Using stored transactions of the parent node.
             </div>
             <named-divider title="Filter by Type" />
             <v-checkbox
@@ -239,6 +253,10 @@
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_GRAPH">
             <div class="text-subtitle-2 mb-3">
               Select transactions based on their distance to the starting node.
+              <br>
+              <wiki-tooltip description-url="workspaces/graphSelector.md">
+                Learn more
+              </wiki-tooltip>
             </div>
             <div class="text-center text-subtitle-1 my-2">
               Maximum Stored Results
@@ -324,6 +342,7 @@ import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
