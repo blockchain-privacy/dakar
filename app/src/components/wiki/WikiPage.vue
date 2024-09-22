@@ -1,6 +1,6 @@
 <template>
-  <!-- single root so it can be transitioned -->
   <div>
+    <!-- single root so it can be transitioned -->
     <v-navigation-drawer
       v-model="drawerModel"
       :style="{'position':$vuetify.display.mobile?'fixed':'absolute', 'max-height':$vuetify.display.mobile?'300px': undefined}"
