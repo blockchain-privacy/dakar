@@ -40,6 +40,15 @@ export default defineConfig({
 			'.vue',
 		],
 	},
+	// eslint-disable-next-line no-warning-comments
+	// Todo: when vite 6.0 is released check if this can be removed (Dart Sass should not produce warnings when starting vite)
+	css: {
+		preprocessorOptions: {
+			sass: {
+				api: 'modern-compiler',
+			},
+		},
+	},
 	server: {
 		port: 3000,
 		proxy: {
