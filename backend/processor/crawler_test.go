@@ -27,7 +27,7 @@ func TestCrawler_IncrementState(t *testing.T) {
 
 	// reduce fork range limit there is something to crawl
 	c := NewBitcoinConfig()
-	c.ForkRangeLimit = 10
+	c.ForkRangeLimit = 1
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
@@ -46,9 +46,10 @@ func TestCrawler_Empty(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
+
 	// reduce fork range limit there is something to crawl
 	c := NewBitcoinConfig()
-	c.ForkRangeLimit = 10
+	c.ForkRangeLimit = 1
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
 	require.True(t, crawler.Empty())
@@ -91,7 +92,7 @@ func TestCrawler_NextBlock(t *testing.T) {
 
 	// reduce fork range limit there is something to crawl
 	c := NewBitcoinConfig()
-	c.ForkRangeLimit = 10
+	c.ForkRangeLimit = 1
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
 	_, err := crawler.Next()
@@ -110,8 +111,7 @@ func TestCrawler_Iterate(t *testing.T) {
 
 	// reduce fork range limit there is something to crawl
 	c := NewBitcoinConfig()
-	c.ForkRangeLimit = 10
-
+	c.ForkRangeLimit = 1
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
 	_, err := crawler.Iterate()
