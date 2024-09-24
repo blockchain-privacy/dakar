@@ -20,9 +20,9 @@ type FlatMultiInput struct {
 	state blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
-	maxBlocks uint64
+	maxBlocks int64
 	// number of blocks which have been processed by the last Iterate call
-	blocksProcessed uint64
+	blocksProcessed int64
 
 	blocks         prometheus.Counter
 	transactions   prometheus.Counter
@@ -290,7 +290,7 @@ func (m *FlatMultiInput) PostExecution() error {
 	return dbstat.SetClusteringFMI(m.db, false)
 }
 
-func (m *FlatMultiInput) SetMaxBlocks(blockCount uint64) {
+func (m *FlatMultiInput) SetMaxBlocks(blockCount int64) {
 	m.maxBlocks = blockCount
 }
 

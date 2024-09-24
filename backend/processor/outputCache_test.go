@@ -43,7 +43,7 @@ func TestOutputCacheOffline(t *testing.T) {
 	// valid key, but invalid elements
 	require.Error(t, cache.setOutputs("txhash1", []db.Output{{}, {}}))
 
-	one := uint32(1)
+	one := int32(1)
 	const key = "txhash1"
 	outputs := []db.Output{{OutputIndex: &one}}
 	require.NoError(t, cache.setOutputs(key, outputs))

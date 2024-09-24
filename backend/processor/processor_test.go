@@ -243,11 +243,11 @@ func TestProcessAddresses(t *testing.T) {
 		outputs: map[string]outputMapping{
 			fistAddress: {
 				hash:    fistAddress,
-				indexes: []uint32{0},
+				indexes: []int32{0},
 			},
 			secondAddress: {
 				hash:    secondAddress,
-				indexes: []uint32{1},
+				indexes: []int32{1},
 			},
 		},
 	}
@@ -277,13 +277,13 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	// normal operation
-	currentBlock, wasInterrupted, err := waitForNextRPCBlock(client, interrupt, hashes[0], uint64(blkCount), cfg)
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(client, interrupt, hashes[0], blkCount, cfg)
 	require.NoError(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.NotNil(t, currentBlock)
 
 	// missing hash
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, "", uint64(blkCount), cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, "", blkCount, cfg)
 	require.Error(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.Nil(t, currentBlock)
@@ -296,7 +296,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	// normal operation but interrupted and higher block
 	// count as available, so it must wait or in this case get interrupted
 	cfg.NewBlockIntervalTime = time.Minute
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, hashes[0], uint64(blkCount+2), cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, hashes[0], blkCount+2, cfg)
 	require.NoError(t, err)
 	require.True(t, wasInterrupted, "the interrupt flag should have been true")
 	require.Nil(t, currentBlock)
@@ -334,9 +334,9 @@ func Test_crawlerState_increment(t *testing.T) {
 func Test_buildAddresses(t *testing.T) {
 	oCache := newOutputCache()
 	err := oCache.setOutputs("asdf", []db.Output{
-		{OutputIndex: testhelper.GetPointer[uint32](1)},
-		{OutputIndex: testhelper.GetPointer[uint32](2)},
-		{OutputIndex: testhelper.GetPointer[uint32](3)},
+		{OutputIndex: testhelper.GetPointer[int32](1)},
+		{OutputIndex: testhelper.GetPointer[int32](2)},
+		{OutputIndex: testhelper.GetPointer[int32](3)},
 	})
 	require.NoError(t, err)
 
@@ -383,7 +383,7 @@ func Test_buildAddresses(t *testing.T) {
 				txHash: "asdf",
 				outputs: map[string]outputMapping{"": {
 					hash:    "",
-					indexes: []uint32{1, 2, 3},
+					indexes: []int32{1, 2, 3},
 				}},
 				addrMap: map[string]db.Address{},
 			},
@@ -395,7 +395,7 @@ func Test_buildAddresses(t *testing.T) {
 				txHash: "asdf",
 				outputs: map[string]outputMapping{"": {
 					hash:    "",
-					indexes: []uint32{1, 2, 3},
+					indexes: []int32{1, 2, 3},
 				}},
 				addrMap: map[string]db.Address{},
 			},
@@ -444,7 +444,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 	type args struct {
 		rawTransaction  jsonrpc.TxRawResult
 		txHashMap       map[string]jsonrpc.TxRawResult
-		externalOutputs map[string]map[uint32]db.Output
+		externalOutputs map[string]map[int32]db.Output
 		config          Config
 		cache           *outputCache
 	}
@@ -458,7 +458,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 			args: args{
 				rawTransaction:  *rawTxResult,
 				txHashMap:       txHashMap,
-				externalOutputs: map[string]map[uint32]db.Output{},
+				externalOutputs: map[string]map[int32]db.Output{},
 				config:          NewBitcoinConfig(),
 				cache:           newOutputCache(),
 			},
@@ -470,7 +470,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 			args: args{
 				rawTransaction:  *txWithoutAddresses,
 				txHashMap:       txHashMap,
-				externalOutputs: map[string]map[uint32]db.Output{},
+				externalOutputs: map[string]map[int32]db.Output{},
 				config:          NewBitcoinConfig(),
 				cache:           newOutputCache(),
 			},
@@ -504,8 +504,8 @@ func Test_filterExternalOutputs(t *testing.T) {
 
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs("txhash2", []db.Output{
-		{OutputIndex: testhelper.GetPointer[uint32](4)},
-		{OutputIndex: testhelper.GetPointer[uint32](5)},
+		{OutputIndex: testhelper.GetPointer[int32](4)},
+		{OutputIndex: testhelper.GetPointer[int32](5)},
 	}))
 
 	type args struct {
@@ -514,28 +514,28 @@ func Test_filterExternalOutputs(t *testing.T) {
 	}
 	tests := []struct {
 		args args
-		want map[string][]uint32
+		want map[string][]int32
 	}{
 		{
 			args: args{
 				txHashMap: nil,
 				cache:     nil,
 			},
-			want: map[string][]uint32{},
+			want: map[string][]int32{},
 		},
 		{
 			args: args{
 				txHashMap: txMap,
 				cache:     newOutputCache(),
 			},
-			want: map[string][]uint32{"txhash1": {0, 1, 2}, "txhash2": {3, 4, 5}},
+			want: map[string][]int32{"txhash1": {0, 1, 2}, "txhash2": {3, 4, 5}},
 		},
 		{
 			args: args{
 				txHashMap: txMap,
 				cache:     cache,
 			},
-			want: map[string][]uint32{"txhash1": {0, 1, 2}, "txhash2": {3}},
+			want: map[string][]int32{"txhash1": {0, 1, 2}, "txhash2": {3}},
 		},
 	}
 	for _, tt := range tests {
@@ -547,15 +547,15 @@ func Test_processTxVin(t *testing.T) {
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs("txhash1", []db.Output{
 		{
-			OutputIndex: testhelper.GetPointer[uint32](0),
+			OutputIndex: testhelper.GetPointer[int32](0),
 			Amount:      testhelper.GetPointer[int64](3),
 		},
 	}))
 	type args struct {
 		details         *db.Transaction
-		externalOutputs map[string]map[uint32]db.Output
+		externalOutputs map[string]map[int32]db.Output
 		vin             jsonrpc.Vin
-		index           uint32
+		index           int32
 		txHashMap       map[string]jsonrpc.TxRawResult
 		cache           *outputCache
 	}
@@ -641,7 +641,7 @@ func Test_processBlock(t *testing.T) {
 	type args struct {
 		transactions  []db.Transaction
 		currentHash   string
-		blockID       uint64
+		blockID       int64
 		timestamp     string
 		prevBlockHash string
 	}
@@ -686,14 +686,14 @@ func Test_getStartingID(t *testing.T) {
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: testhelper.GetPointer[bool](true),
 		// make blocks not match
-		LastBlockID: testhelper.GetPointer[uint64](5),
+		LastBlockID: testhelper.GetPointer[int64](5),
 	}))
 	_, err = getStartingID(dbHandle)
 	require.Error(t, err)
 
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  testhelper.GetPointer[bool](true),
-		LastBlockID: testhelper.GetPointer[uint64](testhelper.BlockFileLastBlock),
+		LastBlockID: testhelper.GetPointer[int64](testhelper.BlockFileLastBlock),
 	}))
 	gotStartID, err = getStartingID(dbHandle)
 	require.NoError(t, err)
@@ -740,7 +740,7 @@ func Test_getExternalOutputs(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	tests := []struct {
-		outputs  map[string][]uint32
+		outputs  map[string][]int32
 		wantSize int
 		wantErr  bool
 	}{
@@ -750,13 +750,13 @@ func Test_getExternalOutputs(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			outputs:  map[string][]uint32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {0, 1}},
+			outputs:  map[string][]int32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {0, 1}},
 			wantSize: 1,
 			wantErr:  false,
 		},
 		{
 			// wrong indexes -> zero size
-			outputs:  map[string][]uint32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {10, 11}},
+			outputs:  map[string][]int32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {10, 11}},
 			wantSize: 0,
 			wantErr:  false,
 		},
@@ -796,7 +796,7 @@ func Test_processRound(t *testing.T) {
 	}{
 		{
 			args: args{
-				state:  crawlerState{top: uint64(3), id: uint64(1)},
+				state:  crawlerState{top: int64(3), id: int64(1)},
 				block:  verboseBlock,
 				config: NewBitcoinConfig(),
 				cache:  newOutputCache(),

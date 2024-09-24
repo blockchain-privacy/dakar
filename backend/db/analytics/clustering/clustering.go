@@ -20,7 +20,7 @@ import (
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
 // The size of the returned slice can be zero in case the only transaction contained
 // in the block is the coinbase transaction (no inputs) or all transaction are filtered out (mixing transactions).
-func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType ClusterType) (transactions []TransactionWithAddressClusters, err error) {
+func GetInputAddressesByBlock(c external.Database, blockID int64, clusterType ClusterType) (transactions []TransactionWithAddressClusters, err error) {
 	const query = `query Q($block:string,$ctype:string) {
 				var(func: eq(id, $block)){
 					# do not consider mixing transaction
@@ -50,7 +50,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$block": strconv.FormatUint(blockID, 10), "$ctype": string(clusterType)})
+		map[string]string{"$block": strconv.FormatInt(blockID, 10), "$ctype": string(clusterType)})
 	if err != nil {
 		return
 	}
@@ -96,7 +96,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 }
 
 // GetAddressesByBlock gets all addresses per transaction by block ID range.
-func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint64,
+func GetAddressesByBlock(c external.Database, fromBlockID int64, toBlockID int64,
 	clusterType ClusterType) (transactions []TransactionWithInputOutputAddressCluster, err error) {
 	const query = `query Q($from:string,$to:string,$ctype:string) {
 				var(func: between(id, $from, $to)){
@@ -128,8 +128,8 @@ func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
-			"$to": strconv.FormatUint(toBlockID, 10), "$ctype": string(clusterType)})
+		map[string]string{"$from": strconv.FormatInt(fromBlockID, 10),
+			"$to": strconv.FormatInt(toBlockID, 10), "$ctype": string(clusterType)})
 	if err != nil {
 		return
 	}

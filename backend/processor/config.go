@@ -13,7 +13,7 @@ type Config struct {
 	// ForkRangeLimit is the number of blocks which the RPC client must
 	// be ahead of the crawler, for the crawler to include new blocks
 	// in the database. This is done so potential chain forks/reordering do not need to be handled
-	ForkRangeLimit uint64
+	ForkRangeLimit int64
 	// PubKeyHashAddrID is the first byte of a P2PKH address
 	PubKeyHashAddrID byte
 }

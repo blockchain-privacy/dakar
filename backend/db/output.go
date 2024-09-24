@@ -10,8 +10,8 @@ const outputDType = "Output"
 // Output is the database representation of an output
 type Output struct {
 	UID         string   `json:"uid,omitempty"`
-	OutputIndex *uint32  `json:"outputindex,omitempty"`
-	InputIndex  *uint32  `json:"inputindex,omitempty"`
+	OutputIndex *int32   `json:"outputindex,omitempty"`
+	InputIndex  *int32   `json:"inputindex,omitempty"`
 	TxType      string   `json:"txtype,omitempty"`
 	Amount      *int64   `json:"amount,omitempty"`
 	IsCoinbase  *bool    `json:"iscoinbase,omitempty"`

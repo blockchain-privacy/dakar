@@ -81,9 +81,8 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 			return
 		}
 
-		line := []string{i.Format(time.RFC3339), strconv.FormatUint(addressCount, 10),
-			strconv.FormatUint(clusterCount, 10),
-			strconv.FormatUint(addressesWithClusterCount, 10)}
+		line := []string{i.Format(time.RFC3339), strconv.Itoa(addressCount), strconv.Itoa(clusterCount),
+			strconv.Itoa(addressesWithClusterCount)}
 
 		if err := w.Write(line); err != nil {
 			warn(err, "msg", "error writing record to file")

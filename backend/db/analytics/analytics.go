@@ -216,7 +216,7 @@ func GetTransactionTypeCount(c external.Database) (mixingCount int, originCount 
 
 // GetPrivacyTransactionsByBlock gets all destination transactions, mixing transactions and
 // their connected transactions of the given blockHeight
-func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]ConnectedNode, []Node, error) {
+func GetPrivacyTransactionsByBlock(c external.Database, blockHeight int64) ([]ConnectedNode, []Node, error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid))
 				var(func: uid(b)){
@@ -261,7 +261,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
-		map[string]string{"$bid": strconv.FormatUint(blockHeight, 10)})
+		map[string]string{"$bid": strconv.FormatInt(blockHeight, 10)})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -474,7 +474,7 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	// set correct classifier status
-	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, int64(testhelper.ClassifierFileLastBlock)))
 
 	// set wrapper not loading and set environment variable to
 	// only load a small graph (should have no effect, as graph is small anyway)
@@ -514,7 +514,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 	w.db = dbHandle
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, int64(testhelper.ClassifierFileLastBlock)))
 	require.NoError(t, w.LoadGraphs())
 
 	// false because w.state.top is higher than most recent classified block
@@ -554,7 +554,7 @@ func TestWrapper_Iterate(t *testing.T) {
 	w.db = dbHandle
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, int64(testhelper.ClassifierFileLastBlock)))
 	require.NoError(t, w.LoadGraphs())
 
 	// state.ID is set to a block which does not exist,

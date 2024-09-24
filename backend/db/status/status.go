@@ -114,7 +114,7 @@ func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInpu
 }
 
 // GetHighestBlockID gets the highest block id.
-func GetHighestBlockID(c external.Database) (max uint64, err error) {
+func GetHighestBlockID(c external.Database) (max int64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -130,7 +130,7 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 
 	var r struct {
 		TopBlock []struct {
-			Max uint64 `json:"max,omitempty"`
+			Max int64 `json:"max,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -391,28 +391,28 @@ func SetClusteringFMI(c external.Database, clustering bool) error {
 }
 
 // SetLastBlockID sets the last block id
-func SetLastBlockID(c external.Database, id uint64) error {
+func SetLastBlockID(c external.Database, id int64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		LastBlockID: &id,
 	})
 }
 
 // SetLastClassifiedBlockID sets the last classified block id
-func SetLastClassifiedBlockID(c external.Database, id uint64) error {
+func SetLastClassifiedBlockID(c external.Database, id int64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		LastClassifiedBlockID: &id,
 	})
 }
 
 // SetLastClusteredHMIBlockID sets the last clustered multi-input block id
-func SetLastClusteredHMIBlockID(c external.Database, id uint64) error {
+func SetLastClusteredHMIBlockID(c external.Database, id int64) error {
 	return SetClusteringHMIStatus(c, ClusteringHierarchicalMultiInputStatus{
 		LastClusteredBlockID: &id,
 	})
 }
 
 // SetLastClusteredFMIBlockID sets the last clustered multi-input block id
-func SetLastClusteredFMIBlockID(c external.Database, id uint64) error {
+func SetLastClusteredFMIBlockID(c external.Database, id int64) error {
 	return SetClusteringFMIStatus(c, ClusteringFlatMultiInputStatus{
 		LastClusteredBlockID: &id,
 	})

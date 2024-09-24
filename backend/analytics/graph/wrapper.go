@@ -78,7 +78,7 @@ func (w *Wrapper) RegisterMetrics(req prometheus.Registerer) {
 }
 
 // SetMaxBlocks is not supported, so do nothing
-func (w *Wrapper) SetMaxBlocks(uint64) {}
+func (w *Wrapper) SetMaxBlocks(int64) {}
 
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded
 func (w *Wrapper) IsTransactionGraphLoaded() bool {

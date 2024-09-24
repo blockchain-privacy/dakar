@@ -102,9 +102,9 @@ type Classifier struct {
 	state  blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
-	maxBlocks uint64
+	maxBlocks int64
 	// number of blocks which have been processed by the last Iterate call
-	blocksProcessed uint64
+	blocksProcessed int64
 
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
@@ -150,7 +150,7 @@ func (c *Classifier) Props() blockiterator.Properties {
 	}
 }
 
-func (c *Classifier) SetMaxBlocks(max uint64) {
+func (c *Classifier) SetMaxBlocks(max int64) {
 	c.maxBlocks = max
 }
 
@@ -225,7 +225,7 @@ func getUids(txs []db.Transaction) []string {
 // getConnectedCollaterals returns a set of collateral creation and a set of
 // collateral payment transactions, which are connected to the given transaction set.
 func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransactions []db.Transaction,
-	blockHeight uint64) (originCC []db.Transaction, originCP []db.Transaction, err error) {
+	blockHeight int64) (originCC []db.Transaction, originCP []db.Transaction, err error) {
 	for len(potentialCollateralTransactions) > 0 {
 		mixing, cc, cp, getErr := classifyTransactions(dgraph, potentialCollateralTransactions)
 		if getErr != nil {
@@ -355,8 +355,8 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// step 2.3: set collateral creation type
 	if len(ccTransactions) > 0 {
-		var insertedSum uint64
-		var numInserted uint64 = 1
+		var insertedSum = 0
+		var numInserted = 1
 		var ccErr error
 
 		// need to set type multiple times for the same block as transactions
@@ -369,7 +369,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 			insertedSum += numInserted
 			// all inserted -> no need for a second round
-			if insertedSum == uint64(len(ccTransactions)) {
+			if insertedSum == len(ccTransactions) {
 				break
 			}
 		}
@@ -377,8 +377,8 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// step 2.4: set collateral payment type
 	if len(cpTransactions) > 0 {
-		var insertedSum uint64
-		var numInserted uint64 = 1
+		var insertedSum = 0
+		var numInserted = 1
 		var cpErr error
 
 		// need to set type multiple times for the same block as transactions
@@ -391,7 +391,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 			insertedSum += numInserted
 			// all inserted -> no need for a second round
-			if insertedSum == uint64(len(cpTransactions)) {
+			if insertedSum == len(cpTransactions) {
 				break
 			}
 		}

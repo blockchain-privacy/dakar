@@ -21,7 +21,7 @@ import (
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themselves.
-func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint64, toBlockID uint64) (toClassify []db.Transaction,
+func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID int64, toBlockID int64) (toClassify []db.Transaction,
 	origins []db.Transaction, err error) {
 	query := `query Q($from:int,$to:int) {
 				b as var(func: between(id, $from, $to))
@@ -90,8 +90,8 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 
 	req := &api.Request{
 		Query: query,
-		Vars: map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
-			"$to": strconv.FormatUint(toBlockID, 10)},
+		Vars: map[string]string{"$from": strconv.FormatInt(fromBlockID, 10),
+			"$to": strconv.FormatInt(toBlockID, 10)},
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(dest), 0))",
@@ -129,7 +129,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 // SetCollateralCreation sets the collateral creation privacy type, if its input transaction are
 // either of the type origin, mixing or collateral creation. Returns the number of newly
 // classified transactions.
-func SetCollateralCreation(c external.Database, txUids []string) (insertCount uint64, err error) {
+func SetCollateralCreation(c external.Database, txUids []string) (insertCount int, err error) {
 	uidList := db.CreateCommaArray(txUids)
 
 	const query = `query Q($uids: string) {
@@ -161,7 +161,7 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 	// json struct
 	var r struct {
 		Query []struct {
-			Count uint64 `json:"count,omitempty"`
+			Count int `json:"count,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -183,7 +183,7 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 // SetCollateralPayment sets the collateral payment privacy type, if its input transaction are
 // either of the type origin, collateral creation or collateral payment. Returns the number
 // of newly classified transactions.
-func SetCollateralPayment(c external.Database, txUids []string) (insertCount uint64, err error) {
+func SetCollateralPayment(c external.Database, txUids []string) (insertCount int, err error) {
 	uidList := db.CreateCommaArray(txUids)
 
 	// collateral payments + collateral creations + origins
@@ -215,7 +215,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 	// json struct
 	var r struct {
 		Query []struct {
-			Count uint64 `json:"count,omitempty"`
+			Count int `json:"count,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -237,7 +237,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 // GetCollateralInputTransactions returns the input transactions of
 // the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
-	blockHeight uint64) (outputTransactions []db.Transaction, err error) {
+	blockHeight int64) (outputTransactions []db.Transaction, err error) {
 	const query = `query Q($uids:string,$bid:int){
 				var (func: uid($uids)){
 					tx_outputs{
@@ -268,7 +268,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$uids": db.CreateCommaArray(txUids), "$bid": strconv.FormatUint(blockHeight, 10)})
+		map[string]string{"$uids": db.CreateCommaArray(txUids), "$bid": strconv.FormatInt(blockHeight, 10)})
 	if err != nil {
 		return
 	}

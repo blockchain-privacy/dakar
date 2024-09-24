@@ -18,7 +18,7 @@ type RPCClient interface {
 	// GetBlockVerbose returns a data structure from the server with information about a block given its hash.
 	GetBlockVerbose(blockHash string) (*jsonrpc.GetBlockVerboseResult, error)
 	// GetBlockHash returns the hash of the block in the best blockchain at the given height.
-	GetBlockHash(blockHeight uint64) (string, error)
+	GetBlockHash(blockHeight int64) (string, error)
 	// GetRawTransactionVerbose returns information about a transaction given its hash.
 	GetRawTransactionVerbose(txHash string) (*jsonrpc.TxRawResult, error)
 	// GetRawTransactionVerboseBatch returns several GetRawTransactionVerbose in one batch

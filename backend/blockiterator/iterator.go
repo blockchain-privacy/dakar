@@ -34,7 +34,7 @@ type BlockIterator interface {
 	// Props returns the properties of the iterator
 	Props() Properties
 	// SetMaxBlocks sets the number of blocks each iteration processes.
-	SetMaxBlocks(uint64)
+	SetMaxBlocks(int64)
 }
 
 type Properties struct {
@@ -44,9 +44,9 @@ type Properties struct {
 	// Logger used for this iterator
 	Logger *slog.Logger
 	// CurrentBlock refers to the block height which is currently being processed
-	CurrentBlock uint64
+	CurrentBlock int64
 	// ProcessedBlockCount is the total number of blocks that were processed during the last Iterate call
-	ProcessedBlockCount uint64
+	ProcessedBlockCount int64
 	// SupportsMultiBlockIteration returns true if the iterator is capable of iterating over multiple blocks
 	SupportsMultiBlockIteration bool
 }
@@ -54,28 +54,28 @@ type Properties struct {
 // State holds the current state of the processing loop
 type State struct {
 	// ID is the current block height
-	ID uint64
+	ID int64
 
 	// Top is the highest block height, which was observed at some point
-	Top uint64
+	Top int64
 }
 
 // scaleBlocksPerIteration determines the number of blocks to be processed in each iteration.
 // The scaling is based on whether the target duration is less than or greater than the iteration duration.
 // The upper limit is capped at 200 blocks.
-func scaleBlocksPerIteration(target time.Duration, iterationDuration time.Duration, blockCount uint64) uint64 {
+func scaleBlocksPerIteration(target time.Duration, iterationDuration time.Duration, blockCount int64) int64 {
 	if target <= 0 {
 		return 1
 	}
 
 	upperLimit := time.Duration(float64(target) * 1.1)
 	if iterationDuration > upperLimit {
-		return max(1, uint64(float64(blockCount)*0.75))
+		return max(1, int64(float64(blockCount)*0.75))
 	}
 
 	lowerLimit := time.Duration(float64(target) * 0.9)
 	if iterationDuration < lowerLimit {
-		return min(max(blockCount+1, uint64(float64(blockCount)*1.1)), 200)
+		return min(max(blockCount+1, int64(float64(blockCount)*1.1)), 200)
 	}
 
 	return blockCount
@@ -114,8 +114,8 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 
 	info(iterator, "iterator started", "current block", iterator.Props().CurrentBlock)
 
-	lastMetricPrintBlockID := uint64(0)
-	numIteratedBlocks := uint64(0)
+	lastMetricPrintBlockID := int64(0)
+	numIteratedBlocks := int64(0)
 	timerGlobal := time.Now()
 	ctx := props.Context
 
@@ -163,7 +163,7 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 		blocksSinceLastPrint := numIteratedBlocks - lastMetricPrintBlockID
 		if blocksSinceLastPrint >= 1000 {
 			info(iterator, fmt.Sprintf("avg %d blocks: %v ms/block", blocksSinceLastPrint,
-				uint64(time.Since(timerGlobal).Milliseconds())/blocksSinceLastPrint))
+				time.Since(timerGlobal).Milliseconds()/blocksSinceLastPrint))
 			timerGlobal = time.Now()
 			lastMetricPrintBlockID = numIteratedBlocks
 		}

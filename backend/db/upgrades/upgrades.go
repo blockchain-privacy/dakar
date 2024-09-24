@@ -24,7 +24,7 @@ var availableUpgrades = map[uint64]UpgradePackage{
 			clustering.DeleteAllFMIClusters,
 			func() schemaUpgrade {
 				return func(c external.Database) error {
-					zero := uint64(0)
+					zero := int64(0)
 					return status.SetClusteringFMIStatus(c, status.ClusteringFlatMultiInputStatus{
 						LastClusteredBlockID: &zero,
 					})
