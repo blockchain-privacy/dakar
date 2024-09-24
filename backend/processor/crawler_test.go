@@ -25,7 +25,7 @@ func TestCrawler_IncrementState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	// reduce fork range limit there is something to crawl
+	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 
@@ -47,7 +47,7 @@ func TestCrawler_Empty(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	// reduce fork range limit there is something to crawl
+	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
@@ -90,7 +90,7 @@ func TestCrawler_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	// reduce fork range limit there is something to crawl
+	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
@@ -109,7 +109,7 @@ func TestCrawler_Iterate(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	// reduce fork range limit there is something to crawl
+	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
