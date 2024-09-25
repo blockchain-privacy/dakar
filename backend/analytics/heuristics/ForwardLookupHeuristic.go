@@ -85,6 +85,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
+
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
@@ -102,18 +103,17 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, err
 	}
 
-	// get tx details for each uid
-	parentResults, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
 		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(parentResults) > 1 {
+	if len(results) > 1 {
 		return nil, serror.FromStr("received more than one transaction")
 	}
 
-	if len(parentResults) == 0 {
+	if len(results) == 0 {
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
@@ -126,7 +126,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
-	uidMap, err := getOriginDestinationTimeLimited(g, []string{parentResults[0].UID}, h.lookForwardTime,
+	uidMap, err := getOriginDestinationTimeLimited(g, []string{results[0].UID}, h.lookForwardTime,
 		exclusions, h.c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, err
@@ -137,5 +137,5 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		result = append(result, db.UIDNode{UID: k})
 	}
 
-	return createHeuristicClusters(map[heuristics.ClusterUID][]db.UIDNode{parentResults[0].Cluster: result}, resultAttributionMap), nil
+	return createHeuristicClusters(map[heuristics.ClusterUID][]db.UIDNode{results[0].Cluster: result}, resultAttributionMap), nil
 }

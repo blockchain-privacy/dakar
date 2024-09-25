@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/iterator"
-	"gonum.org/v1/gonum/graph/set/uid"
-	"gonum.org/v1/gonum/graph/simple"
+	"reflect"
 )
 
 var (
@@ -13,7 +12,6 @@ var (
 
 	_ graph.Graph       = dg
 	_ graph.Directed    = dg
-	_ graph.NodeAdder   = dg
 	_ graph.NodeRemover = dg
 	_ graph.EdgeRemover = dg
 )
@@ -25,8 +23,6 @@ type ReversibleGraph struct {
 	nodes    map[int64]graph.Node
 	from     map[int64]map[int64]graph.Edge
 	to       map[int64]map[int64]graph.Edge
-
-	nodeIDs *uid.Set
 }
 
 // NewReversibleGraph returns a ReversibleGraph. Initializes internal data structures with the expected number of nodes.
@@ -37,8 +33,6 @@ func NewReversibleGraph(numNodesHint int) *ReversibleGraph {
 		nodes: make(map[int64]graph.Node, numNodesHint),
 		from:  make(map[int64]map[int64]graph.Edge, numNodesHint),
 		to:    make(map[int64]map[int64]graph.Edge, numNodesHint),
-
-		nodeIDs: uid.NewSet(),
 	}
 }
 
@@ -58,14 +52,10 @@ func (g *ReversibleGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("reversible: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.nodeIDs.Use(n.ID())
 }
 
 // UpdateNode updates n. If the node does not already exist, it gets added to the graph.
 func (g *ReversibleGraph) UpdateNode(n graph.Node) {
-	if _, exists := g.nodes[n.ID()]; !exists {
-		g.nodeIDs.Use(n.ID())
-	}
 	g.nodes[n.ID()] = n
 }
 
@@ -149,18 +139,6 @@ func (g *ReversibleGraph) NewEdge(from, to graph.Node, addresses []int64) graph.
 	return AddressEdge{F: from, T: to, AddressUIDs: addresses}
 }
 
-// NewNode returns a new unique Node to be added to g. The Node's ID does
-// not become valid in g until the Node is added to g.
-func (g *ReversibleGraph) NewNode() graph.Node {
-	if len(g.nodes) == 0 {
-		return simple.Node(0)
-	}
-	if int64(len(g.nodes)) == uid.Max {
-		panic("reversible: cannot allocate node: no slot")
-	}
-	return simple.Node(g.nodeIDs.NewID())
-}
-
 // Node returns the node with the given ID if it exists in the graph,
 // and nil otherwise.
 func (g *ReversibleGraph) Node(id int64) graph.Node {
@@ -208,8 +186,6 @@ func (g *ReversibleGraph) RemoveNode(id int64) {
 		delete(g.from[to], id)
 	}
 	delete(g.to, id)
-
-	g.nodeIDs.Release(id)
 }
 
 // SetEdge adds e, an edge from one node to another. If the nodes do not exist, they are added
@@ -272,14 +248,7 @@ func (g *ReversibleGraph) SetEdgeWithoutOverwrite(from graph.Node, to graph.Node
 	}
 
 	if fm, ok := g.from[fid]; ok {
-		if toEdge, ok := fm[tid]; ok {
-			// append address UID
-			addrEdge := toEdge.(AddressEdge)
-			addrEdge.AddressUIDs = append(addrEdge.AddressUIDs, addressUID)
-			fm[tid] = addrEdge
-		} else {
-			fm[tid] = AddressEdge{F: from, T: to, AddressUIDs: []int64{addressUID}}
-		}
+		insertEdge(fm, tid, from, to, addressUID)
 	} else {
 		g.from[fid] = map[int64]graph.Edge{tid: AddressEdge{F: from, T: to, AddressUIDs: []int64{addressUID}}}
 	}
@@ -298,6 +267,72 @@ func (g *ReversibleGraph) SetEdgeWithoutOverwrite(from graph.Node, to graph.Node
 	}
 }
 
+func insertEdge(fm map[int64]graph.Edge, tid int64, from graph.Node, to graph.Node, addressUID int64) {
+	if toEdge, ok := fm[tid]; ok {
+		// append address UID
+		addrEdge := toEdge.(AddressEdge)
+		addrEdge.AddressUIDs = append(addrEdge.AddressUIDs, addressUID)
+		fm[tid] = addrEdge
+	} else {
+		fm[tid] = AddressEdge{F: from, T: to, AddressUIDs: []int64{addressUID}}
+	}
+}
+
+// SetEdgesWithoutOverwrite adds an edge from 'from' node to all nodes contained in 'tos'.
+// If the edges nodes do not already exist in the graph, they are created.
+// Panics if the IDs of 'from' and one of 'tos' are equal.
+func (g *ReversibleGraph) SetEdgesWithoutOverwrite(from graph.Node, tos []graph.Node, addressUIDs []int64) {
+	fid := from.ID()
+
+	if _, ok := g.nodes[fid]; !ok {
+		g.AddNode(from)
+	}
+
+	var fm map[int64]graph.Edge
+	fm, fok := g.from[fid]
+
+	var newFromMap map[int64]graph.Edge
+
+	for i, to := range tos {
+		tid := to.ID()
+		if fid == tid {
+			panic("reversible: adding self edge")
+		}
+
+		if _, ok := g.nodes[tid]; !ok {
+			g.AddNode(to)
+		}
+
+		if fok {
+			insertEdge(fm, tid, from, to, addressUIDs[i])
+		} else {
+			if newFromMap == nil {
+				newFromMap = make(map[int64]graph.Edge, len(tos))
+				newFromMap[tid] = AddressEdge{F: from, T: to, AddressUIDs: []int64{addressUIDs[i]}}
+			} else {
+				insertEdge(newFromMap, tid, from, to, addressUIDs[i])
+			}
+		}
+
+		if tm, ok := g.to[tid]; ok {
+			if fromEdge, ok := tm[fid]; ok {
+				// append address UID
+				addrEdge := fromEdge.(AddressEdge)
+				addrEdge.AddressUIDs = append(addrEdge.AddressUIDs, addressUIDs[i])
+				tm[fid] = addrEdge
+			} else {
+				tm[fid] = AddressEdge{F: from, T: to, AddressUIDs: []int64{addressUIDs[i]}}
+			}
+		} else {
+			g.to[tid] = map[int64]graph.Edge{fid: AddressEdge{F: from, T: to, AddressUIDs: []int64{addressUIDs[i]}}}
+		}
+	}
+
+	if !fok {
+		g.from[fid] = newFromMap
+	}
+}
+
 // To returns all nodes in g that can reach directly to n.
 // The returned graph.Nodes are only valid until the next mutation of
 // the receiver.
@@ -312,4 +347,13 @@ func (g *ReversibleGraph) To(id int64) graph.Nodes {
 		return graph.Empty
 	}
 	return iterator.NewNodesByEdge(g.nodes, g.to[id])
+}
+
+// IsEqual returns true if g2 is equal to g
+func (g *ReversibleGraph) IsEqual(g2 *ReversibleGraph) bool {
+	nodesAreEqual := reflect.DeepEqual(g.nodes, g2.nodes)
+	fromEqual := reflect.DeepEqual(g.from, g2.from)
+	toEqual := reflect.DeepEqual(g.to, g2.to)
+
+	return g.reversed == g2.reversed && nodesAreEqual && fromEqual && toEqual
 }

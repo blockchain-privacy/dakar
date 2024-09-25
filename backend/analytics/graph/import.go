@@ -210,19 +210,23 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 
 		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.TS, Type: node.Type})
 
-		for _, input := range node.Inputs {
-			inputUID, parseErr := ToInteger(input.InputTransaction)
-			if parseErr != nil {
-				return parseErr
-			}
+		addressUIDs := make([]int64, len(node.Inputs))
+		inputUIDs := make([]graph.Node, len(node.Inputs))
 
-			addressUID, parseErr := ToInteger(input.Address)
-			if parseErr != nil {
-				return parseErr
+		for i, input := range node.Inputs {
+			inputUID, err := ToInteger(input.InputTransaction)
+			if err != nil {
+				return err
 			}
+			inputUIDs[i] = simple.Node(inputUID)
 
-			g.SetEdgeWithoutOverwrite(simple.Node(nodeUID), simple.Node(inputUID), addressUID)
+			addressUIDs[i], err = ToInteger(input.Address)
+			if err != nil {
+				return err
+			}
 		}
+
+		g.SetEdgesWithoutOverwrite(simple.Node(nodeUID), inputUIDs, addressUIDs)
 	}
 
 	return nil

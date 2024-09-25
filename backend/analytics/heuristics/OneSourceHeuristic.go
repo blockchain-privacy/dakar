@@ -161,7 +161,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, pa
 	}
 
 	// save origins in global cluster->origin map
-	sourceTransactionMap = addOriginsToMap(sourceTransactionMap, allTimeLimitedOrigins)
+	sourceTransactionMap = addTransactionToCluster(sourceTransactionMap, allTimeLimitedOrigins)
 
 	for _, t := range allTxAndOrigins {
 		// get input denominations
