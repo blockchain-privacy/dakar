@@ -235,13 +235,13 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 	}
 
 	selectorNodes = make([]Node, 0, len(r.Heuristics)+len(r.Selectors))
-	// parentToHeuristic contains the mapping of parents to its directly
-	// connected heuristics. This map is used to add the contained heuristic
+	// parentToSelector contains the mapping of parents to its directly
+	// connected selectors. This map is used to add the contained selector
 	// uids as children to their corresponding transaction (if its parent is a transaction).
-	parentToHeuristic := map[string][]string{}
+	parentToSelector := map[string][]string{}
 	for _, h := range r.Heuristics {
 		if h.Parent != nil && h.Parent.UID != "" {
-			parentToHeuristic[h.Parent.UID] = append(parentToHeuristic[h.Parent.UID], h.UID)
+			parentToSelector[h.Parent.UID] = append(parentToSelector[h.Parent.UID], h.UID)
 		}
 
 		children := make([]string, len(h.Children))
@@ -301,6 +301,10 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 	}
 
 	for _, s := range r.Selectors {
+		if s.Parent != nil && s.Parent.UID != "" {
+			parentToSelector[s.Parent.UID] = append(parentToSelector[s.Parent.UID], s.UID)
+		}
+
 		children := make([]string, len(s.Children))
 		for i, c := range s.Children {
 			children[i] = c.UID
@@ -316,12 +320,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			children = append(children, selectorClusters)
 		}
 
-		var opt Options
-		if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
-			err = serror.NewWithContext(err, "opt", s.Options)
-			return
-		}
-		selectorNodes = append(selectorNodes, Node{
+		newNode := Node{
 			UID:                      s.UID,
 			Type:                     NodeTypeSelector,
 			Children:                 children,
@@ -331,8 +330,29 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			SelectorTotalResultCount: s.TotalResultCount,
 			SelectorCreated:          s.Created,
 			SelectorModified:         s.Modified,
-			SelectorOptions:          &opt,
-		})
+		}
+
+		if s.Type == TypeTxProp {
+			var opt TxPropOptions
+			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
+				err = serror.NewWithContext(err, "opt", s.Options)
+				return
+			}
+
+			newNode.TxPropOptions = &opt
+		} else if s.Type == TypeTxGraph {
+			var opt TxGraphOptions
+			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
+				err = serror.NewWithContext(err, "opt", s.Options)
+				return
+			}
+			newNode.TxGraphOptions = &opt
+		} else {
+			err = serror.FromStr("invalid selector type")
+			return
+		}
+
+		selectorNodes = append(selectorNodes, newNode)
 	}
 
 	connectedTransactions := map[string]NodeConnectionsMap{}
@@ -343,8 +363,8 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			ct = NodeConnectionsMap{UID: queryTx.UID, children: map[string]bool{}}
 		}
 
-		// add root heuristics to transaction if available
-		if rootHeuristics, ok := parentToHeuristic[queryTx.UID]; ok {
+		// add root selectors to transaction if available
+		if rootHeuristics, ok := parentToSelector[queryTx.UID]; ok {
 			for _, h := range rootHeuristics {
 				ct.children[h] = true
 			}

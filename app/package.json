@@ -10,12 +10,12 @@
     "lint": "eslint src --fix"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.48",
+    "@blockchain/dakar": "^1.1.50",
     "@fontsource/roboto": "^5.0.14",
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.5",
     "@neondark/wikiapi": "^1.2.36",
-    "@ory/client-fetch": "^1.14.3",
+    "@ory/client-fetch": "^1.14.4",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -30,11 +30,11 @@
     "pinia": "^2.2.2",
     "vue": "^3.4.38",
     "vue-router": "^4.4.3",
-    "vuetify": "^3.7.0"
+    "vuetify": "^3.7.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
-    "eslint": "^9.9.0",
+    "eslint": "^9.9.1",
     "eslint-config-xo": "^0.46.0",
     "eslint-plugin-vue": "^9.27.0",
     "eslint-plugin-vuetify": "^2.4.0",

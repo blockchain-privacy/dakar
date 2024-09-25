@@ -257,6 +257,10 @@ export function isMixing(privacyType) {
 
 // IsOrigin returns true if the provided privacyType is in the range of origin transactions
 export function isOrigin(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
@@ -285,6 +289,10 @@ export function isDestination(privacyType) {
 // IsCollateralCreation returns true if the provided privacyType is in the range of
 // collateral creation transactions
 export function isCollateralCreation(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
@@ -297,6 +305,10 @@ export function isCollateralCreation(privacyType) {
 // IsCollateralPayment returns true if the provided privacyType is in the range of
 // collateral payment transactions
 export function isCollateralPayment(privacyType) {
+	if (!privacyType) {
+		return false;
+	}
+
 	const t = parseInt(privacyType, 10);
 
 	if (Number.isNaN(t) || t < 0) {
@@ -325,11 +337,11 @@ export function plural(subject, count) {
 export function getColorMap() {
 	const colorMap = new Map();
 
-	colorMap.set('origin', '#D55E00');
+	colorMap.set('origin', '#CB5599');
 	colorMap.set('mixing', '#56B4E9');
 	colorMap.set('destination', '#0072B2');
 	colorMap.set('collateral creation', '#E69F00');
-	colorMap.set('collateral payment', '#009E73');
+	colorMap.set('collateral payment', '#D00000');
 
 	return colorMap;
 }

@@ -76,7 +76,7 @@
           sm="6"
         >
           <icon-item
-            title="Number of transactions"
+            title="Transaction Count"
             :icon="mdiPoundBoxOutline"
           >
             {{ transactionCount }}
@@ -84,7 +84,7 @@
         </v-col>
         <v-col>
           <icon-item
-            title="Number of clusters"
+            title="Cluster Count"
             :icon="mdiPoundBoxOutline"
           >
             {{ heuristicData.clusterCount ? heuristicData.clusterCount : 0 }}

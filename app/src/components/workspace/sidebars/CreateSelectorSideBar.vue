@@ -2,7 +2,7 @@
   <side-bar
     v-model="model"
     :title="title"
-    :icon="mdiFilterPlus"
+    :icon="icon"
     max-width="330px"
   >
     <template #body>
@@ -36,10 +36,7 @@
               </template>
             </v-select>
             <template v-if="heuristicTypeModel">
-              <div
-                class="text-subtitle-2 mb-3"
-                style="max-width:260px"
-              >
+              <div class="text-subtitle-2 my-3">
                 {{ heuristicTypeModel.description }}
               </div>
               <v-text-field
@@ -70,16 +67,16 @@
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
             <div class="text-subtitle-2 mb-3">
-              Select transactions based on their properties. Results are limited to 50 transactions.
+              Select transactions based on their properties.
             </div>
-            <v-text-field
-              v-model="selectorOptions.maxItems"
-              :rules="parameterRules.get('int')"
+            <v-label text="Maximum Stored Results" />
+            <v-slider
+              v-model="txPropOptions.maxItems"
+              :max="SELECTOR_MAX_ITEMS"
+              :min="1"
+              :step="1"
+              thumb-label
               hide-details
-              placeholder="50"
-              :label="`Maximum stored results (max: ${SELECTOR_MAX_ITEMS})`"
-              :error="maxResultsError"
-              @update:model-value="maxResultsError = false"
             />
             <named-divider title="Select" />
             <template v-if="!hasParent">
@@ -94,14 +91,14 @@
               </div>
               <div class="d-flex align-center mb-5">
                 <date-input
-                  v-model="selectorOptions.startDate"
+                  v-model="txPropOptions.startDate"
                   :rules="parameterRules.get('date')"
                   :error="startDateError"
                   label="From"
                   @update:model-value="handleDateChange"
                 />
                 <date-input
-                  v-model="selectorOptions.endDate"
+                  v-model="txPropOptions.endDate"
                   :rules="parameterRules.get('date')"
                   :error="endDateError"
                   label="To"
@@ -117,12 +114,12 @@
             </div>
             <named-divider title="Filter by Type" />
             <v-switch
-              v-model="selectorOptions.excludePrivacyTransactions"
+              v-model="txPropOptions.excludePrivacyTransactions"
               label="Exclude Privacy Transactions"
             />
             <v-select
-              v-model="selectorOptions.privacyTypes"
-              :disabled="selectorOptions.excludePrivacyTransactions"
+              v-model="txPropOptions.privacyTypes"
+              :disabled="txPropOptions.excludePrivacyTransactions"
               max-width="330px"
               multiple
               label="Transaction Types"
@@ -153,7 +150,7 @@
             </div>
             <div class="d-flex align-center mb-5">
               <v-text-field
-                v-model="selectorOptions.inputSum.min"
+                v-model="txPropOptions.inputSum.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -162,7 +159,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.inputSum.max"
+                v-model="txPropOptions.inputSum.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -175,7 +172,7 @@
             </div>
             <div class="d-flex align-center mb-5">
               <v-text-field
-                v-model="selectorOptions.outputSum.min"
+                v-model="txPropOptions.outputSum.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -184,7 +181,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.outputSum.max"
+                v-model="txPropOptions.outputSum.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -197,7 +194,7 @@
             </div>
             <div class="d-flex align-center mb-5">
               <v-text-field
-                v-model="selectorOptions.inputRange.min"
+                v-model="txPropOptions.inputRange.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -206,7 +203,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.inputRange.max"
+                v-model="txPropOptions.inputRange.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -219,7 +216,7 @@
             </div>
             <div class="d-flex align-center">
               <v-text-field
-                v-model="selectorOptions.outputRange.min"
+                v-model="txPropOptions.outputRange.min"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="From"
@@ -228,7 +225,7 @@
                 class="me-2"
               />
               <v-text-field
-                v-model="selectorOptions.outputRange.max"
+                v-model="txPropOptions.outputRange.max"
                 min-width="100px"
                 :rules="parameterRules.get('float')"
                 label="To"
@@ -236,6 +233,57 @@
                 hide-details
               />
             </div>
+          </template>
+          <template v-else-if="selectorType === SELECTOR_TYPE_TX_GRAPH">
+            <div class="text-subtitle-2 mb-3">
+              Select transactions based on their distance to the starting node.
+            </div>
+            <div class="text-center text-subtitle-1 my-2">
+              Maximum Stored Results
+            </div>
+            <v-slider
+              v-model="txGraphOptions.maxItems"
+              :max="SELECTOR_MAX_ITEMS"
+              :min="1"
+              :step="1"
+              thumb-label
+              hide-details
+            />
+            <div class="text-center text-subtitle-1 my-2">
+              Traversal Depth
+            </div>
+            <v-slider
+              v-model="txGraphOptions.depth"
+              :max="5"
+              :min="1"
+              :step="1"
+              thumb-label
+              hide-details
+            />
+            <div class="text-center text-subtitle-1 my-2">
+              Traversal Direction
+            </div>
+            <div class="d-flex justify-center">
+              <v-btn-toggle
+                v-model="traversalDirection"
+                rounded="lg"
+                mandatory
+                variant="text"
+                color="primary"
+              >
+                <v-btn size="small">
+                  Backward
+                </v-btn>
+                <v-btn size="small">
+                  Forward
+                </v-btn>
+              </v-btn-toggle>
+            </div>
+
+            <v-switch
+              v-model="txGraphOptions.excludePrivacyTransactions"
+              label="Exclude Privacy Transactions"
+            />
           </template>
         </v-card-text>
         <v-card-actions>
@@ -254,7 +302,9 @@
 
 <script setup>
 import {useRoute} from 'vue-router';
-import {mdiFilterPlus, mdiInformationOutline} from '@mdi/js';
+import {
+	mdiFilterPlus, mdiInformationOutline, mdiShapeCirclePlus,
+} from '@mdi/js';
 import {useMsgStore} from '@/pinia/msg';
 import SideBar from '@/components/common/SideBar.vue';
 import {
@@ -263,7 +313,7 @@ import {
 import {
 	CLUSTER_TYPE_CUSTOM,
 	SELECTOR_MAX_ITEMS,
-	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
 	SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
@@ -271,6 +321,7 @@ import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
+import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
@@ -288,7 +339,10 @@ const heuristicTypeModel = ref([]);
 // Heuristic select items
 const heuristicTypes = ref([]);
 
-const selectorOptions = ref({
+// Set direction to backward by default
+const traversalDirection = ref(0);
+
+const txPropOptions = ref({
 	maxItems: 50,
 	startDate: null,
 	endDate: null,
@@ -298,6 +352,12 @@ const selectorOptions = ref({
 	outputSum: {min: undefined, max: undefined},
 	inputRange: {min: undefined, max: undefined},
 	outputRange: {min: undefined, max: undefined},
+});
+
+const txGraphOptions = ref({
+	maxItems: 50,
+	depth: 2,
+	isForward: false,
 });
 
 const heuristicOptions = ref({
@@ -356,12 +416,20 @@ onUpdated(() => {
 // Computed
 const title = computed(() => {
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC:
-			return 'Add Heuristic';
-		case SELECTOR_TYPE_TX_PROP:
-			return 'Add Selector';
+		case SELECTOR_TYPE_HEURISTIC: return 'Add CoinJoin Heuristic';
+		case SELECTOR_TYPE_TX_PROP: return 'Add Property Selector';
+		case SELECTOR_TYPE_TX_GRAPH: return 'Add Graph Selector';
 		default:
 			return 'Add Selector';
+	}
+});
+
+const icon = computed(() => {
+	switch (props.selectorType) {
+		case SELECTOR_TYPE_HEURISTIC: return blenderPlus;
+		case SELECTOR_TYPE_TX_PROP: return mdiFilterPlus;
+		case SELECTOR_TYPE_TX_GRAPH: return graphPlus;
+		default: return mdiShapeCirclePlus;
 	}
 });
 
@@ -405,12 +473,12 @@ function isAmountRangeEmpty(obj) {
 }
 
 function handleDateChange() {
-	if (selectorOptions.value.startDate === null) {
-		selectorOptions.value.startDate = selectorOptions.value.endDate;
+	if (txPropOptions.value.startDate === null) {
+		txPropOptions.value.startDate = txPropOptions.value.endDate;
 	}
 
-	if (selectorOptions.value.endDate === null) {
-		selectorOptions.value.endDate = selectorOptions.value.startDate;
+	if (txPropOptions.value.endDate === null) {
+		txPropOptions.value.endDate = txPropOptions.value.startDate;
 	}
 }
 
@@ -450,8 +518,8 @@ function isOptionsEmpty(options) {
 	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate' && k !== 'maxItems');
 }
 
-function buildSelectorOptions() {
-	const options = structuredClone(toRaw(selectorOptions.value));
+function buildTxPropOptions() {
+	const options = structuredClone(toRaw(txPropOptions.value));
 
 	if (props.hasParent) {
 		delete options.startDate;
@@ -474,15 +542,8 @@ function buildSelectorOptions() {
 		options.endDate = options.endDate.toISOString();
 	}
 
-	maxResultsError.value = false;
 	startDateError.value = false;
 	endDateError.value = false;
-
-	if (options.maxItems > SELECTOR_MAX_ITEMS || options.maxItems <= 0) {
-		maxResultsError.value = true;
-		setErrorMessage('invalid number of maximum stored results');
-		return;
-	}
 
 	options.maxItems = parseInt(options.maxItems, 10);
 	options.inputSum.min = getAmount(options.inputSum.min);
@@ -524,6 +585,12 @@ function buildSelectorOptions() {
 	return options;
 }
 
+function buildTxGraphOptions() {
+	const options = structuredClone(toRaw(txGraphOptions.value));
+	options.isForward = traversalDirection.value === 1;
+	return options;
+}
+
 async function addNewSelectorAction(event) {
 	// Check if form is valid
 	const res = await event;
@@ -538,7 +605,10 @@ async function addNewSelectorAction(event) {
 			options = buildHeuristicOptions();
 			break;
 		case SELECTOR_TYPE_TX_PROP:
-			options = buildSelectorOptions();
+			options = buildTxPropOptions();
+			break;
+		case SELECTOR_TYPE_TX_GRAPH:
+			options = buildTxGraphOptions();
 			break;
 		default:
 			setErrorMessage('invalid selector type');

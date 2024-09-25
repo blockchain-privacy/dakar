@@ -6,23 +6,16 @@ import {forceCollide, forceLink, forceSimulation} from 'd3-force';
 import {
 	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
 } from '@/d3Documents/util';
-import {
-	mdiClockAlertOutline, mdiExclamationThick, mdiIncognito, mdiMerge, mdiPlaylistRemove, mdiTune,
-} from '@mdi/js';
+import {mdiExclamationThick} from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
-	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_NOTE,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 	SELECTOR_STATUS_WAITING,
 	SELECTOR_STATUS_ERROR,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import d3lasso from './d3Lasso.js';
-import {
-	cashLeft, cashRight, sigmaLeft, sigmaRight,
-} from '@/customIcons/index.js';
 
 // In ms
 const animationDuration = 175;
@@ -142,8 +135,6 @@ export default class NodeGraph {
 	#filterNodeTypes = [];
 	#filterPrivacyTypes = [];
 	#changedData = new Map();
-	// Heuristic type map
-	#heuristicTypeMap = new Map();
 	// Node type
 	#nodeTypeColorMap = null;
 	enableInteractions = true;
@@ -693,7 +684,7 @@ export default class NodeGraph {
 		this.#rootSvg.transition().duration(250).call(this.#zoom.translateTo, centerX, centerY);
 	}
 
-	drawIcons(groupElement, icons, parameter) {
+	drawIcons(groupElement, isTitleSet, icons, parameter) {
 		if (icons.length === 0) {
 			return;
 		}
@@ -707,7 +698,11 @@ export default class NodeGraph {
 		const textHeight = 12;
 		const iconWidth = 12;
 		const iconMargin = 1;
-		const iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
+		let iconY = this.#nodeRadius + textHeight + (textAreaMargin * 2);
+
+		if (!isTitleSet) {
+			iconY = this.#nodeRadius + 3 + textAreaMargin;
+		}
 
 		// Remove all children
 		iconGroup.selectAll('*').remove();
@@ -1021,36 +1016,7 @@ export default class NodeGraph {
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
 			.attr('y', this.#nodeRadius + textHeight + textAreaMargin)
-			.text(d => {
-				if (d.type === WORKSPACE_NODE_TYPE_CLUSTER) {
-					return d.addressHash;
-				}
-
-				if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
-					return d.transactionHash;
-				}
-
-				if (d.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-					if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-						const title = this.#heuristicTypeMap.get(d.heuristicOptions.type);
-						if (title !== undefined) {
-							return title;
-						}
-					} else if (d.selectorType === SELECTOR_TYPE_TX_PROP) {
-						if (!d.selectorOptions.startDate || !d.selectorOptions.endDate) {
-							return '';
-						}
-
-						const dateOptions = {day: 'numeric', month: 'numeric', year: 'numeric'};
-						const startDateStr = new Date(d.selectorOptions.startDate).toLocaleDateString(undefined, dateOptions);
-						const endDateStr = new Date(d.selectorOptions.endDate).toLocaleDateString(undefined, dateOptions);
-
-						return `${startDateStr} - ${endDateStr}`;
-					}
-				}
-
-				return d.uid;
-			})
+			.text(d => d.nodeDisplayTitle)
 			.each(elide);
 
 		// Privacy type subtitle
@@ -1091,69 +1057,20 @@ export default class NodeGraph {
 			.attr('font-size', 12)
 			.attr('y', 1)
 			.text(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR || d.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
-					return '';
-				}
-
-				const nodeText = abbreviateNumber(d.selectorTotalResultCount);
-
-				if (nodeText.length > 3) {
+				if (d.nodeDisplayResultCount.length > 3) {
 					d3Select(this).attr('font-size',	9);
 				}
 
-				return nodeText;
+				return d.nodeDisplayResultCount;
 			});
 
 		textContainer
 			.each(function (d) {
-				if (d.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+				if (!d.nodeDisplayIconObject) {
 					return;
 				}
 
-				const icons = [];
-				let parameter;
-
-				if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-					if (d.heuristicOptions.excludeAddresses) {
-						icons.push(mdiPlaylistRemove);
-					}
-
-					if (d.heuristicOptions.clusterTypes?.length > 0) {
-						icons.push(mdiMerge);
-					}
-
-					if (d.heuristicOptions.excludeSpendingGaps) {
-						icons.push(mdiClockAlertOutline);
-					}
-
-					if (d.heuristicOptions.parameter) {
-						icons.push(mdiTune);
-					}
-
-					parameter = d.heuristicOptions.parameter;
-				} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.selectorOptions) {
-					if (d.selectorOptions.excludePrivacyTransactions) {
-						icons.push(mdiIncognito);
-					}
-
-					if (d.selectorOptions.inputRange) {
-						icons.push(cashLeft);
-					}
-
-					if (d.selectorOptions.outputRange) {
-						icons.push(cashRight);
-					}
-
-					if (d.selectorOptions.inputSum) {
-						icons.push(sigmaLeft);
-					}
-
-					if (d.selectorOptions.outputSum) {
-						icons.push(sigmaRight);
-					}
-				}
-
-				self.drawIcons(d3Select(this), icons, parameter);
+				self.drawIcons(d3Select(this), Boolean(d.nodeDisplayTitle), d.nodeDisplayIconObject.icons, d.nodeDisplayIconObject.parameter);
 			});
 	}
 
@@ -1252,6 +1169,23 @@ export default class NodeGraph {
 			.attr('x2', d => reduceX(d, this.#nodeRadius))
 			.attr('y2', d => reduceY(d, this.#nodeRadius));
 
+		const arrowText = this.#lineGroup
+			.selectAll('.arrowText')
+			.data(links, d => `${d.source}${d.target}`)
+			.join('text')
+			.classed('arrowText', true)
+			.text(d => {
+				if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+					return abbreviateNumber(d.source.selectorResultCount);
+				}
+
+				return null;
+			})
+			.attr('font-size', 10)
+			.attr('fill', 'currentColor')
+			.attr('text-anchor', 'middle')
+			.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+
 		const self = this;
 		shadowLinks
 			.on('click', function (e, d) {
@@ -1306,6 +1240,7 @@ export default class NodeGraph {
 				.attr('y2', d => reduceY(d, this.#nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
+			arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
 		});
 
 		this.#lasso.items(node.selectAll('.node,.note'));
@@ -1449,10 +1384,5 @@ export default class NodeGraph {
 
 		this.#lassoResetCallback = callback;
 		return true;
-	}
-
-	populateHeuristicMap(heuristicDescriptions) {
-		// Titles to map
-		heuristicDescriptions.forEach(e => this.#heuristicTypeMap.set(e.type, e.title));
 	}
 }

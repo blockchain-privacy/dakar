@@ -107,7 +107,7 @@
         @update:model-value="onTabChange"
       >
         <v-tab key="histogram">
-          Histogram
+          Chart
         </v-tab>
         <v-tab key="graph">
           Graph
@@ -259,6 +259,7 @@ import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
+import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -577,7 +578,7 @@ async function updateSvgData(pullNewData) {
 		let minDate = null;
 
 		activities.value = mixingActivity.data.activities.map(d => {
-			d.privacyTypeLabel = getPrivacyTypeLabel(d.privacytype);
+			d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
 			d.dateTime = new Date(d.block[0].ts);
 
 			if (maxDate === null || d.dateTime > maxDate) {
@@ -620,7 +621,7 @@ async function updateSvgData(pullNewData) {
 
 			// Needed so svg is not still hidden when doing force simulation
 			nextTick(() => {
-				nodeGraph.addNodes(filteredItems);
+				nodeGraph.addNodes(setNodesDisplayAttributes(filteredItems));
 				nodeGraph.centerGraph();
 			});
 		}

@@ -381,11 +381,12 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	}
 
 	type request struct {
-		Type             string               `json:"type"`
-		Parent           string               `json:"parent"`
-		HeuristicOptions *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
-		SelectorOptions  *dbwork.Options      `json:"selectorOptions,omitempty"`
-		WorkspaceUID     string               `json:"workspaceUID"`
+		Type             string                 `json:"type"`
+		Parent           string                 `json:"parent"`
+		HeuristicOptions *dbHeuristic.Options   `json:"heuristicOptions,omitempty"`
+		TxPropOptions    *dbwork.TxPropOptions  `json:"txPropOptions,omitempty"`
+		TxGraphOptions   *dbwork.TxGraphOptions `json:"txGraphOptions,omitempty"`
+		WorkspaceUID     string                 `json:"workspaceUID"`
 	}
 
 	var selectorRequest request
@@ -395,13 +396,18 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 		return
 	}
 
-	if selectorRequest.SelectorOptions == nil && selectorRequest.HeuristicOptions == nil {
+	if selectorRequest.TxPropOptions == nil &&
+		selectorRequest.TxGraphOptions == nil &&
+		selectorRequest.HeuristicOptions == nil {
 		status = http.StatusBadRequest
 		return
 	}
 
-	if selectorRequest.SelectorOptions != nil {
-		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.SelectorOptions,
+	if selectorRequest.TxPropOptions != nil {
+		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.TxPropOptions,
+			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
+	} else if selectorRequest.TxGraphOptions != nil {
+		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.TxGraphOptions,
 			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
 	} else {
 		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.HeuristicOptions,

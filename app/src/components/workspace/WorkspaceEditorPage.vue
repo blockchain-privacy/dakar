@@ -85,8 +85,9 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-selector="openCreateSelectorSheet(false, true)"
-          @add-heuristic="openCreateSelectorSheet(true, true)"
+          @add-tx-prop="openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true)"
+          @add-tx-graph="openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true)"
+          @add-heuristic="openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, true)"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
@@ -148,7 +149,10 @@
           transition="fade-transition"
           :target="[contextMenuModel.x,contextMenuModel.y]"
         >
-          <v-list class="py-0">
+          <v-list
+            class="py-0"
+            slim
+          >
             <template
               v-for="(item, index) in contextMenuModel.items"
               :key="index"
@@ -194,10 +198,10 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN,
 } from '@/constants';
 import {
-	getColorMap, handleError, getPrivacyTypeLabel,
+	getColorMap, handleError,
 } from '@/utilities';
 import {
 	computed,
@@ -215,6 +219,8 @@ import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
+import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
+import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -223,15 +229,16 @@ const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const colorMap = getColorMap();
-colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#CDDC39');
+colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#fff23e');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
-colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4CAF50');
-colorMap.set(SELECTOR_TYPE_TX_PROP, '#872154');
+colorMap.set(SELECTOR_TYPE_HEURISTIC, '#344e41');
+colorMap.set(SELECTOR_TYPE_TX_PROP, '#588157');
+colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#a3b18a');
 
 const nodeTypeLabels = [
-	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#4CAF50'},
-	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#CDDC39'},
+	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: '#588157'},
+	{text: WORKSPACE_NODE_TYPE_CLUSTER, color: '#fff23e'},
 	{text: WORKSPACE_NODE_TYPE_TRANSACTION, color: '#607D8B'},
 ];
 
@@ -257,6 +264,8 @@ const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
+// Holds a mapping between heuristic type and title
+const heuristicTypeMap = new Map();
 const connectionData = ref({});
 const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
@@ -273,17 +282,28 @@ const contextMenuModel = ref({
 	y: 0,
 	items: [
 		{
-			title: 'Add Heuristic',
-			icon: mdiFilterPlus,
-			show: () => isHeuristicNode(nodeGraph.getContextNode()) || isDestiationNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(true, true),
+			title: 'Add CoinJoin Heuristic',
+			icon: blenderPlus,
+			show: () => isHeuristicNode(nodeGraph.getContextNode())
+			|| isDestiationNode(nodeGraph.getContextNode())
+			|| isOriginNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
-			title: 'Add Selector',
+			title: 'Add Property Selector',
 			icon: mdiFilterPlus,
-			show: () => isTxPropNode(nodeGraph.getContextNode()) || isHeuristicNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(false, true),
+			show: () => isTxPropNode(nodeGraph.getContextNode())
+			|| isTxGraphNode(nodeGraph.getContextNode())
+			|| isHeuristicNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true),
+			disabled: () => nodeGraph.getContextNode()?.loading,
+		},
+		{
+			title: 'Add Graph Selector',
+			icon: graphPlus,
+			show: () => isTransactionNode(nodeGraph.getContextNode()),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -447,6 +467,22 @@ async function lockAutosave() {
 	}
 }
 
+function isTransactionNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_TRANSACTION;
+}
+
+function isTxGraphNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_TX_GRAPH;
+}
+
 function isTxPropNode(node) {
 	if (!node) {
 		return false;
@@ -469,6 +505,14 @@ function isDestiationNode(node) {
 	}
 
 	return node.privacyTypeLabel === PRIVACY_TYPE_DESTINATION;
+}
+
+function isOriginNode(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.privacyTypeLabel === PRIVACY_TYPE_ORIGIN;
 }
 
 function isEditEnabled(contextNode) {
@@ -560,7 +604,7 @@ async function addMultipleNodes(nodes) {
 			},
 		});
 		if (response.nodes) {
-			response.nodes = setPrivacyLabels(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -571,13 +615,6 @@ async function addMultipleNodes(nodes) {
 	}
 
 	releaseAutosaveLock();
-}
-
-function setPrivacyLabels(nodes) {
-	return nodes.map(d => {
-		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
-		return d;
-	});
 }
 
 async function handleGraphQuery(query) {
@@ -637,7 +674,7 @@ async function addNewNote(noteText, noteUID, childUID) {
 			},
 		});
 		if (response.nodes) {
-			response.nodes = setPrivacyLabels(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
@@ -671,34 +708,49 @@ async function addNewSelector(type, options) {
 
 	let parent;
 	let heuristicOptions;
-	let selectorOptions;
+	let txPropOptions;
+	let txGraphOptions;
 
-	if (type === SELECTOR_TYPE_HEURISTIC) {
-		if (!currentNode || !currentNode.uid) {
-			setErrorMessage('could not determine parent node');
-			return;
-		}
+	switch (type) {
+		case SELECTOR_TYPE_HEURISTIC:
+			{
+				if (!currentNode || !currentNode.uid) {
+					setErrorMessage('could not determine parent node');
+					return;
+				}
 
-		parent = currentNode.uid;
+				parent = currentNode.uid;
 
-		heuristicOptions = options;
-		const nodes = nodeGraph.getNodes();
-		const txHash = getHeuristicTransaction(nodes, currentNode.uid);
-		if (!txHash) {
-			setErrorMessage('could not determine heuristic transaction');
-			return;
-		}
+				heuristicOptions = options;
+				const txHash = getHeuristicTransaction(nodeGraph.getNodes(), currentNode.uid);
+				if (!txHash) {
+					setErrorMessage('could not determine heuristic transaction');
+					return;
+				}
 
-		heuristicOptions.transactionHash = txHash;
-	} else if (type === SELECTOR_TYPE_TX_PROP) {
-		if (currentNode?.uid) {
+				heuristicOptions.transactionHash = txHash;
+			}
+
+			break;
+		case SELECTOR_TYPE_TX_PROP:
+			if (currentNode?.uid) {
+				parent = currentNode.uid;
+			}
+
+			txPropOptions = options;
+			break;
+		case SELECTOR_TYPE_TX_GRAPH:
+			if (!currentNode || !currentNode.uid) {
+				setErrorMessage('parent not set');
+				return;
+			}
+
 			parent = currentNode.uid;
-		}
-
-		selectorOptions = options;
-	} else {
-		setErrorMessage('invalid selector type');
-		return;
+			txGraphOptions = options;
+			break;
+		default:
+			setErrorMessage('invalid selector type');
+			return;
 	}
 
 	await lockAutosave();
@@ -706,11 +758,11 @@ async function addNewSelector(type, options) {
 	try {
 		const response = await dakar.workspace.workspacesSelectorPost({
 			selector: {
-				parent, type, heuristicOptions, selectorOptions, workspaceUID: workspaceUID.value,
+				parent, type, heuristicOptions, txPropOptions, txGraphOptions, workspaceUID: workspaceUID.value,
 			},
 		});
 
-		response.nodes = setPrivacyLabels(response.nodes);
+		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 		nodeGraph.removeAllNodes(false);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
@@ -744,7 +796,7 @@ async function checkWork(selectorUID) {
 			selector: {workspaceUID: workspaceUID.value, selectorUID},
 		});
 		if (response.nodes) {
-			response.nodes = setPrivacyLabels(response.nodes);
+			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
@@ -797,18 +849,12 @@ function openConnectionSheet(d) {
 function showCreateSelectorSheetFromButton() {
 	// So no parent is set
 	nodeGraph.resetContextNode();
-	openCreateSelectorSheet(false, false);
+	openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, false);
 }
 
-function openCreateSelectorSheet(isHeuristic, withParent) {
-	if (isHeuristic) {
-		selectorCreationType.value = SELECTOR_TYPE_HEURISTIC;
-	} else {
-		selectorCreationType.value = SELECTOR_TYPE_TX_PROP;
-	}
-
+function openCreateSelectorSheet(selectorType, withParent) {
+	selectorCreationType.value = selectorType;
 	isSelectorParentSet.value = withParent;
-
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isCreateSelectorSheetOpen.value = true;
@@ -920,14 +966,6 @@ async function refreshData() {
 			throw Error('heuristic descriptor list is empty');
 		}
 
-		if (response.workspace) {
-			data = response.workspace;
-			workspaceName.value = data.name;
-			data.nodes &&= setPrivacyLabels(data.nodes);
-		} else {
-			data = null;
-		}
-
 		heuristicDescriptors.value = response.descriptors.map(e => {
 			// Add valid property
 			if (e.parameter) {
@@ -946,6 +984,17 @@ async function refreshData() {
 
 			return 0;
 		});
+
+		heuristicTypeMap.clear();
+		heuristicDescriptors.value.forEach(e => heuristicTypeMap.set(e.type, e.title));
+
+		if (response.workspace) {
+			data = response.workspace;
+			workspaceName.value = data.name;
+			data.nodes &&= setNodesDisplayAttributes(data.nodes, heuristicTypeMap);
+		} else {
+			data = null;
+		}
 
 		msgStore.resetMessages();
 	} catch (e) {
@@ -1057,8 +1106,6 @@ async function whenMounted() {
 	if (!await refreshData()) {
 		return false;
 	}
-
-	nodeGraph.populateHeuristicMap(heuristicDescriptors.value);
 
 	// Update page title
 	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;

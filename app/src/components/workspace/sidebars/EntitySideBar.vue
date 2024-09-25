@@ -29,28 +29,40 @@
       </v-chip>
       <template v-if="!isLoading && entityData">
         <v-chip
-          v-if="isTxProp || isHeuristic"
+          v-if="isTxGraph || isTxProp || isHeuristic"
           rounded
           color="primary"
           variant="tonal"
           class="me-2"
           :prepend-icon="mdiFilterPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @click="handleAddSelectorClick"
+          @click="handleAddTxPropClick"
         >
-          Add Selector
+          Add Property Selector
         </v-chip>
         <v-chip
-          v-if="isHeuristic || isDestination(entityData[0]?.privacytype)"
+          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length"
           rounded
           color="primary"
           variant="tonal"
           class="me-2"
-          :prepend-icon="mdiFilterPlus"
+          :prepend-icon="graphPlus"
+          :disabled="disableAddingNodes || auxiliaryData?.loading"
+          @click="handleAddTxGraphClick"
+        >
+          Add Graph Selector
+        </v-chip>
+        <v-chip
+          v-if="isHeuristic || isDestination(entityData[0]?.privacytype) || isOrigin(entityData[0]?.privacytype)"
+          rounded
+          color="primary"
+          variant="tonal"
+          class="me-2"
+          :prepend-icon="blenderPlus"
           :disabled="disableAddingNodes || auxiliaryData?.loading"
           @click="handleAddHeuristicClick"
         >
-          Add Heuristic
+          Add CoinJoin Heuristic
         </v-chip>
         <fingerprint-chip
           v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.privacytype)"
@@ -125,7 +137,7 @@
             :heuristic-data="entityData"
           />
           <selector-details
-            v-else-if="isTxProp"
+            v-else-if="isTxProp || isTxGraph"
             :selector-data="entityData"
           />
           <div v-else>
@@ -139,9 +151,10 @@
 
 <script setup>
 import {
+	mdiBlender,
 	mdiCardBulletedOutline,
 	mdiDelete,
-	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus,
+	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus, mdiGraph,
 	mdiNotePlus,
 	mdiShapeCirclePlus,
 	mdiTransfer,
@@ -159,9 +172,9 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
-import {getCurrentDate, isDestination} from '@/utilities/index.js';
+import {getCurrentDate, isDestination, isOrigin} from '@/utilities/index.js';
 import {
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_PROP,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
@@ -170,6 +183,7 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
+import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -178,7 +192,7 @@ const props = defineProps({
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
 });
-const emit = defineEmits(['addSelector', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addTxGraph', 'addTxProp', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -199,28 +213,32 @@ const selectableEntities = new Map();
 
 // Computed
 const title = computed(() => {
+	const unkownType = 'Unkown Entity Type';
 	switch (props.type) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			return `Transaction ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return `Address ${props.identifier}`;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			if (props.auxiliaryData?.selectorType === SELECTOR_TYPE_HEURISTIC) {
-				return 'Heuristic Properties';
+			switch (props.auxiliaryData?.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC: return 'CoinJoin Heuristic';
+				case SELECTOR_TYPE_TX_GRAPH: return 'Graph Selector';
+				case SELECTOR_TYPE_TX_PROP: return 'Property Selector';
+				default:
+					return unkownType;
 			}
 
-			return 'Selector Properties';
 		default:
-			return 'Unknown entity type';
+			return unkownType;
 	}
 });
 
 const isHeuristic = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
 	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_HEURISTIC);
-
 const isTxProp = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
 	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP);
-
+const isTxGraph = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
+	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_GRAPH);
 // Hooks
 onUpdated(async () => {
 	if (props.identifier && props.identifier !== oldIdentifier) {
@@ -254,7 +272,13 @@ const sideBarIcon = computed(() => {
 		case WORKSPACE_NODE_TYPE_CLUSTER:
 			return mdiCardBulletedOutline;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			return mdiFilter;
+			switch (props.auxiliaryData.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC: return mdiBlender;
+				case SELECTOR_TYPE_TX_PROP: return mdiFilter;
+				case SELECTOR_TYPE_TX_GRAPH: return mdiGraph;
+				default: return mdiShapeCirclePlus;
+			}
+
 		default:
 			return mdiShapeCirclePlus;
 	}
@@ -310,6 +334,7 @@ function setSelectableEntities() {
 				case SELECTOR_TYPE_HEURISTIC:
 					setSelectableHeuristicElements();
 					break;
+				case SELECTOR_TYPE_TX_GRAPH:
 				case SELECTOR_TYPE_TX_PROP:
 					setSelectableSelectorElements();
 					break;
@@ -403,7 +428,22 @@ async function getSelectorData() {
 
 			break;
 		case SELECTOR_TYPE_TX_PROP:
-			tmpEntityData = props.auxiliaryData.selectorOptions;
+			tmpEntityData = props.auxiliaryData.txPropOptions;
+			tmpEntityData.selectorUid = props.auxiliaryData.uid;
+			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
+			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
+			tmpEntityData.selectorTotalResultCount = props.auxiliaryData.selectorTotalResultCount;
+			tmpEntityData.transactions = [];
+
+			// Check if data has to be loaded from backend
+			if (!tmpEntityData.selectorCount) {
+				entityData.value = tmpEntityData;
+				return;
+			}
+
+			break;
+		case SELECTOR_TYPE_TX_GRAPH:
+			tmpEntityData = props.auxiliaryData.txGraphOptions;
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
 			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
@@ -516,10 +556,13 @@ function handleAddHeuristicClick() {
 	emit('addHeuristic');
 }
 
-function handleAddSelectorClick() {
-	emit('addSelector');
+function handleAddTxPropClick() {
+	emit('addTxProp');
 }
 
+function handleAddTxGraphClick() {
+	emit('addTxGraph');
+}
 </script>
 
 <style scoped>

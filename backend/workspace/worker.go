@@ -129,8 +129,13 @@ func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
 	workItems := make([]Work, len(selectorItems))
 	for i, item := range selectorItems {
 		switch item.SelectorType {
-		case workspace.TypeTransactionProperties:
-			workItems[i], err = NewSelectorWork(item)
+		case workspace.TypeTxProp:
+			workItems[i], err = NewTxPropWork(item)
+			if err != nil {
+				return nil, err
+			}
+		case workspace.TypeTxGraph:
+			workItems[i], err = NewTxGraphWork(item)
 			if err != nil {
 				return nil, err
 			}

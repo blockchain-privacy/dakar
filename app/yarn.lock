@@ -39,10 +39,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.48":
-  version: 1.1.48
-  resolution: "@blockchain/dakar@npm:1.1.48::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.48.tgz"
-  checksum: 10c0/7db9ecc644c456102a96bc896d0e107791195ba47b21e94805b53134d059fd9ea6cdf07b1883f850c4632ddcfde9b24a25247cd440482178fe4d8acda1a6e4e1
+"@blockchain/dakar@npm:^1.1.50":
+  version: 1.1.50
+  resolution: "@blockchain/dakar@npm:1.1.50::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.50.tgz"
+  checksum: 10c0/f3f6b68343713fc24c9244660f37f139e7fcc5b80bc0d9d433dd1bfdb2ffb7645a18b8fb919d97c75ed9874356a46ed87fa63a388815f8147deb5b5ba6d52039
   languageName: node
   linkType: hard
 
@@ -225,14 +225,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/config-array@npm:^0.17.1":
-  version: 0.17.1
-  resolution: "@eslint/config-array@npm:0.17.1"
+"@eslint/config-array@npm:^0.18.0":
+  version: 0.18.0
+  resolution: "@eslint/config-array@npm:0.18.0"
   dependencies:
     "@eslint/object-schema": "npm:^2.1.4"
     debug: "npm:^4.3.1"
     minimatch: "npm:^3.1.2"
-  checksum: 10c0/b986a0a96f2b42467578968ce3d4ae3b9284e587f8490f2dcdc44ff1b8d30580c62b221da6e58d07b09e156c3050e2dc38267f9370521d9cafc099c4e30154ef
+  checksum: 10c0/0234aeb3e6b052ad2402a647d0b4f8a6aa71524bafe1adad0b8db1dfe94d7f5f26d67c80f79bb37ac61361a1d4b14bb8fb475efe501de37263cf55eabb79868f
   languageName: node
   linkType: hard
 
@@ -253,10 +253,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.9.0":
-  version: 9.9.0
-  resolution: "@eslint/js@npm:9.9.0"
-  checksum: 10c0/6ec9f1f0d576132444d6a5c66a8a08b0be9444e3ebb563fa6a6bebcf5299df3da7e454dc04c0fa601bb811197f00764b3a04430d8458cdb8e3a4677993d23f30
+"@eslint/js@npm:9.9.1":
+  version: 9.9.1
+  resolution: "@eslint/js@npm:9.9.1"
+  checksum: 10c0/a3a91de2ce78469f7c4eee78c1eba77360706e1d0fa0ace2e19102079bcf237b851217c85ea501dc92c4c3719d60d9df966977abc8554d4c38e3638c1f53dcb2
   languageName: node
   linkType: hard
 
@@ -379,10 +379,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.14.3":
-  version: 1.14.3
-  resolution: "@ory/client-fetch@npm:1.14.3"
-  checksum: 10c0/e7fbe1167b16f3905dd75bd886230d08bc5120095cbe40f169aee6619fe882eef7e06b229b413d05407782ce958f0f63bcfe20c32ed38ad23b1d2487783246c0
+"@ory/client-fetch@npm:^1.14.4":
+  version: 1.14.4
+  resolution: "@ory/client-fetch@npm:1.14.4"
+  checksum: 10c0/d942ad887de84b1ab0d3b34f471f5cf5684dca6909cf87dc8033d043e3ee68646e864382d9b272352a9e40a228745a2d58e9f5dbea3cd226f6edcd4a4da847a5
   languageName: node
   linkType: hard
 
@@ -1302,12 +1302,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.48"
+    "@blockchain/dakar": "npm:^1.1.50"
     "@fontsource/roboto": "npm:^5.0.14"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.5"
     "@neondark/wikiapi": "npm:^1.2.36"
-    "@ory/client-fetch": "npm:^1.14.3"
+    "@ory/client-fetch": "npm:^1.14.4"
     "@vitejs/plugin-vue": "npm:^5.1.2"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1320,7 +1320,7 @@ __metadata:
     d3-time: "npm:^3.1.0"
     d3-transition: "npm:^3.0.1"
     d3-zoom: "npm:^3.0.0"
-    eslint: "npm:^9.9.0"
+    eslint: "npm:^9.9.1"
     eslint-config-xo: "npm:^0.46.0"
     eslint-plugin-vue: "npm:^9.27.0"
     eslint-plugin-vuetify: "npm:^2.4.0"
@@ -1331,7 +1331,7 @@ __metadata:
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.4.38"
     vue-router: "npm:^4.4.3"
-    vuetify: "npm:^3.7.0"
+    vuetify: "npm:^3.7.1"
   languageName: unknown
   linkType: soft
 
@@ -1635,15 +1635,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.9.0":
-  version: 9.9.0
-  resolution: "eslint@npm:9.9.0"
+"eslint@npm:^9.9.1":
+  version: 9.9.1
+  resolution: "eslint@npm:9.9.1"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.11.0"
-    "@eslint/config-array": "npm:^0.17.1"
+    "@eslint/config-array": "npm:^0.18.0"
     "@eslint/eslintrc": "npm:^3.1.0"
-    "@eslint/js": "npm:9.9.0"
+    "@eslint/js": "npm:9.9.1"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
     "@humanwhocodes/retry": "npm:^0.3.0"
     "@nodelib/fs.walk": "npm:^1.2.8"
@@ -1680,7 +1680,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/3a22f68c99d75dcbafe6e2fef18d2b5bbcc960c2437f48a414ccf9ca214254733a18e6b79d07bbd374a2369a648413e421aabd07b11be3de5a44d5a4b9997877
+  checksum: 10c0/5e71efda7c0a14ee95436d5cdfed04ee61dfb1d89d7a32b50a424de2e680af82849628ea6581950c2e0726491f786a3cfd0032ce013c1c5093786e475cfdfb33
   languageName: node
   linkType: hard
 
@@ -3210,25 +3210,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.7.0":
-  version: 3.7.0
-  resolution: "vuetify@npm:3.7.0"
+"vuetify@npm:^3.7.1":
+  version: 3.7.1
+  resolution: "vuetify@npm:3.7.1"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=1.0.0"
     vue: ^3.3.0
-    vue-i18n: ^9.0.0
     webpack-plugin-vuetify: ">=2.0.0"
   peerDependenciesMeta:
     typescript:
       optional: true
     vite-plugin-vuetify:
       optional: true
-    vue-i18n:
-      optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/c591a36fc12d4631778f8a5a57b6cfdeb4753e4c025e3ac79beb0752027f451266a09d5c1bd9da2ae42829124768ee20b108046dfb84f50bc6271a82756f7203
+  checksum: 10c0/ec110618d052512ca169b2f6269fcf6101504dc4fade95c3b517b9d64f1ff89af62ea24243ed5d119c1430a7bb086220648106dcac68239424af6e4a5c33bf71
   languageName: node
   linkType: hard
 
