@@ -419,12 +419,16 @@ func SetLastClusteredFMIBlockID(c external.Database, id int64) error {
 }
 
 // SetSchemaVersion sets the database schema version
-func SetSchemaVersion(c external.Database, version uint64) error {
+func SetSchemaVersion(c external.Database, version int) error {
 	return SetMeta(c, Meta{SchemaVersion: &version})
 }
 
 // SetMeta sets the database metadata
 func SetMeta(c external.Database, meta Meta) error {
+	if meta.SchemaVersion != nil && *meta.SchemaVersion < 0 {
+		return serror.FromStr("negative schema version")
+	}
+
 	meta.UID = uidV
 	meta.SetDType()
 

@@ -489,8 +489,8 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 }
 
 // GetWaitingSelectors returns selectors which are waiting to be executed.
-func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint) ([]WorkItem, error) {
-	if maxItems == 0 {
+func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems int) ([]WorkItem, error) {
+	if maxItems <= 0 {
 		return nil, nil
 	}
 
@@ -507,7 +507,7 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems uint
 				}
 			   }`
 
-	resp, err := c.Query(ctx, query, map[string]string{"$maxItems": strconv.FormatUint(uint64(maxItems), 10)})
+	resp, err := c.Query(ctx, query, map[string]string{"$maxItems": strconv.Itoa(maxItems)})
 	if err != nil {
 		return nil, serror.New(err)
 	}

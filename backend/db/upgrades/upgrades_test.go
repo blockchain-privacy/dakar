@@ -17,18 +17,18 @@ func TestMain(m *testing.M) {
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
-func getUpgradesWithError() map[uint64]UpgradePackage {
+func getUpgradesWithError() map[int]UpgradePackage {
 	fun := func(external.Database) error { return nil }
 	errorFun := func(external.Database) error { return errors.New("error") }
-	return map[uint64]UpgradePackage{
+	return map[int]UpgradePackage{
 		2: {upgrades: []schemaUpgrade{fun, fun, fun}},
 		3: {upgrades: []schemaUpgrade{fun, errorFun, fun}},
 	}
 }
 
-func getUpgrades() map[uint64]UpgradePackage {
+func getUpgrades() map[int]UpgradePackage {
 	fun := func(external.Database) error { return nil }
-	upgrades := map[uint64]UpgradePackage{}
+	upgrades := map[int]UpgradePackage{}
 	for i := range db.SchemaVersion {
 		upgrades[i+1] = UpgradePackage{upgrades: []schemaUpgrade{fun, fun, fun}}
 	}
@@ -42,8 +42,8 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 
 	upgrades := getUpgradesWithError()
 	tests := []struct {
-		upgrades             map[uint64]UpgradePackage
-		currentSchemaVersion uint64
+		upgrades             map[int]UpgradePackage
+		currentSchemaVersion int
 		wantErr              bool
 	}{
 		{
@@ -51,7 +51,7 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			upgrades:             map[uint64]UpgradePackage{2: {upgrades: nil}},
+			upgrades:             map[int]UpgradePackage{2: {upgrades: nil}},
 			currentSchemaVersion: 1,
 			wantErr:              true,
 		},
@@ -87,10 +87,10 @@ func Test_applyUpgrades(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	require.NoError(t, status.SetMeta(dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[uint64](1)}))
+	require.NoError(t, status.SetMeta(dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[int](1)}))
 
 	tests := []struct {
-		upgrades map[uint64]UpgradePackage
+		upgrades map[int]UpgradePackage
 		wantErr  bool
 	}{
 		{
@@ -98,7 +98,7 @@ func Test_applyUpgrades(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			upgrades: map[uint64]UpgradePackage{2: {upgrades: nil}},
+			upgrades: map[int]UpgradePackage{2: {upgrades: nil}},
 			wantErr:  true,
 		},
 		// this test case has to be executed before a successful upgrade,

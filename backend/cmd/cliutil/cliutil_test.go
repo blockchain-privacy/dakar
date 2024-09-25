@@ -2,33 +2,8 @@ package cliutil
 
 import (
 	"github.com/stretchr/testify/require"
-	"strings"
 	"testing"
 )
-
-func TestBuildEndpoint(t *testing.T) {
-	cases := []struct {
-		host string
-		port uint
-	}{
-		{"localhost", uint(8081)},
-		{"asfd", uint(1)},
-		{"localhost", uint(0)},
-		{"", uint(50)},
-		{"     ", uint(10)},
-	}
-
-	for _, c := range cases {
-		endpoint, err := BuildEndpoint(c.host, c.port)
-		if len(strings.TrimSpace(c.host)) == 0 || c.port == 0 {
-			require.Error(t, err)
-			require.Empty(t, endpoint, "endpoint should be empty")
-		} else {
-			require.NoError(t, err)
-			require.NotEmpty(t, endpoint, "created endpoint is empty")
-		}
-	}
-}
 
 func TestGetOneKey(t *testing.T) {
 	require.Equal(t, "a", GetOneKey(map[string]int{"a": 1}))
