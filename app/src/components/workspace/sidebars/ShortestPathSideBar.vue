@@ -76,7 +76,7 @@
             <v-timeline-item
               v-for="(tx) in resultTransactions"
               :key="tx.txhash"
-              :dot-color="tx.privacytype>=0?'purple':'grey'"
+              :dot-color="tx.txtype?'purple':'grey'"
               max-width="500px"
             >
               <template #opposite>

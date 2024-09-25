@@ -118,13 +118,13 @@
               label="Exclude Privacy Transactions"
             />
             <v-select
-              v-model="txPropOptions.privacyTypes"
+              v-model="txPropOptions.txTypes"
               :disabled="txPropOptions.excludePrivacyTransactions"
               max-width="330px"
               multiple
               label="Transaction Types"
               hide-details
-              :items="privacyTypeItems"
+              :items="transactionTypeItems"
             >
               <template #selection="{ item }">
                 <color-chip
@@ -347,7 +347,7 @@ const txPropOptions = ref({
 	startDate: null,
 	endDate: null,
 	excludePrivacyTransactions: false,
-	privacyTypes: [],
+	txTypes: [],
 	inputSum: {min: undefined, max: undefined},
 	outputSum: {min: undefined, max: undefined},
 	inputRange: {min: undefined, max: undefined},
@@ -392,12 +392,12 @@ const parameterRules = new Map([
 	['date', [v => Boolean(v)]],
 ]);
 
-const privacyTypeItems = [];
+const transactionTypeItems = [];
 
 // Hooks
 onMounted(() => {
 	getColorMap().forEach((v, k) => {
-		privacyTypeItems.push({title: capitalize(k), value: k, color: v});
+		transactionTypeItems.push({title: capitalize(k), value: k, color: v});
 	});
 });
 
@@ -557,13 +557,13 @@ function buildTxPropOptions() {
 	options.outputRange.max = getAmount(options.outputRange.max);
 
 	if (options.excludePrivacyTransactions) {
-		delete options.privacyTypes;
+		delete options.txTypes;
 	} else {
 		delete options.excludePrivacyTransactions;
 	}
 
-	if (options.privacyTypes?.length === 0) {
-		delete options.privacyTypes;
+	if (options.txTypes?.length === 0) {
+		delete options.txTypes;
 	}
 
 	if (isAmountRangeEmpty(options.inputSum)) {

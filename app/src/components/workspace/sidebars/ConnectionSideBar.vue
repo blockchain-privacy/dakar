@@ -46,8 +46,8 @@
                     {{ item.txhash }}
                   </store-link>
                 </template>
-                <template #item.privacytype="{ item }">
-                  <span>{{ getPrivacyTypeLabel(item.privacytype) }}</span>
+                <template #item.txtype="{ item }">
+                  <span>{{ capitalize(item.txtype) }}</span>
                 </template>
                 <template #item.ts="{ item }">
                   <span>{{ item.ts.toLocaleString() }}</span>
@@ -118,7 +118,7 @@ import {
 	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import {convertAmount, getPrivacyTypeLabel} from '../../../utilities/index.js';
+import {capitalize, convertAmount} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import StoreLink from '@/components/common/WorkspaceLink.vue';
@@ -157,7 +157,7 @@ const headers = [
 	{
 		title: 'Hash', key: 'txhash', align: 'start', sortable: false,
 	},
-	{title: 'Privacy Type', key: 'privacytype'},
+	{title: 'Type', key: 'txtype'},
 	{title: 'Timestamp', key: 'ts'},
 	{title: 'Fee', key: 'fee'},
 	{title: 'Input Amount', key: 'inputAmount'},
@@ -262,14 +262,14 @@ async function getConnectionData() {
 		});
 
 		if (response.amountTransactions) {
-			let hasPrivacyType = false;
+			let hasTxType = false;
 			transactionList.value = response.amountTransactions.map(d => {
 				if (d.txhash) {
 					selectableEntities.set(d.txhash, {id: d.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
 				}
 
-				if (d.privacytype !== undefined) {
-					hasPrivacyType = true;
+				if (d.txtype) {
+					hasTxType = true;
 				}
 
 				d.ts = new Date(d.ts);
@@ -279,11 +279,11 @@ async function getConnectionData() {
 			showSelectTransactions.value = true;
 			showSelectAddresses.value = false;
 
-			if (hasPrivacyType) {
+			if (hasTxType) {
 				filteredHeaders.value = headers;
 			} else {
 				// Data has no privacy type, so remove it from header
-				filteredHeaders.value = headers.filter(d => d.key !== 'privacytype');
+				filteredHeaders.value = headers.filter(d => d.key !== 'txtype');
 			}
 		} else if (response.frontendTransactions) {
 			transactions.value = response.frontendTransactions;

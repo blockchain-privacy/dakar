@@ -39,10 +39,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.50":
-  version: 1.1.50
-  resolution: "@blockchain/dakar@npm:1.1.50::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.50.tgz"
-  checksum: 10c0/f3f6b68343713fc24c9244660f37f139e7fcc5b80bc0d9d433dd1bfdb2ffb7645a18b8fb919d97c75ed9874356a46ed87fa63a388815f8147deb5b5ba6d52039
+"@blockchain/dakar@npm:^1.1.51":
+  version: 1.1.51
+  resolution: "@blockchain/dakar@npm:1.1.51::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.51.tgz"
+  checksum: 10c0/5c78fa0c6ed944b02d0947392615bac81ea4a2586214ce7af88af85c837de9650db1dc382863d6cd6bda682a74dce19b88b51280febbc27eeef3b9a5ed774aa1
   languageName: node
   linkType: hard
 
@@ -379,10 +379,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.14.4":
-  version: 1.14.4
-  resolution: "@ory/client-fetch@npm:1.14.4"
-  checksum: 10c0/d942ad887de84b1ab0d3b34f471f5cf5684dca6909cf87dc8033d043e3ee68646e864382d9b272352a9e40a228745a2d58e9f5dbea3cd226f6edcd4a4da847a5
+"@ory/client-fetch@npm:^1.14.5":
+  version: 1.14.5
+  resolution: "@ory/client-fetch@npm:1.14.5"
+  checksum: 10c0/9a0f66c78dae0ff9b74f7f750855f6e9dfe230d70a89d179da810be8a0fd52c2511db1a87cd086f5eaab406da4f8643e0b7c00a1f00a70c000f09dc87b1398c5
   languageName: node
   linkType: hard
 
@@ -664,13 +664,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitejs/plugin-vue@npm:^5.1.2":
-  version: 5.1.2
-  resolution: "@vitejs/plugin-vue@npm:5.1.2"
+"@vitejs/plugin-vue@npm:^5.1.3":
+  version: 5.1.3
+  resolution: "@vitejs/plugin-vue@npm:5.1.3"
   peerDependencies:
     vite: ^5.0.0
     vue: ^3.2.25
-  checksum: 10c0/eb0015d97bd78a754135d4dbc74486c9da9308ce09e09b4e310e4c55e68b6202f28591fef1bf03ee8dca1d0c8a3c95e7dd8ea32c3933d9440e5a38738c52edcc
+  checksum: 10c0/dfd575782fb3240b878f96b90ed7b630c27df132cd2faac66f13b3da0beb63626236ca0aed242f6060e390998d4335059289509d4bf05fc1c786e4b835b83300
   languageName: node
   linkType: hard
 
@@ -1302,13 +1302,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.50"
+    "@blockchain/dakar": "npm:^1.1.51"
     "@fontsource/roboto": "npm:^5.0.14"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.5"
     "@neondark/wikiapi": "npm:^1.2.36"
-    "@ory/client-fetch": "npm:^1.14.4"
-    "@vitejs/plugin-vue": "npm:^5.1.2"
+    "@ory/client-fetch": "npm:^1.14.5"
+    "@vitejs/plugin-vue": "npm:^5.1.3"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
     d3-drag: "npm:^3.0.0"

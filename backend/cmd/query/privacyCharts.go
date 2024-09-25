@@ -9,10 +9,9 @@ import (
 	"time"
 )
 
-type privacyTypePair struct {
-	label string
-	start string
-	stop  string
+type transactionTypePair struct {
+	label           string
+	transactionType string
 }
 
 // exportTransactionData exports all transaction timestamps in a CSV-file per privacy type (mixing, destination, ...)
@@ -23,30 +22,22 @@ func exportTransactionData(database external.Database, directory string) {
 		return
 	}
 
-	privacyTypes := []privacyTypePair{
-		{label: "mixing", start: "0", stop: constants.StrPrivacyMixingLast},
-		// {label: "mixing 0", start: constants.StrPrivacyMixing0, stop: constants.StrPrivacyMixing0},
-		// {label: "mixing 1", start: constants.StrPrivacyMixing1, stop: constants.StrPrivacyMixing1},
-		// {label: "mixing 2", start: constants.StrPrivacyMixing2, stop: constants.StrPrivacyMixing2},
-		// {label: "mixing 3", start: constants.StrPrivacyMixing3, stop: constants.StrPrivacyMixing3},
-		// {label: "mixing 4", start: constants.StrPrivacyMixing4, stop: constants.StrPrivacyMixing4},
-		{label: "origin", start: constants.StrPrivacyOriginFirst, stop: constants.StrPrivacyOriginLast},
-		{label: "destination", start: constants.StrPrivacyDestinationFirst,
-			stop: constants.StrPrivacyDestinationLast},
-		{label: "collateral creation", start: constants.StrPrivacyCollateralCreationFirst,
-			stop: constants.StrPrivacyCollateralCreationLast},
-		{label: "collateral payment", start: constants.StrPrivacyCollateralPaymentFirst,
-			stop: constants.StrPrivacyCollateralPaymentLast},
-		{label: "all", start: "0", stop: "500"},
+	transactionTypes := []transactionTypePair{
+		{label: "mixing", transactionType: constants.TypeMixing},
+		{label: "origin", transactionType: constants.TypeOrigin},
+		{label: "destination", transactionType: constants.TypeDestination},
+		{label: "collateral creation", transactionType: constants.TypeCC},
+		{label: "collateral payment", transactionType: constants.TypeCP},
+		{label: "all", transactionType: ""},
 	}
 
-	for _, privacyType := range privacyTypes {
-		ts, dbErr := dban.GetPrivacyTypeData(database, privacyType.start, privacyType.stop)
+	for _, t := range transactionTypes {
+		ts, dbErr := dban.GetTransactionTypeData(database, t.transactionType)
 		if dbErr != nil {
 			warn(dbErr)
 			return
 		}
-		writeTimestampsToCSV(directory+"/"+privacyType.label, ts)
+		writeTimestampsToCSV(directory+"/"+t.label, ts)
 	}
 }
 

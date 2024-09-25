@@ -24,7 +24,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	const query = `query Q($block:string,$ctype:string) {
 				var(func: eq(id, $block)){
 					# do not consider mixing transaction
-					txs as transactions@filter(not between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
+					txs as transactions@filter(not eq(Transaction.type,"` + constants.TypeMixing + `"))
 				}
 
 				q(func: uid(txs))@filter(gt(count(tx_inputs),1))@cascade{
@@ -105,7 +105,7 @@ func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint
 
 				q(func: uid(txs)){
 					uid
-					privacytype
+					Transaction.type
 					input_addr:tx_inputs@normalize{
 						~addr_outputs{
 							a as uid:uid
@@ -164,7 +164,7 @@ func GetAddressesByBlock(c external.Database, fromBlockID uint64, toBlockID uint
 	// merge the two returned arrays
 	for _, t := range r.TransactionToAddresses {
 		// new transaction
-		tx := TransactionWithInputOutputAddressCluster{UID: t.UID, PrivacyType: t.PrivacyType}
+		tx := TransactionWithInputOutputAddressCluster{UID: t.UID, Type: t.Type}
 
 		for _, a := range t.InputAddresses {
 			ca := AddressWithCluster{UID: a.UID}

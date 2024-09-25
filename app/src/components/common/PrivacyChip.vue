@@ -1,6 +1,6 @@
 <template>
   <wiki-tooltip
-    :description-url="getPrivacyTypeTooltip(privacyType)"
+    :description-url="getTransactionTypeTooltip(transactionType)"
     :show-link="false"
   >
     <v-chip
@@ -15,18 +15,18 @@
         :icon="mdiIncognito"
         class="me-2"
       />
-      {{ getPrivacyTypeLabel(privacyType) }}
+      {{ transactionType }}
     </v-chip>
   </wiki-tooltip>
 </template>
 
 <script setup>
-import {getPrivacyTypeLabel, getPrivacyTypeTooltip} from '@/utilities';
+import {getTransactionTypeTooltip} from '@/utilities';
 import WikiTooltip from '../wiki/WikiTooltip.vue';
 import {mdiIncognito} from '@mdi/js';
 
 defineProps({
-	privacyType: {type: Number, required: true},
+	transactionType: {type: String, required: true},
 	size: {type: String, required: false, default: 'default'},
 });
 

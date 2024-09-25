@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/db/user"
 	"backend/testhelper"
@@ -133,12 +134,12 @@ func TestDoSelection(t *testing.T) {
 		},
 		{
 			o: TxPropOptions{
-				StartDate:    &startDate1,
-				EndDate:      &endDate1,
-				PrivacyTypes: []string{PrivacyTypeOrigin, PrivacyTypeMixing},
-				InputSum:     &AmountRange{Min: &val1},
-				InputRange:   &AmountRange{Min: &valPoint01, Max: &valPoint1},
-				OutputRange:  &AmountRange{Min: &val1, Max: &valPoint1},
+				StartDate:        &startDate1,
+				EndDate:          &endDate1,
+				TransactionTypes: []string{constants.TypeOrigin, constants.TypeMixing},
+				InputSum:         &AmountRange{Min: &val1},
+				InputRange:       &AmountRange{Min: &valPoint01, Max: &valPoint1},
+				OutputRange:      &AmountRange{Min: &val1, Max: &valPoint1},
 			},
 			wantErr: false,
 		},
@@ -146,7 +147,7 @@ func TestDoSelection(t *testing.T) {
 			o: TxPropOptions{
 				StartDate:                  &startDate1,
 				EndDate:                    &endDate1,
-				PrivacyTypes:               []string{PrivacyTypeOrigin, PrivacyTypeMixing},
+				TransactionTypes:           []string{constants.TypeOrigin, constants.TypeOrigin},
 				ExcludePrivacyTransactions: &yes,
 			},
 			wantErr: true,

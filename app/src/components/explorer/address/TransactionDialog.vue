@@ -17,7 +17,7 @@
       </v-card-title>
       <v-card-text>
         <p class="text-subtitle-1">
-          Privacy Type: {{ privacyType }}
+          Transaction Type: {{ transactionType }}
         </p>
         <p class="text-subtitle-1">
           Timestamp: {{ dateTime.toLocaleString() }}
@@ -56,7 +56,7 @@ import StoreLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	txHash: {type: String, required: true},
-	privacyType: {type: String, required: true},
+	transactionType: {type: String, required: true},
 	dateTime: {type: Date, required: true},
 	inputTxs: {type: Array, required: true},
 });

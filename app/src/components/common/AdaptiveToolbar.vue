@@ -133,9 +133,9 @@
       </div>
       <div class="d-flex justify-center">
         <chip-filter
-          v-model="privacyFilters"
+          v-model="typeFilters"
           label="Transaction Types"
-          :items="privacyTypeItems"
+          :items="transactionTypeItems"
           @changed="onFilterChanged"
         />
       </div>
@@ -173,14 +173,14 @@ const props = defineProps({
 	showDeleteButton: {type: Boolean, required: false, default: true},
 	showAddSelectorButton: {type: Boolean, required: false, default: true},
 	nodeTypeItems: {type: Array, required: false, default: () => []},
-	privacyTypeItems: {type: Array, required: false, default: () => []},
+	transactionTypeItems: {type: Array, required: false, default: () => []},
 	disableFilter: {type: Boolean, required: false, default: false},
 });
 
 const selectionToggle = ref(1);
 const graphQuery = ref('');
 const showFilter = ref(false);
-const privacyFilters = ref(props.privacyTypeItems.map((_, i) => i));
+const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 
 // Functions
@@ -197,7 +197,7 @@ function onFilterChanged() {
 	emit(
 		'filterChanged',
 		nodeFilters.value.map(d => props.nodeTypeItems[d].text),
-		privacyFilters.value.map(d => props.privacyTypeItems[d].text),
+		typeFilters.value.map(d => props.transactionTypeItems[d].text),
 	);
 }
 

@@ -6,9 +6,9 @@
       :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}"
     >
       <privacy-chip
-        v-if="tx.privacytype"
+        v-if="tx.txtype"
         class="mx-3"
-        :privacy-type="tx.privacytype"
+        :transaction-type="tx.txtype"
       />
     </icon-title>
     <v-card-text>

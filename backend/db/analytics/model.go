@@ -1,16 +1,15 @@
 package analytics
 
 import (
-	"backend/constants"
 	"github.com/qrest/gomisc/serror"
 	"time"
 )
 
 // ConnectedNodeRequest is the request for ConnectedNode
 type ConnectedNodeRequest struct {
-	UID         string                `json:"uid"`
-	PrivacyType constants.PrivacyType `json:"privacytype"`
-	Block       []struct {
+	UID             string `json:"uid"`
+	TransactionType string `json:"Transaction.type"`
+	Block           []struct {
 		TS time.Time `json:"ts"`
 	} `json:"block"`
 	Inputs []struct {
@@ -29,9 +28,9 @@ func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
 	}
 
 	node := ConnectedNode{
-		UID:         c.UID,
-		PrivacyType: c.PrivacyType,
-		TS:          c.Block[0].TS,
+		UID:  c.UID,
+		Type: c.TransactionType,
+		TS:   c.Block[0].TS,
 	}
 
 	for _, i := range c.Inputs {
@@ -57,10 +56,10 @@ func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
 
 // ConnectedNode holds data for the current node and all connections on the input side
 type ConnectedNode struct {
-	UID         string
-	PrivacyType constants.PrivacyType
-	TS          time.Time
-	Inputs      []struct {
+	UID    string
+	Type   string
+	TS     time.Time
+	Inputs []struct {
 		Address          string
 		InputTransaction string
 	}
@@ -68,9 +67,9 @@ type ConnectedNode struct {
 
 // Node holds data for the current node
 type Node struct {
-	UID         string                `json:"uid"`
-	PrivacyType constants.PrivacyType `json:"privacytype"`
-	Block       []struct {
+	UID             string `json:"uid"`
+	TransactionType string `json:"Transaction.type"`
+	Block           []struct {
 		TS time.Time `json:"ts"`
 	} `json:"block"`
 }
@@ -83,10 +82,10 @@ type AddressNode struct {
 	} `json:"i"`
 }
 
-// MixingActivity contains the timestamp and privacytype of a privacy transaction
+// MixingActivity contains the timestamp and type of a privacy transaction
 type MixingActivity struct {
 	TransactionHash string `json:"txhash"`
-	PrivacyType     int64  `json:"privacyType,omitempty"`
+	TransactionType string `json:"txtype,omitempty"`
 	Block           []struct {
 		BlockTimestamp string `json:"ts,omitempty"`
 	} `json:"block,omitempty"`

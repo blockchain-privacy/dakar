@@ -154,17 +154,17 @@ export default class Histogram {
 					const elements = [];
 					let parentSize = 0;
 
-					// All data of d grouped by privacy type
-					const privacyGroups = group(d, e => e.privacyTypeLabel);
+					// All data of d grouped by transaction type
+					const txTypeGroups = group(d, e => e.txtype);
 
-					if (privacyGroups.size === 0) {
+					if (txTypeGroups.size === 0) {
 						return elements;
 					}
 
-					colorMap.forEach((v, privacyType) => {
-						const g = privacyGroups.get(privacyType);
+					colorMap.forEach((v, txtype) => {
+						const g = txTypeGroups.get(txtype);
 						if (g === undefined) {
-							// This privacy type does not exist
+							// This transaction type does not exist
 							return;
 						}
 
@@ -172,7 +172,7 @@ export default class Histogram {
 							parentSize,
 							width: x(d.x1) - x(d.x0) - 1,
 							height: g.length,
-							color: colorMap.get(privacyType),
+							color: colorMap.get(txtype),
 							// Transactions,
 						});
 						parentSize += g.length;

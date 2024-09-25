@@ -3,6 +3,11 @@ import {
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
+	PRIVACY_TYPE_CC,
+	PRIVACY_TYPE_CP,
+	PRIVACY_TYPE_DESTINATION,
+	PRIVACY_TYPE_MIXING,
+	PRIVACY_TYPE_ORIGIN,
 	ROUTE_NAME_LOGIN_PAGE,
 } from '@/constants';
 
@@ -170,62 +175,27 @@ export function isAdminIdentity(session) {
 	return isRole(session, 'admin');
 }
 
-// GetPrivacyTypeLabel translates the integer representation of privacy types to string
-export function getPrivacyTypeLabel(privacyType) {
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0 || t > 499) {
-		return '';
-	}
-
-	if (t <= 99) {
-		return 'mixing';
-	}
-
-	if (t <= 199) {
-		return 'destination';
-	}
-
-	if (t <= 299) {
-		return 'origin';
-	}
-
-	if (t <= 399) {
-		return 'collateral creation';
-	}
-
-	if (t <= 499) {
-		return 'collateral payment';
-	}
-
-	return '';
-}
-
-// GetPrivacyTypeTooltip returns the corresponding tooltip path
-export function getPrivacyTypeTooltip(privacyType) {
-	const t = parseInt(privacyType, 10);
+// Returns the corresponding tooltip path
+export function getTransactionTypeTooltip(privacyType) {
 	const folder = 'transactionTypes';
-	if (Number.isNaN(t) || t < 0 || t > 499) {
-		return '';
-	}
 
-	if (t <= 99) {
+	if (privacyType === PRIVACY_TYPE_MIXING) {
 		return `${folder}/mixingTransaction.md`;
 	}
 
-	if (t <= 199) {
+	if (privacyType === PRIVACY_TYPE_DESTINATION) {
 		return `${folder}/destinationTransaction.md`;
 	}
 
-	if (t <= 299) {
+	if (privacyType === PRIVACY_TYPE_ORIGIN) {
 		return `${folder}/originTransaction.md`;
 	}
 
-	if (t <= 399) {
+	if (privacyType === PRIVACY_TYPE_CC) {
 		return `${folder}/collateralCreationTransaction.md`;
 	}
 
-	if (t <= 499) {
+	if (privacyType === PRIVACY_TYPE_CP) {
 		return `${folder}/collateralPaymentTransaction.md`;
 	}
 
@@ -244,81 +214,32 @@ export function getClusterTypeLabel(clusterType) {
 	}
 }
 
-// IsMixing returns true if the provided privacyType is in the range of mixing transactions
-export function isMixing(privacyType) {
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t <= 99;
+// Returns true if the provided transaction type is mixing
+export function isMixing(type) {
+	return type === PRIVACY_TYPE_MIXING;
 }
 
-// IsOrigin returns true if the provided privacyType is in the range of origin transactions
-export function isOrigin(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 200 && t <= 299;
+// Returns true if the provided transaction type is origin
+export function isOrigin(type) {
+	return type === PRIVACY_TYPE_ORIGIN;
 }
 
-// IsDestination returns true if the provided privacyType is in the range of
-// destination transactions
-export function isDestination(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 100 && t <= 199;
+// Returns true if the provided transaction type is destination
+export function isDestination(type) {
+	return type === PRIVACY_TYPE_CC;
 }
 
-// IsCollateralCreation returns true if the provided privacyType is in the range of
-// collateral creation transactions
-export function isCollateralCreation(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 300 && t <= 399;
+// Returns true if the provided transaction type is collateral creation
+export function isCollateralCreation(type) {
+	return type === PRIVACY_TYPE_DESTINATION;
 }
 
-// IsCollateralPayment returns true if the provided privacyType is in the range of
-// collateral payment transactions
-export function isCollateralPayment(privacyType) {
-	if (!privacyType) {
-		return false;
-	}
-
-	const t = parseInt(privacyType, 10);
-
-	if (Number.isNaN(t) || t < 0) {
-		return false;
-	}
-
-	return t >= 400 && t <= 499;
+// Returns true if the provided transaction type is collateral payment
+export function isCollateralPayment(type) {
+	return type === PRIVACY_TYPE_CP;
 }
 
-// IsFunction returns true if the provided argument is a function
+// Returns true if the provided argument is a function
 export function isFunction(functionToCheck) {
 	if (!functionToCheck) {
 		return false;
@@ -328,21 +249,20 @@ export function isFunction(functionToCheck) {
 	return fnType === '[object Function]' || fnType === '[object AsyncFunction]';
 }
 
-// Plural appends an 's' at the end of subject if count is higher than one
+// Appends an 's' at the end of subject if count is higher than one
 export function plural(subject, count) {
 	return count > 1 ? `${subject}s` : subject;
 }
 
 // Returns a mapping between transaction types and their colors
 export function getColorMap() {
+	// Colors from https://sashamaps.net/docs/resources/20-colors/
 	const colorMap = new Map();
-
-	colorMap.set('origin', '#CB5599');
-	colorMap.set('mixing', '#56B4E9');
-	colorMap.set('destination', '#0072B2');
-	colorMap.set('collateral creation', '#E69F00');
-	colorMap.set('collateral payment', '#D00000');
-
+	colorMap.set('origin', '#800000');
+	colorMap.set('mixing', '#e6194B');
+	colorMap.set('destination', '#fabed4');
+	colorMap.set('collateral creation', '#3cb44b');
+	colorMap.set('collateral payment', '#bfef45');
 	return colorMap;
 }
 

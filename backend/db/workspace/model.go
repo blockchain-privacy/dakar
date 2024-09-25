@@ -175,8 +175,8 @@ type Node struct {
 	ClusterType string `json:"clusterType,omitempty"`
 
 	// transaction
-	TransactionHash string  `json:"transactionHash,omitempty"`
-	PrivacyType     *uint16 `json:"privacyType,omitempty"`
+	TransactionHash string `json:"transactionHash,omitempty"`
+	TransactionType string `json:"txtype,omitempty"`
 
 	// selector
 	SelectorCreated          string               `json:"selectorCreated,omitempty"`
@@ -194,7 +194,7 @@ type Node struct {
 }
 
 func (f Node) IsDestination() bool {
-	return f.Type == NodeTypeTransaction && f.PrivacyType != nil && constants.PrivacyType(*f.PrivacyType).IsDestination()
+	return f.Type == NodeTypeTransaction && f.TransactionType == constants.TypeDestination
 }
 
 type dummyUser struct {

@@ -1,4 +1,3 @@
-import {getPrivacyTypeLabel} from '@/utilities/index.js';
 import {
 	SELECTOR_STATUS_SUCCESS,
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
@@ -18,10 +17,8 @@ import {abbreviateNumber} from '@/d3Documents/util.js';
 // - result count (number in center of node)
 // - node title
 // - node icons
-// - transaction privacy type label
 export function setNodesDisplayAttributes(nodes, heuristicTypeMap) {
 	return nodes.map(d => {
-		d.privacyTypeLabel = getPrivacyTypeLabel(d.privacyType);
 		d.nodeDisplayTitle = getNodeTitle(d, heuristicTypeMap);
 		d.nodeDisplayResultCount = getResultCount(d);
 		d.nodeDisplayIconObject = getNodeIconObject(d);

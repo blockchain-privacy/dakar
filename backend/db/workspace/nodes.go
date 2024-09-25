@@ -673,7 +673,7 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 	const query = `query Q($query:string, $user:string){
 						transaction(func: eq(txhash, $query)){
 							uid
-							privacytype
+							Transaction.type
 						}
 						
 						address(func: eq(addresshash, $query)){
@@ -694,9 +694,9 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 	// json struct
 	var r struct {
 		Transactions []struct {
-			UID         string  `json:"uid,omitempty"`
-			Hash        string  `json:"txhash,omitempty"`
-			PrivacyType *uint16 `json:"privacytype,omitempty"`
+			UID  string `json:"uid,omitempty"`
+			Hash string `json:"txhash,omitempty"`
+			Type string `json:"Transaction.type,omitempty"`
 		} `json:"transaction,omitempty"`
 		Address []struct {
 			UID      string `json:"uid,omitempty"`
@@ -714,7 +714,7 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 
 	if len(r.Transactions) > 0 {
 		tx := r.Transactions[0]
-		node = &Node{UID: tx.UID, Type: NodeTypeTransaction, TransactionHash: nodeQuery, PrivacyType: tx.PrivacyType}
+		node = &Node{UID: tx.UID, Type: NodeTypeTransaction, TransactionHash: nodeQuery, TransactionType: tx.Type}
 		return
 	}
 

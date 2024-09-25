@@ -26,16 +26,16 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 	query := `query Q($from:int,$to:int) {
 				b as var(func: between(id, $from, $to))
 				var(func: uid(b))@cascade{
-					dest as transactions@filter(not has(privacytype)){
+					dest as transactions@filter(not has(Transaction.type)){
 						tx_inputs{
-							~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
+							~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeMixing + `"))
 						}
 					}
 				}
 				var(func: uid(b)){
-					transactions@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
+					transactions@filter(eq(Transaction.type,"` + constants.TypeMixing + `")){
 						tx_inputs{
-							orig as ~tx_outputs@filter(not has(privacytype))
+							orig as ~tx_outputs@filter(not has(Transaction.type))
 						}
 					}
 				}
@@ -43,7 +43,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 				var(func: uid(orig)){
 					tx_outputs{
 						# do not limit by number of inputs as there could be multiple with the same address
-						to_classify as ~tx_inputs@filter(not has(privacytype) and le(count(tx_outputs),2))@cascade{
+						to_classify as ~tx_inputs@filter(not has(Transaction.type) and le(count(tx_outputs),2))@cascade{
 							~transactions@filter(le(id,$to))
 						}
 					}
@@ -53,7 +53,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 					uid
 					txhash
 					fee
-					privacytype
+					Transaction.type
 					tx_inputs{
 						uid
 						amount
@@ -72,7 +72,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 					uid
 					txhash
 					fee
-					privacytype
+					Transaction.type
 					tx_inputs{
 						uid
 						amount
@@ -95,12 +95,12 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, fromBlockID uint6
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(dest), 0))",
-				SetNquads: []byte("uid(dest) <privacytype> \"" + constants.StrPrivacyDestination + "\" ."),
+				SetNquads: []byte("uid(dest) <Transaction.type> \"" + constants.TypeDestination + "\" ."),
 			},
 			{
 				// only insert origins if there are no transactions to classify
 				Cond:      "@if(gt(len(orig), 0) and eq(len(to_classify),0))",
-				SetNquads: []byte("uid(orig) <privacytype> \"" + constants.StrPrivacyOrigin + "\" ."),
+				SetNquads: []byte("uid(orig) <Transaction.type> \"" + constants.TypeOrigin + "\" ."),
 			}},
 		CommitNow: true,
 	}
@@ -133,17 +133,15 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 	uidList := db.CreateCommaArray(txUids)
 
 	const query = `query Q($uids: string) {
-				cc as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` +
-		constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + `))@cascade{	
+				cc as var(func: uid($uids))@filter(not has(Transaction.type) or eq(Transaction.type,"` + constants.TypeDestination + `"))@cascade{	
 					tx_inputs{
-						~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
-		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
-		constants.StrPrivacyCollateralCreationLast + `))}
+						~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeMixing +
+		`") or eq(Transaction.type,"` + constants.TypeOrigin + `") or eq(Transaction.type,"` + constants.TypeCC + `"))}
 				}
 				q(func: uid(cc)){count(uid)}
 			  }`
 
-	const nQuad = "uid(cc) <privacytype> \"" + constants.StrPrivacyCollateralCreation + "\" ."
+	const nQuad = "uid(cc) <Transaction.type> \"" + constants.TypeCC + "\" ."
 
 	req := &api.Request{
 		Query: query,
@@ -189,13 +187,10 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 	uidList := db.CreateCommaArray(txUids)
 
 	// collateral payments + collateral creations + origins
-	const filter = "@filter(between(privacytype," + constants.StrPrivacyOriginFirst +
-		"," + constants.StrPrivacyCollateralPaymentLast + "))"
+	const filter = "@filter(eq(Transaction.type,\"" + constants.TypeOrigin + "\") or eq(Transaction.type,\"" + constants.TypeCC + "\")or eq(Transaction.type,\"" + constants.TypeCP + "\"))"
 
 	const query = `query Q($uids: string) {
-				cp as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` +
-		constants.StrPrivacyDestinationFirst + "," +
-		constants.StrPrivacyDestinationLast + `))@cascade{	
+				cp as var(func: uid($uids))@filter(not has(Transaction.type) or eq(Transaction.type,"` + constants.TypeDestination + `"))@cascade{	
 					tx_inputs{
 						~tx_outputs` + filter + `}
 				}
@@ -207,7 +202,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 		Vars:  map[string]string{"$uids": uidList},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cp), 0))",
-			SetNquads: []byte("uid(cp) <privacytype> \"" + constants.StrPrivacyCollateralPayment + "\" ."),
+			SetNquads: []byte("uid(cp) <Transaction.type> \"" + constants.TypeCP + "\" ."),
 		}},
 		CommitNow: true,
 	}
@@ -256,7 +251,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 					uid
 					txhash
 					fee
-					privacytype
+					Transaction.type
 					tx_inputs{
 						uid
 						amount
@@ -292,11 +287,11 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	return
 }
 
-// RemovePrivacyTypeOfAllTransactions removes the privacy type of all transactions
-func RemovePrivacyTypeOfAllTransactions(ctx context.Context, c external.Database) (err error) {
+// RemoveTransactionTypeOfAllTransactions removes the transaction type of all transactions
+func RemoveTransactionTypeOfAllTransactions(ctx context.Context, c external.Database) (err error) {
 	req := &api.Request{
 		Query:     "{t as var(func: has(txhash))}",
-		Mutations: []*api.Mutation{{DelNquads: []byte("uid(t) <privacytype> * .")}},
+		Mutations: []*api.Mutation{{DelNquads: []byte("uid(t) <Transaction.type> * .")}},
 		CommitNow: true,
 	}
 

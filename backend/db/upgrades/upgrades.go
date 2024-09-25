@@ -37,6 +37,9 @@ var availableUpgrades = map[uint64]UpgradePackage{
 	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
 	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
 	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
+	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType, func() schemaUpgrade {
+		return func(c external.Database) error { return status.SetLastClassifiedBlockID(c, 0) }
+	}()}},
 }
 
 var thisLogger *slog.Logger
@@ -327,6 +330,25 @@ func AlterSchemaAddSelectorTotalResultCount(c external.Database) error {
 				Selector.options
 				Selector.results
 				Selector.totalResultCount
+			}`,
+	})
+}
+
+func DropPrivacyType(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{DropAttr: "privacytype"})
+}
+
+func AlterSchemaAddTransactionType(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Transaction.type: string @index(hash) .
+
+			type Transaction {
+				txhash
+				Transaction.type
+				fee
+				tx_outputs
+				tx_inputs
 			}`,
 	})
 }
