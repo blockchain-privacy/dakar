@@ -89,13 +89,13 @@ func GetDBName() (string, bool) {
 func GetRPCName() (string, bool) {
 	return os.LookupEnv(EnvRPCHostname)
 }
-func SkipIfNoDB(t *testing.T) {
+func SkipIfNoDB(t testing.TB) {
 	if !DoDBTests() {
 		t.SkipNow()
 	}
 }
 
-func SkipIfNoRPC(t *testing.T) {
+func SkipIfNoRPC(t testing.TB) {
 	if !DoRPCTests() {
 		t.SkipNow()
 	}

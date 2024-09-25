@@ -565,7 +565,6 @@ func GetSelectorStatus(ctx context.Context, c external.Database, selectorUID str
 			}
 
 			q(func: uid(s)){
-				uid
 				Selector.status
 			}
 		}`
@@ -577,8 +576,7 @@ func GetSelectorStatus(ctx context.Context, c external.Database, selectorUID str
 
 	var r struct {
 		Selectors []struct {
-			UID    string `json:"uid,omitempty"`
-			Status string `json:"Selector.Status,omitempty"`
+			Status string `json:"Selector.status,omitempty"`
 		} `json:"q,omitempty"`
 	}
 

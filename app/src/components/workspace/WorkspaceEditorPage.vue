@@ -75,7 +75,7 @@
           v-model="isCreateSelectorSheetOpen"
           :descriptors="heuristicDescriptors"
           :selector-type="selectorCreationType"
-          :has-parent="isSelectorParentSet"
+          :parent-node="selectorParent"
           @add-selector="addNewSelector"
         />
         <entity-side-bar
@@ -85,9 +85,9 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-tx-prop="openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true)"
-          @add-tx-graph="openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true)"
-          @add-heuristic="openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, true)"
+          @add-tx-prop="openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode())"
+          @add-tx-graph="openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode())"
+          @add-heuristic="openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode())"
           @add-note="showAddNoteDialog"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
@@ -254,8 +254,8 @@ const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
 const workspaceUID = ref('');
 const workspaceName = ref('');
-// IsSelectorParentSet determines if a newly created selector should have a parent
-const isSelectorParentSet = ref(false);
+// SelectorParent is the parent node of the new selector
+const selectorParent = ref(undefined);
 const isCreateSelectorSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
@@ -288,7 +288,7 @@ const contextMenuModel = ref({
 			show: () => isHeuristicNode(nodeGraph.getContextNode())
 			|| isDestiationNode(nodeGraph.getContextNode())
 			|| isOriginNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, true),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -297,14 +297,14 @@ const contextMenuModel = ref({
 			show: () => isTxPropNode(nodeGraph.getContextNode())
 			|| isTxGraphNode(nodeGraph.getContextNode())
 			|| isHeuristicNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, true),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode()),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
 			title: 'Add Graph Selector',
 			icon: graphPlus,
 			show: () => isTransactionNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, true),
+			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode()),
 			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 		{
@@ -850,12 +850,12 @@ function openConnectionSheet(d) {
 function showCreateSelectorSheetFromButton() {
 	// So no parent is set
 	nodeGraph.resetContextNode();
-	openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, false);
+	openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP);
 }
 
-function openCreateSelectorSheet(selectorType, withParent) {
+function openCreateSelectorSheet(selectorType, parentNode) {
 	selectorCreationType.value = selectorType;
-	isSelectorParentSet.value = withParent;
+	selectorParent.value = parentNode;
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isCreateSelectorSheetOpen.value = true;

@@ -226,12 +226,12 @@ export function isOrigin(type) {
 
 // Returns true if the provided transaction type is destination
 export function isDestination(type) {
-	return type === PRIVACY_TYPE_CC;
+	return type === PRIVACY_TYPE_DESTINATION;
 }
 
 // Returns true if the provided transaction type is collateral creation
 export function isCollateralCreation(type) {
-	return type === PRIVACY_TYPE_DESTINATION;
+	return type === PRIVACY_TYPE_CC;
 }
 
 // Returns true if the provided transaction type is collateral payment

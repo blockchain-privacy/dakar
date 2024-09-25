@@ -22,7 +22,7 @@ type forwardAmountHeuristic struct {
 }
 
 func newForwardAmountHeuristic() heuristic {
-	return &forwardAmountHeuristic{heuristicType: "forward_amount"}
+	return &forwardAmountHeuristic{heuristicType: heuristicTypeForwardAmount}
 }
 
 func (h *forwardAmountHeuristic) getType() string {
@@ -72,15 +72,12 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 			"If this heuristic " +
 			"is placed at the root level a reverse lookup with the same " +
 			"time as the forward lookup will be performed.",
-		Parameter: &struct {
-			DefaultValue string `json:"value,omitempty"`
-			Description  string `json:"description,omitempty"`
-			Type         string `json:"type,omitempty"`
-		}{
+		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look forward time in hours",
 			Type:         "int",
 		},
+		AllowedParents: []string{parentTypeTransaction, heuristicTypeForwardLookup},
 	}
 }
 

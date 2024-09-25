@@ -31,7 +31,9 @@
                 />
                 <v-list-item
                   v-else
+                  :disabled="i.item.raw.disabled"
                   v-bind="i.props"
+                  :subtitle="i.item.raw.disabled?'parent incompatible':''"
                 />
               </template>
             </v-select>
@@ -79,7 +81,7 @@
               hide-details
             />
             <named-divider title="Select" />
-            <template v-if="!hasParent">
+            <template v-if="!parentNode">
               <div class="d-flex justify-center mt-2 text-subtitle-1">
                 Time Range
               </div>
@@ -314,7 +316,7 @@ import {
 	CLUSTER_TYPE_CUSTOM,
 	SELECTOR_MAX_ITEMS,
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
-	SELECTOR_TYPE_TX_PROP,
+	SELECTOR_TYPE_TX_PROP, WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
@@ -331,7 +333,7 @@ const route = useRoute();
 const props = defineProps({
 	selectorType: {type: String, required: true},
 	descriptors: {type: Array, required: true},
-	hasParent: {type: Boolean, required: false, default: false},
+	parentNode: {type: Object, required: false, default: undefined},
 });
 
 // Heuristic select model
@@ -402,10 +404,12 @@ onMounted(() => {
 });
 
 onUpdated(() => {
-	heuristicTypes.value = getHeuristicTypes();
-	if (heuristicTypes.value.length > 0) {
-		heuristicTypeModel.value = heuristicTypes.value.find(d => !d.divider);
-		heuristicOptions.value.type = heuristicTypeModel.value.type;
+	if (props.selectorType === SELECTOR_TYPE_HEURISTIC) {
+		heuristicTypes.value = getHeuristicTypes();
+		if (heuristicTypes.value.length > 0) {
+			heuristicTypeModel.value = heuristicTypes.value.find(d => !d.divider && !d.disabled);
+			heuristicOptions.value.type = heuristicTypeModel.value?.type;
+		}
 	}
 
 	startDateError.value = false;
@@ -435,7 +439,7 @@ const icon = computed(() => {
 
 // Functions
 function getHeuristicTypes() {
-	if (!props.descriptors) {
+	if (!props.descriptors || !props.parentNode) {
 		return [];
 	}
 
@@ -444,6 +448,20 @@ function getHeuristicTypes() {
 	props.descriptors
 		.map(d => {
 			d.category ||= 'Other';
+
+			let parentType;
+			switch (props.parentNode.type) {
+				case WORKSPACE_NODE_TYPE_SELECTOR:
+					parentType = props.parentNode.heuristicOptions.type;
+					break;
+				case WORKSPACE_NODE_TYPE_TRANSACTION:
+					parentType = WORKSPACE_NODE_TYPE_TRANSACTION;
+					break;
+				default:
+					throw new Error('invalid node type');
+			}
+
+			d.disabled = !d.allowedParents.includes(parentType);
 
 			return d;
 		})
@@ -521,7 +539,7 @@ function isOptionsEmpty(options) {
 function buildTxPropOptions() {
 	const options = structuredClone(toRaw(txPropOptions.value));
 
-	if (props.hasParent) {
+	if (props.parentNode) {
 		delete options.startDate;
 		delete options.endDate;
 	} else {

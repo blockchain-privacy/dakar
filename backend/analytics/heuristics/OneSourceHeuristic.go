@@ -21,7 +21,7 @@ type oneSourceHeuristic struct {
 }
 
 func newOneSourceHeuristic() heuristic {
-	return &oneSourceHeuristic{heuristicType: "one_source"}
+	return &oneSourceHeuristic{heuristicType: heuristicTypeOneSource}
 }
 
 func (h *oneSourceHeuristic) getType() string {
@@ -67,15 +67,12 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 		Type:        h.heuristicType,
 		Category:    heuristicCategoryReverse,
 		Description: "Filters by time, direct input transaction amount filter and omni sources",
-		Parameter: &struct {
-			DefaultValue string `json:"value,omitempty"`
-			Description  string `json:"description,omitempty"`
-			Type         string `json:"type,omitempty"`
-		}{
+		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",
 			Type:         "int",
 		},
+		AllowedParents: []string{parentTypeTransaction},
 	}
 }
 
@@ -91,14 +88,26 @@ type txAndOrigins struct {
 //   - filter all origins of sources, which do not occur in all sets of input transaction origins
 //
 // This heuristic does not use the results from its parent heuristic
-func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, _ string) (
+func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
 		return nil, nil
 	}
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+	// heuristic is only allowed to be connected to a transaction
+	if parentHeuristicSet {
+		return nil, serror.New(errHeuristicNotValid)
+	}
+
 	// Get all transactions which are connected via the inputs of the destination
-	// transaction specified by txHash. These transactions are called >>input transactions<<.
+	// transaction specified by txHash.
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err

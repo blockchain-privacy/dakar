@@ -22,7 +22,7 @@ type reverseLookupHeuristic struct {
 }
 
 func newReverseLookupHeuristic() heuristic {
-	return &reverseLookupHeuristic{heuristicType: "reverse_lookup"}
+	return &reverseLookupHeuristic{heuristicType: heuristicTypeReverseLookup}
 }
 
 func (h *reverseLookupHeuristic) getType() string {
@@ -70,15 +70,12 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 		Description: "Performs a reverse lookup for the given duration and returns " +
 			"all found origins. If this heuristic has a parent heuristic, only origins " +
 			"which also occur in the parent heuristic will be returned. ",
-		Parameter: &struct {
-			DefaultValue string `json:"value,omitempty"`
-			Description  string `json:"description,omitempty"`
-			Type         string `json:"type,omitempty"`
-		}{
+		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",
 			Type:         "int",
 		},
+		AllowedParents: []string{parentTypeTransaction},
 	}
 }
 
@@ -90,35 +87,18 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		return nil, nil
 	}
 
-	// holds all origins from either the parent heuristic or the associated destination transaction
-	originLimit := make(map[string]bool)
-	// parentAttributionMap maps a clusterUID to a slice of attribution UIDs
-	var parentAttributionMap map[heuristics.ClusterUID][]string
-
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
+
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
 		return nil, err
 	}
+	// heuristic is only allowed to be connected to a transaction
 	if parentHeuristicSet {
-		// get origins from parent heuristic
-		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
-		if err != nil {
-			return nil, err
-		}
-
-		if parentHeuristicResults == nil {
-			return nil, serror.New(errNoOriginsAtStart)
-		}
-
-		parentAttributionMap = attrMap
-		for _, hr := range parentHeuristicResults {
-			originLimit[hr.UID] = true
-		}
+		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	// gather input information
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
@@ -146,16 +126,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 		// save all origins only once
 		for _, t := range timeLimitedOrigins {
-			// only save if the uid also exists in the parent origin set
-			if parentHeuristicSet && !originLimit[t.UID] {
-				continue
-			}
 			allTimeLimitedOrigins[t.UID] = t
-		}
-
-		if parentHeuristicSet {
-			// no need to merge the attributions if they are not used
-			continue
 		}
 
 		// merge the attribution maps
@@ -167,10 +138,6 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k, v := range allTimeLimitedOrigins {
 		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], db.UIDNode{UID: k})
-	}
-
-	if parentHeuristicSet {
-		return createHeuristicClusters(resultClusters, parentAttributionMap), nil
 	}
 
 	return createHeuristicClusters(resultClusters, attributionMap), nil
