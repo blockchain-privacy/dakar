@@ -610,6 +610,11 @@ async function addMultipleNodes(nodes) {
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
+		} else if (response.duplicateNodeUID) {
+			setInfoMessage('Node already exists');
+			const n = nodeGraph.getNode(response.duplicateNodeUID);
+			n.showMarker = true;
+			nodeGraph.addNode(n);
 		}
 	} catch (e) {
 		setErrorMessage(e);
@@ -699,6 +704,12 @@ async function newRouting() {
 function setErrorMessage(msg) {
 	msgStore.addMessage({
 		text: msg, type: 'error', temporary: true, category: route.name,
+	});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
 	});
 }
 

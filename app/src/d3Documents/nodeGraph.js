@@ -825,7 +825,7 @@ export default class NodeGraph {
 					.attr('y', -d.height / 2);
 
 				// Add marker to new nodes
-				if (d.fx !== undefined) {
+				if (d.fx !== undefined && !d.showMarker) {
 					return;
 				}
 
@@ -930,7 +930,7 @@ export default class NodeGraph {
 					.lower();
 
 				// Add marker to new nodes
-				if (d.fx !== undefined) {
+				if (d.fx !== undefined && !d.showMarker) {
 					return;
 				}
 
