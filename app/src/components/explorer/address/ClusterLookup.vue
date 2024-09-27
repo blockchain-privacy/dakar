@@ -118,9 +118,13 @@
                 item-key="addresshash"
               >
                 <template #item.addresshash="{ item }">
-                  <router-link :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash }}">
+                  <workspace-link
+                    class="shorten"
+                    disable-select
+                    :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash }}"
+                  >
                     {{ item.addresshash }}
-                  </router-link>
+                  </workspace-link>
                 </template>
                 <template #item.unspent_output_count="{ item }">
                   {{ item.output_count - item.spent_output_count }}
@@ -151,6 +155,7 @@ import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import {inject, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();

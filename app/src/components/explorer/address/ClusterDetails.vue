@@ -9,13 +9,13 @@
           Transaction
         </v-list-item-title>
         <v-list-item-subtitle>
-          <store-link
+          <workspace-link
             class="shorten"
             disable-select
             :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: txHash }}"
           >
             {{ txHash }}
-          </store-link>
+          </workspace-link>
         </v-list-item-subtitle>
       </v-list-item>
     </v-col>
@@ -34,7 +34,7 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	txHash: {type: String, required: true},

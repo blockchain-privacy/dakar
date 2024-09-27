@@ -38,13 +38,13 @@
                 items-per-page="50"
               >
                 <template #item.txhash="{ item }">
-                  <store-link
+                  <workspace-link
                     style="max-width:200px"
                     class="shorten"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
                   >
                     {{ item.txhash }}
-                  </store-link>
+                  </workspace-link>
                 </template>
                 <template #item.txtype="{ item }">
                   <span>{{ capitalize(item.txtype) }}</span>
@@ -121,7 +121,7 @@ import {
 import {capitalize, convertAmount} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 

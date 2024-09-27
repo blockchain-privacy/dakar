@@ -130,7 +130,7 @@
                 @update:page="getTableData"
               >
                 <template #item.input_transaction="{ item }">
-                  <store-link
+                  <workspace-link
                     v-if="item.input_transaction"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
@@ -138,10 +138,10 @@
                     class="shorten"
                   >
                     {{ item.input_transaction }}
-                  </store-link>
+                  </workspace-link>
                 </template>
                 <template #item.output_transaction="{ item }">
-                  <store-link
+                  <workspace-link
                     v-if="item.output_transaction"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
@@ -149,7 +149,7 @@
                     class="shorten"
                   >
                     {{ item.output_transaction }}
-                  </store-link>
+                  </workspace-link>
                 </template>
                 <template #item.input_ts="{ item }">
                   {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
@@ -206,7 +206,7 @@ import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
