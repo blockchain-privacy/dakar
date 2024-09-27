@@ -126,7 +126,8 @@ type spendingFingerprintReply struct {
 }
 
 type addWorkspaceNodesReply struct {
-	Nodes []workspace.Node `json:"nodes,omitempty"`
+	Nodes            []workspace.Node `json:"nodes,omitempty"`
+	DuplicateNodeUID string           `json:"duplicateNodeUID,omitempty"`
 }
 type addWorkspaceNoteReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`

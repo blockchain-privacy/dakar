@@ -224,13 +224,13 @@ func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []stri
 
 // AddNodes adds a node to a workspace and refreshes the connections between all nodes.
 func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
-	userUID string, newNodes []*workspace.Node) ([]workspace.Node, error) {
+	userUID string, newNodes []*workspace.Node) ([]workspace.Node, string, error) {
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
 	w, err := workspace.GetFrontendWorkspace(ctx, dgraph, workspaceUID, userUID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	nodeMap, notes := separateNodes(w.Nodes)
@@ -241,42 +241,54 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 		frontEndNodes := []workspace.Node{*newNodes[0]}
 		if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
 			frontEndNodes, w.ClusterHeight); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
-		return frontEndNodes, nil
+		return frontEndNodes, "", nil
+	}
+
+	var alreadyExistingNode string
+	var oldLength = len(nodeMap)
+	for _, newNode := range newNodes {
+		if _, ok := nodeMap[newNode.UID]; ok {
+			alreadyExistingNode = newNode.UID
+		}
+
+		nodeMap[newNode.UID] = *newNode
 	}
 
 	// check if all new nodes already exist in the workspace
-	receivedNewNode := false
-	for _, newNode := range newNodes {
-		if _, ok := nodeMap[newNode.UID]; !ok {
-			receivedNewNode = true
-			break
-		}
-	}
-
-	if !receivedNewNode {
+	if oldLength == len(nodeMap) {
 		// all new nodes are already in current state, therefore there is nothing to do
-		return nil, nil
+		return nil, alreadyExistingNode, nil
 	}
 
-	for _, newNode := range newNodes {
-		nodeMap[newNode.UID] = *newNode
+	// check if the new node is a duplicate address
+	if len(newNodes) == 1 {
+		// remove node which needs to be checked
+		nodes := slices.DeleteFunc(cliutil.GetMapKeys(nodeMap), func(s string) bool {
+			return s == newNodes[0].UID
+		})
+
+		duplicateUID, err := workspace.CheckDuplicateAddress(ctx, dgraph, nodes, newNodes[0].UID)
+		if err != nil {
+			return nil, "", err
+		}
+		return nil, duplicateUID, nil
 	}
 
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	frontEndNodes := slices.Concat(cliutil.GetMapValues(nodeMap), notes)
 
 	if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return frontEndNodes, nil
+	return frontEndNodes, "", nil
 }
 
 const noteUIDPrefix = "note_"
@@ -387,8 +399,7 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 }
 
 // isWorkspaceOutdated returns true if the workspace state is outdated
-func isWorkspaceOutdated(dgraph external.Database,
-	w *workspace.DecodedWorkspace) (bool, error) {
+func isWorkspaceOutdated(dgraph external.Database, w *workspace.DecodedWorkspace) (bool, error) {
 	if len(w.Nodes) == 0 {
 		return false, nil
 	}

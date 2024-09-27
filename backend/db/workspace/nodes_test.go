@@ -63,3 +63,31 @@ func Test_getWorkspaceConnectionsRaw(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckDuplicateAddress(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx := context.Background()
+
+	// both addresses belong to the same cluster
+	addresses, err := db.GetAddressUIDs(ctx, dbHandle, []string{
+		"Xw63PFg7vy3rZumKaWn5DRmopKGDcoJ4au",
+		"XgVrFBit8H8jnKa3HVeQqiyCJWAp2bN8LU"})
+	require.NoError(t, err)
+	require.Len(t, addresses, 2)
+
+	duplicateAddress, err := CheckDuplicateAddress(ctx, dbHandle,
+		[]string{addresses[0].UID}, addresses[1].UID)
+	require.NoError(t, err)
+	require.EqualValues(t, addresses[0].UID, duplicateAddress)
+
+	otherAddress, err := db.GetAddressUIDs(ctx, dbHandle, []string{"Xkti8tVmisBMzmRMAGKVDizk2zVjwWnhAt"})
+	require.NoError(t, err)
+	require.Len(t, addresses, 2)
+
+	duplicateAddress, err = CheckDuplicateAddress(ctx, dbHandle, []string{addresses[0].UID, addresses[1].UID}, otherAddress[0].UID)
+	require.NoError(t, err)
+	require.Empty(t, duplicateAddress)
+
+}
