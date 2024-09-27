@@ -106,8 +106,8 @@
         grow
         @update:model-value="onTabChange"
       >
-        <v-tab key="histogram">
-          Chart
+        <v-tab key="barChart">
+          Bar Chart
         </v-tab>
         <v-tab key="graph">
           Graph
@@ -119,7 +119,7 @@
         style="line-height: 0"
       >
         <v-window-item
-          key="histogram"
+          key="barChart"
           eager
         >
           <v-card variant="text">
@@ -140,8 +140,8 @@
               />
               <div style="overflow: auto">
                 <svg
-                  v-show="showHistogram"
-                  id="mixing_activity_histogram"
+                  v-show="showBarChart"
+                  id="mixing_activity_barchart"
                   style="min-width: 1100px"
                 />
               </div>
@@ -233,7 +233,7 @@
 </template>
 
 <script setup>
-import Histogram from '@/d3Documents/histogram';
+import BarChart from '@/d3Documents/barChart.js';
 import {getColorMap} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
@@ -257,14 +257,14 @@ const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 
 const colorMap = getColorMap();
-let svgHistogram = null;
+let svgBarChart = null;
 const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;
 let initialLoadDone = false;
 let graphMode = false;
 
 // Select all labels by default
-const showHistogram = ref(false);
+const showBarChart = ref(false);
 const showGraph = ref(false);
 const isLoading = ref(false);
 const showEmptyResponseMsg = ref(false);
@@ -328,13 +328,13 @@ const isSameDay = computed(() => {
 onBeforeMount(() => {
 	includeCusterAddresses.value = false;
 
-	svgHistogram = new Histogram(
-		'mixing_activity_histogram',
+	svgBarChart = new BarChart(
+		'mixing_activity_barchart',
 		1200,
 		300,
 		false,
 	);
-	svgHistogram.setClickHandler(onBarClick);
+	svgBarChart.setClickHandler(onBarClick);
 });
 
 onMounted(() => {
@@ -507,7 +507,7 @@ function handleLassoReset() {
 }
 
 function onTabChange(tab) {
-	// Tab === 0: histogram
+	// Tab === 0: bar chart
 	// tab === 1: force graph
 	const wantGraph = tab === 1;
 	// Check if tab was actually changed. @changed:modelValue also fires on initial load of component
@@ -530,7 +530,7 @@ function onTabChange(tab) {
 }
 
 async function updateSvgData(pullNewData) {
-	showHistogram.value = false;
+	showBarChart.value = false;
 	showGraph.value = false;
 	isLoading.value = true;
 	showTooManyAddressesMsg.value = false;
@@ -593,7 +593,7 @@ async function updateSvgData(pullNewData) {
 	if (!filteredItems) {
 		isLoading.value = false;
 		showGraph.value = false;
-		showHistogram.value = false;
+		showBarChart.value = false;
 		showNotEnoughDataMsg.value = true;
 		return;
 	}
@@ -614,10 +614,10 @@ async function updateSvgData(pullNewData) {
 			});
 		}
 	} else {
-		svgHistogram.reset();
-		svgHistogram.drawStacked(filteredItems, colorMap);
-		showHistogram.value = !svgHistogram.empty;
-		showNotEnoughDataMsg.value = svgHistogram.empty;
+		svgBarChart.reset();
+		svgBarChart.drawStacked(filteredItems, colorMap);
+		showBarChart.value = !svgBarChart.empty;
+		showNotEnoughDataMsg.value = svgBarChart.empty;
 	}
 
 	isLoading.value = false;

@@ -4,11 +4,11 @@ The mixing activity view shows visualizations of [privacy transactions](transact
 which can be attributed to one address or cluster. This allows to (partially) observe 
 the mixing activity of a user. Only directly connected transaction are shown. 
 
-## Histogram
+## Bar Chart
 
-The histogram view shows a timeline of all the privacy transactions. It can be filtered by transaction type and time.
+The bar chart view shows a timeline of all the privacy transactions. It can be filtered by transaction type and time.
 
-![mixing activity histogram example](img/mixing_activity_histogram.png)
+![mixing activity bar_chart example](img/mixing_activity_bar_chart.png)
 
 ## Force Graph
 

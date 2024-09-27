@@ -300,7 +300,7 @@ import {
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
-import Histogram from '@/d3Documents/histogram.js';
+import BarChart from '@/d3Documents/barChart.js';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -377,7 +377,7 @@ function updateInputGraph() {
 		return;
 	}
 
-	svgInputGraph = new Histogram(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
 	svgInputGraph.drawStacked(props.tx.inputs, colorMap);
 	enoughDataForInputGraph.value = !svgInputGraph.empty;
 }
@@ -388,7 +388,7 @@ function updateOutputGraph() {
 		return;
 	}
 
-	svgOutputGraph = new Histogram(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
 	svgOutputGraph.drawStacked(props.tx.outputs, colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }

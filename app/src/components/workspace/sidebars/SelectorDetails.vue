@@ -225,7 +225,7 @@ import {
 	mdiArrowLeft, mdiArrowRight,
 	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognitoOff, mdiPoundBoxOutline,
 } from '@mdi/js';
-import Histogram from '@/d3Documents/histogram.js';
+import BarChart from '@/d3Documents/barChart.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
@@ -243,7 +243,7 @@ import ColorChip from '@/components/common/ColorChip.vue';
 const props = defineProps({selectorData: {type: Object, required: true}});
 
 const colorMap = getColorMap();
-let svgHistogram = null;
+let svgBarChart = null;
 const tableHeaders = [
 	{
 		key: 'txhash', title: 'Tranasaction Hash', sortable: false, align: 'left',
@@ -293,10 +293,10 @@ function init() {
 		return;
 	}
 
-	svgHistogram = new Histogram('selector_details_canvas', 600, 300, false);
-	svgHistogram.draw(props.selectorData.transactions);
-	enoughDataForGraph.value = !svgHistogram.empty;
-	durationInMinutes.value = svgHistogram.getDurationInMinutes;
+	svgBarChart = new BarChart('selector_details_canvas', 600, 300, false);
+	svgBarChart.draw(props.selectorData.transactions);
+	enoughDataForGraph.value = !svgBarChart.empty;
+	durationInMinutes.value = svgBarChart.getDurationInMinutes;
 }
 
 </script>
