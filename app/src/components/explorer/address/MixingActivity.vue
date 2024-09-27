@@ -9,16 +9,18 @@
         <wiki-tooltip description-url="mixingActivity.md">
           mixing activity
         </wiki-tooltip>.
-        <v-row class="mt-2">
+        <v-row
+          v-if="activities?.length > 0"
+          class="mt-2"
+        >
           <v-col class="d-flex align-center justify-center flex-wrap">
             <p class="v-label me-2">
-              Filter by ransaction type
+              Filter by Transaction type
             </p>
             <chip-filter
               v-model="chipFilterModel"
               mandatory
               :items="transactionTypes"
-              :disabled="!activities || activities.length === 0"
               @changed="handleChipFilterChanged"
             />
           </v-col>
@@ -31,22 +33,20 @@
           >
             <v-switch
               v-model="includeCusterAddresses"
-              label="Include cluster addresses"
+              label="Search all addresses of cluster"
               hide-details
               :disabled="isLoading"
               @update:model-value="updateSvgData(true)"
             />
           </v-col>
           <v-col
+            v-if="activities?.length > 1"
             class="d-flex align-center"
             cols="12"
             lg="9"
           >
-            <!-- vuetify lint plugin has some errors, disable for now -->
-            <!-- eslint-disable vuetify/no-deprecated-props vuetify/no-deprecated-events -->
             <v-range-slider
               v-model="rangePicker.model"
-              :disabled="!activities || activities.length < 2"
               :ticks="rangePicker.events"
               class="mr-8"
               :min="rangePicker.min"
@@ -131,17 +131,6 @@
               >
                 Not enough data available to draw chart
               </p>
-              <div
-                v-if="showHistogram"
-                class="text-subtitle-1"
-                style="text-align: center"
-              >
-                {{
-                  selectedTransactionType.length === 5 ? 'All Privacy'
-                  : selectedTransactionType.map(capitalize).join(', ')
-                }}
-                Transactions
-              </div>
               <transaction-table-dialog
                 v-model="barTable.show"
                 :headers="barTable.headers"
@@ -245,7 +234,7 @@
 
 <script setup>
 import Histogram from '@/d3Documents/histogram';
-import {getColorMap, capitalize} from '@/utilities';
+import {getColorMap} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
