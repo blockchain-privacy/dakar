@@ -808,7 +808,7 @@ func DeleteAllFMIClusters(c external.Database) error {
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*5, query)
 	if err != nil {
 		return err
 	}
