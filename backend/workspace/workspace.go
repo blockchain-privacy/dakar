@@ -274,7 +274,10 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 		if err != nil {
 			return nil, "", err
 		}
-		return nil, duplicateUID, nil
+
+		if duplicateUID != "" {
+			return nil, duplicateUID, nil
+		}
 	}
 
 	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
