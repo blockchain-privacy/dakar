@@ -40,6 +40,7 @@ var availableUpgrades = map[int]UpgradePackage{
 	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType, func() schemaUpgrade {
 		return func(c external.Database) error { return status.SetLastClassifiedBlockID(c, 0) }
 	}()}},
+	11: {upgrades: []schemaUpgrade{AlterSchemaRemoveClusterTypeIndex}},
 }
 
 var thisLogger *slog.Logger
@@ -350,5 +351,11 @@ func AlterSchemaAddTransactionType(c external.Database) error {
 				tx_outputs
 				tx_inputs
 			}`,
+	})
+}
+
+func AlterSchemaRemoveClusterTypeIndex(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: "Cluster.type: string . # the cluster type",
 	})
 }

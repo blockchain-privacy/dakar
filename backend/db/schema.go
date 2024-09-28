@@ -14,7 +14,7 @@ import (
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version.
-const SchemaVersion = 10
+const SchemaVersion = 11
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -169,7 +169,7 @@ func SetupSchema(c external.Database) error {
 				Selector.totalResultCount
 			}
 
-			Cluster.type: string @index(hash) . # the cluster type
+			Cluster.type: string . # the cluster type
 			Cluster.transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
 			Cluster.addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
 			Cluster.children: [uid] @reverse . # all direct child clusters
