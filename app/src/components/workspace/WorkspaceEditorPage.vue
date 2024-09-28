@@ -611,7 +611,7 @@ async function addMultipleNodes(nodes) {
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
 		} else if (response.duplicateNodeUID) {
-			setInfoMessage('Node already exists');
+			setInfoMessage('Address already in workspace');
 			const n = nodeGraph.getNode(response.duplicateNodeUID);
 			n.showMarker = true;
 			nodeGraph.addNode(n);
