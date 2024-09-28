@@ -89,5 +89,4 @@ func TestCheckDuplicateAddress(t *testing.T) {
 	duplicateAddress, err = CheckDuplicateAddress(ctx, dbHandle, []string{addresses[0].UID, addresses[1].UID}, otherAddress[0].UID)
 	require.NoError(t, err)
 	require.Empty(t, duplicateAddress)
-
 }
