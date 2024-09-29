@@ -6,14 +6,13 @@
     content-class="mt-7"
   >
     <template #activator="item">
-      <v-icon
+      <v-btn
         v-if="icon"
         :icon="icon"
         v-bind="item.props"
         :class="$attrs.class"
         :style="$attrs.style"
-        size="small"
-        :color="iconColor"
+        variant="text"
         @click="requestBlurb"
       />
       <a
