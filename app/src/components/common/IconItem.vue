@@ -32,9 +32,9 @@
           </template>
         </v-tooltip>
       </v-list-item-title>
-      <v-list-item-subtitle>
+      <v-list-item-title class="text-subtitle-2">
         <slot />
-      </v-list-item-subtitle>
+      </v-list-item-title>
     </div>
   </v-list-item>
 </template>
