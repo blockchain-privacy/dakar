@@ -85,14 +85,10 @@
                 Learn more
               </wiki-tooltip>
             </div>
-            <v-label text="Maximum Stored Results" />
-            <v-slider
+            <slider-option
               v-model="txPropOptions.maxItems"
+              label="Maximum Stored Results"
               :max="SELECTOR_MAX_ITEMS"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
             />
             <named-divider title="Select" />
             <template v-if="!parentNode">
@@ -258,16 +254,11 @@
                 Learn more
               </wiki-tooltip>
             </div>
-            <div class="text-center text-subtitle-1 my-2">
-              Maximum Stored Results
-            </div>
-            <v-slider
+            <slider-option
               v-model="txGraphOptions.maxItems"
+              class="mb-2"
+              label="Maximum Stored Results"
               :max="SELECTOR_MAX_ITEMS"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
             />
             <v-divider thickness="2" />
             <div class="text-center text-subtitle-1 my-2">
@@ -289,16 +280,10 @@
                 </v-btn>
               </v-btn-toggle>
             </div>
-            <div class="text-center text-subtitle-1 my-2">
-              Traversal Depth
-            </div>
-            <v-slider
+            <slider-option
               v-model="txGraphOptions.depth"
+              label="Traversal Depth"
               :max="5"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
             />
             <v-checkbox
               v-model="txGraphOptions.excludePrivacyTransactions"
@@ -343,6 +328,7 @@ import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
