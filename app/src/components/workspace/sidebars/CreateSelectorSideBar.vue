@@ -269,17 +269,7 @@
               thumb-label
               hide-details
             />
-            <div class="text-center text-subtitle-1 my-2">
-              Traversal Depth
-            </div>
-            <v-slider
-              v-model="txGraphOptions.depth"
-              :max="5"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
-            />
+            <v-divider thickness="2" />
             <div class="text-center text-subtitle-1 my-2">
               Traversal Direction
             </div>
@@ -299,7 +289,17 @@
                 </v-btn>
               </v-btn-toggle>
             </div>
-
+            <div class="text-center text-subtitle-1 my-2">
+              Traversal Depth
+            </div>
+            <v-slider
+              v-model="txGraphOptions.depth"
+              :max="5"
+              :min="1"
+              :step="1"
+              thumb-label
+              hide-details
+            />
             <v-checkbox
               v-model="txGraphOptions.excludePrivacyTransactions"
               label="Exclude Transaction Type"
