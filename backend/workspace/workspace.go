@@ -261,7 +261,7 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 	}
 
 	// check if the new node is a duplicate address
-	if len(newNodes) == 1 {
+	if len(newNodes) == 1 && oldLength > 0 {
 		// remove node which needs to be checked
 		nodes := slices.DeleteFunc(cliutil.GetMapKeys(nodeMap), func(s string) bool {
 			return s == newNodes[0].UID
