@@ -131,7 +131,7 @@
             <named-divider title="Filter by Type" />
             <v-checkbox
               v-model="txPropOptions.excludePrivacyTransactions"
-              label="Exclude Privacy Transactions"
+              label="Exclude Transaction Type"
             />
             <v-select
               v-model="txPropOptions.txTypes"
@@ -302,7 +302,7 @@
 
             <v-checkbox
               v-model="txGraphOptions.excludePrivacyTransactions"
-              label="Exclude Privacy Transactions"
+              label="Exclude Transaction Type"
             />
           </template>
         </v-card-text>
