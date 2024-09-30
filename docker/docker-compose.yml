@@ -71,7 +71,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:14.8
+    image: postgres:14.13
     ports:
       - "5432:5432"
     environment:
