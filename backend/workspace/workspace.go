@@ -42,10 +42,7 @@ func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database,
 		clusterHeight = *w.ClusterHeight
 	}
 
-	// Don't consider destination transactions with heuristic connections, because if
-	// it is the only node then the workspace can not be outdated. This is a different
-	// behaviour as when inserting node connections when adding a new node, because there
-	// the node connections are still unkown.
+	// workspace can only be truly outdated if there are at least two nodes
 	if isOutdated && len(nodeMap) > 1 {
 		clusterHeight, nodeMap, err = InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
 		if err != nil {
@@ -97,7 +94,7 @@ func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, worksp
 func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.Node, workspaceNodes []workspace.Node,
 	userUID string, workspaceUID string) ([]string, error) {
 	var deletedNodes []string
-	if node.Type == workspace.NodeTypeSelector {
+	if node.IsSelector() {
 		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
 		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
@@ -115,13 +112,13 @@ func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.N
 		}
 
 		deletedNodes = uids
-	} else if node.IsDestination() {
+	} else if node.IsTransaction() {
 		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
 		for _, n := range workspaceNodes {
 			nodeMap[n.UID] = n
 		}
 
-		// collect all heuristic UIDs
+		// collect all selector UIDs
 		var children []string
 		for _, child := range node.Children {
 			children = append(children, workspace.FindDescendantSelectorUIDs(nodeMap, child)...)
@@ -236,8 +233,8 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 	nodeMap, notes := separateNodes(w.Nodes)
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
-	// If newNodes is a destination transaction, it might be connected to heuristics.
-	if len(nodeMap) == 0 && len(newNodes) == 1 && !newNodes[0].IsDestination() {
+	// If newNodes is a transaction, it might be connected to selectors.
+	if len(nodeMap) == 0 && len(newNodes) == 1 && !newNodes[0].IsTransaction() {
 		frontEndNodes := []workspace.Node{*newNodes[0]}
 		if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
 			frontEndNodes, w.ClusterHeight); err != nil {

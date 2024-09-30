@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"backend/constants"
 	"backend/db"
 	dbHeuristic "backend/db/analytics/heuristics"
 )
@@ -193,8 +192,12 @@ type Node struct {
 	Text string `json:"text,omitempty"`
 }
 
-func (f Node) IsDestination() bool {
-	return f.Type == NodeTypeTransaction && f.TransactionType == constants.TypeDestination
+func (f Node) IsTransaction() bool {
+	return f.Type == NodeTypeTransaction
+}
+
+func (f Node) IsSelector() bool {
+	return f.Type == NodeTypeSelector
 }
 
 type dummyUser struct {
