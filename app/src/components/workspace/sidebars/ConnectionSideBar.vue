@@ -8,6 +8,7 @@
   >
     <template #actions>
       <add-nodes-chip
+        v-if="!showEmptyText"
         :disabled="disableAddingNodes"
         :show-select-all-addresses="showSelectAddresses"
         :show-select-all-transactions="showSelectTransactions"
@@ -22,9 +23,18 @@
       <v-card flat>
         <v-card-text>
           <fade-transition>
-            <p v-if="showEmptyText">
-              Nothing to show, try another connection.
-            </p>
+            <div v-if="showEmptyText">
+              <div class="text-h6">
+                No connection data available
+              </div>
+              <div class="d-flex justify-center">
+                <v-icon
+                  class="text-grey mt-10"
+                  :icon="mdiCancel"
+                  size="90"
+                />
+              </div>
+            </div>
             <div v-else-if="transactionList !== null">
               <v-card-text>
                 The following transactions transfer value between the two clusters.
@@ -107,7 +117,7 @@
 </template>
 
 <script setup>
-import {mdiArrowLeftRight} from '@mdi/js';
+import {mdiArrowLeftRight, mdiCancel} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
 import {
 	computed, inject, onUpdated, ref,
@@ -201,9 +211,6 @@ onUpdated(async () => {
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
-			// Heuristic <-> transaction
-			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_SELECTOR
 			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		) {
 			await getConnectionData();
