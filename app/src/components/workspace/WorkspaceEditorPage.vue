@@ -49,31 +49,29 @@
       </div>
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
-        <fade-transition>
-          <v-dialog
-            v-if="isLoadingWorkspace"
-            :model-value="isLoadingWorkspace"
-            persistent
-            max-width="350px"
-            contained
-            no-click-animation
-          >
-            <v-card>
-              <v-card-text class="text-subtitle-1 d-flex align-center">
-                <div style="width:100%">
-                  <p class="text-center mb-3">
-                    Loading workspace
-                  </p>
-                  <v-progress-linear
-                    class="mt-3"
-                    indeterminate
-                    rounded
-                  />
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-dialog>
-        </fade-transition>
+        <v-dialog
+          v-if="isLoadingWorkspace"
+          :model-value="isLoadingWorkspace"
+          persistent
+          max-width="350px"
+          contained
+          no-click-animation
+        >
+          <v-card>
+            <v-card-text class="text-subtitle-1 d-flex align-center">
+              <div style="width:100%">
+                <p class="text-center mb-3">
+                  Loading workspace
+                </p>
+                <v-progress-linear
+                  class="mt-3"
+                  indeterminate
+                  rounded
+                />
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-dialog>
         <create-selector-side-bar
           v-model="isCreateSelectorSheetOpen"
           :descriptors="heuristicDescriptors"
@@ -221,7 +219,6 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
-import FadeTransition from '@/components/common/FadeTransition.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
