@@ -1,10 +1,11 @@
 <template>
   <div>
     <div class="text-center text-subtitle-1 mt-2">
-      {{ label }}
+      <label :for="`${componentID}_slider`">{{ label }}</label>
     </div>
     <div class="d-flex align-center">
       <v-slider
+        :id="`${componentID}_slider`"
         v-model="model"
         :max="max"
         :min="min"
@@ -18,6 +19,10 @@
   </div>
 </template>
 <script setup>
+import {useId} from 'vue';
+
+const componentID = useId();
+
 defineProps({
 	max: {type: Number, required: true},
 	min: {type: Number, required: false, default: 1},

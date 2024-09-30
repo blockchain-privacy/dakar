@@ -157,94 +157,30 @@
               </template>
             </v-select>
             <named-divider title="Filter by Amount" />
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Input Sum
-            </div>
-            <div class="d-flex align-center mb-5">
-              <v-text-field
-                v-model="txPropOptions.inputSum.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.inputSum.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Output Sum
-            </div>
-            <div class="d-flex align-center mb-5">
-              <v-text-field
-                v-model="txPropOptions.outputSum.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.outputSum.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Inputs
-            </div>
-            <div class="d-flex align-center mb-5">
-              <v-text-field
-                v-model="txPropOptions.inputRange.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.inputRange.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Outputs
-            </div>
-            <div class="d-flex align-center">
-              <v-text-field
-                v-model="txPropOptions.outputRange.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.outputRange.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
+            <range-option
+              v-model="txPropOptions.inputSum"
+              placeholder="12.23456"
+              label="Transaction Input Sum"
+              :rules="parameterRules.get('float')"
+            />
+            <range-option
+              v-model="txPropOptions.outputSum"
+              placeholder="12.23456"
+              label="Transaction Output Sum"
+              :rules="parameterRules.get('float')"
+            />
+            <range-option
+              v-model="txPropOptions.inputRange"
+              placeholder="12.23456"
+              label="Transaction Inputs"
+              :rules="parameterRules.get('float')"
+            />
+            <range-option
+              v-model="txPropOptions.outputRange"
+              placeholder="12.23456"
+              label="Transaction Outputs"
+              :rules="parameterRules.get('float')"
+            />
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_GRAPH">
             <div class="text-subtitle-2 mb-3">
@@ -262,7 +198,7 @@
             />
             <v-divider thickness="2" />
             <div class="text-center text-subtitle-1 my-2">
-              Traversal Direction
+              <label for="traversal_direction">Traversal Direction</label>
             </div>
             <div class="d-flex justify-center">
               <v-btn-toggle
@@ -272,7 +208,10 @@
                 variant="text"
                 color="primary"
               >
-                <v-btn size="small">
+                <v-btn
+                  id="traversal_direction"
+                  size="small"
+                >
                   Backward
                 </v-btn>
                 <v-btn size="small">
@@ -329,6 +268,7 @@ import ColorSheet from '@/components/common/ColorSheet.vue';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
+import RangeOption from '@/components/workspace/sidebars/RangeOption.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
