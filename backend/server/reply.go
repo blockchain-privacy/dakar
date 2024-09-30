@@ -1918,23 +1918,6 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			warn(err)
 			return
 		}
-	} else if req.FirstNode.Type == dbwork.NodeTypeSelector && req.SecondNode.Type == dbwork.NodeTypeTransaction ||
-		req.FirstNode.Type == dbwork.NodeTypeTransaction && req.SecondNode.Type == dbwork.NodeTypeSelector {
-		selectorUID := req.FirstNode.UID
-		transactionUID := req.SecondNode.UID
-
-		if req.FirstNode.Type == dbwork.NodeTypeTransaction {
-			selectorUID = req.SecondNode.UID
-			transactionUID = req.FirstNode.UID
-		}
-
-		reply.FrontendTransactions, err = dbwork.GetConnectionSelectorToTransaction(r.Context(), dgraph, selectorUID,
-			transactionUID, tUser.ID, req.WorkspaceUID)
-		if err != nil {
-			status = http.StatusInternalServerError
-			warn(err)
-			return
-		}
 	} else {
 		// wrong comibnation of types
 		status = http.StatusBadRequest
