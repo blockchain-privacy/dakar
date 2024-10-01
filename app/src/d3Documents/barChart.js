@@ -193,7 +193,9 @@ export default class BarChart {
 						.data([{txType: d.txType}])
 						.join('span')
 						.classed(`${this.svgId}_tooltip`, true)
-						.style('left', `${e.pageX + 10}px`)
+					// Mirror vertically if cursor is close the the right screen edge
+						.style('transform', () => (window.innerWidth - e.clientX) < 100 ? 'translate(-100%, 0)' : undefined)
+						.style('left', () => (window.innerWidth - e.clientX) < 100 ? `${e.pageX - 5}px` : `${e.pageX + 15}px`)
 						.style('top', `${e.pageY + 10}px`)
 						.style('background-color', 'grey')
 						.style('color', 'white')
