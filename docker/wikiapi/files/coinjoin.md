@@ -11,6 +11,6 @@ The transaction shown below has the usual structure of a CoinJoin:
 
  - equal number of inputs and outputs
  - each output and input belongs to a different address
- - usually only amount denomination (in this case 1 BTC)
+ - usually only one amount denomination (in this case 1 BTC)
 
 ![coinjoin](img/coinjoin.png)

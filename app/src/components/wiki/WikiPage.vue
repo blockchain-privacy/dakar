@@ -1,123 +1,157 @@
 <template>
-  <div
-    class="fill-height"
-    style="padding: 12px 10px 0 10px"
-  >
-    <v-row class="fill-height">
-      <v-col
-        v-if="!$vuetify.display.smAndDown"
-        cols="auto"
-        class="pa-0"
+  <div>
+    <!-- single root so it can be transitioned -->
+    <v-navigation-drawer
+      v-model="drawerModel"
+      :style="{'position':$vuetify.display.mobile?'fixed':'absolute', 'max-height':$vuetify.display.mobile?'300px': undefined}"
+      :location="$vuetify.display.mobile?'bottom':undefined"
+      :temporary="$vuetify.display.mobile"
+    >
+      <v-list-item :to="{name: ROUTE_NAME_WIKI_ROOT}">
+        <template #prepend>
+          <v-icon>{{ mdiMagnify }}</v-icon>
+        </template>
+        <v-list-item-title class="text-h6">
+          Search Wiki
+        </v-list-item-title>
+      </v-list-item>
+      <v-divider />
+      <v-list
+        v-if="fileSet"
+        nav
       >
-        <v-navigation-drawer style="position:absolute">
-          <v-list-item :to="{name: ROUTE_NAME_WIKI_ROOT}">
-            <template #prepend>
-              <v-icon>{{ mdiBookOpen }}</v-icon>
-            </template>
-            <v-list-item-title class="text-h6">
-              Wiki
-            </v-list-item-title>
-          </v-list-item>
-          <v-divider />
-          <v-list
-            v-if="fileSet"
-            nav
+        <div
+          v-for="fileItem in fileHierarchy"
+          :key="fileItem.name"
+        >
+          <v-list-group
+            v-if="fileItem.items"
+            v-model="fileItem.active"
           >
-            <div
-              v-for="fileItem in fileHierarchy"
-              :key="fileItem.name"
-            >
-              <v-list-group
-                v-if="fileItem.items"
-                v-model="fileItem.active"
-              >
-                <template #activator="{props}">
-                  <v-list-item
-                    v-bind="props"
-                    :title="fileItem.name"
-                    :prepend-icon="mdiBook"
-                  />
-                </template>
-                <v-list-item
-                  v-for="child in fileItem.items"
-                  :key="child.title"
-                  :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
-                  :title="child.name"
-                />
-              </v-list-group>
+            <template #activator="{props}">
               <v-list-item
-                v-else
-                :to="{name: ROUTE_NAME_WIKI, params: { file: fileItem.path }}"
+                v-bind="props"
                 :title="fileItem.name"
-              >
-                <template #prepend>
-                  <v-icon>{{ mdiBook }}</v-icon>
-                </template>
-              </v-list-item>
-            </div>
-          </v-list>
+                :prepend-icon="mdiFileDocument"
+              />
+            </template>
+            <v-list-item
+              v-for="child in fileItem.items"
+              :key="child.title"
+              :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
+              :title="child.name"
+            />
+          </v-list-group>
+          <v-list-item
+            v-else
+            :to="{name: ROUTE_NAME_WIKI, params: { file: fileItem.path }}"
+            :title="fileItem.name"
+          >
+            <template #prepend>
+              <v-icon>{{ mdiFileDocument }}</v-icon>
+            </template>
+          </v-list-item>
+        </div>
+      </v-list>
+      <v-skeleton-loader
+        v-else
+        type="list-item-three-line,list-item-three-line,list-item-three-line"
+      />
+    </v-navigation-drawer>
+    <div class="position-relative mt-5">
+      <v-btn
+        :icon="mdiMenu"
+        variant="text"
+        class="position-absolute"
+        style="top: -20px"
+        @click="drawerModel = !drawerModel"
+      />
+      <fade-transition>
+        <v-card
+          v-if="showRootPage"
+          variant="text"
+          max-width="700px"
+          class="mx-auto"
+        >
+          <v-card-text>
+            <v-text-field
+              v-model="query"
+              label="Search wiki pages"
+              hide-details
+              @update:model-value="queueSearch"
+            />
+            <v-expand-transition>
+              <template v-if="hasSearched">
+                <div
+                  v-if="searchResults.length ===0"
+                  class="text-center text-subtitle-1 mt-3"
+                >
+                  No results
+                </div>
+                <div v-else>
+                  <v-card
+                    v-for="(item) in searchResults"
+                    :key="item.path"
+                    class="my-4"
+                  >
+                    <v-card-title class="d-flex align-center">
+                      <v-icon :icon="mdiFileDocument" />
+                      <router-link :to="{name: ROUTE_NAME_WIKI, params: {file: item.path}}">
+                        {{ item.title }}
+                      </router-link>
+                    </v-card-title>
+                    <v-card-text v-if="item.fragment">
+                      <!-- html is loaded from safe source -->
+                      <!-- eslint-disable vue/no-v-html -->
+                      <div
+                        class="text-subtitle-2"
+                        v-html="item.fragment"
+                      />
+                    </v-card-text>
+                  </v-card>
+                </div>
+              </template>
+            </v-expand-transition>
+          </v-card-text>
+        </v-card>
+        <template v-else>
+          <!-- html is loaded from safe source -->
+          <!-- eslint-disable vue/no-v-html -->
+          <div
+            v-if="fileHTML"
+            :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
+                     'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
+            v-html="fileHTML"
+          />
           <v-skeleton-loader
             v-else
-            type="list-item-three-line,list-item-three-line,list-item-three-line"
+            type="article"
+            :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
+                     'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
           />
-        </v-navigation-drawer>
-      </v-col>
-      <v-col class="fill-height mx-lg-16">
-        <fade-transition>
-          <v-card
-            v-if="showRootPage"
-            flat
-          >
-            <v-card-text>
-              <v-autocomplete
-                v-model="query"
-                :items="namePathPairs"
-                item-title="name"
-                item-value="path"
-                label="Search for wiki pages"
-                variant="outlined"
-                :append-icon="mdiMagnify"
-                @update:model-value="navigateToWikiPage"
-                @keydown.enter="navigateToWikiPage"
-                @click:append="navigateToWikiPage"
-              />
-            </v-card-text>
-          </v-card>
-          <template v-else>
-            <!-- html is loaded from safe source -->
-            <!-- eslint-disable vue/no-v-html -->
-            <div
-              v-if="fileHTML"
-              :class="{'wikiFileContentFullSize': $vuetify.display.smAndDown,
-                       'wikiFileContent': !$vuetify.display.smAndDown}"
-              v-html="fileHTML"
-            />
-            <v-skeleton-loader
-              v-else
-              type="article"
-            />
-          </template>
-        </fade-transition>
-      </v-col>
-    </v-row>
+        </template>
+      </fade-transition>
+    </div>
   </div>
 </template>
 
 <script setup>
-import {mdiBook, mdiBookOpen, mdiMagnify} from '@mdi/js';
+import {mdiFileDocument, mdiMagnify, mdiMenu} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
-	computed, inject, onMounted, ref, watch,
+	computed, inject, onMounted, onUnmounted, ref, watch,
 } from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {useDisplay} from 'vuetify';
 
 const route = useRoute();
-const router = useRouter();
 const wikiapi = inject('wikiapi');
 const msgStore = useMsgStore();
+const display = useDisplay();
 
+const drawerModel = ref(!display.mobile.value);
 const fileHTML = ref('');
 
 // FileSet is going to hold a set with all possible file paths
@@ -126,6 +160,10 @@ const fileSet = ref(null);
 // IsRoot determines if the root page of the wiki is shown
 const showRootPage = ref(true);
 const query = ref(null);
+const searchResults = ref([]);
+// Set to true if search has been executed at least once
+const hasSearched = ref(false);
+let searchTimer = null;
 
 // Computed
 
@@ -200,22 +238,32 @@ const fileHierarchy = computed(() => {
 	return hierarchyArray;
 });
 
-// NamePathPairs returns an array of name and
-// path pairs [{name: filename, path: filename.md}, ...]
-const namePathPairs = computed(() => {
-	const pairs = [];
+const filepathToFilename = computed(() => {
+	const fileMap = new Map();
 
-	fileHierarchy.value.forEach(d => {
-		if (d.items) {
-			d.items.forEach(l => {
-				pairs.push(l);
-			});
+	if (fileSet.value === null) {
+		return fileMap;
+	}
+
+	fileSet.value.forEach(d => {
+		const pathParts = d.split('/');
+
+		if (pathParts.length > 2) {
+			// Only a depth of 2 is supported
+			return;
+		}
+
+		const [directory, fileName] = pathParts;
+
+		if (fileName) {
+			fileMap.set(d, cleanName(fileName));
 		} else {
-			pairs.push(d);
+			// First split is the actual file path
+			fileMap.set(d, cleanName(directory));
 		}
 	});
 
-	return pairs;
+	return fileMap;
 });
 
 // SeparateWords adds a space before each capitalized letter
@@ -271,12 +319,46 @@ async function getFile(filePath) {
 	}
 }
 
-function navigateToWikiPage() {
-	if (!query.value) {
+function queueSearch(q) {
+	if (searchTimer !== null) {
+		clearTimeout(searchTimer);
+	}
+
+	searchTimer = setTimeout(search, 700, q);
+}
+
+async function search(query) {
+	// Only search if files where loaded
+	if (filepathToFilename.value.size === 0) {
 		return;
 	}
 
-	router.push({name: ROUTE_NAME_WIKI, params: {file: query.value}});
+	if (!query) {
+		return;
+	}
+
+	query = query.trim();
+
+	if (query.length < 3) {
+		return;
+	}
+
+	hasSearched.value = true;
+	let ret = [];
+
+	try {
+		const response = await wikiapi.searchPost({query: {query}});
+
+		if (response.searchResults && response.searchResults.length > 0) {
+			ret = response.searchResults
+				.map(f => ({title: filepathToFilename.value.get(f.filename), path: f.filename, fragment: f.fragment}))
+				.filter(d => Boolean(d.title));
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	searchResults.value = ret;
 }
 
 watch(route, () => {
@@ -286,6 +368,13 @@ watch(route, () => {
 	} else {
 		showRootPage.value = true;
 		document.title = `Wiki - ${PAGE_TITLE}`;
+	}
+});
+
+watch(display.mobile, newVal => {
+	if (!newVal) {
+		// Show drawer on desktop;
+		drawerModel.value = true;
 	}
 });
 
@@ -304,16 +393,56 @@ onMounted(async () => {
 	}
 });
 
+onUnmounted(() => {
+	if (searchTimer !== null) {
+		clearTimeout(searchTimer);
+	}
+});
+
 </script>
 
 <style scoped>
-
-.wikiFileContent :deep( img ) {
-  max-width: 40%;
+.wikiFileContent :deep(img){
+  display:block;
+  max-width:60%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top:5px;
+  margin-bottom: 5px;
 }
 
-.wikiFileContentFullSize :deep( img ) {
+.wikiFileContentFullSize :deep(img) {
+  margin-top:5px;
+  margin-bottom: 5px;
   max-width: 100%;
 }
 
+ :deep(li){
+  margin-left: 15px;
+}
+
+ :deep(h2){
+   margin-top: 10px;
+   margin-bottom: 10px;
+ }
+
+:deep(h3){
+  margin-top: 7px;
+  margin-bottom: 7px;
+}
+
+/* <em> after <img> */
+:deep(img ~ em){
+  display:block;
+  text-align: center;
+}
+
+.wikiFileContent{
+  margin-bottom: 50px;
+  max-width:900px
+}
+
+.wikiFileContentFullSize{
+  margin: 0px 10px 60px 10px;
+}
 </style>
