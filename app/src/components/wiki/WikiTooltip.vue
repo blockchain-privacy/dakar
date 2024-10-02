@@ -6,9 +6,20 @@
     content-class="mt-7"
   >
     <template #activator="item">
+      <v-icon
+        v-if="icon"
+        :icon="icon"
+        v-bind="item.props"
+        :class="$attrs.class"
+        :style="$attrs.style"
+        size="small"
+        @click="requestBlurb"
+      />
       <a
+        v-else
         v-bind="item.props"
         :class="{'anchor': true,'d-inline-block':true, 'underline': showLink}"
+        :style="$attrs.style"
         @click="requestBlurb"
       ><slot /></a>
     </template>
@@ -58,6 +69,7 @@ const msgStore = useMsgStore();
 const props = defineProps({
 	descriptionUrl: {type: String, required: true},
 	showLink: {type: Boolean, required: false, default: true},
+	icon: {type: String, required: false, default: ''},
 });
 
 const description = ref('');
@@ -100,13 +112,17 @@ async function requestBlurb() {
   text-decoration: underline;
 }
 
-.wikiBlurbDescription :deep( h1) {
+.wikiBlurbDescription :deep(h1) {
   margin-bottom: 10px;
   line-height: 1em;
 }
 
-.wikiBlurbDescription :deep( img) {
+.wikiBlurbDescription :deep(img) {
   max-width: 100%
+}
+
+.wikiBlurbDescription :deep(li){
+  margin-left: 15px;
 }
 
 </style>
