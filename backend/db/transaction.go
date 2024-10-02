@@ -96,13 +96,13 @@ type transactionQuery struct {
 
 // FrontendTransactionOutput holds the output data which is exposed to the frontend
 type FrontendTransactionOutput struct {
-	Amount      *int64  `json:"amount"`
-	InputIndex  *uint32 `json:"inputindex,omitempty"`
-	OutputIndex *uint32 `json:"outputindex,omitempty"`
-	IsCoinbase  bool    `json:"iscoinbase"`
-	AddressHash string  `json:"addresshash"`
-	SigAsm      string  `json:"sigasm,omitempty"`
-	KeyAsm      string  `json:"keyasm,omitempty"`
+	Amount      *int64 `json:"amount"`
+	InputIndex  *int32 `json:"inputindex,omitempty"`
+	OutputIndex *int32 `json:"outputindex,omitempty"`
+	IsCoinbase  bool   `json:"iscoinbase"`
+	AddressHash string `json:"addresshash"`
+	SigAsm      string `json:"sigasm,omitempty"`
+	KeyAsm      string `json:"keyasm,omitempty"`
 
 	// This is data from either the transaction where this output is generated or spent
 	TransactionType string `json:"txtype,omitempty"`
@@ -119,7 +119,7 @@ type FrontendTransaction struct {
 	BlockHash      string                      `json:"bhash,omitempty"`
 	Fee            int64                       `json:"fee"`
 	Type           string                      `json:"txtype,omitempty"`
-	BlockID        uint64                      `json:"bid"`
+	BlockID        int64                       `json:"bid"`
 	BlockTimestamp string                      `json:"bts,omitempty"`
 	Outputs        []FrontendTransactionOutput `json:"outputs,omitempty"`
 	Inputs         []FrontendTransactionOutput `json:"inputs,omitempty"`
@@ -202,7 +202,7 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 }
 
 // GetTransactionsByBlock returns the transaction contained in the requested block
-func GetTransactionsByBlock(c external.Database, fromBlockID uint64, toBlockID uint64) (transactions []Transaction, err error) {
+func GetTransactionsByBlock(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
 	const query = `query Q($from:int,$to:int) {
 				var(func: between(id, $from, $to)){
 					txs as transactions
@@ -229,8 +229,8 @@ func GetTransactionsByBlock(c external.Database, fromBlockID uint64, toBlockID u
 			  }`
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$from": strconv.FormatUint(fromBlockID, 10),
-			"$to": strconv.FormatUint(toBlockID, 10)})
+		map[string]string{"$from": strconv.FormatInt(fromBlockID, 10),
+			"$to": strconv.FormatInt(toBlockID, 10)})
 
 	if err != nil {
 		return
@@ -303,7 +303,7 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 
 // GetOutputAddressCounts returns the number of distinct addresses associated
 // with the inputs and outputs of the transaction uid
-func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
+func GetOutputAddressCounts(c external.Database, uid string) (inputCount int, outputcount int, err error) {
 	if uid == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -338,10 +338,10 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 	// json struct
 	var r struct {
 		Input []struct {
-			Count uint32 `json:"count,omitempty"`
+			Count int `json:"count,omitempty"`
 		} `json:"input,omitempty"`
 		Output []struct {
-			Count uint32 `json:"count,omitempty"`
+			Count int `json:"count,omitempty"`
 		} `json:"output,omitempty"`
 	}
 
@@ -415,7 +415,7 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 			Block   []struct {
 				Hash string `json:"blockhash,omitempty"`
 				TS   string `json:"ts,omitempty"`
-				ID   uint64 `json:"id,omitempty"`
+				ID   int64  `json:"id,omitempty"`
 			} `json:"block,omitempty"`
 		} `json:"q,omitempty"`
 	}
@@ -621,7 +621,7 @@ func GetTransactionUIDMapping(ctx context.Context, c external.Database, txUids [
 
 // GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
-func GetTransactionBlockID(ctx context.Context, c external.Database, txHash string) (blockID uint64, err error) {
+func GetTransactionBlockID(ctx context.Context, c external.Database, txHash string) (blockID int64, err error) {
 	if txHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -644,7 +644,7 @@ func GetTransactionBlockID(ctx context.Context, c external.Database, txHash stri
 	// json struct
 	var r struct {
 		Transaction []struct {
-			ID uint64 `json:"id,omitempty"`
+			ID int64 `json:"id,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -724,7 +724,7 @@ func GetTransactionUID(ctx context.Context, c external.Database, txHash string) 
 }
 
 // GetOutputs returns the transaction outputs of the given block range
-func GetOutputs(c external.Database, fromBlockID uint64, toBlockID uint64) (transactions []Transaction, err error) {
+func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
 	const query = `query Q($id1:int,$id2:int){
 					var(func: between(id,$id1, $id2)){
 						t as transactions
@@ -742,8 +742,8 @@ func GetOutputs(c external.Database, fromBlockID uint64, toBlockID uint64) (tran
 				}`
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
-		map[string]string{"$id1": strconv.FormatUint(fromBlockID, 10),
-			"$id2": strconv.FormatUint(toBlockID, 10)})
+		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
+			"$id2": strconv.FormatInt(toBlockID, 10)})
 	if err != nil {
 		return
 	}

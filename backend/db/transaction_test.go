@@ -27,7 +27,7 @@ func TestTransaction_SetDType(t *testing.T) {
 	require.Equal(t, []string{transactionDType}, tx.DType)
 }
 
-func getNumPointer[number int64 | uint64 | uint32](n number) *number {
+func getNumPointer[number int64 | uint64 | uint32 | int32](n number) *number {
 	return &n
 }
 
@@ -172,8 +172,8 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	type testCase struct {
 		txhash     string
 		uid        string
-		numInputs  uint32
-		numOutputs uint32
+		numInputs  int
+		numOutputs int
 	}
 
 	cases := []testCase{

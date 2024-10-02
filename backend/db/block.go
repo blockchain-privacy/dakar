@@ -20,7 +20,7 @@ const blockDType = "Block"
 type Block struct {
 	UID          string        `json:"uid,omitempty"`
 	Hash         string        `json:"blockhash,omitempty"`
-	ID           *uint64       `json:"id,omitempty"`
+	ID           *int64        `json:"id,omitempty"`
 	Timestamp    string        `json:"ts,omitempty"`
 	PrevBlock    *Block        `json:"prevblock,omitempty"`
 	Transactions []Transaction `json:"transactions,omitempty"`
@@ -59,7 +59,7 @@ func (b *Block) IsComplete() bool {
 // FrontendBlock holds all block data which is exposed to the frontend
 type FrontendBlock struct {
 	Hash             string                `json:"blockhash,omitempty"`
-	ID               uint64                `json:"id,omitempty"`
+	ID               int64                 `json:"id,omitempty"`
 	Timestamp        string                `json:"ts,omitempty"`
 	PrevBlockHash    string                `json:"prevblockhash,omitempty"`
 	NextBlockHash    string                `json:"nextblockhash,omitempty"`

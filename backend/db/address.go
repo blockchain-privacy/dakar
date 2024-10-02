@@ -80,7 +80,7 @@ func (a *Address) SetDType() {
 
 // FrontendOutput is the representation for the frontend of an output
 type FrontendOutput struct {
-	Amount                uint64 `json:"amount"`
+	Amount                int64  `json:"amount"`
 	IsCoinbase            bool   `json:"is_coinbase"`
 	InputIndex            int    `json:"input_index"`
 	InputTransactionHash  string `json:"input_transaction"`

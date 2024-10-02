@@ -124,7 +124,7 @@ func TestGetHighestBlockID(t *testing.T) {
 
 	blockHeight, err := GetHighestBlockID(dbHandle)
 	require.NoError(t, err)
-	require.Equal(t, uint64(testhelper.BlockFileLastBlock), blockHeight)
+	require.EqualValues(t, testhelper.BlockFileLastBlock, blockHeight)
 }
 
 func TestGetFrontendStatus(t *testing.T) {
@@ -145,7 +145,7 @@ func TestGetFrontendStatus(t *testing.T) {
 	status, err := GetFrontendStatus(context.Background(), dbHandle)
 	require.NoError(t, err)
 	require.True(t, status.IsCrawling)
-	require.Equal(t, uint64(50), status.LastBlockID)
+	require.EqualValues(t, 50, status.LastBlockID)
 }
 
 func TestGetMeta(t *testing.T) {

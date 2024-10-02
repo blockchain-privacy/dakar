@@ -36,7 +36,7 @@ type CrawlerStatus struct {
 	// LastBlockID is the ID of the last block where both steps have been successful.
 	// Thus, it is possible to have a block inside the database with a higher ID
 	// than LastBlockID, if the crawling was aborted between step 1 and 2.
-	LastBlockID *uint64 `json:"lastblockid,omitempty"`
+	LastBlockID *int64 `json:"lastblockid,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 }
@@ -68,7 +68,7 @@ type ClassifierStatus struct {
 	IsClassifying *bool `json:"isclassifying,omitempty"`
 
 	// LastClassifiedBlockID is the id of the last completely classified block
-	LastClassifiedBlockID *uint64  `json:"lastclassifiedid,omitempty"`
+	LastClassifiedBlockID *int64   `json:"lastclassifiedid,omitempty"`
 	DType                 []string `json:"dgraph.type,omitempty"`
 }
 
@@ -100,7 +100,7 @@ type ClusteringHierarchicalMultiInputStatus struct {
 	IsClustering *bool `json:"isclustering,omitempty"`
 
 	// LastClusteredBlockID is the id of the last completely multi-input clustered block
-	LastClusteredBlockID *uint64  `json:"lastclusteredid,omitempty"`
+	LastClusteredBlockID *int64   `json:"lastclusteredid,omitempty"`
 	DType                []string `json:"dgraph.type,omitempty"`
 }
 
@@ -131,7 +131,7 @@ type ClusteringFlatMultiInputStatus struct {
 	IsClustering *bool `json:"isclustering,omitempty"`
 
 	// LastClusteredBlockID is the id of the last completely multi-input clustered block
-	LastClusteredBlockID *uint64  `json:"lastclusteredid,omitempty"`
+	LastClusteredBlockID *int64   `json:"lastclusteredid,omitempty"`
 	DType                []string `json:"dgraph.type,omitempty"`
 }
 
@@ -156,14 +156,14 @@ func (c *ClusteringFlatMultiInputStatus) SetDType() {
 
 // FrontendStatus is the frontend representation of the crawler status
 type FrontendStatus struct {
-	IsCrawling              bool   `json:"iscrawling"`
-	IsClassifying           bool   `json:"isclassifying"`
-	IsClusteringHMI         bool   `json:"isclusteringhmi"`
-	IsClusteringFMI         bool   `json:"isclusteringfmi"`
-	LastBlockID             uint64 `json:"lastblockid"`
-	LastClassifiedBlockID   uint64 `json:"lastclassifiedid"`
-	LastClusteredHMIBlockID uint64 `json:"lastclusteredhmiid"`
-	LastClusteredFMIBlockID uint64 `json:"lastclusteredfmiid"`
+	IsCrawling              bool  `json:"iscrawling"`
+	IsClassifying           bool  `json:"isclassifying"`
+	IsClusteringHMI         bool  `json:"isclusteringhmi"`
+	IsClusteringFMI         bool  `json:"isclusteringfmi"`
+	LastBlockID             int64 `json:"lastblockid"`
+	LastClassifiedBlockID   int64 `json:"lastclassifiedid"`
+	LastClusteredHMIBlockID int64 `json:"lastclusteredhmiid"`
+	LastClusteredFMIBlockID int64 `json:"lastclusteredfmiid"`
 }
 
 func (v FrontendStatus) String() string {

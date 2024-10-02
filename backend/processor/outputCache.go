@@ -7,16 +7,16 @@ import (
 )
 
 type outputCache struct {
-	c map[string]map[uint32]db.Output
+	c map[string]map[int32]db.Output
 }
 
 // newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
-func newUTXOCache(dgraph external.Database, mostRecentBlockID uint64, initialLoadSize uint64) (*outputCache, error) {
+func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoadSize int64) (*outputCache, error) {
 	if initialLoadSize == 0 {
-		return &outputCache{c: make(map[string]map[uint32]db.Output)}, nil
+		return &outputCache{c: make(map[string]map[int32]db.Output)}, nil
 	}
 
-	fromBlock := uint64(1)
+	fromBlock := int64(1)
 	if initialLoadSize <= mostRecentBlockID {
 		fromBlock = mostRecentBlockID - (initialLoadSize - 1)
 	}
@@ -40,7 +40,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID uint64, initialLoa
 		transactions = append(transactions, stepTransactions...)
 	}
 
-	cache := outputCache{c: make(map[string]map[uint32]db.Output)}
+	cache := outputCache{c: make(map[string]map[int32]db.Output)}
 
 	for _, t := range transactions {
 		if len(t.Outputs) == 0 {
@@ -66,7 +66,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID uint64, initialLoa
 
 // newOutputCache returns an empty output cache
 func newOutputCache() *outputCache {
-	return &outputCache{c: make(map[string]map[uint32]db.Output)}
+	return &outputCache{c: make(map[string]map[int32]db.Output)}
 }
 
 // getOutputCounts returns the number of outputs in the cache
@@ -93,7 +93,7 @@ func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 	if _, ok := u.c[txHash]; ok {
 		return nil
 	}
-	outputMap := make(map[uint32]db.Output)
+	outputMap := make(map[int32]db.Output)
 	for _, o := range outputs {
 		if o.OutputIndex == nil {
 			return serror.FromFormat("output index is not set for tx %s", txHash)
@@ -106,7 +106,7 @@ func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 }
 
 // getOutput returns specified output
-func (u *outputCache) getOutput(txHash string, outputIndex uint32) *db.Output {
+func (u *outputCache) getOutput(txHash string, outputIndex int32) *db.Output {
 	t, ok := u.c[txHash]
 	if !ok {
 		return nil
@@ -119,7 +119,7 @@ func (u *outputCache) getOutput(txHash string, outputIndex uint32) *db.Output {
 }
 
 // deleteOutput returns the output specified output and deletes it afterwards
-func (u *outputCache) getAndEvictOutput(txHash string, outputIndex uint32) *db.Output {
+func (u *outputCache) getAndEvictOutput(txHash string, outputIndex int32) *db.Output {
 	t, ok := u.c[txHash]
 	if !ok {
 		return nil

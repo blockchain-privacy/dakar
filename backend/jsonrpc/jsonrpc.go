@@ -176,7 +176,7 @@ type ScriptSig struct {
 type Vin struct {
 	Coinbase  string     `json:"coinbase"`
 	Txid      string     `json:"txid"`
-	Vout      uint32     `json:"vout"`
+	Vout      int32      `json:"vout"`
 	ScriptSig *ScriptSig `json:"scriptSig"`
 }
 
@@ -194,7 +194,7 @@ type ScriptPubKeyResult struct {
 
 type Vout struct {
 	Value        float64            `json:"value"`
-	N            uint32             `json:"n"`
+	N            int32              `json:"n"`
 	ScriptPubKey ScriptPubKeyResult `json:"scriptPubKey"`
 }
 
@@ -235,7 +235,7 @@ func (d BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseRes
 	return &r, nil
 }
 
-func (d BlockchainClient) GetBlockHash(blockHeight uint64) (string, error) {
+func (d BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 	var r string
 	err := d.rpc.Call("getblockhash", []any{blockHeight}, &r)
 	if err != nil {

@@ -10,8 +10,8 @@ func Test_scaleBlocksPerIteration(t *testing.T) {
 	tests := []struct {
 		target            time.Duration
 		iterationDuration time.Duration
-		blockCount        uint64
-		want              uint64
+		blockCount        int64
+		want              int64
 	}{
 		{
 			target:            time.Second * 5,

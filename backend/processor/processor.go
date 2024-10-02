@@ -38,9 +38,9 @@ func warn(err error, v ...any) {
 // holds the current state of the crawling processing loop
 type crawlerState struct {
 	// current block id
-	id uint64
+	id int64
 	// top is the last seen highest block id
-	top uint64
+	top int64
 	// current block hash
 	hash string
 
@@ -69,7 +69,7 @@ func (p *crawlerState) increment(nextHash string) (err error) {
 // maps an address to one or more indexes of a transaction
 type outputMapping struct {
 	hash    string
-	indexes []uint32
+	indexes []int32
 }
 
 // transactionMapping maps an address to one or more indexes of a transaction
@@ -79,7 +79,7 @@ type transactionMapping struct {
 }
 
 // adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
-func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint32) map[string]outputMapping {
+func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput int32) map[string]outputMapping {
 	if val, ok := mapping[addr]; ok {
 		val.indexes = append(val.indexes, indexOutput)
 		mapping[addr] = val
@@ -88,7 +88,7 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 
 	mapping[addr] = outputMapping{
 		hash:    addr,
-		indexes: []uint32{indexOutput},
+		indexes: []int32{indexOutput},
 	}
 
 	return mapping
@@ -182,8 +182,8 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
-func createOutputUID(transaction string, outputID uint32) string {
-	return "_:" + transaction + strconv.FormatUint(uint64(outputID), 10)
+func createOutputUID(transaction string, outputID int32) string {
+	return "_:" + transaction + strconv.FormatInt(int64(outputID), 10)
 }
 
 // newAmount mulitplies the given float times 1e8 and returns an integer
@@ -250,7 +250,7 @@ func getOutputAddress(pubKey *jsonrpc.ScriptPubKeyResult, pubKeyHashAddrID byte)
 // - txDetails: the created transaction
 // - tMap: the transaction mapping between the transaction and its output, this needed for address processing
 func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
-	txHashMap map[string]jsonrpc.TxRawResult, externalOutputs map[string]map[uint32]db.Output,
+	txHashMap map[string]jsonrpc.TxRawResult, externalOutputs map[string]map[int32]db.Output,
 	config Config, cache *outputCache) (txDetails db.Transaction, tMap transactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
@@ -259,7 +259,7 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 		isCoinbaseTransaction = true
 	} else {
 		// process inputs if transaction is not a coinbase transaction
-		i := uint32(0)
+		i := int32(0)
 		for _, d := range rawTransaction.Vin {
 			if processErr := processTxVin(&txDetails, externalOutputs, d, i, txHashMap, cache); processErr != nil {
 				err = processErr
@@ -329,8 +329,8 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 }
 
 // filterExternalOutputs returns all inputs for which the outputs need to be loaded from the database
-func filterExternalOutputs(txHashMap map[string]jsonrpc.TxRawResult, cache *outputCache) map[string][]uint32 {
-	externalOutputs := make(map[string][]uint32)
+func filterExternalOutputs(txHashMap map[string]jsonrpc.TxRawResult, cache *outputCache) map[string][]int32 {
+	externalOutputs := make(map[string][]int32)
 
 	for _, t := range txHashMap {
 		for _, vin := range t.Vin {
@@ -352,8 +352,8 @@ func filterExternalOutputs(txHashMap map[string]jsonrpc.TxRawResult, cache *outp
 }
 
 // processTxVin maps the input information to the output if it exists already in the database
-func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32]db.Output,
-	vin jsonrpc.Vin, index uint32, txHashMap map[string]jsonrpc.TxRawResult, cache *outputCache) error {
+func processTxVin(details *db.Transaction, externalOutputs map[string]map[int32]db.Output,
+	vin jsonrpc.Vin, index int32, txHashMap map[string]jsonrpc.TxRawResult, cache *outputCache) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -396,7 +396,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 
 // processBlock builds a block with the provided arguments and inserts it in the database
 func processBlock(dgraph external.Database, transactions []db.Transaction, currentHash string,
-	blockID uint64, timestamp string, prevBlockHash string) (err error) {
+	blockID int64, timestamp string, prevBlockHash string) (err error) {
 	return db.UpsertBlock(dgraph, db.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
@@ -412,7 +412,7 @@ var errBlockIDsDoNotMatch = errors.New("block id of last crawled block and highe
 
 // getStartingID gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
-func getStartingID(dgraph external.Database) (startID uint64, err error) {
+func getStartingID(dgraph external.Database) (startID int64, err error) {
 	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
 		return
@@ -445,7 +445,7 @@ func processingInterrupted() {
 // waitForNextRPCBlock waits for the next block. If the interrupt receives a signal isInterrupt is true.
 // If the next block is available, currentBlock gets updated.
 func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj string,
-	rpcNumBlocks uint64, config Config) (currentBlock *jsonrpc.GetBlockVerboseResult, isInterrupt bool, err error) {
+	rpcNumBlocks int64, config Config) (currentBlock *jsonrpc.GetBlockVerboseResult, isInterrupt bool, err error) {
 	if hashObj == "" {
 		err = serror.FromStr("blockhash is nil")
 		return
@@ -482,7 +482,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 }
 
 // getRPCNumberOfBlocks returns the number of blocks currently in the chain of the RPC client
-func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
+func getRPCNumberOfBlocks(client external.RPCClient) (int64, error) {
 	blocksCount, err := client.GetBlockCount()
 	if err != nil {
 		return 0, serror.New(err)
@@ -492,7 +492,7 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 		return 0, serror.FromStr("error RPC client block count is negative")
 	}
 
-	return uint64(blocksCount), nil
+	return blocksCount, nil
 }
 
 // getInitialState creates the initial state of the processing loop
@@ -541,9 +541,9 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 }
 
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
-func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (map[string]map[uint32]db.Output, error) {
+func getExternalOutputs(dgraph external.Database, outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
 	if len(outputs) == 0 {
-		return map[string]map[uint32]db.Output{}, nil
+		return map[string]map[int32]db.Output{}, nil
 	}
 
 	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, cliutil.GetMapKeys(outputs))
@@ -551,7 +551,7 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (
 		return nil, err
 	}
 
-	returnMap := make(map[string]map[uint32]db.Output)
+	returnMap := make(map[string]map[int32]db.Output)
 
 	for _, t := range transactionsOutputs {
 		indexes := outputs[t.Hash]
@@ -565,7 +565,7 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (
 					// add index mapping
 					indexMap := returnMap[t.Hash]
 					if indexMap == nil {
-						indexMap = make(map[uint32]db.Output)
+						indexMap = make(map[int32]db.Output)
 					}
 
 					indexMap[i] = o

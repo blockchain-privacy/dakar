@@ -24,13 +24,13 @@ type Crawler struct {
 
 	currentBlock *jsonrpc.GetBlockVerboseResult
 
-	initialBlockCacheSize uint64
+	initialBlockCacheSize int64
 	cache                 *outputCache
 }
 
 // NewCrawler creates a new Crawler object
 func NewCrawler(ctx context.Context, database external.Database,
-	rpc external.RPCClient, initialBlockCacheSize uint64, cfg Config) *Crawler {
+	rpc external.RPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
 	return &Crawler{
 		config:                cfg,
 		db:                    database,
@@ -70,7 +70,7 @@ func (c *Crawler) Props() blockiterator.Properties {
 }
 
 // SetMaxBlocks is not supported for crawler, so do nothing
-func (c *Crawler) SetMaxBlocks(uint64) {}
+func (c *Crawler) SetMaxBlocks(int64) {}
 
 // IncrementState increments the state one block
 func (c *Crawler) IncrementState() error {

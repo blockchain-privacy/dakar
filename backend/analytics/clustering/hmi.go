@@ -197,7 +197,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
 				// this should never happen
 				return false, serror.FromStr("Transaction " + tx.UID +
-					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
+					" at block " + strconv.FormatInt(m.state.ID, 10) + " has invalid data")
 			}
 
 			if (len(existingClusters) == 0 && len(addressesWithoutCluster) < 2) ||
@@ -294,7 +294,7 @@ func (m *HierarchicalMultiInput) Props() blockiterator.Properties {
 }
 
 // SetMaxBlocks is not supported, so do nothing
-func (m *HierarchicalMultiInput) SetMaxBlocks(uint64) {}
+func (m *HierarchicalMultiInput) SetMaxBlocks(int64) {}
 
 // Next tries to increase the internal state to the next block
 func (m *HierarchicalMultiInput) Next() (bool, error) {
