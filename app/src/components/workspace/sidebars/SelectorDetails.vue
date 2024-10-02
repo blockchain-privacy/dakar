@@ -88,25 +88,27 @@
           sm="6"
         >
           <icon-item
-            title="Exclude Priv. Transactions"
+            title="Exclude Transaction Types"
             :icon="mdiIncognitoOff"
           >
             {{ selectorData.excludePrivacyTransactions }}
           </icon-item>
         </v-col>
         <v-col v-else-if="selectorData.txTypes">
-          <p class="text-subtitle-1 mb-2 text-center">
-            Privacy Type Filter
-          </p>
-          <div class="d-flex justify-center flex-wrap">
-            <color-chip
-              v-for="p in selectorData.txTypes"
-              :key="p"
-              class="me-2 mb-4"
-              :title="p"
-              :color="colorMap.get(p)"
-            />
-          </div>
+          <icon-item
+            title=" Privacy Type Filter"
+            :icon="incognitoFilter"
+          >
+            <div class="d-flex flex-wrap">
+              <color-chip
+                v-for="p in selectorData.txTypes"
+                :key="p"
+                class="me-2 mb-4"
+                :title="p"
+                :color="colorMap.get(p)"
+              />
+            </div>
+          </icon-item>
         </v-col>
       </v-row>
       <v-row>
@@ -236,7 +238,7 @@ import {
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
 import {
-	cashLeft, cashRight, sigmaLeft, sigmaRight,
+	cashLeft, cashRight, sigmaLeft, sigmaRight, incognitoFilter,
 } from '@/customIcons/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 

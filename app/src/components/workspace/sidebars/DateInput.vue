@@ -1,7 +1,6 @@
 <template>
   <v-menu
     v-model="menuModel"
-    eager
     :close-on-content-click="false"
   >
     <template #activator="a">

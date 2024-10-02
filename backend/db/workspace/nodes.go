@@ -632,31 +632,35 @@ func GetConnectionClusterToSelector(ctx context.Context, c external.Database, cl
 			# heuristic uids
 			var(func: uid($userUID)){
 				User.workspaces@filter(uid($workspaceUID)){
-					s as Workspace.selectors@filter(uid($selector))
+					Workspace.selectors@filter(uid($selector)){
+						results as Selector.results
+					}
 				}
 			}
 			
 			# find fmi cluster for address
 			var(func: uid($cluster))@filter(has(addresshash)){
-				c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
+				c as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
 			}
-			
-			selector_clusters(func: uid(s)){
-				Selector.results{
-					HeuristicCluster.results@cascade{
-						uid
-						tx_inputs(first:1){
-							...fGetCluster
-						}
-					}
+
+			selector_transaction(func: uid(results))@cascade{
+				...fTxToCluster
+			}
+
+			heuristic_transaction(func: uid(results)){
+				HeuristicCluster.results@cascade{
+					...fTxToCluster
 				}
 			}
 		}
 		
-		fragment fGetCluster {
-			~addr_outputs{
-				~Cluster.addresses@filter(uid(c)){
-					uid:uid
+		fragment fTxToCluster {
+			uid
+			tx_inputs(first:1){
+				~addr_outputs{
+					~Cluster.addresses@filter(uid(c)){
+						uid
+					}
 				}
 			}
 		}`
@@ -669,13 +673,12 @@ func GetConnectionClusterToSelector(ctx context.Context, c external.Database, cl
 	}
 
 	// json struct
-	// while the query also returns the cluster uids, only the transaction hashes are collected
+	// while the query also returns the cluster uids, only the transaction UIDs are collected
 	var r struct {
-		SelectorClusters []struct {
-			Clusters []struct {
-				Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
-			} `json:"Selector.results,omitempty"`
-		} `json:"selector_clusters,omitempty"`
+		SelectorTransactions  []db.UIDNode `json:"selector_transaction,omitempty"`
+		HeuristicTransactions []struct {
+			Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
+		} `json:"heuristic_transaction,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -683,18 +686,26 @@ func GetConnectionClusterToSelector(ctx context.Context, c external.Database, cl
 		return
 	}
 
-	if len(r.SelectorClusters) != 1 {
-		err = serror.FromFormat("invalid number of selector results returned: %d", len(r.SelectorClusters))
+	if len(r.SelectorTransactions) == 0 && len(r.HeuristicTransactions) == 0 {
+		err = serror.FromStr("zero results")
 		return
 	}
 
-	if len(r.SelectorClusters[0].Clusters) != 1 {
-		err = serror.FromFormat("invalid number of cluster results returned: %d", len(r.SelectorClusters[0].Clusters))
+	if len(r.HeuristicTransactions) > 0 && len(r.HeuristicTransactions[0].Results) == 0 {
+		err = serror.FromStr("zero transactions")
 		return
 	}
 
 	transactionMap := map[string]bool{}
-	for _, results := range r.SelectorClusters[0].Clusters[0].Results {
+	// try getting heuristic results
+	if len(r.HeuristicTransactions) > 0 {
+		for _, results := range r.HeuristicTransactions[0].Results {
+			transactionMap[results.UID] = true
+		}
+	}
+
+	// try getting selector results
+	for _, results := range r.SelectorTransactions {
 		transactionMap[results.UID] = true
 	}
 
@@ -810,127 +821,6 @@ func GetConnectionClusterToTransaction(ctx context.Context, c external.Database,
 				}`
 
 	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID, "$address": clusterUID})
-	if err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	// json struct
-	// while the query also returns the cluster uids, only the address hashes are collected
-	var r struct {
-		Transactions []struct {
-			TransactionHash string `json:"txhash"`
-			Inputs          []struct {
-				Adddresses []struct {
-					AddressHash string `json:"addresshash,omitempty"`
-				} `json:"~addr_outputs,omitempty"`
-			} `json:"tx_inputs,omitempty"`
-			Outputs []struct {
-				Adddresses []struct {
-					AddressHash string `json:"addresshash,omitempty"`
-				} `json:"~addr_outputs,omitempty"`
-			} `json:"tx_outputs,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	if len(r.Transactions) < 1 || len(r.Transactions) > 2 {
-		err = serror.FromFormat("invalid number of transactions returned: %d", len(r.Transactions))
-		return
-	}
-
-	addressMap := map[string]bool{}
-	for _, transaction := range r.Transactions {
-		for _, outputs := range transaction.Outputs {
-			for _, address := range outputs.Adddresses {
-				addressMap[address.AddressHash] = true
-			}
-		}
-
-		for _, inputs := range transaction.Inputs {
-			for _, address := range inputs.Adddresses {
-				addressMap[address.AddressHash] = true
-			}
-		}
-	}
-
-	if len(addressMap) > 0 && r.Transactions[0].TransactionHash != "" {
-		frontendTransactions, err = db.GetFrontendTransaction(ctx, c, r.Transactions[0].TransactionHash)
-		if err != nil {
-			return
-		}
-		yes := true
-		for i, transaction := range frontendTransactions {
-			for y, inputs := range transaction.Inputs {
-				if addressMap[inputs.AddressHash] {
-					frontendTransactions[i].Inputs[y].Highlight = &yes
-				}
-			}
-
-			for y, output := range transaction.Outputs {
-				if addressMap[output.AddressHash] {
-					frontendTransactions[i].Outputs[y].Highlight = &yes
-				}
-			}
-		}
-	}
-
-	return
-}
-
-// GetConnectionSelectorToTransaction returns the given transaction, with each output
-// having a flag if it belongs to one of the selector's clusters addresses.
-func GetConnectionSelectorToTransaction(ctx context.Context, c external.Database, selectorUID string,
-	transactionUID string, userUID string, workspaceUID string) (frontendTransactions []db.FrontendTransaction, err error) {
-	const query = `query Q($transaction:string,$selector:string,$userUID:string,$workspaceUID:string){
-			# heuristic uids
-			var(func: uid($userUID)){
-				User.workspaces@filter(uid($workspaceUID)){
-					s as Workspace.selectors@filter(uid($selector))
-				}
-			}
-
-			t as var(func: uid($transaction))
-
-			# get all clusters of selector
-			var(func: uid(s)){
-				Selector.results{
-					HeuristicCluster.results@filter(uid(t)){
-						tx_inputs(first:1){
-							~addr_outputs{
-								c as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
-							}
-						}
-					}
-				}
-			}
-
-			q(func: uid(t)){
-				txhash
-				tx_outputs@cascade{
-					...fGetCluster
-				}
-				tx_inputs@cascade{
-					...fGetCluster
-				}
-			}
-		}
-
-		fragment fGetCluster {
-			~addr_outputs{
-				addresshash
-				~Cluster.addresses@filter(uid(c)){
-					uid
-				}
-			}
-		}`
-
-	resp, err := c.Query(ctx, query, map[string]string{"$transaction": transactionUID,
-		"$selector": selectorUID, "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		err = serror.New(err)
 		return

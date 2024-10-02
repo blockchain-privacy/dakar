@@ -9,7 +9,7 @@ import {
 	mdiClockAlertOutline, mdiIncognitoOff, mdiMerge, mdiPlaylistRemove, mdiTune,
 } from '@mdi/js';
 import {
-	cashLeft, cashRight, sigmaLeft, sigmaRight,
+	cashLeft, cashRight, incognitoFilter, sigmaLeft, sigmaRight,
 } from '@/customIcons/index.js';
 import {abbreviateNumber} from '@/d3Documents/util.js';
 
@@ -58,10 +58,6 @@ function getNodeIconObject(d) {
 
 		parameter = d.heuristicOptions.parameter;
 	} else if (d.selectorType === SELECTOR_TYPE_TX_PROP && d.txPropOptions) {
-		if (d.txPropOptions.excludePrivacyTransactions) {
-			icons.push(mdiIncognitoOff);
-		}
-
 		if (d.txPropOptions.inputRange) {
 			icons.push(cashLeft);
 		}
@@ -76,6 +72,14 @@ function getNodeIconObject(d) {
 
 		if (d.txPropOptions.outputSum) {
 			icons.push(sigmaRight);
+		}
+
+		if (d.txPropOptions.excludePrivacyTransactions) {
+			icons.push(mdiIncognitoOff);
+		}
+
+		if (d.txPropOptions.txTypes) {
+			icons.push(incognitoFilter);
 		}
 	} else if (d.selectorType === SELECTOR_TYPE_TX_GRAPH && d.txGraphOptions) {
 		if (d.txGraphOptions.excludePrivacyTransactions) {

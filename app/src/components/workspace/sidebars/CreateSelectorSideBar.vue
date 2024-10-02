@@ -85,14 +85,10 @@
                 Learn more
               </wiki-tooltip>
             </div>
-            <v-label text="Maximum Stored Results" />
-            <v-slider
+            <slider-option
               v-model="txPropOptions.maxItems"
+              label="Maximum Stored Results"
               :max="SELECTOR_MAX_ITEMS"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
             />
             <named-divider title="Select" />
             <template v-if="!parentNode">
@@ -131,7 +127,7 @@
             <named-divider title="Filter by Type" />
             <v-checkbox
               v-model="txPropOptions.excludePrivacyTransactions"
-              label="Exclude Privacy Transactions"
+              label="Exclude Transaction Type"
             />
             <v-select
               v-model="txPropOptions.txTypes"
@@ -161,94 +157,30 @@
               </template>
             </v-select>
             <named-divider title="Filter by Amount" />
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Input Sum
-            </div>
-            <div class="d-flex align-center mb-5">
-              <v-text-field
-                v-model="txPropOptions.inputSum.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.inputSum.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Output Sum
-            </div>
-            <div class="d-flex align-center mb-5">
-              <v-text-field
-                v-model="txPropOptions.outputSum.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.outputSum.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Inputs
-            </div>
-            <div class="d-flex align-center mb-5">
-              <v-text-field
-                v-model="txPropOptions.inputRange.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.inputRange.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
-            <div class="d-flex justify-center my-2 text-subtitle-1">
-              Transaction Outputs
-            </div>
-            <div class="d-flex align-center">
-              <v-text-field
-                v-model="txPropOptions.outputRange.min"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="From"
-                placeholder="12.3456"
-                hide-details
-                class="me-2"
-              />
-              <v-text-field
-                v-model="txPropOptions.outputRange.max"
-                min-width="100px"
-                :rules="parameterRules.get('float')"
-                label="To"
-                placeholder="12.3456"
-                hide-details
-              />
-            </div>
+            <range-option
+              v-model="txPropOptions.inputSum"
+              placeholder="12.23456"
+              label="Transaction Input Sum"
+              :rules="parameterRules.get('float')"
+            />
+            <range-option
+              v-model="txPropOptions.outputSum"
+              placeholder="12.23456"
+              label="Transaction Output Sum"
+              :rules="parameterRules.get('float')"
+            />
+            <range-option
+              v-model="txPropOptions.inputRange"
+              placeholder="12.23456"
+              label="Transaction Inputs"
+              :rules="parameterRules.get('float')"
+            />
+            <range-option
+              v-model="txPropOptions.outputRange"
+              placeholder="12.23456"
+              label="Transaction Outputs"
+              :rules="parameterRules.get('float')"
+            />
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_GRAPH">
             <div class="text-subtitle-2 mb-3">
@@ -258,30 +190,15 @@
                 Learn more
               </wiki-tooltip>
             </div>
-            <div class="text-center text-subtitle-1 my-2">
-              Maximum Stored Results
-            </div>
-            <v-slider
+            <slider-option
               v-model="txGraphOptions.maxItems"
+              class="mb-2"
+              label="Maximum Stored Results"
               :max="SELECTOR_MAX_ITEMS"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
             />
+            <v-divider thickness="2" />
             <div class="text-center text-subtitle-1 my-2">
-              Traversal Depth
-            </div>
-            <v-slider
-              v-model="txGraphOptions.depth"
-              :max="5"
-              :min="1"
-              :step="1"
-              thumb-label
-              hide-details
-            />
-            <div class="text-center text-subtitle-1 my-2">
-              Traversal Direction
+              <label for="traversal_direction">Traversal Direction</label>
             </div>
             <div class="d-flex justify-center">
               <v-btn-toggle
@@ -291,7 +208,10 @@
                 variant="text"
                 color="primary"
               >
-                <v-btn size="small">
+                <v-btn
+                  id="traversal_direction"
+                  size="small"
+                >
                   Backward
                 </v-btn>
                 <v-btn size="small">
@@ -299,10 +219,14 @@
                 </v-btn>
               </v-btn-toggle>
             </div>
-
+            <slider-option
+              v-model="txGraphOptions.depth"
+              label="Traversal Depth"
+              :max="5"
+            />
             <v-checkbox
               v-model="txGraphOptions.excludePrivacyTransactions"
-              label="Exclude Privacy Transactions"
+              label="Exclude Transaction Type"
             />
           </template>
         </v-card-text>
@@ -343,6 +267,8 @@ import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
+import RangeOption from '@/components/workspace/sidebars/RangeOption.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
