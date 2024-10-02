@@ -46,7 +46,7 @@ services:
 
   kratos:
     container_name: kratos
-    image: oryd/kratos:v1.2
+    image: oryd/kratos:v1.3
     depends_on:
       - postgres
     ports:
