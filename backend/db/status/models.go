@@ -279,7 +279,7 @@ type Meta struct {
 	// BlockchainMode of this database
 	BlockchainMode string `json:"Meta.blockchainMode,omitempty"`
 	// SchemaVersion  of this database
-	SchemaVersion *uint64 `json:"Meta.schemaVersion,omitempty"`
+	SchemaVersion *int `json:"Meta.schemaVersion,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 }

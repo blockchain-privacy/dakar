@@ -17,7 +17,7 @@ import (
 // availableUpgrades contains all available schema upgrades.
 // The key is the schema version to which the database should
 // be set after its updates haven been applied.
-var availableUpgrades = map[uint64]UpgradePackage{
+var availableUpgrades = map[int]UpgradePackage{
 	4: {upgrades: []schemaUpgrade{AlterSchemaAddWorkspaces}},
 	5: {
 		upgrades: []schemaUpgrade{
@@ -62,7 +62,7 @@ func getFunctionName(i interface{}) string {
 }
 
 // GetSchemaVersion returns the schema version of the database
-func GetSchemaVersion(db external.Database) (uint64, error) {
+func GetSchemaVersion(db external.Database) (int, error) {
 	meta, err := status.GetMeta(db)
 	if err != nil {
 		return 0, err
@@ -82,7 +82,7 @@ type UpgradePackage struct {
 }
 
 // upgradeDatabaseToNextVersion upgrades the database to the next schema version
-func upgradeDatabaseToNextVersion(c external.Database, upgrades map[uint64]UpgradePackage, currentSchemaVersion uint64) error {
+func upgradeDatabaseToNextVersion(c external.Database, upgrades map[int]UpgradePackage, currentSchemaVersion int) error {
 	upgradePackage, ok := upgrades[currentSchemaVersion+1]
 	if !ok {
 		return serror.FromStrWithContext("can not find upgrade package",
@@ -113,7 +113,7 @@ func UpgradeDatabase(c external.Database) error {
 }
 
 // applyUpgrades upgrades the database schema to the newest version, by applying  the given UpgradePackages
-func applyUpgrades(c external.Database, upgrades map[uint64]UpgradePackage) error {
+func applyUpgrades(c external.Database, upgrades map[int]UpgradePackage) error {
 	currentSchemaVersion, err := GetSchemaVersion(c)
 	if err != nil {
 		return err

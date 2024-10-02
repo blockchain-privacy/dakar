@@ -3,7 +3,6 @@ package main
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
-	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/external"
@@ -113,7 +112,6 @@ type ExportClusterActivityModule struct {
 type Config struct {
 	Logfile                   string                          `yaml:"logfile"`
 	DBHost                    string                          `yaml:"host"`
-	DBPort                    uint                            `yaml:"port"`
 	PrivacyCharts             PrivacyChartModule              `yaml:"privacyCharts"`
 	UniqueAddresses           UniqueAddressesModule           `yaml:"uniqueAddresses"`
 	TimestampAnalytics        TimestampAnalyticsModule        `yaml:"timestampAnalytics"`
@@ -127,8 +125,7 @@ type Config struct {
 
 var defaultConfig = Config{
 	Logfile: "",
-	DBHost:  "0.0.0.0",
-	DBPort:  9080,
+	DBHost:  "0.0.0.0:9080",
 	PrivacyCharts: PrivacyChartModule{
 		Active:    false,
 		Directory: "",
@@ -228,14 +225,8 @@ func main() {
 
 	initAllLoggers(f)
 
-	endpoint, err := cli.BuildEndpoint(newConfig.DBHost, newConfig.DBPort)
-	if err != nil {
-		warn(err)
-		return
-	}
-
 	// create dgraph client
-	dgraph, c, err := external.CreateClient(endpoint)
+	dgraph, c, err := external.CreateClient(newConfig.DBHost)
 	if err != nil {
 		warn(err)
 		return

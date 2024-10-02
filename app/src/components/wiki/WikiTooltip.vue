@@ -13,6 +13,7 @@
         :class="$attrs.class"
         :style="$attrs.style"
         size="small"
+        :color="iconColor"
         @click="requestBlurb"
       />
       <a
@@ -70,6 +71,7 @@ const props = defineProps({
 	descriptionUrl: {type: String, required: true},
 	showLink: {type: Boolean, required: false, default: true},
 	icon: {type: String, required: false, default: ''},
+	iconColor: {type: String, required: false, default: undefined},
 });
 
 const description = ref('');

@@ -5,7 +5,6 @@ import (
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
 	"backend/blockiterator"
-	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
 	"backend/db/upgrades"
@@ -149,12 +148,7 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) erro
 
 // connectBlockchainRPCClient connects to blockchain RPC client specified in the given configuration.
 func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error) {
-	rpcEndpoint, err := cli.BuildEndpoint(rpcConfig.Host, rpcConfig.Port)
-	if err != nil {
-		return nil, err
-	}
-
-	client := jsonrpc.NewBlockchainClient(rpcEndpoint, rpcConfig.User, rpcConfig.Password, nil)
+	client := jsonrpc.NewBlockchainClient(rpcConfig.Host, rpcConfig.User, rpcConfig.Password, nil)
 
 	// test if rpc client is active
 	if err := waitForRPCClient(client); err != nil {
@@ -261,14 +255,7 @@ func main() {
 
 	////// CONNECT TO DATABASE //////
 
-	endpoint, err := cli.BuildEndpoint(newConfig.Database.Host, newConfig.Database.Port)
-	if err != nil {
-		warn(err)
-		return
-	}
-
-	// create dgraph client
-	graphDB, c, err := external.CreateClient(endpoint)
+	graphDB, c, err := external.CreateClient(newConfig.Database.Host)
 	if err != nil {
 		warn(err)
 		return

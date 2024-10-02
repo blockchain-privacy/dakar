@@ -17,14 +17,12 @@ import (
 
 type RPCConfig struct {
 	Host     string `yaml:"host"`
-	Port     uint   `yaml:"port"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 }
 
 type DatabaseConfig struct {
 	Host string `yaml:"host"`
-	Port uint   `yaml:"port"`
 }
 
 type CrawlerModule struct {
@@ -82,14 +80,12 @@ var defaultConfig = Config{
 	Logfile:        "dakar.log",
 	BlockchainMode: "",
 	RPC: RPCConfig{
-		Host:     "0.0.0.0",
-		Port:     9998,
+		Host:     "0.0.0.0:9998",
 		User:     "rpc1user",
 		Password: "1234pass",
 	},
 	Database: DatabaseConfig{
-		Host: "0.0.0.0",
-		Port: 9080,
+		Host: "0.0.0.0:9080",
 	},
 	Modules: ModulesConfig{
 		HTTP: APIModule{

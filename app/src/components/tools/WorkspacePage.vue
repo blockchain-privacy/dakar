@@ -12,10 +12,13 @@
       <v-btn
         v-model="showSearchField"
         variant="text"
+        :icon="display.xs.value"
         @click="showAddWorkspaceDialogModel = true"
       >
         <v-icon :icon="mdiPlus" />
-        New
+        <div class="hidden-xs">
+          New
+        </div>
       </v-btn>
       <v-btn
         v-model="showSearchField"
@@ -25,6 +28,11 @@
       >
         <v-icon>{{ mdiMagnify }}</v-icon>
       </v-btn>
+      <wiki-tooltip
+        description-url="workspaces/workspaces.md"
+        :icon="mdiHelpCircleOutline"
+        icon-color="primary"
+      />
       <v-menu location="bottom">
         <template #activator="{ props }">
           <v-btn
@@ -90,15 +98,17 @@
         <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
       </template>
       <template #[`item.actions`]="{ item }">
-        <v-icon
-          class="me-2"
-          @click="showRenameDialog(item)"
-        >
-          {{ mdiRename }}
-        </v-icon>
-        <v-icon @click="showDeleteWorkspaceDialog(item)">
-          {{ mdiDelete }}
-        </v-icon>
+        <div class="d-flex">
+          <v-icon
+            class="me-2 ms-auto"
+            @click="showRenameDialog(item)"
+          >
+            {{ mdiRename }}
+          </v-icon>
+          <v-icon @click="showDeleteWorkspaceDialog(item)">
+            {{ mdiDelete }}
+          </v-icon>
+        </div>
       </template>
     </v-data-table>
     <confirm-dialog
@@ -150,7 +160,7 @@
 
 <script setup>
 import {
-	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus, mdiRename,
+	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus, mdiRename, mdiHelpCircleOutline,
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
@@ -163,10 +173,13 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
+import {useDisplay} from 'vuetify';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
+const display = useDisplay();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const workspaceList = ref([]);

@@ -1,21 +1,5 @@
 package cliutil
 
-import (
-	"github.com/qrest/gomisc/serror"
-	"strconv"
-	"strings"
-)
-
-// BuildEndpoint creates a string in the format of "host:port"
-func BuildEndpoint(host string, port uint) (string, error) {
-	host = strings.TrimSpace(host)
-	if len(host) == 0 || port == 0 {
-		return "", serror.FromStr("host or port is not valid")
-	}
-
-	return host + ":" + strconv.FormatUint(uint64(port), 10), nil
-}
-
 // GetOneKey returns an indeterminate key of the given map. If the map is empty, an empty key will be returned
 func GetOneKey[M ~map[K]V, K comparable, V any](m M) K {
 	for k := range m {

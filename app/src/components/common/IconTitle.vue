@@ -1,5 +1,8 @@
 <template>
-  <v-card-title class="mb-1 mt-2 d-flex align-center">
+  <div
+    class="mb-1 mt-2 d-flex align-center text-h6"
+    style="white-space: nowrap"
+  >
     <v-icon class="me-2">
       {{ icon }}
     </v-icon>
@@ -21,7 +24,7 @@
     >
       <slot />
     </div>
-  </v-card-title>
+  </div>
   <div
     v-if="!oneLine && $vuetify.display.xs"
     class="d-flex align-center justify-end"
