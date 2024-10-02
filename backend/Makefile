@@ -7,14 +7,14 @@ WHITE  = $(shell tput -Txterm setaf 7)
 CYAN   = $(shell tput -Txterm setaf 6)
 RESET  = $(shell tput -Txterm sgr0)
 
-.PHONY: dep all build clean test lint tidy update_dependencies docker
+.PHONY: all build clean test vet lint tidy update_dependencies docker
 .PHONY: openapi-fmt openapi-spec openapi-client openapi-publish push-tag
 
 all: crawler
 build: crawler
 
 ## Test:
-lint: # Lint the files
+lint: ## Lint the files
 	golangci-lint run
 
 test: ## Run unittests, '-p 1' makes tests not run in parallel;

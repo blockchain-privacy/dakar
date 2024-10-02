@@ -13,7 +13,6 @@
       multiple
       filter
       :mandatory="mandatory"
-      :disabled="disabled"
       selected-class=""
       class="ms-2"
       @update:model-value="handleModelChange"
@@ -36,7 +35,6 @@ import ColorChip from '@/components/common/ColorChip.vue';
 const model = defineModel({type: Array});
 
 defineProps({
-	disabled: {type: Boolean, required: false, default: false},
 	// Example: [{color: red: text: 'some text'}, ...]
 	items: {type: Array, required: true},
 	label: {type: String, required: false, default: ''},

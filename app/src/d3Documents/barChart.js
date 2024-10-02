@@ -15,7 +15,7 @@ function addPercentageToDate(date, duration, percentage) {
 	return newDate;
 }
 
-export default class Histogram {
+export default class BarChart {
 	constructor(svgId, width, height, enableTransition = true) {
 		this.svgId = svgId;
 		this.width = width;
@@ -113,8 +113,8 @@ export default class Histogram {
 		const x = scaleTime().domain([lowestRange, highestRange]).rangeRound([0, width]);
 		const y = scaleLinear().range([height, 0]);
 
-		// Set the parameters for the histogram
-		const histogram = bin()
+		// Set the parameters for the bar chart
+		const barChart = bin()
 			.value(d => d.dateTime)
 			.domain(x.domain())
 			.thresholds(x.ticks(timeTickInterval(lowestRange, highestRange, 40)));
@@ -125,7 +125,7 @@ export default class Histogram {
 			.attr('transform', `translate(${margin.left},${margin.top})`);
 
 		// Group the data for the bars
-		const bins = histogram(detailArray);
+		const bins = barChart(detailArray);
 
 		// Scale the range of the data in the y domain
 		y.domain([0, max(bins, d => d.length)]);
@@ -173,6 +173,7 @@ export default class Histogram {
 							width: x(d.x1) - x(d.x0) - 1,
 							height: g.length,
 							color: colorMap.get(txtype),
+							txType: txtype,
 							// Transactions,
 						});
 						parentSize += g.length;
@@ -186,11 +187,29 @@ export default class Histogram {
 				.attr('fill', d => d.color)
 				.attr('width', d => d.width)
 				.attr('y', d => height - y(d.parentSize))
-				.attr('height', d => height - y(d.height));
+				.attr('height', d => height - y(d.height))
+				.on('mousemove', function (e, d) {
+					d3Select(`.${this.svgId}_tooltip`)
+						.data([{txType: d.txType}])
+						.join('span')
+						.classed(`${this.svgId}_tooltip`, true)
+						.style('left', `${e.pageX + 10}px`)
+						.style('top', `${e.pageY + 10}px`)
+						.style('background-color', 'grey')
+						.style('color', 'white')
+						.style('border-radius', '6px')
+						.style('padding', '0 5px 0 5px')
+						.style('border', '1px black')
+						.text(d => d.txType)
+						.style('visibility', 'visible')
+						.style('z-index', 1500)
+						.style('position', 'absolute');
+				})
+				.on('mouseleave', function () {
+					d3Select(`.${this.svgId}_tooltip`).style('visibility', 'hidden');
+				});
 
-			// Const self = this;
-			// set overlay which animates the bars and has event handler attached
-
+			// Set overlay which animates the bars and has event handler attached
 			if (this.clickCallBack !== null) {
 				bars.append('rect')
 					.attr('class', 'overlay')
@@ -207,7 +226,7 @@ export default class Histogram {
 					})
 				// eslint-disable-next-line func-names
 					.on('mouseover', function mouseOver() {
-						d3Select(this).attr('opacity', 0.7);
+						d3Select(this).attr('opacity', 0.4);
 					});
 			}
 		}

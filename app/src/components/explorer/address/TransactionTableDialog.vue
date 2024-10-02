@@ -16,14 +16,14 @@
           :items="transactions"
         >
           <template #item.txhash="{ item }">
-            <store-link
+            <workspace-link
               class="shorten"
               disable-select
               :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
               @clicked="model = false"
             >
               {{ item.txhash }}
-            </store-link>
+            </workspace-link>
           </template>
           <template #item.dateTime="{ item }">
             <span>{{ item.dateTime.toLocaleString() }}</span>
@@ -39,7 +39,7 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {capitalize} from '../../../utilities/index.js';
 
 defineProps({

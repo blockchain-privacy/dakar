@@ -125,7 +125,6 @@
           </div>
           <v-skeleton-loader
             v-else
-            class="mx-auto"
             type="list-item-three-line, list-item-three-line, list-item-three-line"
           />
         </fade-transition>

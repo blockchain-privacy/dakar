@@ -9,16 +9,18 @@
         <wiki-tooltip description-url="mixingActivity.md">
           mixing activity
         </wiki-tooltip>.
-        <v-row class="mt-2">
+        <v-row
+          v-if="activities?.length > 0"
+          class="mt-2"
+        >
           <v-col class="d-flex align-center justify-center flex-wrap">
             <p class="v-label me-2">
-              Filter by ransaction type
+              Filter by Transaction type
             </p>
             <chip-filter
               v-model="chipFilterModel"
               mandatory
               :items="transactionTypes"
-              :disabled="!activities || activities.length === 0"
               @changed="handleChipFilterChanged"
             />
           </v-col>
@@ -31,22 +33,20 @@
           >
             <v-switch
               v-model="includeCusterAddresses"
-              label="Include cluster addresses"
+              label="Search all addresses of cluster"
               hide-details
               :disabled="isLoading"
               @update:model-value="updateSvgData(true)"
             />
           </v-col>
           <v-col
+            v-if="activities?.length > 1"
             class="d-flex align-center"
             cols="12"
             lg="9"
           >
-            <!-- vuetify lint plugin has some errors, disable for now -->
-            <!-- eslint-disable vuetify/no-deprecated-props vuetify/no-deprecated-events -->
             <v-range-slider
               v-model="rangePicker.model"
-              :disabled="!activities || activities.length < 2"
               :ticks="rangePicker.events"
               class="mr-8"
               :min="rangePicker.min"
@@ -106,8 +106,8 @@
         grow
         @update:model-value="onTabChange"
       >
-        <v-tab key="histogram">
-          Chart
+        <v-tab key="barChart">
+          Bar Chart
         </v-tab>
         <v-tab key="graph">
           Graph
@@ -119,7 +119,7 @@
         style="line-height: 0"
       >
         <v-window-item
-          key="histogram"
+          key="barChart"
           eager
         >
           <v-card variant="text">
@@ -131,17 +131,6 @@
               >
                 Not enough data available to draw chart
               </p>
-              <div
-                v-if="showHistogram"
-                class="text-subtitle-1"
-                style="text-align: center"
-              >
-                {{
-                  selectedTransactionType.length === 5 ? 'All Privacy'
-                  : selectedTransactionType.map(capitalize).join(', ')
-                }}
-                Transactions
-              </div>
               <transaction-table-dialog
                 v-model="barTable.show"
                 :headers="barTable.headers"
@@ -151,8 +140,8 @@
               />
               <div style="overflow: auto">
                 <svg
-                  v-show="showHistogram"
-                  id="mixing_activity_histogram"
+                  v-show="showBarChart"
+                  id="mixing_activity_barchart"
                   style="min-width: 1100px"
                 />
               </div>
@@ -244,8 +233,8 @@
 </template>
 
 <script setup>
-import Histogram from '@/d3Documents/histogram';
-import {getColorMap, capitalize} from '@/utilities';
+import BarChart from '@/d3Documents/barChart.js';
+import {getColorMap} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
@@ -268,14 +257,14 @@ const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 
 const colorMap = getColorMap();
-let svgHistogram = null;
+let svgBarChart = null;
 const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;
 let initialLoadDone = false;
 let graphMode = false;
 
 // Select all labels by default
-const showHistogram = ref(false);
+const showBarChart = ref(false);
 const showGraph = ref(false);
 const isLoading = ref(false);
 const showEmptyResponseMsg = ref(false);
@@ -339,13 +328,13 @@ const isSameDay = computed(() => {
 onBeforeMount(() => {
 	includeCusterAddresses.value = false;
 
-	svgHistogram = new Histogram(
-		'mixing_activity_histogram',
+	svgBarChart = new BarChart(
+		'mixing_activity_barchart',
 		1200,
 		300,
 		false,
 	);
-	svgHistogram.setClickHandler(onBarClick);
+	svgBarChart.setClickHandler(onBarClick);
 });
 
 onMounted(() => {
@@ -518,7 +507,7 @@ function handleLassoReset() {
 }
 
 function onTabChange(tab) {
-	// Tab === 0: histogram
+	// Tab === 0: bar chart
 	// tab === 1: force graph
 	const wantGraph = tab === 1;
 	// Check if tab was actually changed. @changed:modelValue also fires on initial load of component
@@ -541,7 +530,7 @@ function onTabChange(tab) {
 }
 
 async function updateSvgData(pullNewData) {
-	showHistogram.value = false;
+	showBarChart.value = false;
 	showGraph.value = false;
 	isLoading.value = true;
 	showTooManyAddressesMsg.value = false;
@@ -604,7 +593,7 @@ async function updateSvgData(pullNewData) {
 	if (!filteredItems) {
 		isLoading.value = false;
 		showGraph.value = false;
-		showHistogram.value = false;
+		showBarChart.value = false;
 		showNotEnoughDataMsg.value = true;
 		return;
 	}
@@ -625,10 +614,10 @@ async function updateSvgData(pullNewData) {
 			});
 		}
 	} else {
-		svgHistogram.reset();
-		svgHistogram.drawStacked(filteredItems, colorMap);
-		showHistogram.value = !svgHistogram.empty;
-		showNotEnoughDataMsg.value = svgHistogram.empty;
+		svgBarChart.reset();
+		svgBarChart.drawStacked(filteredItems, colorMap);
+		showBarChart.value = !svgBarChart.empty;
+		showNotEnoughDataMsg.value = svgBarChart.empty;
 	}
 
 	isLoading.value = false;

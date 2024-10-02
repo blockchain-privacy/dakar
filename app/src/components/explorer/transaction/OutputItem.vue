@@ -8,13 +8,13 @@
       <v-row>
         <v-col>
           <div class="d-flex justify-space-between align-center">
-            <store-link
+            <workspace-link
               v-if="addressHash"
               :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
               class="shorten"
             >
               {{ addressHash }}
-            </store-link>
+            </workspace-link>
             <div
               v-else
               style="min-width: 200px"
@@ -33,9 +33,9 @@
             class="d-flex justify-space-between align-center"
           >
             <div class="text-caption d-flex align-center">
-              <store-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
-                <span>{{ isInput ? 'created' : 'spent' }}</span>
-              </store-link>
+              <workspace-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
+                {{ isInput ? 'created' : 'spent' }}
+              </workspace-link>
               on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
             </div>
             <privacy-chip
@@ -127,7 +127,7 @@ import {convertAmount} from '@/utilities';
 import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ref} from 'vue';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	isInput: {type: Boolean, required: true},

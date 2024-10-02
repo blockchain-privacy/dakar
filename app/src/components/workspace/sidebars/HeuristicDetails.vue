@@ -155,7 +155,7 @@ import {
 	mdiPoundBoxOutline,
 	mdiTune,
 } from '@mdi/js';
-import Histogram from '@/d3Documents/histogram.js';
+import BarChart from '@/d3Documents/barChart.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
@@ -166,7 +166,7 @@ const props = defineProps({
 	heuristicData: {type: Object, required: true},
 });
 
-let svgHistogram = null;
+let svgBarChart = null;
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);
 
@@ -200,7 +200,7 @@ function init() {
 		return;
 	}
 
-	svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, false);
+	svgBarChart = new BarChart('heuristic_details_canvas', 600, 300, false);
 	updateData(props.heuristicData.clusters);
 }
 
@@ -211,9 +211,9 @@ function updateData(graphData) {
 		detailArray.push(...d.transactions);
 	});
 
-	svgHistogram.draw(detailArray);
-	enoughDataForGraph.value = !svgHistogram.empty;
-	durationInMinutes.value = svgHistogram.getDurationInMinutes;
+	svgBarChart.draw(detailArray);
+	enoughDataForGraph.value = !svgBarChart.empty;
+	durationInMinutes.value = svgBarChart.getDurationInMinutes;
 }
 </script>
 

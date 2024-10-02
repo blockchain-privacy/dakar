@@ -6,14 +6,14 @@
     <v-card>
       <v-card-title class="text-h5">
         Transaction
-        <store-link
+        <workspace-link
           class="shorten"
           disable-select
           :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}"
           @clicked="model = false"
         >
           {{ txHash }}
-        </store-link>
+        </workspace-link>
       </v-card-title>
       <v-card-text>
         <p class="text-subtitle-1">
@@ -34,14 +34,14 @@
               v-for="(t) in inputTxs"
               :key="t.txhash"
             >
-              <store-link
+              <workspace-link
                 class="shorten"
                 disable-select
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash }}"
                 @clicked="model = false"
               >
                 {{ t.txhash }}
-              </store-link>
+              </workspace-link>
             </v-list-item>
           </v-list>
         </v-expand-transition>
@@ -52,7 +52,7 @@
 
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 defineProps({
 	txHash: {type: String, required: true},

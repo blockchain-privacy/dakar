@@ -138,7 +138,7 @@ npm-client:
         "repository": {
           "url": "git+https://git.gvk.idi.ntnu.no/research/blockchain/dakar.git"
         },
-        "author": "Michael Ziegler",
+        "author": "Dakar authors",
         "license": "AGPL-3.0-only"
       }
       EOF

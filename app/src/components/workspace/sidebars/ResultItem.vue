@@ -1,23 +1,23 @@
 <template>
   <v-list>
-    <store-link
+    <workspace-link
       v-for="tx in getLimitedItems"
       :key="tx.txhash"
       :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
              params: { id: tx.txhash }}"
     >
       {{ tx.txhash }}
-    </store-link>
+    </workspace-link>
     <v-expand-transition>
       <div v-if="showAllOutputs">
-        <store-link
+        <workspace-link
           v-for="tx in getResidualItems"
           :key="tx.txhash"
           :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                  params: { id: tx.txhash }}"
         >
           {{ tx.txhash }}
-        </store-link>
+        </workspace-link>
       </div>
     </v-expand-transition>
   </v-list>
@@ -40,7 +40,7 @@ import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
 import {mdiChevronDown, mdiChevronUp} from '@mdi/js';
 import {plural} from '@/utilities/index.js';
 import {computed, ref} from 'vue';
-import StoreLink from '@/components/common/WorkspaceLink.vue';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 const props = defineProps({
 	items: {type: Array, required: true},

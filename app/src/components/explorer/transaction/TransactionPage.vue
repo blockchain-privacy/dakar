@@ -1,34 +1,36 @@
 <template>
   <v-container fluid>
     <v-row
-      v-if="tx"
       align="center"
       justify="center"
     >
-      <!-- duplicate transaction hashes can exist -> loop through all results
-      (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
       <v-col
-        v-for="t in tx"
-        :key="t.txhash+t.bid"
         cols="12"
         sm="12"
         md="12"
         lg="10"
         xl="8"
       >
-        <transaction
-          :tx="t"
-          :show-heuristic-editor-link="isPrivilegedOrHigher"
-          :show-fingerprint-link="isPrivilegedOrHigher"
-          show-details
-        />
+        <fade-transition>
+          <template v-if="tx">
+            <!-- duplicate transaction hashes can exist -> loop through all results
+               (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
+            <transaction
+              v-for="t in tx"
+              :key="t.txhash+t.bid"
+              :tx="t"
+              :show-heuristic-editor-link="isPrivilegedOrHigher"
+              :show-fingerprint-link="isPrivilegedOrHigher"
+              show-details
+            />
+          </template>
+          <v-skeleton-loader
+            v-else
+            type="list-item-three-line, list-item-three-line, list-item-three-line"
+          />
+        </fade-transition>
       </v-col>
     </v-row>
-    <v-skeleton-loader
-      v-else
-      class="mx-auto"
-      type="list-item-three-line, list-item-three-line, list-item-three-line"
-    />
   </v-container>
 </template>
 
@@ -42,6 +44,7 @@ import {
 import {storeToRefs} from 'pinia';
 import {useExplorerStore} from '@/pinia/explorer';
 import {useLocalStore} from '@/pinia/local';
+import FadeTransition from '@/components/common/FadeTransition.vue';
 
 const {transaction: tx} = storeToRefs(useExplorerStore());
 const {session} = storeToRefs(useLocalStore());
