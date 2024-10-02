@@ -6,88 +6,50 @@
     max-width="700px"
     :title-one-line="false"
   >
-    <template #actions>
-      <v-chip
-        rounded
-        class="me-2"
-        variant="tonal"
-        :prepend-icon="mdiDelete"
-        @click="emitDeleteEntity"
+    <template
+      v-if="!isLoading && entityData"
+      #actions
+    >
+      <!-- sort in reverse so delete action is in first place -->
+      <template
+        v-for="(item, index) in nodeActions.toSorted((a,b) => b.title.localeCompare(a.title))"
+        :key="index"
       >
-        Delete
-      </v-chip>
-      <v-chip
-        rounded
-        class="me-2"
-        color="primary"
-        variant="tonal"
-        :prepend-icon="mdiNotePlus"
-        :disabled="disableAddingNodes || auxiliaryData?.loading"
-        @click="emitAddNote"
-      >
-        Add Note
-      </v-chip>
-      <template v-if="!isLoading && entityData">
         <v-chip
-          v-if="isTxGraph || isTxProp || isHeuristic"
+          v-if="!item.show || item.show()"
+          :disabled="item.disabled && item.disabled()"
           rounded
-          color="primary"
-          variant="tonal"
           class="me-2"
-          :prepend-icon="mdiFilterPlus"
-          :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @click="handleAddTxPropClick"
+          :color="item.color"
+          :prepend-icon="item.icon"
+          @click="() => {item.action(item); model=false;}"
         >
-          Add Property Selector
-        </v-chip>
-        <v-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length"
-          rounded
-          color="primary"
-          variant="tonal"
-          class="me-2"
-          :prepend-icon="graphPlus"
-          :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @click="handleAddTxGraphClick"
-        >
-          Add Graph Selector
-        </v-chip>
-        <v-chip
-          v-if="isHeuristic || isDestination(entityData[0]?.txtype) || isOrigin(entityData[0]?.txtype)"
-          rounded
-          color="primary"
-          variant="tonal"
-          class="me-2"
-          :prepend-icon="blenderPlus"
-          :disabled="disableAddingNodes || auxiliaryData?.loading"
-          @click="handleAddHeuristicClick"
-        >
-          Add CoinJoin Heuristic
-        </v-chip>
-        <fingerprint-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.txtype)"
-          :transaction-hash="identifier"
-          class="me-2"
-        />
-        <privacy-chip
-          v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.txtype"
-          :transaction-type="entityData[0].txtype"
-        />
-        <exclusion-chip
-          v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
-          :address-hash="entityData.addresshash"
-        />
-        <v-chip
-          v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && (entityData?.clusterCount > 0 || entityData?.selectorCount > 0)"
-          rounded
-          color="primary"
-          variant="tonal"
-          :prepend-icon="mdiFileDownloadOutline"
-          @click="downloadReport"
-        >
-          Download
+          {{ item.title }}
         </v-chip>
       </template>
+      <fingerprint-chip
+        v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.txtype)"
+        :transaction-hash="identifier"
+        class="me-2"
+      />
+      <privacy-chip
+        v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.txtype"
+        :transaction-type="entityData[0].txtype"
+      />
+      <exclusion-chip
+        v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
+        :address-hash="entityData.addresshash"
+      />
+      <v-chip
+        v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && (entityData?.clusterCount > 0 || entityData?.selectorCount > 0)"
+        rounded
+        color="primary"
+        variant="tonal"
+        :prepend-icon="mdiFileDownloadOutline"
+        @click="downloadReport"
+      >
+        Download
+      </v-chip>
     </template>
     <template #secondaryActions>
       <add-nodes-chip
@@ -153,9 +115,9 @@
 import {
 	mdiBlender,
 	mdiCardBulletedOutline,
-	mdiDelete,
-	mdiFileDownloadOutline, mdiFilter, mdiFilterPlus, mdiGraph,
-	mdiNotePlus,
+	mdiFileDownloadOutline,
+	mdiFilter,
+	mdiGraph,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -172,7 +134,7 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
-import {getCurrentDate, isDestination, isOrigin} from '@/utilities/index.js';
+import {getCurrentDate, isDestination} from '@/utilities/index.js';
 import {
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
@@ -183,7 +145,6 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
-import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -191,8 +152,9 @@ const props = defineProps({
 	workspaceUid: {type: String, required: true},
 	auxiliaryData: {type: Object, required: false, default: null},
 	disableAddingNodes: {type: Boolean, required: true},
+	nodeActions: {type: Array, required: true},
 });
-const emit = defineEmits(['addTxGraph', 'addTxProp', 'addHeuristic', 'addNote', 'deleteEntity', 'addNodes']);
+const emit = defineEmits(['addNodes']);
 const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
@@ -515,16 +477,6 @@ async function downloadReport() {
 	}
 }
 
-function emitDeleteEntity() {
-	emit('deleteEntity', props.identifier);
-	model.value = false;
-}
-
-function emitAddNote() {
-	emit('addNote', props.identifier);
-	model.value = false;
-}
-
 function emitAddNodes(nodes) {
 	emit('addNodes', nodes);
 	model.value = false;
@@ -552,17 +504,6 @@ function deselectAllAddresses() {
 		.map(d => d.id));
 }
 
-function handleAddHeuristicClick() {
-	emit('addHeuristic');
-}
-
-function handleAddTxPropClick() {
-	emit('addTxProp');
-}
-
-function handleAddTxGraphClick() {
-	emit('addTxGraph');
-}
 </script>
 
 <style scoped>

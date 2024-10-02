@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dgraph-io/dgo/v240"
 	"github.com/qrest/gomisc/serror"
 	"log"
 	"log/slog"
@@ -14,8 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgraph-io/dgo/v230"
-	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/stretchr/testify/require"
 )
 

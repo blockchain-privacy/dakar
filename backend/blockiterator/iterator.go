@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const targetIterationDuration = time.Second * 10
-
 // BlockIterator defines the basic structure of a process which
 // iterates sequentially over a set of blocks:
 //  1. do pre loop operations like getting the start id
@@ -66,6 +64,10 @@ type State struct {
 // The scaling is based on whether the target duration is less than or greater than the iteration duration.
 // The upper limit is capped at 200 blocks.
 func scaleBlocksPerIteration(target time.Duration, iterationDuration time.Duration, blockCount uint64) uint64 {
+	if target <= 0 {
+		return 1
+	}
+
 	upperLimit := time.Duration(float64(target) * 1.1)
 	if iterationDuration > upperLimit {
 		return max(1, uint64(float64(blockCount)*0.75))
@@ -88,8 +90,8 @@ func info(iterator BlockIterator, msg string, v ...interface{}) {
 	props.Logger.Info(msg, append([]interface{}{"block_iterator_name", props.Name}, v...)...)
 }
 
-// StartIteration starts the iteration process
-func StartIteration(iterator BlockIterator, postIterationHook func()) (err error) {
+// StartIteration starts the iteration process. Set targetIterationDuration to the duration each iteration should scale to.
+func StartIteration(iterator BlockIterator, targetIterationDuration time.Duration, postIterationHook func()) (err error) {
 	props := iterator.Props()
 	if l := props.Logger; l == nil {
 		return serror.FromStr(props.Name + " logger is nil")

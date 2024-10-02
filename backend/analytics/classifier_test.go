@@ -602,7 +602,7 @@ func TestMultipleBlockIteration(t *testing.T) {
 	classifier2.state.ID = testhelper.ClassifierFileFirstBlock
 	classifier2.state.Top = testhelper.ClassifierFileLastBlock
 	var numIteratedBlocks uint64
-	require.NoError(t, blockiterator.StartIteration(classifier2, func() {
+	require.NoError(t, blockiterator.StartIteration(classifier2, time.Second*10, func() {
 		numIteratedBlocks += classifier2.Props().ProcessedBlockCount
 		if numIteratedBlocks >= fileBlockCount {
 			cancelFunc()
@@ -922,7 +922,7 @@ func TestBlockIterator(t *testing.T) {
 	classifier.RegisterMetrics(prometheus.NewRegistry())
 
 	numIteratedBlocks := uint64(0)
-	require.NoError(t, blockiterator.StartIteration(classifier, func() {
+	require.NoError(t, blockiterator.StartIteration(classifier, time.Second*10, func() {
 		numIteratedBlocks += classifier.Props().ProcessedBlockCount
 		if numIteratedBlocks >= 3 {
 			cancelFunc()

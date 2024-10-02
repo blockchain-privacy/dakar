@@ -40,15 +40,15 @@ The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured 
 
 ## Commandline Arguments
 
-|                 Flag | Default Value | Description                                                        |
-|---------------------:|:-------------:|:-------------------------------------------------------------------|
-|                reset |     false     | Remove all data from the database (default: false)                 |
-|              version |     false     | Show version information                                           |
-|         createConfig |     false     | Creates a default config file (default: false)                     |
-|      ignoresafeguard |     false     | Ignore the crawling safe guard (default: false)                    |
-|      upgradedatabase |     false     | Upgrade the database schema to the newest version (default: false) |
-|           cpuprofile |   \<empty\>   | Path where the cpu profile should be stored (default: \<empty\>)   |
-|               config |  config.yml   | Config file path (default: config.yml)                             |
+|            Flag | Default Value | Description                                                        |
+|----------------:|:-------------:|:-------------------------------------------------------------------|
+|           reset |     false     | Remove all data from the database (default: false)                 |
+|         version |     false     | Show version information                                           |
+|    createConfig |     false     | Creates a default config file (default: false)                     |
+| ignoresafeguard |     false     | Ignore the crawling safe guard (default: false)                    |
+|   upgradeschema |     false     | Upgrade the database schema to the newest version (default: false) |
+|      cpuprofile |   \<empty\>   | Path where the cpu profile should be stored (default: \<empty\>)   |
+|          config |  config.yml   | Config file path (default: config.yml)                             |
 
 
 The crawler registers its activity in the underlying Dgraph database to prevent multiple
@@ -59,14 +59,27 @@ With the `ignoresafeguard` flag the safeguard can be ignored and the crawling be
 
 The crawler is configured via a configuration file.
 
-Create a new config file with the command below. This will create a new config file named `config.yml`.
+### Using the configuartion file
 
+Create a new config file with the command below. This will create a new config file named `config.yml`.
 ```shell script
 ./crawler -createConfig
 ```
 
 Start the crawler with a new config file
-
 ```shell script
 ./crawler -config path/to/config/file.yml
+```
+
+### Target Iteration Duration
+
+Some modules process multiple blocks in one iteration. 
+The target iteration duration can be set in the configuration file via `targetDuration` in the respective module in multiples of seconds.
+Increasing `targetDuration`, increases the relative number of blocks being processed per iteration and therefore also increases the load on the system. 
+If `targetDuration` is set to 0, each iteration will only process one block. 
+Example:
+```yaml
+classifier:
+    active: true
+    targetDuration: 10 # seconds 
 ```

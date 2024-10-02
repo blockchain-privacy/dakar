@@ -85,10 +85,7 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-tx-prop="openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode())"
-          @add-tx-graph="openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode())"
-          @add-heuristic="openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode())"
-          @add-note="showAddNoteDialog"
+          :node-actions="nodeActions"
           @add-nodes="checkNodeCount"
           @delete-entity="removeContextNode"
         />
@@ -154,7 +151,7 @@
             slim
           >
             <template
-              v-for="(item, index) in contextMenuModel.items"
+              v-for="(item, index) in nodeActions"
               :key="index"
             >
               <v-divider v-if="item.isDivider" />
@@ -198,7 +195,7 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN,
+	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN, SELECTOR_STATUS_SUCCESS,
 } from '@/constants';
 import {
 	getColorMap, handleError,
@@ -231,7 +228,7 @@ const context = {addMessage: msgStore.addMessage, $route: route};
 const colorMap = getColorMap();
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
 // Non-privacy transaction
-colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607D8B');
+colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607d8b');
 
 colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
 colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
@@ -277,58 +274,58 @@ const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
 const lassoSelectedNodes = ref([]);
 const shortestPathTransactions = ref(['', '']);
-const contextMenuModel = ref({
-	display: false,
-	x: 0,
-	y: 0,
-	items: [
-		{
-			title: 'Add CoinJoin Heuristic',
-			icon: blenderPlus,
-			show: () => isHeuristicNode(nodeGraph.getContextNode())
-			|| isDestiationNode(nodeGraph.getContextNode())
-			|| isOriginNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
-		},
-		{
-			title: 'Add Property Selector',
-			icon: mdiFilterPlus,
-			show: () => isTxPropNode(nodeGraph.getContextNode())
-			|| isTxGraphNode(nodeGraph.getContextNode())
-			|| isHeuristicNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
-		},
-		{
-			title: 'Add Graph Selector',
-			icon: graphPlus,
-			show: () => isTransactionNode(nodeGraph.getContextNode()),
-			action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
-		},
-		{
-			title: 'Add Note',
-			icon: mdiNotePlus,
-			action: showAddNoteDialog,
-			show: () => nodeGraph.getContextNode()?.type !== WORKSPACE_NODE_TYPE_NOTE,
-			disabled: () => nodeGraph.getContextNode()?.loading,
-		},
-		{
-			title: 'Edit',
-			icon: mdiNoteEdit,
-			show: () => isEditEnabled(nodeGraph.getContextNode()),
-			action: () => editNote(nodeGraph.getContextNode()),
-			disabled: () => nodeGraph.getContextNode()?.loading,
-		},
-		{
-			title: 'Delete',
-			icon: mdiDelete,
-			action: removeContextNode,
-			disabled: () => !isDeleteEnabled(nodeGraph.getContextNode()),
-		},
-	],
-});
+const contextMenuModel = ref({display: false, x: 0, y: 0});
+const nodeActions = ref([
+	{
+		title: 'Add CoinJoin Heuristic',
+		color: 'primary',
+		icon: blenderPlus,
+		show: () => isHeuristicNode(nodeGraph.getContextNode())
+		|| isDestiationNode(nodeGraph.getContextNode())
+		|| isOriginNode(nodeGraph.getContextNode()),
+		action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
+		disabled: () => !acceptsChild(nodeGraph.getContextNode()),
+	},
+	{
+		title: 'Add Property Selector',
+		color: 'primary',
+		icon: mdiFilterPlus,
+		show: () => isTxPropNode(nodeGraph.getContextNode())
+		|| isTxGraphNode(nodeGraph.getContextNode())
+		|| isHeuristicNode(nodeGraph.getContextNode()),
+		action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+	},
+	{
+		title: 'Add Graph Selector',
+		color: 'primary',
+		icon: graphPlus,
+		show: () => isTransactionNode(nodeGraph.getContextNode()),
+		action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+	},
+	{
+		title: 'Add Note',
+		color: 'primary',
+		icon: mdiNotePlus,
+		action: showAddNoteDialog,
+		show: () => isModifyingWorkspace.value || !isNote(nodeGraph.getContextNode()),
+	},
+	{
+		title: 'Edit',
+		color: 'primary',
+		icon: mdiNoteEdit,
+		show: () => isNote(nodeGraph.getContextNode()),
+		action: () => editNote(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+	},
+	{
+		title: 'Delete',
+		icon: mdiDelete,
+		action: removeContextNode,
+		disabled: () => isModifyingWorkspace.value || !isDeleteEnabled(nodeGraph.getContextNode()),
+	},
+]);
 
 let autoSaveTimer = null;
 const maxNoteLength = 100;
@@ -516,8 +513,12 @@ function isOriginNode(node) {
 	return node.txtype === PRIVACY_TYPE_ORIGIN;
 }
 
-function isEditEnabled(contextNode) {
-	return contextNode?.type === WORKSPACE_NODE_TYPE_NOTE;
+function isNote(node) {
+	if (!node) {
+		return false;
+	}
+
+	return node.type === WORKSPACE_NODE_TYPE_NOTE;
 }
 
 // Checks if a node can be deleted. If a heuristic or a node
@@ -527,7 +528,7 @@ function isDeleteEnabled(contextNode) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && contextNode.txtype !== PRIVACY_TYPE_DESTINATION) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && !isDestiationNode(contextNode) && !isOriginNode(contextNode)) {
 		return true;
 	}
 
@@ -606,7 +607,6 @@ async function addMultipleNodes(nodes) {
 		});
 		if (response.nodes) {
 			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
@@ -676,7 +676,6 @@ async function addNewNote(noteText, noteUID, childUID) {
 		});
 		if (response.nodes) {
 			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
@@ -764,7 +763,6 @@ async function addNewSelector(type, options) {
 		});
 
 		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-		nodeGraph.removeAllNodes(false);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
 
@@ -798,7 +796,6 @@ async function checkWork(selectorUID) {
 		});
 		if (response.nodes) {
 			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.removeAllNodes(false);
 			nodeGraph.addNodes(response.nodes);
 		} else {
 			addWork(selectorUID);
@@ -1116,6 +1113,22 @@ async function whenMounted() {
 
 	startWaitingforSelectors(data.nodes);
 	return true;
+}
+
+// Returns true if to the given node a child can be added.
+// This is generally not the case
+// - if the node is a selector waiting to be executed
+// - if the node is a selector which failed executing
+function acceptsChild(node) {
+	if (!node) {
+		return false;
+	}
+
+	if (node.type !== WORKSPACE_NODE_TYPE_SELECTOR) {
+		return true;
+	}
+
+	return node.selectorStatus && node.selectorStatus === SELECTOR_STATUS_SUCCESS;
 }
 
 </script>

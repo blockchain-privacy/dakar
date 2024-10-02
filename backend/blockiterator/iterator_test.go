@@ -63,6 +63,18 @@ func Test_scaleBlocksPerIteration(t *testing.T) {
 			blockCount:        100,
 			want:              75,
 		},
+		{
+			target:            time.Duration(-100),
+			iterationDuration: time.Second * 6,
+			blockCount:        100,
+			want:              1,
+		},
+		{
+			target:            time.Duration(0),
+			iterationDuration: time.Second * 6,
+			blockCount:        100,
+			want:              1,
+		},
 	}
 	for _, tt := range tests {
 		require.EqualValues(t, tt.want, scaleBlocksPerIteration(tt.target, tt.iterationDuration, tt.blockCount))

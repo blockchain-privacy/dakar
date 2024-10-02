@@ -47,14 +47,24 @@ type UserModule struct {
 	Port   uint `yaml:"port"`
 }
 
+type Classifier struct {
+	Active         bool `yaml:"active"`
+	TargetDuration int  `yaml:"targetDuration"`
+}
+
+type FMIModule struct {
+	Active         bool `yaml:"active"`
+	TargetDuration int  `yaml:"targetDuration"`
+}
+
 type ModulesConfig struct {
 	HTTP       APIModule     `yaml:"api"`
 	Metrics    MetricsModule `yaml:"metrics"`
 	User       UserModule    `yaml:"user"`
 	Crawler    CrawlerModule `yaml:"crawler"`
-	FMI        bool          `yaml:"fmi"`
+	FMI        FMIModule     `yaml:"fmi"`
+	Classifier Classifier    `yaml:"classifier"`
 	HMI        bool          `yaml:"hmi"`
-	Classifier bool          `yaml:"classifier"`
 	Heuristics bool          `yaml:"heuristics"`
 }
 
@@ -94,10 +104,16 @@ var defaultConfig = Config{
 			Active: true,
 			Port:   8481,
 		},
-		Classifier: false,
+		Classifier: Classifier{
+			Active:         true,
+			TargetDuration: 10,
+		},
+		FMI: FMIModule{
+			Active:         true,
+			TargetDuration: 10,
+		},
 		Heuristics: false,
 		Crawler:    CrawlerModule{Active: true, InitialCacheSize: 25000},
-		FMI:        false,
 		HMI:        false,
 	},
 }
@@ -106,7 +122,7 @@ type Commands struct {
 	ResetDB         bool
 	IgnoreSafeGuard bool
 	ShowVersion     bool
-	UpgradeDatabase bool
+	UpgradeSchema   bool
 	CPUProfilePath  string
 }
 

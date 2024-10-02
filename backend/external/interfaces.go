@@ -3,8 +3,8 @@ package external
 import (
 	"backend/jsonrpc"
 	"context"
-	"github.com/dgraph-io/dgo/v230"
-	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/dgraph-io/dgo/v240"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
 // This package defines interfaces for external dependencies,

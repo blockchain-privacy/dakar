@@ -7,7 +7,7 @@ import (
 	"backend/db/status"
 	"backend/external"
 	"context"
-	"github.com/dgraph-io/dgo/v230/protos/api"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"reflect"
