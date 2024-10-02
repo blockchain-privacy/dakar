@@ -180,6 +180,51 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 	return &r, nil
 }
 
+// CheckDuplicateAddress checks if the provided UID maps to a cluster already contained in the uid list.
+// If a duplicate is detected, returns the uid of the uid list for which a duplicate was found.
+func CheckDuplicateAddress(ctx context.Context, c external.Database, uids []string, newUID string) (
+	string, error) {
+	if len(uids) == 0 {
+		return "", serror.New(db.ErrEmptyRequestArgument)
+	}
+
+	const query = `query Q($uids:string,$newUID:string){
+					var(func: uid($newUID))@filter(has(addresshash)){
+						newCluster as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
+					}
+
+					q(func: uid($uids))@filter(has(addresshash))@cascade{
+						uid
+						cluster:~Cluster.addresses@filter(uid(newCluster)){
+							uid
+						}
+					}
+				   }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(uids),
+		"$newUID": newUID})
+	if err != nil {
+		return "", err
+	}
+
+	// json struct
+	var r struct {
+		Query []struct {
+			UID     string       `json:"uid,omitempty"`
+			Cluster []db.UIDNode `json:"cluster,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return "", serror.New(err)
+	}
+
+	if len(r.Query) == 0 {
+		return "", nil
+	}
+
+	return r.Query[0].UID, nil
+}
+
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 //
 //nolint:gocyclo

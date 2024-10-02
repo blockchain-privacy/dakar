@@ -41,10 +41,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.52":
-  version: 1.1.52
-  resolution: "@blockchain/dakar@npm:1.1.52::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.52.tgz"
-  checksum: 10c0/db52f15ffaab9c62da84a5dddbcab5cb9efdc4d4c89b2042bef9aace8566cd8c99f8207210ec2b1624684fe900fc962038ead1fda815d70066d1f42cc38f6613
+"@blockchain/dakar@npm:^1.1.53":
+  version: 1.1.53
+  resolution: "@blockchain/dakar@npm:1.1.53::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.53.tgz"
+  checksum: 10c0/75d74aff38745011f6169d885eb7a90f33addd5bb143afda0e63a54df72c19b187d1b8b2c16fe59e66958a6b6d58517d4abd47711eef963304ff6c4c43c53d76
   languageName: node
   linkType: hard
 
@@ -1307,7 +1307,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.52"
+    "@blockchain/dakar": "npm:^1.1.53"
     "@fontsource/roboto": "npm:^5.1.0"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.6"
@@ -1330,7 +1330,7 @@ __metadata:
     eslint-plugin-vue: "npm:^9.28.0"
     eslint-plugin-vuetify: "npm:^2.4.0"
     pinia: "npm:^2.2.2"
-    sass: "npm:^1.79.3"
+    sass: "npm:^1.79.4"
     vite: "npm:^5.4.8"
     vite-plugin-vuetify: "npm:^2.0.4"
     vite-svg-loader: "npm:^5.1.0"
@@ -2797,16 +2797,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.79.3":
-  version: 1.79.3
-  resolution: "sass@npm:1.79.3"
+"sass@npm:^1.79.4":
+  version: 1.79.4
+  resolution: "sass@npm:1.79.4"
   dependencies:
     chokidar: "npm:^4.0.0"
     immutable: "npm:^4.0.0"
     source-map-js: "npm:>=0.6.2 <2.0.0"
   bin:
     sass: sass.js
-  checksum: 10c0/ad171bbbb2d7a789cc47803a59dcf2d0ac92ede34b538bb3fd683b6391a9ac3dc3eabaac264fc9582c770c4e435b85840e011785b7adfc0ac002b51ba91179c9
+  checksum: 10c0/505ff0d9267d0fb990971e617acfeabf7c060c55d4cef68fe8a4bc693e7ea88ae7d7caeca3975e4b453459ba4a707b6e5b6979fc9395a7e08f0a43ca6aed06b8
   languageName: node
   linkType: hard
 

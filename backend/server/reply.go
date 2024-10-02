@@ -1546,7 +1546,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 		newNodes[newNode.UID] = newNode
 	}
 
-	reply.Nodes, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, searchRequest.WorkspaceUID,
+	reply.Nodes, reply.DuplicateNodeUID, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, searchRequest.WorkspaceUID,
 		tUser.ID, cliutil.GetMapValues(newNodes))
 	if err != nil {
 		status = http.StatusInternalServerError
