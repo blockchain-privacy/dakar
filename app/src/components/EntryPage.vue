@@ -20,7 +20,7 @@
           style="width: 105px; height: 187px"
         >
           <v-img
-            src="../assets/dakar_animated.svg"
+            :src="DakarAnimatedImg"
             max-width="105px"
             transition="fade-transition"
           />
@@ -119,6 +119,7 @@ import {useMsgStore} from '@/pinia/msg';
 import {useExplorerStore} from '@/pinia/explorer';
 import {storeToRefs} from 'pinia';
 import {useNavStore} from '@/pinia/nav';
+import DakarAnimatedImg from '@/assets/dakar_animated.svg?url';
 
 const dakar = inject('dakar');
 const router = useRouter();

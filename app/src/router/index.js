@@ -23,6 +23,8 @@ import ErrorPage from '@/components/ErrorPage.vue';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
+import NoResultsImg from '@/assets/no_results.webp';
+import BugsImg from '@/assets/bugs.webp';
 
 let msgStore = null;
 let navStore = null;
@@ -186,7 +188,7 @@ export const router = createRouter({
 				default: true,
 				title: 'No results found!',
 				description: 'Your search query did not return any results. Either navigate back or click below to get back to the entry page.',
-				imageSource: '/src/assets/no_results.webp',
+				imageSource: NoResultsImg,
 			},
 		},
 		{
@@ -197,7 +199,7 @@ export const router = createRouter({
 				default: true,
 				title: 'Error',
 				description: '',
-				imageSource: '/src/assets/bugs.webp',
+				imageSource: BugsImg,
 			},
 		},
 		{
@@ -208,7 +210,7 @@ export const router = createRouter({
 				default: true,
 				title: '404 - Page not found!',
 				description: 'The requested page does not exist. Either navigate back or click below to get back to the entry page.',
-				imageSource: '/src/assets/bugs.webp',
+				imageSource: BugsImg,
 			},
 		},
 	],

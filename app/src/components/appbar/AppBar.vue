@@ -15,7 +15,7 @@
         style="cursor:pointer"
         alt="Dakar Logo"
         class="shrink mr-2"
-        src="../../assets/dakar.svg"
+        :src="DakarImg"
         transition="fade-transition"
         width="32"
       />
@@ -128,6 +128,7 @@ import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
+import DakarImg from '@/assets/dakar.svg?url';
 
 const ory = inject('ory');
 const localStore = useLocalStore();
