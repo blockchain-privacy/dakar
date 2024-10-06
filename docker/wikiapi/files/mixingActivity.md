@@ -8,10 +8,6 @@ the mixing activity of a user. Only directly connected transaction are shown.
 
 The bar chart view shows a timeline of all the privacy transactions. It can be filtered by transaction type and time.
 
-![mixing activity bar_chart example](img/mixing_activity_bar_chart.png)
-
 ## Force Graph
 
 The force graph view shows the connections between all the privacy transactions. It can be filtered by transaction type and time.
-
-![mixing activity force graph example](img/mixing_activity_force_graph.png)
