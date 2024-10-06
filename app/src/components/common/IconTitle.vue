@@ -1,6 +1,6 @@
 <template>
   <div
-    class="mb-1 mt-2 d-flex align-center text-h6"
+    class="d-flex align-center text-h6 ma-2"
     style="white-space: nowrap"
   >
     <v-icon class="me-2">
