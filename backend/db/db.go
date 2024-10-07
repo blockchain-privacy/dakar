@@ -291,6 +291,9 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 		return
 	}
 
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
 	// reset db
 	require.NoError(t, DropAll(database))
 
@@ -310,7 +313,7 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 		log.Panic("invalid file key")
 	}
 
-	if err := InsertArbitraryJSON(database, fileBytes); err != nil {
+	if err := InsertArbitraryJSON(ctx, database, fileBytes); err != nil {
 		log.Panic("could not upsert block data", err)
 		return
 	}

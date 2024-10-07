@@ -302,7 +302,7 @@ func main() {
 	}
 }
 
-func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]db.Block, error) {
+func getBlockRange(ctx context.Context, dgraph external.Database, firstBlock int, lastBlock int) ([]db.Block, error) {
 	numBlocks := lastBlock - firstBlock
 	if numBlocks <= 0 {
 		return nil, nil
@@ -311,7 +311,7 @@ func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]d
 	blocks := make([]db.Block, numBlocks+1)
 
 	for i := firstBlock; i <= lastBlock; i++ {
-		block, err := db.GetFullBlock(dgraph, i, true)
+		block, err := db.GetFullBlock(ctx, dgraph, i, true)
 		if err != nil {
 			return nil, err
 		}

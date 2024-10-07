@@ -7,10 +7,8 @@ import (
 
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/dgraph-io/dgo/v240/protos/api"
+	"strconv"
 )
 
 // blockDType is the dgraph database type for the Block type
@@ -95,7 +93,7 @@ func (bq blockQuery) payload() (blk Block, err error) {
 }
 
 // GetBlock gets block information from the database
-func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
+func GetBlock(ctx context.Context, c external.Database, blockHash string) (blk Block, err error) {
 	if blockHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -119,7 +117,7 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 				}
 			  }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$hash": blockHash})
+	resp, err := QueryVarWithRetry(ctx, c, query, map[string]string{"$hash": blockHash})
 	if err != nil {
 		return
 	}
@@ -134,7 +132,7 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 }
 
 // GetFullBlock gets a full block from the database
-func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err error) {
+func GetFullBlock(ctx context.Context, c external.Database, id int, convertUIDs bool) (blk Block, err error) {
 	const query = `query Q($blockID: string) {
 				q(func: eq(id, $blockID)){
 					uid
@@ -175,8 +173,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 					dgraph.type
 				}`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
-		map[string]string{"$blockID": strconv.Itoa(id)})
+	resp, err := QueryVarWithRetry(ctx, c, query, map[string]string{"$blockID": strconv.Itoa(id)})
 	if err != nil {
 		return
 	}
@@ -320,7 +317,7 @@ func GetFrontendBlock(ctx context.Context, c external.Database, blockHash string
 }
 
 // UpsertBlock upserts a block and the prevBlock relation
-func UpsertBlock(c external.Database, block Block) error {
+func UpsertBlock(ctx context.Context, c external.Database, block Block) error {
 	if block.PrevBlock == nil {
 		return serror.FromFormat("previous block reference is nil: %v", block)
 	}
@@ -353,7 +350,7 @@ func UpsertBlock(c external.Database, block Block) error {
 				}
 			  }`
 
-	return TxWithRetry(c, time.Minute*15, &api.Request{
+	return MutationWithRetry(ctx, c, &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$currentHash": block.Hash, "$prevHash": block.PrevBlock.Hash},
 		Mutations: []*api.Mutation{{
@@ -364,12 +361,12 @@ func UpsertBlock(c external.Database, block Block) error {
 }
 
 // InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
-func InsertArbitraryJSON(c external.Database, data []byte) error {
+func InsertArbitraryJSON(ctx context.Context, c external.Database, data []byte) error {
 	if len(data) == 0 {
 		return serror.New(ErrEmptyRequestArgument)
 	}
 
-	return TxWithRetry(c, time.Minute*15, &api.Request{
+	return MutationWithRetry(ctx, c, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: data,
 		}},

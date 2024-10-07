@@ -636,6 +636,8 @@ func Test_processTxVin(t *testing.T) {
 func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 
 	transactions, err := db.GetTransactionsByBlock(dbHandle,
 		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock)
@@ -664,7 +666,7 @@ func Test_processBlock(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := processBlock(dbHandle, tt.args.transactions, tt.args.currentHash,
+		err := processBlock(ctx, dbHandle, tt.args.transactions, tt.args.currentHash,
 			tt.args.blockID, tt.args.timestamp, tt.args.prevBlockHash)
 		if tt.wantErr {
 			require.Error(t, err)

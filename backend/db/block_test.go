@@ -72,32 +72,36 @@ func TestGetBlock(t *testing.T) {
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
 	const blockHash2 = "000000000020ef46c4026cb77aee959224b9bb0a23b24bc46c429d8c9cab498b"
 
-	block, err := GetBlock(dbHandle, blockHash)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
+	block, err := GetBlock(ctx, dbHandle, blockHash)
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 2)
 
-	block, err = GetBlock(dbHandle, blockHash2)
+	block, err = GetBlock(ctx, dbHandle, blockHash2)
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 1)
 
-	_, err = GetBlock(dbHandle, "")
+	_, err = GetBlock(ctx, dbHandle, "")
 	require.Error(t, err)
 }
 
 func TestGetFullBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
-
-	block, err := GetFullBlock(dbHandle, 60003, true)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	block, err := GetFullBlock(ctx, dbHandle, 60003, true)
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 2)
 
-	block, err = GetFullBlock(dbHandle, 60004, true)
+	block, err = GetFullBlock(ctx, dbHandle, 60004, true)
 	require.NoError(t, err)
 	require.Len(t, block.Transactions, 1)
 
 	// not in block file
-	_, err = GetFullBlock(dbHandle, 3, true)
+	_, err = GetFullBlock(ctx, dbHandle, 3, true)
 	require.Error(t, err)
 }
 

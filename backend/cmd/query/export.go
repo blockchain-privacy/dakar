@@ -266,7 +266,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 
 	ctx, cancelFunc := db.GetBackendContext()
 	defer cancelFunc()
-	blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
+	blockRange, err := getBlockRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting blocks")
 		return

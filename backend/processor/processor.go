@@ -396,9 +396,9 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[int32]
 }
 
 // processBlock builds a block with the provided arguments and inserts it in the database
-func processBlock(dgraph external.Database, transactions []db.Transaction, currentHash string,
+func processBlock(ctx context.Context, dgraph external.Database, transactions []db.Transaction, currentHash string,
 	blockID int64, timestamp string, prevBlockHash string) (err error) {
-	return db.UpsertBlock(dgraph, db.Block{
+	return db.UpsertBlock(ctx, dgraph, db.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		ID:        &blockID,
@@ -628,10 +628,10 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 	// Address mappings are upserted in the worst case with same mappings as already included in the database,
 	// so there is no damage done if we upsert the same mapping twice.
 	var b db.Block
-	if b, err = db.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
+	if b, err = db.GetBlock(ctx, dgraph, state.hash); err != nil || !b.IsComplete() {
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
-		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+		if err = processBlock(ctx, dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
 			err = serror.AddContext(err, "state", state.String())
 			return
 		}
