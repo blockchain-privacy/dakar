@@ -19,7 +19,7 @@ func TestNewHierarchicalMultiInput(t *testing.T) {
 func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	hm := NewHierarchicalMultiInput(ctx, nil)
@@ -47,7 +47,7 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	hm := NewHierarchicalMultiInput(ctx, dbHandle)
@@ -76,7 +76,7 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	hm := NewHierarchicalMultiInput(ctx, dbHandle)
@@ -102,7 +102,7 @@ func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	hm := NewHierarchicalMultiInput(ctx, dbHandle)
@@ -138,7 +138,7 @@ func TestHierarchicalMultiInput_Props(t *testing.T) {
 func Test_setInitialHMIClusteringID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.Error(t, setInitialHMIClusteringID(ctx, dbHandle))
 	require.NoError(t, dbstat.SetClusteringHMI(ctx, dbHandle, true))

@@ -472,7 +472,7 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	require.NoError(t, w.LoadGraphs())
 	require.True(t, w.isLoading)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
@@ -494,7 +494,7 @@ func TestWrapper_Props(t *testing.T) {
 
 func TestWrapper_CalculateInitialState(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// error because no graphs were loaded so far
 	require.Error(t, w.CalculateInitialState(ctx))
@@ -506,7 +506,7 @@ func TestWrapper_CalculateInitialState(t *testing.T) {
 
 func TestWrapper_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	w := NewWrapper(ctx, nil)
@@ -530,7 +530,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 }
 
 func TestWrapper_PostExecution(t *testing.T) {
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	w := NewWrapper(ctx, nil)
 	require.NoError(t, w.PostExecution(ctx))
@@ -557,7 +557,7 @@ func TestWrapper_Empty(t *testing.T) {
 func TestWrapper_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	w := NewWrapper(ctx, nil)

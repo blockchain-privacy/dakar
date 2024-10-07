@@ -82,7 +82,7 @@ func TestUpsertAddresses(t *testing.T) {
 
 	const newAddressHash = "some_address_hash"
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 	_, err := GetFrontendAddress(ctx, dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
 	require.Error(t, err)
@@ -107,7 +107,7 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 	blockRange, err := GetAddressesByBlockRange(ctx, dbHandle, testhelper.BlockFileFirstBlock,
 		testhelper.BlockFileLastBlock, true)

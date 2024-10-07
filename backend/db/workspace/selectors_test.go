@@ -560,7 +560,7 @@ func TestDoGraphSelection(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	uid, err := db.GetTransactionUID(ctx, dbHandle, "4652f5875e3805d9cc7b15d6f5796bfacd8fc58b3a289e1ea187055f3d9d3916")

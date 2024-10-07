@@ -107,7 +107,7 @@ mainLoop:
 			w.jobsAdded.Add(float64(len(items)))
 
 			for _, work := range items {
-				workContext, cancel := db.GetBackendContext()
+				workContext, cancel := db.GetTaskContext()
 				if err := work.Run(workContext, w.workspaceMutex, w.db, w.graphWrapper); err != nil {
 					warn(err)
 					w.jobsError.Inc()
@@ -122,7 +122,7 @@ mainLoop:
 
 // GetWork checks the database for not yet executed selectors, and constructs Work if any were found.
 func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
-	timeoutContext, cancel := context.WithTimeout(ctx, time.Minute*2)
+	timeoutContext, cancel := db.AddShortTaskContext(ctx)
 	defer cancel()
 
 	selectorItems, err := workspace.GetWaitingSelectors(timeoutContext, c, 20)

@@ -40,7 +40,7 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	upgrades := getUpgradesWithError()
@@ -89,7 +89,7 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 func Test_applyUpgrades(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[int](1)}))
 

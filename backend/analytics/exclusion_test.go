@@ -15,7 +15,7 @@ func TestImportAddressExclusions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// create dgraph user for tests

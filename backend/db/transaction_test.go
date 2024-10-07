@@ -110,7 +110,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// test null input
@@ -143,7 +143,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
@@ -159,7 +159,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 func TestGetOutputAddressCounts(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// invalid input
@@ -260,7 +260,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005)
@@ -296,7 +296,7 @@ func TestUpdateTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// empty slice should fail
@@ -348,7 +348,7 @@ func TestGetOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	transactions, err := GetOutputs(ctx, dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
@@ -369,7 +369,7 @@ func TestGetTransaction(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	tests := []struct {
@@ -404,7 +404,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005)

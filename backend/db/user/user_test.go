@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 func TestCreateNewUser(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	user, err := CreateNewUser(ctx, dbHandle)
@@ -30,7 +30,7 @@ func TestDeleteUser(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// create user

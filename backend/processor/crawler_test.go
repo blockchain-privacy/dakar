@@ -29,7 +29,7 @@ func TestCrawler_IncrementState(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
@@ -54,7 +54,7 @@ func TestCrawler_Empty(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
@@ -78,7 +78,7 @@ func TestCrawler_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	crawler := NewCrawler(ctx, dbHandle, client, 0, NewBitcoinConfig())
@@ -90,7 +90,7 @@ func TestCrawler_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	crawler := NewCrawler(ctx, dbHandle, client, 0, NewBitcoinConfig())
@@ -107,7 +107,7 @@ func TestCrawler_NextBlock(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
@@ -130,7 +130,7 @@ func TestCrawler_Iterate(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	crawler := NewCrawler(ctx, dbHandle, client, 0, c)

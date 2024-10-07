@@ -20,8 +20,6 @@ import (
 )
 
 const (
-	// backendTimeout is the duration until a request originating from the backend times out
-	backendTimeout = time.Minute * 20
 	// maxRetries is the number of transaction retries in case of an error response
 	maxRetries = 5
 	// retrySleepDuration is the duration between retries
@@ -39,7 +37,6 @@ var (
 	ErrAddressNotFound        = errors.New("no address found")
 	ErrEmptyRequestArgument   = errors.New("received empty argument")
 	ErrInvalidRequestArgument = errors.New("received invalid argument")
-	errInvalidTimeout         = errors.New("invalid timeout")
 	errInvalidResult          = errors.New("invalid result")
 	// ErrNoMutationHappened is returned if no mutation occurred
 	ErrNoMutationHappened = errors.New("no mutation happened")
@@ -63,9 +60,23 @@ func warn(err error, v ...any) {
 	serror.Log(thisLogger, err, v...)
 }
 
-// GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
-func GetBackendContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), backendTimeout)
+// GetLongTaskContext returns a context with a timeout of 2 hours
+func GetLongTaskContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), time.Hour*2)
+}
+
+// GetTaskContext returns a context with a timeout of 20 minutes
+func GetTaskContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), time.Minute*20)
+}
+
+// GetShortTaskContext returns a context with a timeout of 10 seconds
+func GetShortTaskContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), time.Second*10)
+}
+
+func AddShortTaskContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, time.Second*10)
 }
 
 // WithRetry calls the given function. If dgo.ErrAborted is returned, the function
@@ -97,17 +108,10 @@ func WithRetry(f func() error, retryDuration time.Duration) error {
 
 // ExecTx executes the given request. The caller is responsible for
 // retrying the transactions in case it is discarded (check error for dgo.ErrAborted).
-func ExecTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
-	if timeoutPerRequest <= 0 {
-		return nil, serror.New(errInvalidTimeout)
-	}
-
+func ExecTx(ctx context.Context, tx *dgo.Txn, req *api.Request) (*api.Response, error) {
 	if req == nil || tx == nil {
 		return nil, serror.New(ErrEmptyRequestArgument)
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
-	defer cancel()
 
 	resp, err := tx.Do(ctx, req)
 	if err != nil {
@@ -159,7 +163,7 @@ func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
 
 // DropAll drops ALL data from the database, schema included
 func DropAll(db external.Database) error {
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 	err := db.Alter(ctx, &api.Operation{
 		DropAll: true,
@@ -203,7 +207,7 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 		return
 	}
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// reset db

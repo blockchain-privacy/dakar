@@ -9,7 +9,6 @@ import (
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/stretchr/testify/require"
 	"testing"
-	"time"
 )
 
 var dbHandle = &testhelper.TestDB{IsDirty: true}
@@ -29,7 +28,7 @@ func TestInfo(t *testing.T) {
 
 func TestGetBackendContext(t *testing.T) {
 	require.NotPanics(t, func() {
-		_, cancel := GetBackendContext()
+		_, cancel := GetTaskContext()
 		cancel()
 	})
 }
@@ -37,16 +36,22 @@ func TestGetBackendContext(t *testing.T) {
 func TestExecTx(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	_, err := ExecTx(dbHandle.NewTxn(), time.Duration(0), &api.Request{
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
+	defer cancel()
+
+	_, err := ExecTx(ctx, dbHandle.NewTxn(), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
 	require.Error(t, err)
 
-	_, err = ExecTx(dbHandle.NewTxn(), time.Minute, nil)
+	ctx, cancel = GetShortTaskContext()
+	defer cancel()
+
+	_, err = ExecTx(ctx, nil, nil)
 	require.Error(t, err)
 
-	_, err = ExecTx(dbHandle.NewTxn(), time.Minute, &api.Request{
+	_, err = ExecTx(ctx, dbHandle.NewTxn(), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})

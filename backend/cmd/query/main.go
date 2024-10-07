@@ -238,7 +238,7 @@ func main() {
 		}
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Hour*2)
+	ctx, cancel := db.GetLongTaskContext()
 	defer cancel()
 
 	if newConfig.PrivacyCharts.Active {

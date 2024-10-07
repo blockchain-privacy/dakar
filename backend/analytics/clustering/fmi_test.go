@@ -282,7 +282,7 @@ func TestNewFlatMultiInput(t *testing.T) {
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	fm := NewFlatMultiInput(ctx, nil)
@@ -310,7 +310,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	fm := NewFlatMultiInput(ctx, dbHandle)
@@ -338,7 +338,7 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	fm := NewFlatMultiInput(ctx, dbHandle)
@@ -363,7 +363,7 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 func TestFlatMultiInput_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	fm := NewFlatMultiInput(ctx, dbHandle)
 
@@ -401,7 +401,7 @@ func Test_setInitialFMIClusteringID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	require.Error(t, setInitialFMIClusteringID(ctx, dbHandle))

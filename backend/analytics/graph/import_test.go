@@ -210,7 +210,7 @@ func Test_loadOriginTransactions(t *testing.T) {
 	// testdata contains 1 origin transaction
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	g := NewReversibleGraph(1)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.NoError(t, loadOriginTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 1, g.Nodes().Len())
@@ -222,7 +222,7 @@ func Test_loadDestinationTransactions(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 
 	g := NewReversibleGraph(1)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	require.NoError(t, loadDestinationTransactions(ctx, dbHandle, g, 0))
@@ -234,7 +234,7 @@ func Test_loadMixingTransactions(t *testing.T) {
 	// testdata contains 132 mixing transactions and 557 input transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	g := NewReversibleGraph(132)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.NoError(t, loadMixingTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 689, g.Nodes().Len())
@@ -245,7 +245,7 @@ func Test_loadCCTransactions(t *testing.T) {
 	// testdata contains 0 cc transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	g := NewReversibleGraph(132)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.NoError(t, loadCCTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 0, g.Nodes().Len())
@@ -254,7 +254,7 @@ func Test_loadCCTransactions(t *testing.T) {
 func TestLoadTransactionGraph(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	graph, err := LoadTransactionGraph(ctx, dbHandle, 0)
 	require.NoError(t, err)

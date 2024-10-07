@@ -232,7 +232,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 			// ProcessClusterOperations uses a long running transaction,
 			// therefore transaction retrying has to be handled manually
 			if err = db.WithRetry(func() error {
-				return clustering.ProcessClusterOperations(m.db, operations)
+				return clustering.ProcessClusterOperations(ctx, m.db, operations)
 			}, 5); err != nil {
 				return false, err
 			}

@@ -18,7 +18,7 @@ func TestGetCrawlerStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// crawler status not yet set
 	_, err := GetCrawlerStatus(ctx, dbHandle)
@@ -46,7 +46,7 @@ func TestGetClassifierStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// classifier status not yet set
 	_, err := GetClassifierStatus(ctx, dbHandle)
@@ -73,7 +73,7 @@ func TestGetClassifierStatus(t *testing.T) {
 func TestGetClusteringHMIStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// clustering status not yet set
 	_, err := GetClusteringHMIStatus(ctx, dbHandle)
@@ -101,7 +101,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// clustering status not yet set
@@ -130,7 +130,7 @@ func TestGetHighestBlockID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	blockHeight, err := GetHighestBlockID(ctx, dbHandle)
@@ -142,7 +142,7 @@ func TestGetFrontendStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// nothing set yet -> should fail
@@ -166,7 +166,7 @@ func TestGetMeta(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// nothing set yet -> should fail

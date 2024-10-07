@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 func TestAddWorkspace(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// create dgraph user for tests
@@ -184,7 +184,7 @@ func TestDeleteNodes(t *testing.T) {
 
 func TestDeleteWorkspace(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(ctx, dbHandle)

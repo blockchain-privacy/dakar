@@ -45,7 +45,7 @@ func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgRep
 
 	// not using the request context here, because user deletion process should
 	// continue even if the request gets cancelled or times out
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	if err := exclusion.DeleteAllAddressExclusions(ctx, dgraph, uid); err != nil {

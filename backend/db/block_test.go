@@ -72,7 +72,7 @@ func TestGetBlock(t *testing.T) {
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
 	const blockHash2 = "000000000020ef46c4026cb77aee959224b9bb0a23b24bc46c429d8c9cab498b"
 
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	block, err := GetBlock(ctx, dbHandle, blockHash)
@@ -90,7 +90,7 @@ func TestGetBlock(t *testing.T) {
 func TestGetFullBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 	block, err := GetFullBlock(ctx, dbHandle, 60003, true)
 	require.NoError(t, err)

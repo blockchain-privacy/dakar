@@ -10,11 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 	"log"
 	"strconv"
-	"time"
-
-	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
@@ -260,16 +258,14 @@ type DBOperation struct {
 }
 
 // ProcessClusterOperations performs the given operations
-func ProcessClusterOperations(c external.Database, operations []DBOperation) error {
+func ProcessClusterOperations(ctx context.Context, c external.Database, operations []DBOperation) error {
 	txn := c.NewTxn()
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*5)
 	defer func(txn *dgo.Txn, ctx context.Context) {
 		err := txn.Discard(ctx)
 		if err != nil {
 			log.Println("error while discarding transaction:", err)
 		}
 	}(txn, ctx)
-	defer cancelFunc()
 
 	// step 1: set new clusters and add new addresses to existing clusters
 	clusters := make([]Cluster, len(operations))
@@ -310,7 +306,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 		}},
 		CommitNow: !existClusterMerges,
 	}
-	_, err = db.ExecTx(txn, time.Minute*5, req)
+	_, err = db.ExecTx(ctx, txn, req)
 	if err != nil {
 		return err
 	}
@@ -325,7 +321,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 			SetNquads: []byte(setNquads),
 		}},
 	}
-	_, err = db.ExecTx(txn, time.Minute*5, req)
+	_, err = db.ExecTx(ctx, txn, req)
 	if err != nil {
 		return err
 	}
@@ -337,7 +333,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 		}},
 		CommitNow: true,
 	}
-	_, err = db.ExecTx(txn, time.Minute*5, req)
+	_, err = db.ExecTx(ctx, txn, req)
 	return err
 }
 

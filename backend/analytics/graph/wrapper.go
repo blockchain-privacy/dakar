@@ -2,6 +2,7 @@ package graph
 
 import (
 	"backend/blockiterator"
+	"backend/db"
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
@@ -159,7 +160,7 @@ func (w *Wrapper) LoadGraphs() error {
 
 	w.isLoading = true
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Hour*2)
+	ctx, cancel := db.GetLongTaskContext()
 	defer cancel()
 
 	classifierStatus, err := status.GetClassifierStatus(ctx, w.db)

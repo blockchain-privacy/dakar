@@ -1,6 +1,7 @@
 package blockiterator
 
 import (
+	"backend/db"
 	"context"
 	"errors"
 	"fmt"
@@ -102,7 +103,7 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 		info(iterator, "iterator stopped", "current block", iterator.Props().CurrentBlock)
 
 		// separate context because iterator context is cancelled at this point
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+		ctx, cancel := db.GetShortTaskContext()
 		defer cancel()
 		// if the call to PostExecution results in an error, then only set the
 		// error if the error is currently nil
@@ -148,7 +149,7 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+		ctx, cancel := db.GetLongTaskContext()
 		now := time.Now()
 		ok, iterateErr := iterator.Iterate(ctx)
 		// can't use defer in loop and context is only needed of Iterate()

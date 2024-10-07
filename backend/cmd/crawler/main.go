@@ -128,7 +128,7 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) erro
 		return nil
 	}
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	if err := db.DropAll(database); err != nil {

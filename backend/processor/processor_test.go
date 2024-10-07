@@ -221,7 +221,7 @@ func TestProcessAddresses(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// calling with empty mapping is allowed
@@ -636,7 +636,7 @@ func Test_processTxVin(t *testing.T) {
 func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	transactions, err := db.GetTransactionsByBlock(ctx, dbHandle,
@@ -680,7 +680,7 @@ func Test_getStartingID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	require.NoError(t, status.SetCrawling(ctx, dbHandle, true))
@@ -719,7 +719,7 @@ func Test_getInitialState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	_, err := getInitialState(ctx, dbHandle, client)
@@ -750,7 +750,7 @@ func Test_getExternalOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	tests := []struct {
@@ -791,7 +791,7 @@ func Test_processRound(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
