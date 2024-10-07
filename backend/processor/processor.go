@@ -6,6 +6,7 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"backend/jsonrpc"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -412,8 +413,8 @@ var errBlockIDsDoNotMatch = errors.New("block id of last crawled block and highe
 
 // getStartingID gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
-func getStartingID(dgraph external.Database) (startID int64, err error) {
-	status, err := dbstat.GetCrawlerStatus(dgraph)
+func getStartingID(ctx context.Context, dgraph external.Database) (startID int64, err error) {
+	status, err := dbstat.GetCrawlerStatus(ctx, dgraph)
 	if err != nil {
 		return
 	}
@@ -424,7 +425,7 @@ func getStartingID(dgraph external.Database) (startID int64, err error) {
 		return
 	}
 
-	highestBlockID, err := dbstat.GetHighestBlockID(dgraph)
+	highestBlockID, err := dbstat.GetHighestBlockID(ctx, dgraph)
 	if err != nil {
 		return
 	}
@@ -496,8 +497,8 @@ func getRPCNumberOfBlocks(client external.RPCClient) (int64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
-	if state.id, err = getStartingID(dgraph); err != nil {
+func getInitialState(ctx context.Context, dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
+	if state.id, err = getStartingID(ctx, dgraph); err != nil {
 		if !errors.Is(err, errBlockIDsDoNotMatch) {
 			return
 		}
@@ -580,7 +581,7 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]int32) (m
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
+func processRound(ctx context.Context, dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
 	block *jsonrpc.GetBlockVerboseResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []transactionMapping
@@ -681,7 +682,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 	}
 
 	// save processing state
-	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
+	if err = dbstat.SetLastBlockID(ctx, dgraph, state.id); err != nil {
 		err = serror.AddContext(err, "state", state.String())
 		return
 	}

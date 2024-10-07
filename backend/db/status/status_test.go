@@ -18,24 +18,26 @@ func TestGetCrawlerStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 	// crawler status not yet set
-	_, err := GetCrawlerStatus(dbHandle)
+	_, err := GetCrawlerStatus(ctx, dbHandle)
 	require.Error(t, err)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
 
 	// set crawling
-	require.NoError(t, SetCrawling(dbHandle, true))
+	require.NoError(t, SetCrawling(ctx, dbHandle, true))
 
-	status, err := GetCrawlerStatus(dbHandle)
+	status, err := GetCrawlerStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.True(t, *status.IsCrawling)
 
 	// set not crawling
-	require.NoError(t, SetCrawling(dbHandle, false))
+	require.NoError(t, SetCrawling(ctx, dbHandle, false))
 
-	status, err = GetCrawlerStatus(dbHandle)
+	status, err = GetCrawlerStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.False(t, *status.IsCrawling)
 }
@@ -44,24 +46,26 @@ func TestGetClassifierStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 	// classifier status not yet set
-	_, err := GetClassifierStatus(dbHandle)
+	_, err := GetClassifierStatus(ctx, dbHandle)
 	require.Error(t, err)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
 
 	// set classifying
-	require.NoError(t, SetClassifying(dbHandle, true))
+	require.NoError(t, SetClassifying(ctx, dbHandle, true))
 
-	status, err := GetClassifierStatus(dbHandle)
+	status, err := GetClassifierStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.True(t, *status.IsClassifying)
 
 	// set not classifying
-	require.NoError(t, SetClassifying(dbHandle, false))
+	require.NoError(t, SetClassifying(ctx, dbHandle, false))
 
-	status, err = GetClassifierStatus(dbHandle)
+	status, err = GetClassifierStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.False(t, *status.IsClassifying)
 }
@@ -69,25 +73,26 @@ func TestGetClassifierStatus(t *testing.T) {
 func TestGetClusteringHMIStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
-
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 	// clustering status not yet set
-	_, err := GetClusteringHMIStatus(dbHandle)
+	_, err := GetClusteringHMIStatus(ctx, dbHandle)
 	require.Error(t, err)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
 
 	// set clustering
-	require.NoError(t, SetClusteringHMI(dbHandle, true))
+	require.NoError(t, SetClusteringHMI(ctx, dbHandle, true))
 
-	status, err := GetClusteringHMIStatus(dbHandle)
+	status, err := GetClusteringHMIStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.True(t, *status.IsClustering)
 
 	// set not clustering
-	require.NoError(t, SetClusteringHMI(dbHandle, false))
+	require.NoError(t, SetClusteringHMI(ctx, dbHandle, false))
 
-	status, err = GetClusteringHMIStatus(dbHandle)
+	status, err = GetClusteringHMIStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.False(t, *status.IsClustering)
 }
@@ -96,24 +101,27 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	// clustering status not yet set
-	_, err := GetClusteringFMIStatus(dbHandle)
+	_, err := GetClusteringFMIStatus(ctx, dbHandle)
 	require.Error(t, err)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
 
 	// set clustering
-	require.NoError(t, SetClusteringFMI(dbHandle, true))
+	require.NoError(t, SetClusteringFMI(ctx, dbHandle, true))
 
-	status, err := GetClusteringFMIStatus(dbHandle)
+	status, err := GetClusteringFMIStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.True(t, *status.IsClustering)
 
 	// set not clustering
-	require.NoError(t, SetClusteringFMI(dbHandle, false))
+	require.NoError(t, SetClusteringFMI(ctx, dbHandle, false))
 
-	status, err = GetClusteringFMIStatus(dbHandle)
+	status, err = GetClusteringFMIStatus(ctx, dbHandle)
 	require.NoError(t, err)
 	require.False(t, *status.IsClustering)
 }
@@ -122,7 +130,10 @@ func TestGetHighestBlockID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	blockHeight, err := GetHighestBlockID(dbHandle)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	blockHeight, err := GetHighestBlockID(ctx, dbHandle)
 	require.NoError(t, err)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, blockHeight)
 }
@@ -131,16 +142,19 @@ func TestGetFrontendStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	// nothing set yet -> should fail
-	_, err := GetFrontendStatus(context.Background(), dbHandle)
+	_, err := GetFrontendStatus(ctx, dbHandle)
 	require.Error(t, err)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
 
 	// set crawling
-	require.NoError(t, SetCrawling(dbHandle, true))
-	require.NoError(t, SetLastBlockID(dbHandle, 50))
+	require.NoError(t, SetCrawling(ctx, dbHandle, true))
+	require.NoError(t, SetLastBlockID(ctx, dbHandle, 50))
 
 	status, err := GetFrontendStatus(context.Background(), dbHandle)
 	require.NoError(t, err)
@@ -152,17 +166,20 @@ func TestGetMeta(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	// nothing set yet -> should fail
-	_, err := GetMeta(dbHandle)
+	_, err := GetMeta(ctx, dbHandle)
 	require.Error(t, err)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
 
 	// set schema version
-	require.NoError(t, InitializeMeta(dbHandle, "Dash"))
+	require.NoError(t, InitializeMeta(ctx, dbHandle, "Dash"))
 
-	metaResult, err := GetMeta(dbHandle)
+	metaResult, err := GetMeta(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotNil(t, metaResult.SchemaVersion)
 	require.Equal(t, db.SchemaVersion, *metaResult.SchemaVersion)

@@ -69,21 +69,21 @@ func (m *FlatMultiInput) RegisterMetrics(req prometheus.Registerer) {
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (m *FlatMultiInput) CalculateInitialState() error {
-	if err := dbstat.SetClusteringFMI(m.db, true); err != nil {
+func (m *FlatMultiInput) CalculateInitialState(ctx context.Context) error {
+	if err := dbstat.SetClusteringFMI(ctx, m.db, true); err != nil {
 		return err
 	}
 
-	if err := setInitialFMIClusteringID(m.db); err != nil {
+	if err := setInitialFMIClusteringID(ctx, m.db); err != nil {
 		return err
 	}
 
-	classifierStatus, err := dbstat.GetClassifierStatus(m.db)
+	classifierStatus, err := dbstat.GetClassifierStatus(ctx, m.db)
 	if err != nil {
 		return err
 	}
 
-	clusteringStatus, err := dbstat.GetClusteringFMIStatus(m.db)
+	clusteringStatus, err := dbstat.GetClusteringFMIStatus(ctx, m.db)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 }
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
-func (m *FlatMultiInput) Iterate() (bool, error) {
+func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 	if m.maxBlocks == 0 {
 		return false, serror.FromStr("max blocks must be higher than zero")
 	}
@@ -247,7 +247,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	}
 
 	// set the last clustered block
-	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, toBlockID); statusErr != nil {
+	if statusErr := dbstat.SetLastClusteredFMIBlockID(ctx, m.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
@@ -270,8 +270,8 @@ func (m *FlatMultiInput) Props() blockiterator.Properties {
 }
 
 // Next tries to increase the internal state to the next block
-func (m *FlatMultiInput) Next() (bool, error) {
-	status, err := dbstat.GetClassifierStatus(m.db)
+func (m *FlatMultiInput) Next(ctx context.Context) (bool, error) {
+	status, err := dbstat.GetClassifierStatus(ctx, m.db)
 	if err != nil {
 		return false, err
 	} else if status.LastClassifiedBlockID == nil {
@@ -286,8 +286,8 @@ func (m *FlatMultiInput) Next() (bool, error) {
 	return false, nil
 }
 
-func (m *FlatMultiInput) PostExecution() error {
-	return dbstat.SetClusteringFMI(m.db, false)
+func (m *FlatMultiInput) PostExecution(ctx context.Context) error {
+	return dbstat.SetClusteringFMI(ctx, m.db, false)
 }
 
 func (m *FlatMultiInput) SetMaxBlocks(blockCount int64) {
@@ -305,14 +305,14 @@ func (m *FlatMultiInput) Empty() bool {
 }
 
 // setInitialFMIClusteringID sets the starting FMI clustering block id to 0 if no value has been set yet
-func setInitialFMIClusteringID(dgraph external.Database) error {
-	status, err := dbstat.GetClusteringFMIStatus(dgraph)
+func setInitialFMIClusteringID(ctx context.Context, dgraph external.Database) error {
+	status, err := dbstat.GetClusteringFMIStatus(ctx, dgraph)
 	if err != nil {
 		return err
 	}
 
 	if status.LastClusteredBlockID == nil {
-		if err = dbstat.SetLastClusteredFMIBlockID(dgraph, 0); err != nil {
+		if err = dbstat.SetLastClusteredFMIBlockID(ctx, dgraph, 0); err != nil {
 			return err
 		}
 	}

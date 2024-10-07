@@ -166,25 +166,25 @@ func (c *Classifier) Empty() bool {
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (c *Classifier) CalculateInitialState() error {
+func (c *Classifier) CalculateInitialState(ctx context.Context) error {
 	if !c.config.IsClassifyingEnabled {
 		return serror.FromStr("classifying is disabled per configuration")
 	}
 
-	if err := dbstat.SetClassifying(c.db, true); err != nil {
+	if err := dbstat.SetClassifying(ctx, c.db, true); err != nil {
 		return err
 	}
 
-	if err := setInitialClassifierID(c.db); err != nil {
+	if err := setInitialClassifierID(ctx, c.db); err != nil {
 		return err
 	}
 
-	crawlerStatus, err := dbstat.GetCrawlerStatus(c.db)
+	crawlerStatus, err := dbstat.GetCrawlerStatus(ctx, c.db)
 	if err != nil {
 		return err
 	}
 
-	classifierStatus, err := dbstat.GetClassifierStatus(c.db)
+	classifierStatus, err := dbstat.GetClassifierStatus(ctx, c.db)
 	if err != nil {
 		return err
 	}
@@ -264,8 +264,8 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 
 // Next tries to increase the internal state to the next block.
 // Returns true if the top block id was changed
-func (c *Classifier) Next() (bool, error) {
-	status, err := dbstat.GetCrawlerStatus(c.db)
+func (c *Classifier) Next(ctx context.Context) (bool, error) {
+	status, err := dbstat.GetCrawlerStatus(ctx, c.db)
 	if err != nil {
 		return false, err
 	} else if status.LastBlockID == nil {
@@ -283,7 +283,7 @@ func (c *Classifier) Next() (bool, error) {
 // Iterate classifies all transactions of the current block based
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
-func (c *Classifier) Iterate() (bool, error) {
+func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
 	if c.maxBlocks == 0 {
 		return false, serror.FromStr("max blocks must be higher than zero")
 	}
@@ -398,7 +398,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, toBlockID); statusErr != nil {
+	if statusErr := dbstat.SetLastClassifiedBlockID(ctx, c.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
@@ -411,20 +411,20 @@ func (c *Classifier) Iterate() (bool, error) {
 }
 
 // PostExecution sets the classifier status activity flag to false
-func (c *Classifier) PostExecution() error {
-	return dbstat.SetClassifying(c.db, false)
+func (c *Classifier) PostExecution(ctx context.Context) error {
+	return dbstat.SetClassifying(ctx, c.db, false)
 }
 
 // setInitialClassifierID sets the starting classifier block id to the
 // value of startBlockClassifier if no value has been set yet
-func setInitialClassifierID(dgraph external.Database) (err error) {
-	status, err := dbstat.GetClassifierStatus(dgraph)
+func setInitialClassifierID(ctx context.Context, dgraph external.Database) (err error) {
+	status, err := dbstat.GetClassifierStatus(ctx, dgraph)
 	if err != nil {
 		return
 	}
 
 	if status.LastClassifiedBlockID == nil {
-		if err = dbstat.SetLastClassifiedBlockID(dgraph, 0); err != nil {
+		if err = dbstat.SetLastClassifiedBlockID(ctx, dgraph, 0); err != nil {
 			return
 		}
 	}

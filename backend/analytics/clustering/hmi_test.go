@@ -19,23 +19,26 @@ func TestNewHierarchicalMultiInput(t *testing.T) {
 func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	hm := NewHierarchicalMultiInput(ctx, nil)
 	hm.RegisterMetrics(prometheus.NewRegistry())
 	// panics because db is not set
 	require.Panics(t, func() {
-		_ = hm.CalculateInitialState()
+		_ = hm.CalculateInitialState(ctx)
 	})
 
 	hm.db = dbHandle
 	db.SetupDBWithoutData(t, dbHandle)
 
 	// error because classifier status is not set
-	require.Error(t, hm.CalculateInitialState())
+	require.Error(t, hm.CalculateInitialState(ctx))
 
 	// set classifier status
-	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
 
-	require.NoError(t, hm.CalculateInitialState())
+	require.NoError(t, hm.CalculateInitialState(ctx))
 	require.EqualValues(t, 1, hm.state.ID)
 	require.EqualValues(t, 0, hm.state.Top)
 }
@@ -43,24 +46,28 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	hm := NewHierarchicalMultiInput(ctx, dbHandle)
 	hm.RegisterMetrics(prometheus.NewRegistry())
 
-	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
-	require.NoError(t, hm.CalculateInitialState())
+	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
+	require.NoError(t, hm.CalculateInitialState(ctx))
 
 	// error because queue is empty
-	ok, err := hm.Iterate()
+	ok, err := hm.Iterate(ctx)
 	require.Error(t, err)
 	require.False(t, ok)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
-	require.NoError(t, hm.CalculateInitialState())
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, hm.CalculateInitialState(ctx))
 
 	// this block contains transactions with multiple input addresses
 	hm.state.ID = 60015
 
-	ok, err = hm.Iterate()
+	ok, err = hm.Iterate(ctx)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
@@ -69,20 +76,23 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	hm := NewHierarchicalMultiInput(ctx, dbHandle)
 
 	// error because no status is set
-	_, err := hm.Next()
+	_, err := hm.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
 
 	// error because not classified block is set
-	_, err = hm.Next()
+	_, err = hm.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
-	ok, err := hm.Next()
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	ok, err := hm.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, ok)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, hm.state.Top)
@@ -92,9 +102,12 @@ func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 
-	require.NoError(t, hm.PostExecution())
+	hm := NewHierarchicalMultiInput(ctx, dbHandle)
+
+	require.NoError(t, hm.PostExecution(ctx))
 }
 
 func TestHierarchicalMultiInput_IncrementState(t *testing.T) {
@@ -125,10 +138,11 @@ func TestHierarchicalMultiInput_Props(t *testing.T) {
 func Test_setInitialHMIClusteringID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
-
-	require.Error(t, setInitialHMIClusteringID(dbHandle))
-	require.NoError(t, dbstat.SetClusteringHMI(dbHandle, true))
-	require.NoError(t, setInitialHMIClusteringID(dbHandle))
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	require.Error(t, setInitialHMIClusteringID(ctx, dbHandle))
+	require.NoError(t, dbstat.SetClusteringHMI(ctx, dbHandle, true))
+	require.NoError(t, setInitialHMIClusteringID(ctx, dbHandle))
 }
 
 func Test_getClusterRootByCluster(t *testing.T) {

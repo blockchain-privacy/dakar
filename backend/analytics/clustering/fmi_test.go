@@ -282,23 +282,26 @@ func TestNewFlatMultiInput(t *testing.T) {
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	fm := NewFlatMultiInput(context.Background(), nil)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	fm := NewFlatMultiInput(ctx, nil)
 	fm.RegisterMetrics(prometheus.NewRegistry())
 	// panics because db is not set
 	require.Panics(t, func() {
-		_ = fm.CalculateInitialState()
+		_ = fm.CalculateInitialState(ctx)
 	})
 
 	fm.db = dbHandle
 	db.SetupDBWithoutData(t, dbHandle)
 
 	// error because classifier status is not set
-	require.Error(t, fm.CalculateInitialState())
+	require.Error(t, fm.CalculateInitialState(ctx))
 
 	// set classifier status
-	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
 
-	require.NoError(t, fm.CalculateInitialState())
+	require.NoError(t, fm.CalculateInitialState(ctx))
 	require.EqualValues(t, 1, fm.state.ID)
 	require.EqualValues(t, 0, fm.state.Top)
 }
@@ -307,23 +310,26 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	fm := NewFlatMultiInput(ctx, dbHandle)
 	fm.RegisterMetrics(prometheus.NewRegistry())
-	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
-	require.NoError(t, fm.CalculateInitialState())
+	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
+	require.NoError(t, fm.CalculateInitialState(ctx))
 
 	// error because queue is empty
-	ok, err := fm.Iterate()
+	ok, err := fm.Iterate(ctx)
 	require.Error(t, err)
 	require.False(t, ok)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
-	require.NoError(t, fm.CalculateInitialState())
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, fm.CalculateInitialState(ctx))
 
 	// this block contains transactions with multiple input addresses
 	fm.state.ID = 60015
 
-	ok, err = fm.Iterate()
+	ok, err = fm.Iterate(ctx)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
@@ -332,20 +338,23 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	fm := NewFlatMultiInput(ctx, dbHandle)
 
 	// error because no status is set
-	_, err := fm.Next()
+	_, err := fm.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
 
 	// error because not classified block is set
-	_, err = fm.Next()
+	_, err = fm.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
-	ok, err := fm.Next()
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	ok, err := fm.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, ok)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, fm.state.Top)
@@ -354,10 +363,11 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 func TestFlatMultiInput_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	fm := NewFlatMultiInput(ctx, dbHandle)
 
-	fm := NewFlatMultiInput(context.Background(), dbHandle)
-
-	require.NoError(t, fm.PostExecution())
+	require.NoError(t, fm.PostExecution(ctx))
 }
 
 func TestFlatMultiInput_IncrementState(t *testing.T) {
@@ -391,7 +401,10 @@ func Test_setInitialFMIClusteringID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	require.Error(t, setInitialFMIClusteringID(dbHandle))
-	require.NoError(t, dbstat.SetClusteringFMI(dbHandle, true))
-	require.NoError(t, setInitialFMIClusteringID(dbHandle))
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	require.Error(t, setInitialFMIClusteringID(ctx, dbHandle))
+	require.NoError(t, dbstat.SetClusteringFMI(ctx, dbHandle, true))
+	require.NoError(t, setInitialFMIClusteringID(ctx, dbHandle))
 }

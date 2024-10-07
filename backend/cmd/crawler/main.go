@@ -128,6 +128,9 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) erro
 		return nil
 	}
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	if err := db.DropAll(database); err != nil {
 		return err
 	}
@@ -138,7 +141,7 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) erro
 	}
 	info("Successfully set up new schema.")
 
-	if err := status.InitializeMeta(database, blockchainMode); err != nil {
+	if err := status.InitializeMeta(ctx, database, blockchainMode); err != nil {
 		return err
 	}
 	info("Successfully initialized database")

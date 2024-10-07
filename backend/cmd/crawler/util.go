@@ -124,7 +124,10 @@ type Commands struct {
 
 // checks if a crawling process is already running
 func isCrawling(db external.Database) (bool, error) {
-	dbStatus, err := status.GetCrawlerStatus(db)
+	// short timeout as this is early in the execution process
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	dbStatus, err := status.GetCrawlerStatus(ctx, db)
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now
@@ -210,7 +213,10 @@ func printVersion(blockchainMode string) {
 
 // checkMeta returns true if the blockchain mode and the schema version of the database match with the executable.
 func checkMeta(db external.Database, blockchainMode string) bool {
-	meta, err := status.GetMeta(db)
+	// short timeout as this is early in the execution process
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	meta, err := status.GetMeta(ctx, db)
 	if err != nil {
 		warn(err)
 		return false

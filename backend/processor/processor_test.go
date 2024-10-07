@@ -675,27 +675,30 @@ func Test_getStartingID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	require.NoError(t, status.SetCrawling(dbHandle, true))
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 
-	gotStartID, err := getStartingID(dbHandle)
+	require.NoError(t, status.SetCrawling(ctx, dbHandle, true))
+
+	gotStartID, err := getStartingID(ctx, dbHandle)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotStartID)
 
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling: testhelper.GetPointer[bool](true),
 		// make blocks not match
 		LastBlockID: testhelper.GetPointer[int64](5),
 	}))
-	_, err = getStartingID(dbHandle)
+	_, err = getStartingID(ctx, dbHandle)
 	require.Error(t, err)
 
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  testhelper.GetPointer[bool](true),
 		LastBlockID: testhelper.GetPointer[int64](testhelper.BlockFileLastBlock),
 	}))
-	gotStartID, err = getStartingID(dbHandle)
+	gotStartID, err = getStartingID(ctx, dbHandle)
 	require.NoError(t, err)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, gotStartID)
 }
@@ -711,12 +714,15 @@ func Test_getInitialState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	_, err := getInitialState(dbHandle, client)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	_, err := getInitialState(ctx, dbHandle, client)
 	require.Error(t, err)
 
-	require.NoError(t, status.SetCrawling(dbHandle, true))
+	require.NoError(t, status.SetCrawling(ctx, dbHandle, true))
 
-	_, err = getInitialState(dbHandle, client)
+	_, err = getInitialState(ctx, dbHandle, client)
 	require.NoError(t, err)
 }
 
@@ -777,6 +783,9 @@ func Test_processRound(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
@@ -805,7 +814,7 @@ func Test_processRound(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		_, _, err := processRound(dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		_, _, err := processRound(ctx, dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

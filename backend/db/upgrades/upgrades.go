@@ -25,7 +25,7 @@ var availableUpgrades = map[int]UpgradePackage{
 			func() schemaUpgrade {
 				return func(c external.Database) error {
 					zero := int64(0)
-					return status.SetClusteringFMIStatus(c, status.ClusteringFlatMultiInputStatus{
+					return status.SetClusteringFMIStatus(context.Background(), c, status.ClusteringFlatMultiInputStatus{
 						LastClusteredBlockID: &zero,
 					})
 				}
@@ -38,7 +38,7 @@ var availableUpgrades = map[int]UpgradePackage{
 	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
 	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
 	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType, func() schemaUpgrade {
-		return func(c external.Database) error { return status.SetLastClassifiedBlockID(c, 0) }
+		return func(c external.Database) error { return status.SetLastClassifiedBlockID(context.Background(), c, 0) }
 	}()}},
 	11: {upgrades: []schemaUpgrade{AlterSchemaRemoveClusterTypeIndex}},
 }
@@ -63,8 +63,8 @@ func getFunctionName(i interface{}) string {
 }
 
 // GetSchemaVersion returns the schema version of the database
-func GetSchemaVersion(db external.Database) (int, error) {
-	meta, err := status.GetMeta(db)
+func GetSchemaVersion(ctx context.Context, db external.Database) (int, error) {
+	meta, err := status.GetMeta(ctx, db)
 	if err != nil {
 		return 0, err
 	}
@@ -83,7 +83,8 @@ type UpgradePackage struct {
 }
 
 // upgradeDatabaseToNextVersion upgrades the database to the next schema version
-func upgradeDatabaseToNextVersion(c external.Database, upgrades map[int]UpgradePackage, currentSchemaVersion int) error {
+func upgradeDatabaseToNextVersion(ctx context.Context, c external.Database,
+	upgrades map[int]UpgradePackage, currentSchemaVersion int) error {
 	upgradePackage, ok := upgrades[currentSchemaVersion+1]
 	if !ok {
 		return serror.FromStrWithContext("can not find upgrade package",
@@ -101,7 +102,7 @@ func upgradeDatabaseToNextVersion(c external.Database, upgrades map[int]UpgradeP
 		}
 	}
 
-	if err := status.SetSchemaVersion(c, currentSchemaVersion+1); err != nil {
+	if err := status.SetSchemaVersion(ctx, c, currentSchemaVersion+1); err != nil {
 		return err
 	}
 
@@ -110,12 +111,13 @@ func upgradeDatabaseToNextVersion(c external.Database, upgrades map[int]UpgradeP
 
 // UpgradeDatabase upgrades the database schema to the newest version
 func UpgradeDatabase(c external.Database) error {
-	return applyUpgrades(c, availableUpgrades)
+	// no timeout on context
+	return applyUpgrades(context.Background(), c, availableUpgrades)
 }
 
 // applyUpgrades upgrades the database schema to the newest version, by applying  the given UpgradePackages
-func applyUpgrades(c external.Database, upgrades map[int]UpgradePackage) error {
-	currentSchemaVersion, err := GetSchemaVersion(c)
+func applyUpgrades(ctx context.Context, c external.Database, upgrades map[int]UpgradePackage) error {
+	currentSchemaVersion, err := GetSchemaVersion(ctx, c)
 	if err != nil {
 		return err
 	}
@@ -134,11 +136,11 @@ func applyUpgrades(c external.Database, upgrades map[int]UpgradePackage) error {
 
 	for currentSchemaVersion < db.SchemaVersion {
 		info("upgrading database schema", "current version", currentSchemaVersion)
-		if err := upgradeDatabaseToNextVersion(c, upgrades, currentSchemaVersion); err != nil {
+		if err := upgradeDatabaseToNextVersion(ctx, c, upgrades, currentSchemaVersion); err != nil {
 			return err
 		}
 
-		newVersion, err := GetSchemaVersion(c)
+		newVersion, err := GetSchemaVersion(ctx, c)
 		if err != nil {
 			return err
 		}

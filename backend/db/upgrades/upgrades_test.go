@@ -40,6 +40,9 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	upgrades := getUpgradesWithError()
 	tests := []struct {
 		upgrades             map[int]UpgradePackage
@@ -74,7 +77,7 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := upgradeDatabaseToNextVersion(dbHandle, tt.upgrades, tt.currentSchemaVersion)
+		err := upgradeDatabaseToNextVersion(ctx, dbHandle, tt.upgrades, tt.currentSchemaVersion)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -86,8 +89,9 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 func Test_applyUpgrades(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
-
-	require.NoError(t, status.SetMeta(dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[int](1)}))
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[int](1)}))
 
 	tests := []struct {
 		upgrades map[int]UpgradePackage
@@ -118,7 +122,7 @@ func Test_applyUpgrades(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := applyUpgrades(dbHandle, tt.upgrades)
+		err := applyUpgrades(ctx, dbHandle, tt.upgrades)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

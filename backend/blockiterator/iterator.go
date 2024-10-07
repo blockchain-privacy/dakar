@@ -2,6 +2,7 @@ package blockiterator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
@@ -16,17 +17,17 @@ import (
 //     failure or if the process finished due to termination
 type BlockIterator interface {
 	// CalculateInitialState calculates the initial state of the BlockIterator
-	CalculateInitialState() error
+	CalculateInitialState(context.Context) error
 	// Iterate does one execution loop
 	// false -> stop execution
-	Iterate() (bool, error)
+	Iterate(context.Context) (bool, error)
 	// Next tries to increase the internal state to the next block. Returns false if this fails.
 	// This will be called periodically when Empty returns true. Should return true if the state
 	// transition was successful.
-	Next() (bool, error)
+	Next(context.Context) (bool, error)
 	// PostExecution before the block iterator stops.
 	// This function should do operations like the setting the database status
-	PostExecution() error
+	PostExecution(context.Context) error
 	IncrementState() error
 	// Empty returns true if the BlockIterator has no more data to iterate on.
 	// This happens if State.ID is higher than State.Top
@@ -99,16 +100,25 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 
 	defer func() {
 		info(iterator, "iterator stopped", "current block", iterator.Props().CurrentBlock)
+
+		// separate context because iterator context is cancelled at this point
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+		defer cancel()
 		// if the call to PostExecution results in an error, then only set the
 		// error if the error is currently nil
-		postErr := iterator.PostExecution()
+		postErr := iterator.PostExecution(ctx)
 		if err == nil && postErr != nil {
+			// todo check for context cancel error
 			err = postErr
 		}
 	}()
 
-	if initErr := iterator.CalculateInitialState(); initErr != nil {
-		err = initErr
+	if initErr := iterator.CalculateInitialState(props.Context); initErr != nil {
+		// only return an error if context was not canceled
+		if !errors.Is(props.Context.Err(), context.Canceled) {
+			err = initErr
+		}
+
 		return
 	}
 
@@ -117,11 +127,10 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 	lastMetricPrintBlockID := int64(0)
 	numIteratedBlocks := int64(0)
 	timerGlobal := time.Now()
-	ctx := props.Context
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-props.Context.Done():
 			return
 		default:
 			// we do nothing
@@ -139,8 +148,12 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 				return
 			}
 		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 		now := time.Now()
-		ok, iterateErr := iterator.Iterate()
+		ok, iterateErr := iterator.Iterate(ctx)
+		// can't use defer in loop and context is only needed of Iterate()
+		cancel()
 		if iterateErr != nil {
 			err = iterateErr
 			return
@@ -196,7 +209,7 @@ func waitForNextDBBlockID(it BlockIterator) (bool, error) {
 				return false, nil
 			}
 
-			if ok, err := it.Next(); err != nil {
+			if ok, err := it.Next(ctx); err != nil {
 				return false, err
 			} else if ok {
 				return false, nil
