@@ -54,7 +54,7 @@ func Test_getWorkspaceConnectionsRaw(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		result, err := getWorkspaceConnectionsRaw(dbHandle, tt.uids, tt.userUID, tt.workspaceUID)
+		result, err := getWorkspaceConnectionsRaw(ctx, dbHandle, tt.uids, tt.userUID, tt.workspaceUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

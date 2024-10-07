@@ -251,7 +251,8 @@ func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, w
 	return db.MutationWithRetry(ctx, c, req)
 }
 
-func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []string) (isOutdated bool, err error) {
+func IsWorkspaceStateOutdated(ctx context.Context, c external.Database,
+	height int64, nodeUIDs []string) (isOutdated bool, err error) {
 	const query = `query Q($uids:string){
 					var(func: uid($uids)){
 						 ~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
@@ -268,8 +269,7 @@ func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []stri
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
-		map[string]string{"$uids": db.CreateCommaArray(nodeUIDs)})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(nodeUIDs)})
 	if err != nil {
 		err = serror.New(err)
 		return

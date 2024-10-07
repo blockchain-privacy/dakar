@@ -295,7 +295,7 @@ func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.
 
 	nodeMap, notes := separateNodes(w.Nodes)
 
-	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(ctx, dgraph, nodeMap, userUID, workspaceUID)
 	if err != nil {
 		return err
 	}
