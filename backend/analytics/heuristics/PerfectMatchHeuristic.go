@@ -70,7 +70,6 @@ func (h *perfectMatchHeuristic) String() string {
 //     denominations of the destination transaction
 func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
 		return nil, err

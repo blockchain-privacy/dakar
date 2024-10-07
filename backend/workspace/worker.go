@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"backend/analytics/graph"
+	"backend/db"
 	"backend/db/workspace"
 	"backend/external"
 	"context"
@@ -29,7 +30,7 @@ func warn(err error, v ...any) {
 // Work is an interface to pass a package of work to a Worker, which will process it eventually.
 type Work interface {
 	// Run processes the a Work package. It receives the database and the graph wrapper.
-	Run(*Mutex, external.Database, *graph.Wrapper) error
+	Run(context.Context, *Mutex, external.Database, *graph.Wrapper) error
 }
 
 // Worker works on the data defined in Work
@@ -106,10 +107,13 @@ mainLoop:
 			w.jobsAdded.Add(float64(len(items)))
 
 			for _, work := range items {
-				if err := work.Run(w.workspaceMutex, w.db, w.graphWrapper); err != nil {
+				workContext, cancel := db.GetBackendContext()
+				if err := work.Run(workContext, w.workspaceMutex, w.db, w.graphWrapper); err != nil {
 					warn(err)
 					w.jobsError.Inc()
 				}
+				cancel()
+
 				w.jobsCompleted.Inc()
 			}
 		}

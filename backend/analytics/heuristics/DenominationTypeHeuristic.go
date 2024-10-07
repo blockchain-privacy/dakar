@@ -73,7 +73,6 @@ func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 //     denominations of the destination transaction
 func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
 		return nil, err

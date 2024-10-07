@@ -299,10 +299,7 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 }
 
 // Run starts the execution of the given heuristic executor.
-func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-
+func (hx Executor) Run(ctx context.Context, dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
 	heuristicClusters, err := hx.thisHeuristic.exec(ctx, dgraph, g, hx.rootUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return nil, err

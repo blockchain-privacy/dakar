@@ -50,10 +50,7 @@ func NewTxPropWork(item workspace.WorkItem) (*TxPropWork, error) {
 }
 
 // Run processes the selector and updates it into the workspace
-func (s TxPropWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-
+func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
 	var newNodes []any
@@ -101,10 +98,7 @@ func NewTxGraphWork(item workspace.WorkItem) (*TxGraphWork, error) {
 }
 
 // Run processes the selector and updates it into the workspace
-func (s TxGraphWork) Run(workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-
+func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
 	var newNodes []any
@@ -306,10 +300,10 @@ func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.
 }
 
 // Run processes the heuristic and inserts it into the workspace
-func (h HeuristicWork) Run(workspaceMutex *Mutex, c external.Database, g *graph.Wrapper) error {
+func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, g *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
-	results, err := h.executor.Run(c, g)
+	results, err := h.executor.Run(ctx, c, g)
 	var newNodes []any
 	if err == nil {
 		newNodes = make([]any, len(results))
@@ -321,8 +315,6 @@ func (h HeuristicWork) Run(workspaceMutex *Mutex, c external.Database, g *graph.
 		status = workspace.StatusError
 		warn(err)
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	// 2. Store work
 	return updateSelector(ctx, workspaceMutex, c, h.selectorUID, h.workspaceUID, h.userUID, status, newNodes, len(newNodes))
