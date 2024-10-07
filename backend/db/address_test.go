@@ -82,7 +82,9 @@ func TestUpsertAddresses(t *testing.T) {
 
 	const newAddressHash = "some_address_hash"
 
-	_, err := GetFrontendAddress(context.Background(), dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	_, err := GetFrontendAddress(ctx, dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
 	require.Error(t, err)
 
 	newAddress := Address{Hash: newAddressHash, Outputs: []Output{{
@@ -94,9 +96,9 @@ func TestUpsertAddresses(t *testing.T) {
 	}}}
 	newAddress.SetDType()
 
-	require.NoError(t, UpsertAddresses(dbHandle, []Address{newAddress}))
+	require.NoError(t, UpsertAddresses(ctx, dbHandle, []Address{newAddress}))
 
-	frontendAddress, err := GetFrontendAddress(context.Background(), dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
+	frontendAddress, err := GetFrontendAddress(ctx, dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
 	require.NoError(t, err)
 	require.Equal(t, newAddressHash, frontendAddress.Hash)
 }
@@ -105,11 +107,14 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	blockRange, err := GetAddressesByBlockRange(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock, true)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	blockRange, err := GetAddressesByBlockRange(ctx, dbHandle, testhelper.BlockFileFirstBlock,
+		testhelper.BlockFileLastBlock, true)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockRange)
 
-	blockRange, err = GetAddressesByBlockRange(dbHandle, 1, 500, true)
+	blockRange, err = GetAddressesByBlockRange(ctx, dbHandle, 1, 500, true)
 	require.NoError(t, err)
 	require.Empty(t, blockRange)
 }

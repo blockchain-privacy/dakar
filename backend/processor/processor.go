@@ -148,7 +148,7 @@ func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, output
 }
 
 // processAddresses inserts mappings between addresses and outputs in database
-func processAddresses(dgraph external.Database, cache *outputCache,
+func processAddresses(ctx context.Context, dgraph external.Database, cache *outputCache,
 	transactionMappings []transactionMapping) error {
 	if len(transactionMappings) == 0 {
 		return nil
@@ -179,7 +179,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		return err
 	}
 
-	return db.UpsertAddresses(dgraph, cliutil.GetMapValues(addrMap))
+	return db.UpsertAddresses(ctx, dgraph, cliutil.GetMapValues(addrMap))
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
@@ -676,7 +676,7 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 		}
 	}
 
-	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
+	if err = processAddresses(ctx, dgraph, allOutputsCache, txMapping); err != nil {
 		err = serror.AddContext(err, "state", state.String())
 		return
 	}

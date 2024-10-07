@@ -221,11 +221,14 @@ func TestProcessAddresses(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	// calling with empty mapping is allowed
-	require.NoError(t, processAddresses(dbHandle, nil, nil))
+	require.NoError(t, processAddresses(ctx, dbHandle, nil, nil))
 
 	// cache is necessary if mapping is not empty
-	require.Error(t, processAddresses(dbHandle, nil, []transactionMapping{{}}))
+	require.Error(t, processAddresses(ctx, dbHandle, nil, []transactionMapping{{}}))
 
 	const (
 		fistAddress   = "XonqFxADHJxSwZCuka5h46HXAdFfBMQc21"
@@ -259,7 +262,7 @@ func TestProcessAddresses(t *testing.T) {
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs(txHash, outputs[:]))
 
-	require.NoError(t, processAddresses(dbHandle, cache, []transactionMapping{txMap}))
+	require.NoError(t, processAddresses(ctx, dbHandle, cache, []transactionMapping{txMap}))
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {

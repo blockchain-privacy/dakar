@@ -3,6 +3,7 @@ package main
 import (
 	mgraph "backend/analytics/graph"
 	"backend/constants"
+	"backend/db"
 	"backend/db/analytics"
 	"backend/external"
 	"encoding/csv"
@@ -263,6 +264,8 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 		_ = file.Close()
 	}(file)
 
+	ctx, cancelFunc := db.GetBackendContext()
+	defer cancelFunc()
 	blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting blocks")
@@ -274,7 +277,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 		return
 	}
 
-	addressRange, err := getAddressRange(dgraph, startBlock, endBlock)
+	addressRange, err := getAddressRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting addresses")
 		return

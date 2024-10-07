@@ -9,6 +9,7 @@ import (
 	"backend/processor"
 	"backend/server"
 	"backend/workspace"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -320,13 +321,13 @@ func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]d
 	return blocks, nil
 }
 
-func getAddressRange(dgraph external.Database, firstBlock int, lastBlock int) ([]db.Address, error) {
+func getAddressRange(ctx context.Context, dgraph external.Database, firstBlock int, lastBlock int) ([]db.Address, error) {
 	numBlocks := lastBlock - firstBlock
 	if numBlocks <= 0 {
 		return nil, nil
 	}
 
-	return db.GetAddressesByBlockRange(dgraph, firstBlock, lastBlock, true)
+	return db.GetAddressesByBlockRange(ctx, dgraph, firstBlock, lastBlock, true)
 }
 
 func getClusterRange(dgraph external.Database, firstBlock int, lastBlock int) ([]clustering.Cluster, error) {
