@@ -22,7 +22,7 @@ func doUniqueAddressAnalysis(ctx context.Context, database external.Database, op
 	}
 
 	// get start date
-	startDateStr, err := dban.BlockHeightToTimestamp(database, 1)
+	startDateStr, err := dban.BlockHeightToTimestamp(ctx, database, 1)
 	if err != nil {
 		return
 	}
@@ -37,7 +37,7 @@ func doUniqueAddressAnalysis(ctx context.Context, database external.Database, op
 		0, 0, 0, 0, startDate.Location())
 
 	// get end date
-	endDateStr, err := dban.BlockHeightToTimestamp(database, *fmiStatus.LastClusteredBlockID)
+	endDateStr, err := dban.BlockHeightToTimestamp(ctx, database, *fmiStatus.LastClusteredBlockID)
 	if err != nil {
 		return
 	}
@@ -77,7 +77,7 @@ func doUniqueAddressAnalysis(ctx context.Context, database external.Database, op
 	// write data
 	for i := fromDate.UTC(); toDate.UTC().After(i); i = i.Add(time.Hour * 24) {
 		addressCount, clusterCount, addressesWithClusterCount, err :=
-			dban.GetUniqueAddressCountsPerBlock(database, i, option)
+			dban.GetUniqueAddressCountsPerBlock(ctx, database, i, option)
 		if err != nil {
 			warn(err)
 			return

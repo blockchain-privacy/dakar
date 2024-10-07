@@ -3,6 +3,7 @@ package analytics
 import (
 	"backend/db"
 	"backend/external"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -14,7 +15,8 @@ import (
 // option == 1: count only output addresses and clusters
 // option == 2: count only input addresses and clusters
 // option == 3: count both input and output addresses and clusters
-func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option int) (addressCount int,
+func GetUniqueAddressCountsPerBlock(ctx context.Context, c external.Database,
+	date time.Time, option int) (addressCount int,
 	clusterCount int, addressesWithClusterCount int, err error) {
 	const outputAddressQuery = "tx_outputs { oa as ~addr_outputs}"
 	const outputAddressVariable = "oa"
@@ -95,7 +97,7 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 				  }`, addressSelector, clusterSelector, addressCountVariables,
 		clusterCountVariables, addressesWithClusterVariables)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$to": toDate.Format(time.RFC3339), "$from": date.Format(time.RFC3339)})
 	if err != nil {
 		return
@@ -130,14 +132,14 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 	return
 }
 
-func BlockHeightToTimestamp(c external.Database, blockHeight int64) (timestamp string, err error) {
+func BlockHeightToTimestamp(ctx context.Context, c external.Database, blockHeight int64) (timestamp string, err error) {
 	const query = `query Q($height:string) {
 					q(func: eq(id, $height)){
 						ts
 					}
 				  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$height": strconv.FormatInt(blockHeight, 10)})
 	if err != nil {
 		return
