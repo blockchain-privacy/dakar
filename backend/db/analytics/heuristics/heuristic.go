@@ -298,7 +298,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 		}
 	}
 
-	attributions, attributionErr := attribution.GetAttributionsPerCluster(c, userUID, requestedClusterTypes)
+	attributions, attributionErr := attribution.GetAttributionsPerCluster(ctx, c, userUID, requestedClusterTypes)
 	if attributionErr != nil {
 		err = attributionErr
 		return
