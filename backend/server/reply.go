@@ -1128,7 +1128,7 @@ func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msg
 		return
 	}
 
-	if err := clustering.DeleteCluster(dgraph, tUser.ID, clusterUID); err != nil {
+	if err := clustering.DeleteCluster(r.Context(), dgraph, tUser.ID, clusterUID); err != nil {
 		reply.Msg = "could not delete cluster"
 		status = http.StatusInternalServerError
 		warn(err)
