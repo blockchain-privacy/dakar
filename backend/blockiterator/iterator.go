@@ -108,7 +108,6 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 		// error if the error is currently nil
 		postErr := iterator.PostExecution(ctx)
 		if err == nil && postErr != nil {
-			// todo check for context cancel error
 			err = postErr
 		}
 	}()
