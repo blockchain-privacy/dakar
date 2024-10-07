@@ -7,11 +7,10 @@ import (
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
-	"time"
 )
 
 // CreateNewUser creates a new user
-func CreateNewUser(c external.Database) (string, error) {
+func CreateNewUser(ctx context.Context, c external.Database) (string, error) {
 	var usr User
 
 	usr.UID = ""
@@ -29,7 +28,7 @@ func CreateNewUser(c external.Database) (string, error) {
 		CommitNow: true,
 	}
 
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
 	if err != nil {
 		return "", err
 	}

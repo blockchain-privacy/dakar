@@ -68,49 +68,6 @@ func GetBackendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), backendTimeout)
 }
 
-// execRequest executes the given request
-func execRequest(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
-	if timeoutPerRequest <= 0 {
-		return nil, serror.New(errInvalidTimeout)
-	}
-
-	if req == nil {
-		return nil, serror.New(ErrEmptyRequestArgument)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
-	defer cancel()
-
-	resp, err := db.Mutate(ctx, req)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	return resp, nil
-}
-
-// execReadOnlyRequest executes the given request, vars is allowed to be nil
-func execReadOnlyRequest(db external.Database, timeoutPerRequest time.Duration, q string,
-	vars map[string]string) (*api.Response, error) {
-	if timeoutPerRequest <= 0 {
-		return nil, serror.New(errInvalidTimeout)
-	}
-
-	if q == "" {
-		return nil, serror.New(ErrEmptyRequestArgument)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
-	defer cancel()
-
-	resp, err := db.Query(ctx, q, vars)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	return resp, nil
-}
-
 // WithRetry calls the given function. If dgo.ErrAborted is returned, the function
 // is called a few more times. Between each call retryDuration is waited.
 func WithRetry(f func() error, retryDuration time.Duration) error {
@@ -160,29 +117,6 @@ func ExecTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*ap
 	return resp, nil
 }
 
-// TxWithRetry executes the given request. In case the request fails repeat it
-func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api.Request) error {
-	_, err := TxWithRetryAndResponse(db, timeoutPerRequest, req)
-	return err
-}
-
-// TxWithRetryAndResponse executes the given request. In case the request fails repeat it
-func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
-	req *api.Request) (*api.Response, error) {
-	var resp *api.Response
-	var err error
-
-	err = WithRetry(func() error {
-		resp, err = execRequest(db, timeoutPerRequest, req)
-		return err
-	}, retrySleepDuration)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, err
-}
-
 // MutationWithRetry executes the given request. In case the request fails repeat it
 func MutationWithRetry(ctx context.Context, db external.Database, req *api.Request) error {
 	_, err := MutationWithRetryAndResponse(ctx, db, req)
@@ -197,23 +131,6 @@ func MutationWithRetryAndResponse(ctx context.Context, db external.Database,
 
 	err = WithRetry(func() error {
 		resp, err = db.Mutate(ctx, req)
-		return err
-	}, retrySleepDuration)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, err
-}
-
-// ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
-func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duration, q string,
-	vars map[string]string) (*api.Response, error) {
-	var resp *api.Response
-	var err error
-
-	err = WithRetry(func() error {
-		resp, err = execReadOnlyRequest(db, timeoutPerRequest, q, vars)
 		return err
 	}, retrySleepDuration)
 	if err != nil {
@@ -238,11 +155,6 @@ func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
 	}
 
 	return resp, err
-}
-
-// ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
-func ReadOnlyTxWithRetry(db external.Database, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
-	return ReadOnlyTxVarWithRetry(db, timeoutPerRequest, q, nil)
 }
 
 // DropAll drops ALL data from the database, schema included

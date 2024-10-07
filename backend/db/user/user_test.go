@@ -17,7 +17,11 @@ func TestMain(m *testing.M) {
 
 func TestCreateNewUser(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	user, err := CreateNewUser(dbHandle)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	user, err := CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 }
@@ -25,8 +29,12 @@ func TestCreateNewUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	// create user
-	user, err := CreateNewUser(dbHandle)
+	user, err := CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 	// delete user

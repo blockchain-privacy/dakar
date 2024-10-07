@@ -21,9 +21,9 @@ type msgReply struct {
 }
 
 // getCreateUserReply reads the data from body and constructs a identityReply
-func getCreateUserReply(dgraph external.Database) (reply createUserReply, status int) {
+func getCreateUserReply(r *http.Request, dgraph external.Database) (reply createUserReply, status int) {
 	// create dgraph user
-	newUserUID, err := dbus.CreateNewUser(dgraph)
+	newUserUID, err := dbus.CreateNewUser(r.Context(), dgraph)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -97,8 +97,8 @@ func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgRep
 //	@Failure	500			{object}	server.createUserReply
 //	@Router		/users/ [post]
 func (s *Server) handlerCreateUser() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		reply, status := getCreateUserReply(s.db)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getCreateUserReply(r, s.db)
 
 		server.SendReply(w, reply, status)
 	})

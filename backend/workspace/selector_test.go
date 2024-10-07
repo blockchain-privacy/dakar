@@ -12,7 +12,7 @@ import (
 )
 
 func createUserAndWorkspace() (string, string, error) {
-	userUID, err := user.CreateNewUser(dbHandle)
+	userUID, err := user.CreateNewUser(context.Background(), dbHandle)
 	if err != nil {
 		return "", "", err
 	}

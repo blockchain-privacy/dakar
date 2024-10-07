@@ -34,25 +34,6 @@ func TestGetBackendContext(t *testing.T) {
 	})
 }
 
-func TestExecRequest(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := execRequest(dbHandle, time.Duration(0), &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.Error(t, err)
-
-	_, err = execRequest(dbHandle, time.Minute, nil)
-	require.Error(t, err)
-
-	_, err = execRequest(dbHandle, time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.NoError(t, err)
-}
-
 func TestExecTx(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
@@ -69,78 +50,6 @@ func TestExecTx(t *testing.T) {
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
-	require.NoError(t, err)
-}
-
-func TestTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	require.Error(t, TxWithRetry(dbHandle, time.Duration(0), &api.Request{
-		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
-
-	require.Error(t, TxWithRetry(dbHandle, time.Minute, nil))
-
-	require.NoError(t, TxWithRetry(dbHandle, time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	}))
-}
-
-func TestTxWithRetryAndResponse(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := TxWithRetryAndResponse(dbHandle, time.Duration(0), &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.Error(t, err)
-
-	_, err = TxWithRetryAndResponse(dbHandle, time.Minute, nil)
-	require.Error(t, err)
-
-	_, err = TxWithRetryAndResponse(dbHandle, time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.NoError(t, err)
-}
-
-func TestExecReadOnlyRequest(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := execReadOnlyRequest(dbHandle, time.Minute, "", nil)
-	require.Error(t, err)
-
-	_, err = execReadOnlyRequest(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
-	require.Error(t, err)
-
-	_, err = execReadOnlyRequest(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
-	require.NoError(t, err)
-}
-
-func TestReadOnlyTxVarWithRetry(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "", nil)
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxVarWithRetry(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
-	require.NoError(t, err)
-}
-
-func TestReadOnlyTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := ReadOnlyTxWithRetry(dbHandle, time.Minute, "")
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxWithRetry(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}")
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxWithRetry(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}")
 	require.NoError(t, err)
 }
 
