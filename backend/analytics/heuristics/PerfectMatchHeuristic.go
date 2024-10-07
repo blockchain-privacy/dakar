@@ -6,6 +6,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 )
@@ -67,10 +68,8 @@ func (h *perfectMatchHeuristic) String() string {
 // perfectMatchHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations without a perfect match for the
 //     denominations of the destination transaction
-func (h *perfectMatchHeuristic) exec(dgraph external.Database, _ *graph.Wrapper,
+func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

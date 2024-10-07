@@ -6,6 +6,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 )
@@ -70,10 +71,8 @@ func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 // denominationTypeHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations of types which do not occur in the
 //     denominations of the destination transaction
-func (h *denominationTypeHeuristic) exec(dgraph external.Database, _ *graph.Wrapper,
+func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

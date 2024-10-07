@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
@@ -80,14 +81,11 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 //   - parent == transaction: By traversing the mixing graph forward limited by time,
 //     find all destination transactions connected to this transaction.
 //   - parent == heuristic: None, this is not allowed.
-func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

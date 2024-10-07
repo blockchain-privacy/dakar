@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"fmt"
@@ -81,14 +82,11 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 
 // reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

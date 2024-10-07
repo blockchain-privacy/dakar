@@ -7,6 +7,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
@@ -83,14 +84,11 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 
 // forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

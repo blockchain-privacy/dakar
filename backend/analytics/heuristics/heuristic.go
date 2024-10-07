@@ -95,7 +95,7 @@ type Descriptor struct {
 type heuristic interface {
 	fmt.Stringer
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper,
+	exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
@@ -300,7 +300,10 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 
 // Run starts the execution of the given heuristic executor.
 func (hx Executor) Run(dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
-	heuristicClusters, err := hx.thisHeuristic.exec(dgraph, g, hx.rootUID)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	heuristicClusters, err := hx.thisHeuristic.exec(ctx, dgraph, g, hx.rootUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return nil, err
 	}
