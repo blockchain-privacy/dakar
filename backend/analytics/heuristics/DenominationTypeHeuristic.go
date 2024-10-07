@@ -86,7 +86,7 @@ func (h *denominationTypeHeuristic) exec(dgraph external.Database, _ *graph.Wrap
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(dgraph, parentHeuristicUID)
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (h *denominationTypeHeuristic) exec(dgraph external.Database, _ *graph.Wrap
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(dgraph, h.c.TransactionHash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}

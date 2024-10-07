@@ -99,7 +99,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
+	inputTransactions, err := heuristics.GetInputTransactions(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it,
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
 			h.lookBackTime, exclusions, h.c)
 		if err != nil {
 			return nil, err

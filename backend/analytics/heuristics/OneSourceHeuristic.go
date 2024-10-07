@@ -108,7 +108,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, pa
 
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash.
-	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
+	inputTransactions, err := heuristics.GetInputTransactions(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, pa
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it,
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
 			h.lookBackTime, exclusions, h.c)
 		if err != nil {
 			return nil, err

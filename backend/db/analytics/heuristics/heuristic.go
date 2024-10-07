@@ -7,6 +7,7 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/external"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -25,7 +26,7 @@ var (
 )
 
 // DeleteAllHeuristics deletes all heuristics in the database
-func DeleteAllHeuristics(c external.Database) error {
+func DeleteAllHeuristics(ctx context.Context, c external.Database) error {
 	const query = `
 		{
 			var(func: type(Heuristic)){
@@ -46,7 +47,7 @@ func DeleteAllHeuristics(c external.Database) error {
 		CommitNow: true,
 	}
 
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
 	if err != nil {
 		return err
 	}
@@ -59,8 +60,8 @@ func DeleteAllHeuristics(c external.Database) error {
 }
 
 // GetHeuristicTransactions returns the connected transactions of heuristic
-func GetHeuristicTransactions(c external.Database, heuristicUID string) (results []HeuristicTransaction,
-	attributionMap map[ClusterUID][]string, err error) {
+func GetHeuristicTransactions(ctx context.Context, c external.Database,
+	heuristicUID string) (results []HeuristicTransaction, attributionMap map[ClusterUID][]string, err error) {
 	const query = `query Q($uid:string) {
 				var (func: uid($uid)){ x as Selector.results }
 				
@@ -78,7 +79,7 @@ func GetHeuristicTransactions(c external.Database, heuristicUID string) (results
 			  	}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": heuristicUID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": heuristicUID})
 	if err != nil {
 		return
 	}
@@ -123,7 +124,8 @@ func GetHeuristicTransactions(c external.Database, heuristicUID string) (results
 }
 
 // GetInputTransactions returns the input mixing transactions of the given transaction.
-func GetInputTransactions(c external.Database, tx string) (inputTransactions []HeuristicTransaction, err error) {
+func GetInputTransactions(ctx context.Context, c external.Database,
+	tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
@@ -145,7 +147,7 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 				}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": tx})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txhash": tx})
 	if err != nil {
 		return
 	}
@@ -193,7 +195,7 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 // GetTransactionsWithOutputAmountAndCluster returns a slice of transactions and used attributions per cluster.
 // Each transaction contains its output amounts and the cluster of all inputs.
 // If no attributions were used or found the returned map is nil.
-func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []string, userUID string,
+func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.Database, uids []string, userUID string,
 	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction,
 	attributionMapping map[ClusterUID][]string, err error) {
 	isSimpleClustering := len(requestedClusterTypes) == 0 // true -> only multi-input clusters will be used
@@ -244,7 +246,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 			   	}
 			  }`, string(clustering.TypeFMI), usedClusterTypes)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
 		return
 	}
@@ -416,7 +418,8 @@ func createKeyHash(someMap map[string]bool) string {
 }
 
 // GetTransactionsWithInputAmount returns a slice of transactions. Each transaction contains its input amounts.
-func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins []HeuristicTransaction, err error) {
+func GetTransactionsWithInputAmount(ctx context.Context, c external.Database,
+	uids []string) (origins []HeuristicTransaction, err error) {
 	query := `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
@@ -426,7 +429,7 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
 		return
 	}
@@ -455,7 +458,7 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 }
 
 // GetInputAmounts gets the amounts of the inputs
-func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTransaction, err error) {
+func GetInputAmounts(ctx context.Context, c external.Database, tx string) (transaction HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				q(func: eq(txhash,$txhash)){
 					uid
@@ -465,7 +468,7 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": tx})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txhash": tx})
 	if err != nil {
 		return
 	}

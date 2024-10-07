@@ -103,7 +103,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, err
 	}
 
-	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
 	if err != nil {
 		return nil, err

@@ -107,7 +107,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	clusterDestinations := make([]clusterDestination, 0, len(clusterToOutputTransactions))
 	for c, txMap := range clusterToOutputTransactions {
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
+		destinations, err := getOriginDestinationsWithInputs(ctx, dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
 			exclusions, h.c.ExcludeSpendingGaps)
 		if err != nil {
 			return nil, err

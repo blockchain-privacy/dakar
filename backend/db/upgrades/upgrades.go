@@ -34,7 +34,10 @@ var availableUpgrades = map[int]UpgradePackage{
 			AlterSchemaRemoveHex},
 	},
 	6: {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
-	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics, heuristics.DeleteAllHeuristics}},
+	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics,
+		func() schemaUpgrade {
+			return func(c external.Database) error { return heuristics.DeleteAllHeuristics(context.Background(), c) }
+		}()}},
 	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
 	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
 	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType, func() schemaUpgrade {

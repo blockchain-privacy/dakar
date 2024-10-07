@@ -212,8 +212,8 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 // getTimeLimitedOrigins returns all origins of the given transaction.
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
-func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration, exclusions []string, c heuristics.Options) (
+func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	tx heuristics.HeuristicTransaction, lookBackTime time.Duration, exclusions []string, c heuristics.Options) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, c.ExcludeSpendingGaps)
@@ -222,7 +222,7 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	}
 
 	// get tx details for each uid
-	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes)
 }
 
@@ -247,7 +247,7 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 
 // getOriginDestinationsWithInputs returns all destinations
 // of the given transactions limited by time. Each transaction contains its inputs.
-func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
+func getOriginDestinationsWithInputs(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	originUIDs []string, dur time.Duration, exclusions []string,
 	excludeSpendingGaps bool) (origins []heuristics.HeuristicTransaction, err error) {
 	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions, excludeSpendingGaps)
@@ -256,7 +256,7 @@ func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	// get tx details for each uid
-	return heuristics.GetTransactionsWithInputAmount(dgraph, cliutil.GetMapKeys(uidMap))
+	return heuristics.GetTransactionsWithInputAmount(ctx, dgraph, cliutil.GetMapKeys(uidMap))
 }
 
 func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {
