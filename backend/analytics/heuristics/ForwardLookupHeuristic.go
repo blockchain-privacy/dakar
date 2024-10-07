@@ -120,7 +120,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	var exclusions []string
 	if h.c.ExcludeAddresses {
 		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}

@@ -279,7 +279,7 @@ func main() {
 	}
 
 	if newConfig.ExclusionSimulations.Active {
-		doSimulation(dgraph, g, newConfig.ExclusionSimulations.NodeID,
+		doSimulation(ctx, dgraph, g, newConfig.ExclusionSimulations.NodeID,
 			newConfig.ExclusionSimulations.UserUID, newConfig.ExclusionSimulations.LookBackTimeHours)
 	}
 

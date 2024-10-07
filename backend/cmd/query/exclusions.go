@@ -5,6 +5,7 @@ import (
 	"backend/constants"
 	"backend/db/analytics/exclusion"
 	"backend/external"
+	"context"
 	"fmt"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
@@ -12,9 +13,9 @@ import (
 	"time"
 )
 
-func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
+func doSimulation(ctx context.Context, database external.Database, g *mgraph.ReversibleGraph,
 	nodeIDStr string, userUID string, lookBackTimeHours int) {
-	exclusionMap, err := getExclusionMap(database, userUID)
+	exclusionMap, err := getExclusionMap(ctx, database, userUID)
 	if err != nil {
 		warn(err)
 		return
@@ -54,8 +55,8 @@ func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
 	info(fmt.Sprintf("Semi simulation V2 for %s ended", maxLookBackTime.String()))
 }
 
-func getExclusionMap(c external.Database, userID string) (exclusions map[int64]bool, err error) {
-	exclusionSlice, err := exclusion.GetAddressExclusionUIDs(c, userID)
+func getExclusionMap(ctx context.Context, c external.Database, userID string) (exclusions map[int64]bool, err error) {
+	exclusionSlice, err := exclusion.GetAddressExclusionUIDs(ctx, c, userID)
 	if err != nil {
 		return nil, err
 	}

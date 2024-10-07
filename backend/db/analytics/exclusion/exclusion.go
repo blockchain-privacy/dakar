@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
-	"time"
 )
 
 // AddAddressExclusions adds the given address exclusions to the database
@@ -33,7 +32,7 @@ func AddAddressExclusions(ctx context.Context, c external.Database, user User) e
 }
 
 // GetAddressExclusionUIDs returns all UIDs of the excluded addresses of a user
-func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []string, err error) {
+func GetAddressExclusionUIDs(ctx context.Context, c external.Database, userID string) (exclusions []string, err error) {
 	const query = `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
 					a as User.addressExclusions
@@ -44,7 +43,7 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$user": userID})
 	if err != nil {
 		return
 	}

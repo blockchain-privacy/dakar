@@ -133,7 +133,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, pa
 	var exclusions []string
 
 	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}
