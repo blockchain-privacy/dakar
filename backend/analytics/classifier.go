@@ -251,7 +251,7 @@ func getConnectedCollaterals(ctx context.Context, dgraph external.Database, pote
 		txUids := getUids(append(cc, cp...))
 
 		var dbErr error
-		potentialCollateralTransactions, dbErr = analytics.GetCollateralInputTransactions(dgraph, txUids, blockHeight)
+		potentialCollateralTransactions, dbErr = analytics.GetCollateralInputTransactions(ctx, dgraph, txUids, blockHeight)
 		if dbErr != nil {
 			err = dbErr
 			return
@@ -323,7 +323,7 @@ func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
-		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID, toBlockID)
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(ctx, c.db, c.state.ID, toBlockID)
 	if classErr != nil {
 		return false, classErr
 	}
@@ -361,7 +361,7 @@ func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
 		// need to set type multiple times for the same block as transactions
 		// could be connected to transactions in the same block
 		for numInserted > 0 {
-			numInserted, ccErr = analytics.SetCollateralCreation(c.db, getUids(ccTransactions))
+			numInserted, ccErr = analytics.SetCollateralCreation(ctx, c.db, getUids(ccTransactions))
 			if ccErr != nil {
 				return false, ccErr
 			}
@@ -383,7 +383,7 @@ func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
 		// need to set type multiple times for the same block as transactions
 		// could be connected to transactions in the same block
 		for numInserted > 0 {
-			numInserted, cpErr = analytics.SetCollateralPayment(c.db, getUids(cpTransactions))
+			numInserted, cpErr = analytics.SetCollateralPayment(ctx, c.db, getUids(cpTransactions))
 			if cpErr != nil {
 				return false, cpErr
 			}
