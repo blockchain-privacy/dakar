@@ -225,7 +225,7 @@ func AddCustomClusters(ctx context.Context, c external.Database, clusters []Cust
 }
 
 // AddClusters adds the given clusters to the database
-func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
+func AddClusters(ctx context.Context, c external.Database, clusters []Cluster, checkTx bool) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
@@ -246,7 +246,7 @@ func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*5, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
@@ -674,7 +674,7 @@ func GetUserClustersUIDs(ctx context.Context, c external.Database, userID string
 }
 
 // DeleteCluster deletes the given cluster
-func DeleteCluster(c external.Database, userID string, clusterUID string) error {
+func DeleteCluster(ctx context.Context, c external.Database, userID string, clusterUID string) error {
 	req := &api.Request{
 		Query: `query Q($user:string,$cluster:string) {
 				var(func:uid($user))@filter(type(User)){
@@ -687,7 +687,7 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) error 
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
 	if err != nil {
 		return err
 	}
@@ -831,7 +831,7 @@ func DeleteAllFMIClusters(ctx context.Context, c external.Database) error {
 
 	deletionRounds := r.Count[0].Count / 10000
 	for range deletionRounds + 1 {
-		err := deleteTenThousandFMIClusters(c)
+		err := deleteTenThousandFMIClusters(ctx, c)
 		if err != nil {
 			return err
 		}
@@ -840,7 +840,7 @@ func DeleteAllFMIClusters(ctx context.Context, c external.Database) error {
 	return err
 }
 
-func deleteTenThousandFMIClusters(c external.Database) error {
+func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) error {
 	req := &api.Request{
 		Query: `{
 				var(func:eq(Cluster.type, "fmi"), first: 10000){
@@ -852,9 +852,8 @@ func deleteTenThousandFMIClusters(c external.Database) error {
 		}},
 		CommitNow: true,
 	}
-	_, err := db.TxWithRetryAndResponse(c, time.Minute*15, req)
 
-	return err
+	return db.MutationWithRetry(ctx, c, req)
 }
 
 // GetClustersByBlockRange returns all cluster-address mappings of the given block range

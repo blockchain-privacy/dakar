@@ -259,7 +259,7 @@ func (m *HierarchicalMultiInput) Iterate(ctx context.Context) (bool, error) {
 				return false, serror.AddContext(validationErr, "block id", m.state.ID)
 			}
 
-			clusterErr := clustering.AddClusters(m.db, newClusters, true)
+			clusterErr := clustering.AddClusters(ctx, m.db, newClusters, true)
 			if clusterErr != nil {
 				return false, clusterErr
 			}
