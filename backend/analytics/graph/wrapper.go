@@ -200,7 +200,7 @@ func (w *Wrapper) LoadGraphs() error {
 		}
 	}
 
-	txGraph, err := LoadTransactionGraph(w.db, numTxToLoad)
+	txGraph, err := LoadTransactionGraph(ctx, w.db, numTxToLoad)
 	if errors.Is(err, ErrDBContainsNoPrivacyTransactions) {
 		return nil
 	}
@@ -273,8 +273,8 @@ func (w *Wrapper) Empty() bool {
 
 // Iterate loads the mixing transactions and all connected origin and
 // destination transactions of the current block into the in-memory graph
-func (w *Wrapper) Iterate(context.Context) (bool, error) {
-	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.ID)
+func (w *Wrapper) Iterate(ctx context.Context) (bool, error) {
+	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(ctx, w.db, w.state.ID)
 	if err != nil {
 		return false, err
 	}

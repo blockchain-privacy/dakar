@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/db/analytics"
 	"backend/external"
+	"context"
 	"encoding/csv"
 	"os"
 	"slices"
@@ -18,9 +19,9 @@ import (
 // timestamp fingerprinting. This is achieved by collecting all transactions
 // (spending transactions) which are directly connected to multiple (>=2) destination
 // transactions. Spending transactions created by large clusters (>1000) are excluded.
-func doDestinationCountAnalysis(dgraph external.Database, g *graph.ReversibleGraph, fileName string) {
+func doDestinationCountAnalysis(ctx context.Context, dgraph external.Database, g *graph.ReversibleGraph, fileName string) {
 	spenders, globalDestinationCount, spentDestinationTransactionCount, excludedBecauseOfClusterSizeCount, usingDestinationTransactionsCount, err :=
-		analytics.GetDestinationTransactionSpenders(dgraph)
+		analytics.GetDestinationTransactionSpenders(ctx, dgraph)
 	if err != nil {
 		warn(err)
 		return

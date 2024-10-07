@@ -238,12 +238,15 @@ func main() {
 		}
 	}()
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour*2)
+	defer cancel()
+
 	if newConfig.PrivacyCharts.Active {
-		exportTransactionData(dgraph, newConfig.PrivacyCharts.Directory)
+		exportTransactionData(ctx, dgraph, newConfig.PrivacyCharts.Directory)
 	}
 
 	if newConfig.UniqueAddresses.Active {
-		doUniqueAddressAnalysis(dgraph, newConfig.UniqueAddresses.Option, "uniqueAddresses")
+		doUniqueAddressAnalysis(ctx, dgraph, newConfig.UniqueAddresses.Option, "uniqueAddresses")
 	}
 
 	var g *graph.ReversibleGraph
@@ -254,7 +257,7 @@ func main() {
 		newConfig.ExclusionSimulations.Active ||
 		newConfig.OriginGap.Active ||
 		newConfig.DestinationCount.Active {
-		g, err = graph.LoadTransactionGraph(dgraph, 0)
+		g, err = graph.LoadTransactionGraph(ctx, dgraph, 0)
 		if err != nil && !errors.Is(err, graph.ErrDBContainsNoPrivacyTransactions) {
 			warn(err)
 			return
@@ -285,20 +288,21 @@ func main() {
 	}
 
 	if newConfig.ExportBlocks.Active {
-		doExportBlocks(dgraph, newConfig.ExportBlocks.Filename, newConfig.ExportBlocks.StartBlock, newConfig.ExportBlocks.EndBlock)
+		doExportBlocks(ctx, dgraph, newConfig.ExportBlocks.Filename,
+			newConfig.ExportBlocks.StartBlock, newConfig.ExportBlocks.EndBlock)
 	}
 
 	if newConfig.ExportPrivacyTransactions.Active {
-		doExportPrivacyTransactions(dgraph, newConfig.ExportPrivacyTransactions.Filename,
+		doExportPrivacyTransactions(ctx, dgraph, newConfig.ExportPrivacyTransactions.Filename,
 			newConfig.ExportPrivacyTransactions.StartTransaction)
 	}
 
 	if newConfig.DestinationCount.Active {
-		doDestinationCountAnalysis(dgraph, g, newConfig.DestinationCount.Filename)
+		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename)
 	}
 
 	if newConfig.ExportClusterActivity.Active {
-		doExportClusterActivity(dgraph, newConfig.ExportClusterActivity.Filename)
+		doExportClusterActivity(ctx, dgraph, newConfig.ExportClusterActivity.Filename)
 	}
 }
 

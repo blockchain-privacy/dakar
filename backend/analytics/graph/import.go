@@ -3,6 +3,7 @@ package graph
 import (
 	"backend/db/analytics"
 	"backend/external"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -17,10 +18,10 @@ var ErrDBContainsNoPrivacyTransactions = errors.New("db contains no privacy tran
 
 // loadOriginTransactions loads origin transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadOriginTransactions(c external.Database, g *ReversibleGraph, max int) error {
+func loadOriginTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
-		originNodes, err := analytics.GetOriginTransactions(c, step, i)
+		originNodes, err := analytics.GetOriginTransactions(ctx, c, step, i)
 		if err != nil {
 			return err
 		}
@@ -40,10 +41,10 @@ func loadOriginTransactions(c external.Database, g *ReversibleGraph, max int) er
 
 // loadCCTransactions loads cc transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadCCTransactions(c external.Database, g *ReversibleGraph, max int) error {
+func loadCCTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
-		ccNodes, err := analytics.GetCollateralCreationTransactions(c, step, i)
+		ccNodes, err := analytics.GetCollateralCreationTransactions(ctx, c, step, i)
 		if err != nil {
 			return err
 		}
@@ -63,13 +64,13 @@ func loadCCTransactions(c external.Database, g *ReversibleGraph, max int) error 
 
 // loadMixingTransactions loads mixing transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadMixingTransactions(c external.Database, g *ReversibleGraph, max int) error {
+func loadMixingTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		if i/step > 10 && (i/step)%3 == 0 {
 			runtime.GC()
 		}
-		mixingNodes, err := analytics.GetMixingTransactions(c, step, i)
+		mixingNodes, err := analytics.GetMixingTransactions(ctx, c, step, i)
 		if err != nil {
 			return err
 		}
@@ -89,13 +90,13 @@ func loadMixingTransactions(c external.Database, g *ReversibleGraph, max int) er
 
 // loadDestinationTransactions loads destination transactions from the database into the graph
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max int) error {
+func loadDestinationTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
 	const step = 10000
 	for i := 0; ; i += step {
 		if i/step > 5 && (i/step)%2 == 0 {
 			runtime.GC()
 		}
-		destinationNodes, err := analytics.GetDestinationTransactions(c, step, i)
+		destinationNodes, err := analytics.GetDestinationTransactions(ctx, c, step, i)
 		if err != nil {
 			return err
 		}
@@ -116,9 +117,9 @@ func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max in
 // LoadTransactionGraph loads and constructs a transaction graph from the database.
 // numTxToLoad == 0: load all transactions
 // numTxToLoad > 0: load numTxToLoad transactions of each privacy type
-func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
+func LoadTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
 	mixingCount, originCount, ccCount, cpCount, destinationCount, getErr :=
-		analytics.GetTransactionTypeCount(c)
+		analytics.GetTransactionTypeCount(ctx, c)
 	if getErr != nil {
 		return nil, getErr
 	}
@@ -135,24 +136,24 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 
 	// load all origin transactions from the database
 	info("Loading origin nodes")
-	if err := loadOriginTransactions(c, g, numTxToLoad); err != nil {
+	if err := loadOriginTransactions(ctx, c, g, numTxToLoad); err != nil {
 		return nil, err
 	}
 
 	// load all cc transactions from the database
 	info("Loading cc nodes")
-	if err := loadCCTransactions(c, g, numTxToLoad); err != nil {
+	if err := loadCCTransactions(ctx, c, g, numTxToLoad); err != nil {
 		return nil, err
 	}
 
 	// load all mixing transactions from the database
 	info("Loading mixing nodes")
-	if err := loadMixingTransactions(c, g, numTxToLoad); err != nil {
+	if err := loadMixingTransactions(ctx, c, g, numTxToLoad); err != nil {
 		return nil, err
 	}
 	// load all destination transactions from the database
 	info("Loading destination nodes")
-	if err := loadDestinationTransactions(c, g, numTxToLoad/10); err != nil {
+	if err := loadDestinationTransactions(ctx, c, g, numTxToLoad/10); err != nil {
 		return nil, err
 	}
 

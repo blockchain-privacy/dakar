@@ -207,45 +207,56 @@ func Test_verifyTransactionGraph(t *testing.T) {
 
 func Test_loadOriginTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	g := NewReversibleGraph(1)
 	// testdata contains 1 origin transaction
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, loadOriginTransactions(dbHandle, g, 0))
+	g := NewReversibleGraph(1)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	require.NoError(t, loadOriginTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 1, g.Nodes().Len())
 }
 
 func Test_loadDestinationTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	g := NewReversibleGraph(1)
 	// testdata contains 1 destination transaction with 7 input transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, loadDestinationTransactions(dbHandle, g, 0))
+
+	g := NewReversibleGraph(1)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	require.NoError(t, loadDestinationTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 8, g.Nodes().Len())
 }
 
 func Test_loadMixingTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	g := NewReversibleGraph(132)
 	// testdata contains 132 mixing transactions and 557 input transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, loadMixingTransactions(dbHandle, g, 0))
+	g := NewReversibleGraph(132)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	require.NoError(t, loadMixingTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 689, g.Nodes().Len())
 }
 
 func Test_loadCCTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	g := NewReversibleGraph(132)
 	// testdata contains 0 cc transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, loadCCTransactions(dbHandle, g, 0))
+	g := NewReversibleGraph(132)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	require.NoError(t, loadCCTransactions(ctx, dbHandle, g, 0))
 	require.Equal(t, 0, g.Nodes().Len())
 }
 
 func TestLoadTransactionGraph(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-
-	graph, err := LoadTransactionGraph(dbHandle, 0)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	graph, err := LoadTransactionGraph(ctx, dbHandle, 0)
 	require.NoError(t, err)
 	// mixing_count=132 origin_count=1 destination_count=1 cc_count=0
 	require.Equal(t, 134, graph.Nodes().Len())

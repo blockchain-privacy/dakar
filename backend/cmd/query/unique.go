@@ -1,21 +1,18 @@
 package main
 
 import (
-	"backend/db"
 	dban "backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
+	"context"
 	"encoding/csv"
 	"os"
 	"strconv"
 	"time"
 )
 
-func doUniqueAddressAnalysis(database external.Database, option int, fileName string) {
+func doUniqueAddressAnalysis(ctx context.Context, database external.Database, option int, fileName string) {
 	info("Starting unique address analysis")
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	// get the highest clustered block ID
 	fmiStatus, err := status.GetClusteringFMIStatus(ctx, database)

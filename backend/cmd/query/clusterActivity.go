@@ -3,6 +3,7 @@ package main
 import (
 	"backend/db/analytics"
 	"backend/external"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"os"
@@ -10,9 +11,9 @@ import (
 	"time"
 )
 
-func doExportClusterActivity(dgraph external.Database, fileName string) {
+func doExportClusterActivity(ctx context.Context, dgraph external.Database, fileName string) {
 	// handle clusters
-	clusters, err := analytics.GetAllFMIClusters(dgraph)
+	clusters, err := analytics.GetAllFMIClusters(ctx, dgraph)
 	if err != nil {
 		warn(err)
 		return
@@ -44,7 +45,7 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 
 	now := time.Now()
 	for i, c := range clusters {
-		inputCount, outputCount, err := analytics.GetTransactionCountPerCluster(dgraph, c)
+		inputCount, outputCount, err := analytics.GetTransactionCountPerCluster(ctx, dgraph, c)
 		if err != nil {
 			warn(err)
 			return

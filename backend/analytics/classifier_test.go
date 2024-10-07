@@ -582,7 +582,7 @@ func TestClassifier_Iterate(t *testing.T) {
 	require.NoError(t, err)
 
 	// check mixing count after classification
-	mixingCount, _, _, _, _, err := analytics.GetTransactionTypeCount(dbHandle)
+	mixingCount, _, _, _, _, err := analytics.GetTransactionTypeCount(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, mixingCount)
 }
