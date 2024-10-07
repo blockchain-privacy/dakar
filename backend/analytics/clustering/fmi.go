@@ -181,7 +181,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
 	toBlockID := min(m.state.Top, m.state.ID+m.maxBlocks-1)
 	// get the transaction of the current block height
-	transactions, err := clustering.GetAddressesByBlock(m.db, m.state.ID, toBlockID, clustering.TypeFMI)
+	transactions, err := clustering.GetAddressesByBlock(ctx, m.db, m.state.ID, toBlockID, clustering.TypeFMI)
 	if err != nil {
 		return false, err
 	}

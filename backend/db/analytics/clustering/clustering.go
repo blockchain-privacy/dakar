@@ -20,7 +20,8 @@ import (
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
 // The size of the returned slice can be zero in case the only transaction contained
 // in the block is the coinbase transaction (no inputs) or all transaction are filtered out (mixing transactions).
-func GetInputAddressesByBlock(c external.Database, blockID int64, clusterType ClusterType) (transactions []TransactionWithAddressClusters, err error) {
+func GetInputAddressesByBlock(ctx context.Context, c external.Database,
+	blockID int64, clusterType ClusterType) (transactions []TransactionWithAddressClusters, err error) {
 	const query = `query Q($block:string,$ctype:string) {
 				var(func: eq(id, $block)){
 					# do not consider mixing transaction
@@ -49,7 +50,7 @@ func GetInputAddressesByBlock(c external.Database, blockID int64, clusterType Cl
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$block": strconv.FormatInt(blockID, 10), "$ctype": string(clusterType)})
 	if err != nil {
 		return
@@ -96,7 +97,7 @@ func GetInputAddressesByBlock(c external.Database, blockID int64, clusterType Cl
 }
 
 // GetAddressesByBlock gets all addresses per transaction by block ID range.
-func GetAddressesByBlock(c external.Database, fromBlockID int64, toBlockID int64,
+func GetAddressesByBlock(ctx context.Context, c external.Database, fromBlockID int64, toBlockID int64,
 	clusterType ClusterType) (transactions []TransactionWithInputOutputAddressCluster, err error) {
 	const query = `query Q($from:string,$to:string,$ctype:string) {
 				var(func: between(id, $from, $to)){
@@ -127,7 +128,7 @@ func GetAddressesByBlock(c external.Database, fromBlockID int64, toBlockID int64
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$from": strconv.FormatInt(fromBlockID, 10),
 			"$to": strconv.FormatInt(toBlockID, 10), "$ctype": string(clusterType)})
 	if err != nil {
@@ -341,7 +342,8 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 }
 
 // GetHierarchicalClusterRoot returns the root of the cluster tree clusterUID is part of
-func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
+func GetHierarchicalClusterRoot(ctx context.Context, c external.Database,
+	clusterUID string) (rootCluster ClusterWithParent, err error) {
 	const query = `query Q($uid:string) {
 				var(func: uid($uid))@recurse{
 					c as ~Cluster.children
@@ -353,7 +355,7 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$uid": clusterUID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": clusterUID})
 	if err != nil {
 		return
 	}
@@ -573,7 +575,7 @@ func GetHMIClusters(ctx context.Context, c external.Database,
 }
 
 // GetUserClusters returns all clusters of a user
-func GetUserClusters(c external.Database, userID string) (clusters []FrontendUserCluster, err error) {
+func GetUserClusters(ctx context.Context, c external.Database, userID string) (clusters []FrontendUserCluster, err error) {
 	const query = `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
 					c as ~Cluster.user
@@ -589,7 +591,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$user": userID})
 	if err != nil {
 		return
 	}
@@ -626,7 +628,8 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 }
 
 // GetUserClustersUIDs returns all UIDs of clusters of a user
-func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
+func GetUserClustersUIDs(ctx context.Context, c external.Database, userID string,
+	clusterTypeFilter []ClusterType) (clusters []string, err error) {
 	var filter string
 	if len(clusterTypeFilter) > 0 {
 		for i, ct := range clusterTypeFilter {
@@ -650,7 +653,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 				}
 			  }`, filter)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$user": userID})
 	if err != nil {
 		return
 	}
@@ -715,7 +718,8 @@ func DeleteAllClusters(ctx context.Context, c external.Database, userID string) 
 }
 
 // GetRelatedClusters returns the UIDs of clusters which can be reached from the given cluster
-func GetRelatedClusters(c external.Database, clusterUID string, userUID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
+func GetRelatedClusters(ctx context.Context, c external.Database, clusterUID string,
+	userUID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
 	if clusterTypeFilter == nil {
 		err = serror.FromStr("no cluster types passed to function")
 		return
@@ -741,7 +745,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 					}
 				  }`, filter)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$user": userUID, "$cluster": clusterUID})
 	if err != nil {
 		return
@@ -763,7 +767,8 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 }
 
 // GetClusterAddressCount returns the number of addresses the cluster of the given address is connected to
-func GetClusterAddressCount(c external.Database, addressHash string) (addressCount int64, err error) {
+func GetClusterAddressCount(ctx context.Context, c external.Database,
+	addressHash string) (addressCount int64, err error) {
 	const query = `query Q($addressHash:string){
 				q(func:eq(addresshash,$addressHash))@normalize{
 					~Cluster.addresses@filter(eq(Cluster.type,` + string(TypeFMI) + `)){
@@ -772,7 +777,7 @@ func GetClusterAddressCount(c external.Database, addressHash string) (addressCou
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
 		return
 	}
@@ -801,14 +806,14 @@ func GetClusterAddressCount(c external.Database, addressHash string) (addressCou
 }
 
 // DeleteAllFMIClusters deletes all flat multi-input clusters of a given user
-func DeleteAllFMIClusters(c external.Database) error {
+func DeleteAllFMIClusters(ctx context.Context, c external.Database) error {
 	const query = `{
 				 q(func: eq(Cluster.type, "fmi")){
 					count(uid)
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*5, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return err
 	}
@@ -853,7 +858,8 @@ func deleteTenThousandFMIClusters(c external.Database) error {
 }
 
 // GetClustersByBlockRange returns all cluster-address mappings of the given block range
-func GetClustersByBlockRange(c external.Database, blockHeightStart int, blockHeightEnd int,
+func GetClustersByBlockRange(ctx context.Context, c external.Database,
+	blockHeightStart int, blockHeightEnd int,
 	convertUIDs bool) (clusters []Cluster, err error) {
 	const query = `query Q($start: string,$end: string) {
 				var(func: between(id,$start,$end)) {
@@ -883,7 +889,7 @@ func GetClustersByBlockRange(c external.Database, blockHeightStart int, blockHei
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
 	if err != nil {
 		return

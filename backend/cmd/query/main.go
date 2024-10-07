@@ -334,11 +334,11 @@ func getAddressRange(ctx context.Context, dgraph external.Database, firstBlock i
 	return db.GetAddressesByBlockRange(ctx, dgraph, firstBlock, lastBlock, true)
 }
 
-func getClusterRange(dgraph external.Database, firstBlock int, lastBlock int) ([]clustering.Cluster, error) {
+func getClusterRange(ctx context.Context, dgraph external.Database, firstBlock int, lastBlock int) ([]clustering.Cluster, error) {
 	numBlocks := lastBlock - firstBlock
 	if numBlocks <= 0 {
 		return nil, nil
 	}
 
-	return clustering.GetClustersByBlockRange(dgraph, firstBlock, lastBlock, true)
+	return clustering.GetClustersByBlockRange(ctx, dgraph, firstBlock, lastBlock, true)
 }

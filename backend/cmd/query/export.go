@@ -286,7 +286,7 @@ func doExportBlocks(ctx context.Context, dgraph external.Database, fileName stri
 		return
 	}
 
-	clusterRange, err := getClusterRange(dgraph, startBlock, endBlock)
+	clusterRange, err := getClusterRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting clusters")
 		return

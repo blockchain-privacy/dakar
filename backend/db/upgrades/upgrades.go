@@ -21,7 +21,9 @@ var availableUpgrades = map[int]UpgradePackage{
 	4: {upgrades: []schemaUpgrade{AlterSchemaAddWorkspaces}},
 	5: {
 		upgrades: []schemaUpgrade{
-			clustering.DeleteAllFMIClusters,
+			func() schemaUpgrade {
+				return func(c external.Database) error { return clustering.DeleteAllFMIClusters(context.Background(), c) }
+			}(),
 			func() schemaUpgrade {
 				return func(c external.Database) error {
 					zero := int64(0)

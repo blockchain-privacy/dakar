@@ -203,7 +203,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 	// get user clusters if necessary
 	var userClusterUIDs []string
 	if !isSimpleClustering {
-		userClusterUIDs, err = clustering.GetUserClustersUIDs(c, userUID, requestedClusterTypes)
+		userClusterUIDs, err = clustering.GetUserClustersUIDs(ctx, c, userUID, requestedClusterTypes)
 		if err != nil {
 			return
 		}
@@ -281,7 +281,8 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 				continue
 			}
 
-			mergedClusterUIDS, relatedErr := clustering.GetRelatedClusters(c, userCluster, userUID, requestedClusterTypes)
+			mergedClusterUIDS, relatedErr := clustering.GetRelatedClusters(ctx, c, userCluster,
+				userUID, requestedClusterTypes)
 			if relatedErr != nil {
 				err = relatedErr
 				return

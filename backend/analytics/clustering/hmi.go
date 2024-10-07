@@ -114,7 +114,7 @@ func (m *HierarchicalMultiInput) Iterate(ctx context.Context) (bool, error) {
 	}
 
 	// get the transaction of the current block height
-	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeHMI)
+	transactions, err := clustering.GetInputAddressesByBlock(ctx, m.db, m.state.ID, clustering.TypeHMI)
 	if err != nil {
 		return false, err
 	}
@@ -166,7 +166,7 @@ func (m *HierarchicalMultiInput) Iterate(ctx context.Context) (bool, error) {
 						// this is the case if for the cluster a known root cluster exists
 						existingClusters[r] = true
 					} else {
-						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.UID)
+						root, dbErr := clustering.GetHierarchicalClusterRoot(ctx, m.db, transactionCluster.UID)
 						if dbErr != nil {
 							return false, serror.AddContext(dbErr, "block", m.state.ID, "cluster uid", transactionCluster.UID)
 						}
