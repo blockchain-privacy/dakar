@@ -109,18 +109,22 @@ func TestFrontendTransaction_String(t *testing.T) {
 func TestGetTransactionsOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
 	// test null input
-	outputs, err := GetTransactionsOutputs(dbHandle, nil)
+	outputs, err := GetTransactionsOutputs(ctx, dbHandle, nil)
 	require.Error(t, err)
 	require.Nil(t, outputs)
 
 	// test invalid input
-	outputs, err = GetTransactionsOutputs(dbHandle, []string{"some_invalid_transaction_hash"})
+	outputs, err = GetTransactionsOutputs(ctx, dbHandle, []string{"some_invalid_transaction_hash"})
 	require.Error(t, err)
 	require.Nil(t, outputs)
 
 	// 2 transaction should return two mappings
-	outputs, err = GetTransactionsOutputs(dbHandle, []string{
+	outputs, err = GetTransactionsOutputs(ctx, dbHandle, []string{
 		"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb",
 		"0cfd028caf97751603255b1467085c3ccc5d476d79810ba9608d63587c7986f8",
 	})
@@ -139,33 +143,40 @@ func TestGetTransactionByBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
 	// only blocks beginning from height 60000 are in the DB, so it should fail
-	transactions, err := GetTransactionsByBlock(dbHandle, 1, 1)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 1, 1)
 	require.Error(t, err)
 	require.Nil(t, transactions)
 
-	transactions, err = GetTransactionsByBlock(dbHandle, 60001, 60001)
+	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 }
 
 func TestGetOutputAddressCounts(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
+
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
 	// invalid input
-	inputCount, outputCount, err := GetOutputAddressCounts(dbHandle, "")
+	inputCount, outputCount, err := GetOutputAddressCounts(ctx, dbHandle, "")
 	require.Error(t, err)
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
 	// invalid input should return no error but two zero counts
-	inputCount, outputCount, err = GetOutputAddressCounts(dbHandle, "0x123FFFF")
+	inputCount, outputCount, err = GetOutputAddressCounts(ctx, dbHandle, "0x123FFFF")
 	require.NoError(t, err)
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionsByBlock(dbHandle, 60001, 60001)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 
@@ -214,7 +225,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		inputCount, outputCount, err = GetOutputAddressCounts(dbHandle, c.uid)
+		inputCount, outputCount, err = GetOutputAddressCounts(ctx, dbHandle, c.uid)
 		require.NoError(t, err)
 		require.Equal(t, c.numInputs, inputCount, c.txhash)
 		require.Equal(t, c.numOutputs, outputCount, c.txhash)
@@ -249,7 +260,10 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionsByBlock(dbHandle, 60005, 60005)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 
@@ -282,11 +296,14 @@ func TestUpdateTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	// empty slice should fail
-	require.Error(t, UpdateTransactions(dbHandle, nil))
-	require.Error(t, UpdateTransactions(dbHandle, []Transaction{}))
+	ctx, cancel := GetBackendContext()
+	defer cancel()
 
-	transactions, err := GetTransactionsByBlock(dbHandle, 60001, 60001)
+	// empty slice should fail
+	require.Error(t, UpdateTransactions(ctx, dbHandle, nil))
+	require.Error(t, UpdateTransactions(ctx, dbHandle, []Transaction{}))
+
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
 	require.NoError(t, err)
 
 	// no mixing transactions should be in this block
@@ -299,9 +316,9 @@ func TestUpdateTransactions(t *testing.T) {
 		transactions[i].Type = constants.TypeMixing
 	}
 
-	require.NoError(t, UpdateTransactions(dbHandle, transactions))
+	require.NoError(t, UpdateTransactions(ctx, dbHandle, transactions))
 
-	transactions, err = GetTransactionsByBlock(dbHandle, 60001, 60001)
+	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
 	require.NoError(t, err)
 
 	// all transactions should now have the privacy type set to 'mixing'
@@ -330,16 +347,20 @@ func TestGetTransactionUID(t *testing.T) {
 func TestGetOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	transactions, err := GetOutputs(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
+
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
+	transactions, err := GetOutputs(ctx, dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
 	require.NoError(t, err)
 	require.Len(t, transactions, 56)
 
-	transactions, err = GetOutputs(dbHandle, 60007, 60007)
+	transactions, err = GetOutputs(ctx, dbHandle, 60007, 60007)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 
 	// should return an empty transaction slice, because this block range is not included in the database
-	transactions, err = GetOutputs(dbHandle, 1, 10)
+	transactions, err = GetOutputs(ctx, dbHandle, 1, 10)
 	require.NoError(t, err)
 	require.Empty(t, transactions)
 }
@@ -347,6 +368,9 @@ func TestGetOutputs(t *testing.T) {
 func TestGetTransaction(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+
+	ctx, cancel := GetBackendContext()
+	defer cancel()
 
 	tests := []struct {
 		txHash  string
@@ -366,7 +390,7 @@ func TestGetTransaction(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotTransaction, err := GetTransaction(dbHandle, tt.txHash)
+		gotTransaction, err := GetTransaction(ctx, dbHandle, tt.txHash)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -380,7 +404,10 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionsByBlock(dbHandle, 60005, 60005)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 

@@ -236,7 +236,7 @@ func TestProcessAddresses(t *testing.T) {
 		txHash        = "fd89e6e3bb0968da20d0253dbddb9e8634bc97e1f173b7c497e0c61e7231398b"
 	)
 
-	mapping, err := db.GetTransactionsOutputs(dbHandle, []string{txHash})
+	mapping, err := db.GetTransactionsOutputs(ctx, dbHandle, []string{txHash})
 	require.NoError(t, err)
 	require.Len(t, mapping, 1)
 	require.Len(t, mapping[0].Outputs, 2)
@@ -639,7 +639,7 @@ func Test_processBlock(t *testing.T) {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 
-	transactions, err := db.GetTransactionsByBlock(dbHandle,
+	transactions, err := db.GetTransactionsByBlock(ctx, dbHandle,
 		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock)
 	require.NoError(t, err)
 
@@ -750,6 +750,9 @@ func Test_getExternalOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	tests := []struct {
 		outputs  map[string][]int32
 		wantSize int
@@ -773,7 +776,7 @@ func Test_getExternalOutputs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		outputs, err := getExternalOutputs(dbHandle, tt.outputs)
+		outputs, err := getExternalOutputs(ctx, dbHandle, tt.outputs)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

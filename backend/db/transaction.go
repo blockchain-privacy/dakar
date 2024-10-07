@@ -9,7 +9,6 @@ import (
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
-	"time"
 )
 
 // transactionDType is the dgraph database type for the Transaction type
@@ -157,7 +156,7 @@ type OutputTransactionMapping struct {
 }
 
 // GetTransactionsOutputs returns all outputs of each given transaction
-func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
+func GetTransactionsOutputs(ctx context.Context, c external.Database, transactionHashes []string) (
 	transaction []OutputTransactionMapping, err error) {
 	if len(transactionHashes) == 0 {
 		return nil, serror.New(ErrEmptyRequestArgument)
@@ -180,7 +179,7 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 				}
 			  }`
 
-	resp, err := ReadOnlyTxWithRetry(c, time.Minute*10, query)
+	resp, err := QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -202,7 +201,8 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 }
 
 // GetTransactionsByBlock returns the transaction contained in the requested block
-func GetTransactionsByBlock(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
+func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockID int64,
+	toBlockID int64) (transactions []Transaction, err error) {
 	const query = `query Q($from:int,$to:int) {
 				var(func: between(id, $from, $to)){
 					txs as transactions
@@ -228,7 +228,7 @@ func GetTransactionsByBlock(c external.Database, fromBlockID int64, toBlockID in
 				}
 			  }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$from": strconv.FormatInt(fromBlockID, 10),
 			"$to": strconv.FormatInt(toBlockID, 10)})
 
@@ -253,7 +253,7 @@ func GetTransactionsByBlock(c external.Database, fromBlockID int64, toBlockID in
 }
 
 // GetTransaction returns the transaction specified by the transaction hash
-func GetTransaction(c external.Database, txHash string) (transaction Transaction, err error) {
+func GetTransaction(ctx context.Context, c external.Database, txHash string) (transaction Transaction, err error) {
 	if txHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -280,7 +280,7 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 				}
 			  }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$txhash": txHash})
+	resp, err := QueryVarWithRetry(ctx, c, query, map[string]string{"$txhash": txHash})
 	if err != nil {
 		return
 	}
@@ -303,7 +303,8 @@ func GetTransaction(c external.Database, txHash string) (transaction Transaction
 
 // GetOutputAddressCounts returns the number of distinct addresses associated
 // with the inputs and outputs of the transaction uid
-func GetOutputAddressCounts(c external.Database, uid string) (inputCount int, outputcount int, err error) {
+func GetOutputAddressCounts(ctx context.Context, c external.Database,
+	uid string) (inputCount int, outputcount int, err error) {
 	if uid == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -330,7 +331,7 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount int, ou
 				}
 			   }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*1, query, map[string]string{"$uid": uid})
+	resp, err := QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": uid})
 	if err != nil {
 		return
 	}
@@ -669,7 +670,7 @@ func GetTransactionBlockID(ctx context.Context, c external.Database, txHash stri
 
 // UpdateTransactions sends the given transaction updates to the database.
 // The transaction uids must be set.
-func UpdateTransactions(c external.Database, transactions []Transaction) error {
+func UpdateTransactions(ctx context.Context, c external.Database, transactions []Transaction) error {
 	if len(transactions) == 0 {
 		return serror.New(ErrEmptyRequestArgument)
 	}
@@ -685,7 +686,7 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 		return serror.New(err)
 	}
 
-	return TxWithRetry(c, time.Minute*5, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true})
+	return MutationWithRetry(ctx, c, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true})
 }
 
 // GetTransactionUID returns the uid of the given transaction
@@ -724,7 +725,8 @@ func GetTransactionUID(ctx context.Context, c external.Database, txHash string) 
 }
 
 // GetOutputs returns the transaction outputs of the given block range
-func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
+func GetOutputs(ctx context.Context, c external.Database,
+	fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
 	const query = `query Q($id1:int,$id2:int){
 					var(func: between(id,$id1, $id2)){
 						t as transactions
@@ -741,7 +743,7 @@ func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transa
 					}
 				}`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
+	resp, err := QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
 			"$id2": strconv.FormatInt(toBlockID, 10)})
 	if err != nil {

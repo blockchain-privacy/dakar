@@ -105,7 +105,7 @@ func (c *Crawler) CalculateInitialState(ctx context.Context) error {
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
 	info(fmt.Sprintf("Loading UTXOs of last %d blocks ...", c.initialBlockCacheSize))
-	c.cache, err = newUTXOCache(c.db, state.id, c.initialBlockCacheSize)
+	c.cache, err = newUTXOCache(ctx, c.db, state.id, c.initialBlockCacheSize)
 	if err != nil {
 		return err
 	}

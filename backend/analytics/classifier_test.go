@@ -455,6 +455,9 @@ func Test_getConnectedCollaterals(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	txHashes := []string{
 		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
 		"f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7",
@@ -462,7 +465,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 
 	txs := make([]db.Transaction, len(txHashes))
 	for i, hash := range txHashes {
-		transaction, err := db.GetTransaction(dbHandle, hash)
+		transaction, err := db.GetTransaction(ctx, dbHandle, hash)
 		require.NoError(t, err)
 		transaction.Type = ""
 		txs[i] = transaction
@@ -501,7 +504,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotOriginCC, gotOriginCP, err := getConnectedCollaterals(tt.args.dgraph,
+		gotOriginCC, gotOriginCP, err := getConnectedCollaterals(ctx, tt.args.dgraph,
 			tt.args.potentialCollateralTransactions, tt.args.blockHeight)
 
 		if tt.wantErr {
@@ -646,15 +649,18 @@ func Test_isCollateralCreation(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	ccTx, err := db.GetTransaction(ctx, dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	cpTx, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
+	cpTx, err := db.GetTransaction(ctx, dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
+	unclassifiedTx, err := db.GetTransaction(ctx, dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
+	mixingTx, err := db.GetTransaction(ctx, dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
-	largeAmount, err := db.GetTransaction(dbHandle, "cb94ed9e7c1e45c2e26585e7b24f8ab1d779cd9b8cd37d74bc7179211734ca85")
+	largeAmount, err := db.GetTransaction(ctx, dbHandle, "cb94ed9e7c1e45c2e26585e7b24f8ab1d779cd9b8cd37d74bc7179211734ca85")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -669,7 +675,7 @@ func Test_isCollateralCreation(t *testing.T) {
 		{t: largeAmount, want: false, wantErr: false},
 	}
 	for _, tt := range tests {
-		got, err := isCollateralCreation(dbHandle, tt.t)
+		got, err := isCollateralCreation(ctx, dbHandle, tt.t)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -704,13 +710,16 @@ func Test_isCollateralPayment(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	cp, err := db.GetTransaction(ctx, dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
+	ccTx, err := db.GetTransaction(ctx, dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
+	unclassifiedTx, err := db.GetTransaction(ctx, dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
+	mixingTx, err := db.GetTransaction(ctx, dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -752,15 +761,18 @@ func Test_isMixing(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
+	cp, err := db.GetTransaction(ctx, dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
+	ccTx, err := db.GetTransaction(ctx, dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
+	unclassifiedTx, err := db.GetTransaction(ctx, dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
+	mixingTx, err := db.GetTransaction(ctx, dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
-	mixingTx2, err := db.GetTransaction(dbHandle, "8a1b7adf54e37a2165f3bfba9df4abd4552a50af703dbd4ba5ba59b0562ded2f")
+	mixingTx2, err := db.GetTransaction(ctx, dbHandle, "8a1b7adf54e37a2165f3bfba9df4abd4552a50af703dbd4ba5ba59b0562ded2f")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -835,6 +847,9 @@ func Test_classifyTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+
 	txHashes := []string{
 		"6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389",
 		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
@@ -843,7 +858,7 @@ func Test_classifyTransactions(t *testing.T) {
 
 	txs := make([]db.Transaction, len(txHashes))
 	for i, hash := range txHashes {
-		transaction, err := db.GetTransaction(dbHandle, hash)
+		transaction, err := db.GetTransaction(ctx, dbHandle, hash)
 		require.NoError(t, err)
 		transaction.Type = ""
 		txs[i] = transaction
@@ -872,7 +887,7 @@ func Test_classifyTransactions(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		mixing, cc, cp, err := classifyTransactions(dbHandle, tt.transactions)
+		mixing, cc, cp, err := classifyTransactions(ctx, dbHandle, tt.transactions)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

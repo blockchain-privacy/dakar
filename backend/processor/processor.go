@@ -542,12 +542,13 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 }
 
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
-func getExternalOutputs(dgraph external.Database, outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
+func getExternalOutputs(ctx context.Context, dgraph external.Database,
+	outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
 	if len(outputs) == 0 {
 		return map[string]map[int32]db.Output{}, nil
 	}
 
-	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, cliutil.GetMapKeys(outputs))
+	transactionsOutputs, err := db.GetTransactionsOutputs(ctx, dgraph, cliutil.GetMapKeys(outputs))
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +593,7 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 		return
 	}
 
-	externalOutputs, err := getExternalOutputs(dgraph, filterExternalOutputs(txHashMap, cache))
+	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txHashMap, cache))
 	if err != nil {
 		return 0, 0, err
 	}
@@ -642,7 +643,7 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 		txCounter = 0
 	}
 
-	transactionOutputs, err := db.GetOutputs(dgraph, state.id, state.id)
+	transactionOutputs, err := db.GetOutputs(ctx, dgraph, state.id, state.id)
 	if err != nil {
 		return
 	}
