@@ -101,7 +101,7 @@ func upgradeDatabaseToNextVersion(ctx context.Context, c external.Database,
 	}
 
 	for _, upgrade := range upgradePackage.upgrades {
-		info("applyling upgrade", "function name", getFunctionName(upgrade))
+		info("applying upgrade", "function name", getFunctionName(upgrade))
 		if err := upgrade(c); err != nil {
 			return err
 		}
