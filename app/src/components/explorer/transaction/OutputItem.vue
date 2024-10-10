@@ -4,7 +4,10 @@
     class="my-2"
     :ripple="false"
   >
-    <v-card-text style="min-height: 90px">
+    <v-card-text
+      style="min-height: 90px"
+      class="overflow-scroll"
+    >
       <v-row>
         <v-col>
           <div class="d-flex justify-space-between align-center">
@@ -32,7 +35,7 @@
           <div
             class="d-flex justify-space-between align-center"
           >
-            <div class="text-caption d-flex align-center">
+            <div class="text-caption d-flex align-center text-no-wrap me-2">
               <workspace-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
                 {{ isInput ? 'created' : 'spent' }}
               </workspace-link>
