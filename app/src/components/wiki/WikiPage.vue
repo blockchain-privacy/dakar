@@ -120,7 +120,7 @@
           <div
             v-if="fileHTML"
             :class="{'wikiFileContentFullSize': $vuetify.display.mobile,
-                     'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown}"
+                     'wikiFileContent': !$vuetify.display.mobile, 'mx-auto': !$vuetify.display.smAndDown,'text-break':true}"
             v-html="fileHTML"
           />
           <v-skeleton-loader
@@ -407,14 +407,15 @@ onUnmounted(() => {
   max-width:60%;
   margin-left: auto;
   margin-right: auto;
-  margin-top:5px;
-  margin-bottom: 5px;
 }
 
 .wikiFileContentFullSize :deep(img) {
-  margin-top:5px;
-  margin-bottom: 5px;
   max-width: 100%;
+}
+
+:deep(img){
+  margin-top: 30px;
+  margin-bottom: 30px;
 }
 
  :deep(li){
@@ -422,13 +423,13 @@ onUnmounted(() => {
 }
 
  :deep(h2){
-   margin-top: 10px;
-   margin-bottom: 10px;
+   margin-top: 15px;
+   margin-bottom: 15px;
  }
 
 :deep(h3){
-  margin-top: 7px;
-  margin-bottom: 7px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 /* <em> after <img> */
