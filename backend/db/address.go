@@ -5,11 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
-	"time"
-
-	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
 // AddressDType is the dgraph database type for the Address type
@@ -289,7 +287,7 @@ func GetFrontendAddress(ctx context.Context, c external.Database, addrHash strin
 }
 
 // UpsertAddresses upserts addresses
-func UpsertAddresses(c external.Database, addresses []Address) error {
+func UpsertAddresses(ctx context.Context, c external.Database, addresses []Address) error {
 	if addresses == nil {
 		return serror.FromStr("got null pointer for addresses")
 	}
@@ -327,7 +325,7 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 		return serror.New(err)
 	}
 
-	return TxWithRetry(c, time.Minute*15, &api.Request{
+	return MutationWithRetry(ctx, c, &api.Request{
 		Query: queryPrefix + query + "}",
 		Vars:  vars,
 		Mutations: []*api.Mutation{{
@@ -372,7 +370,7 @@ func GetAddressUIDs(ctx context.Context, c external.Database, addressHashes []st
 }
 
 // GetAddressesByBlockRange returns all address-output mappings of the given block range
-func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHeightEnd int,
+func GetAddressesByBlockRange(ctx context.Context, c external.Database, blockHeightStart int, blockHeightEnd int,
 	convertUIDs bool) (addresses []Address, err error) {
 	const query = `query Q($start: string,$end: string) {
 				var(func: between(id,$start,$end)) {
@@ -396,7 +394,7 @@ func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHe
 				}
 			  }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
+	resp, err := QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
 	if err != nil {
 		return

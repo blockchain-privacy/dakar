@@ -5,6 +5,7 @@ import (
 	"backend/constants"
 	"backend/db/analytics"
 	"backend/external"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -253,7 +254,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	writeTxToCSV(mgraph.ToHex(nodeID)+"_mixing_transactions", exportTransactions)
 }
 
-func doExportBlocks(dgraph external.Database, fileName string, startBlock int, endBlock int) {
+func doExportBlocks(ctx context.Context, dgraph external.Database, fileName string, startBlock int, endBlock int) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		warn(err, "msg", "error creating file")
@@ -263,7 +264,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 		_ = file.Close()
 	}(file)
 
-	blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
+	blockRange, err := getBlockRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting blocks")
 		return
@@ -274,7 +275,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 		return
 	}
 
-	addressRange, err := getAddressRange(dgraph, startBlock, endBlock)
+	addressRange, err := getAddressRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting addresses")
 		return
@@ -285,7 +286,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 		return
 	}
 
-	clusterRange, err := getClusterRange(dgraph, startBlock, endBlock)
+	clusterRange, err := getClusterRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting clusters")
 		return
@@ -318,7 +319,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 	}
 }
 
-func doExportPrivacyTransactions(dgraph external.Database, fileName string, startTransaction string) {
+func doExportPrivacyTransactions(ctx context.Context, dgraph external.Database, fileName string, startTransaction string) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		warn(err, "msg", "error creating file")
@@ -328,7 +329,7 @@ func doExportPrivacyTransactions(dgraph external.Database, fileName string, star
 		_ = file.Close()
 	}(file)
 
-	blocks, addresses, transactions, err := analytics.GetForwardLookupTransactions(dgraph, startTransaction)
+	blocks, addresses, transactions, err := analytics.GetForwardLookupTransactions(ctx, dgraph, startTransaction)
 	if err != nil {
 		return
 	}

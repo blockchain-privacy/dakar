@@ -62,21 +62,21 @@ func (m *HierarchicalMultiInput) RegisterMetrics(req prometheus.Registerer) {
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (m *HierarchicalMultiInput) CalculateInitialState() error {
-	if err := dbstat.SetClusteringHMI(m.db, true); err != nil {
+func (m *HierarchicalMultiInput) CalculateInitialState(ctx context.Context) error {
+	if err := dbstat.SetClusteringHMI(ctx, m.db, true); err != nil {
 		return err
 	}
 
-	if err := setInitialHMIClusteringID(m.db); err != nil {
+	if err := setInitialHMIClusteringID(ctx, m.db); err != nil {
 		return err
 	}
 
-	classifierStatus, err := dbstat.GetClassifierStatus(m.db)
+	classifierStatus, err := dbstat.GetClassifierStatus(ctx, m.db)
 	if err != nil {
 		return err
 	}
 
-	clusteringStatus, err := dbstat.GetClusteringHMIStatus(m.db)
+	clusteringStatus, err := dbstat.GetClusteringHMIStatus(ctx, m.db)
 	if err != nil {
 		return err
 	}
@@ -108,13 +108,13 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 //
 //nolint:gocyclo
-func (m *HierarchicalMultiInput) Iterate() (bool, error) {
+func (m *HierarchicalMultiInput) Iterate(ctx context.Context) (bool, error) {
 	if m.Empty() {
 		return false, serror.FromStr("got empty state")
 	}
 
 	// get the transaction of the current block height
-	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeHMI)
+	transactions, err := clustering.GetInputAddressesByBlock(ctx, m.db, m.state.ID, clustering.TypeHMI)
 	if err != nil {
 		return false, err
 	}
@@ -166,7 +166,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 						// this is the case if for the cluster a known root cluster exists
 						existingClusters[r] = true
 					} else {
-						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.UID)
+						root, dbErr := clustering.GetHierarchicalClusterRoot(ctx, m.db, transactionCluster.UID)
 						if dbErr != nil {
 							return false, serror.AddContext(dbErr, "block", m.state.ID, "cluster uid", transactionCluster.UID)
 						}
@@ -259,7 +259,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 				return false, serror.AddContext(validationErr, "block id", m.state.ID)
 			}
 
-			clusterErr := clustering.AddClusters(m.db, newClusters, true)
+			clusterErr := clustering.AddClusters(ctx, m.db, newClusters, true)
 			if clusterErr != nil {
 				return false, clusterErr
 			}
@@ -272,7 +272,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClusteredHMIBlockID(m.db, m.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClusteredHMIBlockID(ctx, m.db, m.state.ID); statusErr != nil {
 		return false, statusErr
 	}
 
@@ -297,8 +297,8 @@ func (m *HierarchicalMultiInput) Props() blockiterator.Properties {
 func (m *HierarchicalMultiInput) SetMaxBlocks(int64) {}
 
 // Next tries to increase the internal state to the next block
-func (m *HierarchicalMultiInput) Next() (bool, error) {
-	status, err := dbstat.GetClassifierStatus(m.db)
+func (m *HierarchicalMultiInput) Next(ctx context.Context) (bool, error) {
+	status, err := dbstat.GetClassifierStatus(ctx, m.db)
 	if err != nil {
 		return false, err
 	} else if status.LastClassifiedBlockID == nil {
@@ -313,8 +313,8 @@ func (m *HierarchicalMultiInput) Next() (bool, error) {
 	return false, nil
 }
 
-func (m *HierarchicalMultiInput) PostExecution() error {
-	return dbstat.SetClusteringHMI(m.db, false)
+func (m *HierarchicalMultiInput) PostExecution(ctx context.Context) error {
+	return dbstat.SetClusteringHMI(ctx, m.db, false)
 }
 
 func (m *HierarchicalMultiInput) IncrementState() error {
@@ -328,14 +328,14 @@ func (m *HierarchicalMultiInput) Empty() bool {
 }
 
 // setInitialHMIClusteringID sets the starting HMI clustering block id to 0 if no value has been set yet
-func setInitialHMIClusteringID(dgraph external.Database) error {
-	status, err := dbstat.GetClusteringHMIStatus(dgraph)
+func setInitialHMIClusteringID(ctx context.Context, dgraph external.Database) error {
+	status, err := dbstat.GetClusteringHMIStatus(ctx, dgraph)
 	if err != nil {
 		return err
 	}
 
 	if status.LastClusteredBlockID == nil {
-		if err = dbstat.SetLastClusteredHMIBlockID(dgraph, 0); err != nil {
+		if err = dbstat.SetLastClusteredHMIBlockID(ctx, dgraph, 0); err != nil {
 			return err
 		}
 	}

@@ -10,15 +10,14 @@ import (
 	"errors"
 	"github.com/qrest/gomisc/serror"
 	"slices"
-	"time"
 )
 
 var ErrNodeNotFound = errors.New("node not found")
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
-func GetWorkspaceConnections(c external.Database, uids []string, userUID string, workspaceUID string) (
-	connections []NodeConnections, selectorNodes []Node, clusterHeight int64, err error) {
-	result, err := getWorkspaceConnectionsRaw(c, uids, userUID, workspaceUID)
+func GetWorkspaceConnections(ctx context.Context, c external.Database, uids []string, userUID string,
+	workspaceUID string) (connections []NodeConnections, selectorNodes []Node, clusterHeight int64, err error) {
+	result, err := getWorkspaceConnectionsRaw(ctx, c, uids, userUID, workspaceUID)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -34,8 +33,8 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string,
 }
 
 // getWorkspaceConnectionsRaw returns all connections between the given UIDs, and all connected heuristics in unparsed form
-func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID string, workspaceUID string) (
-	*connectionRequest, error) {
+func getWorkspaceConnectionsRaw(ctx context.Context, c external.Database,
+	uids []string, userUID string, workspaceUID string) (*connectionRequest, error) {
 	// one uid is still okay, because it could a be destination transaction with connected heuristics
 	if len(uids) == 0 {
 		return nil, serror.New(db.ErrEmptyRequestArgument)
@@ -164,7 +163,7 @@ func getWorkspaceConnectionsRaw(c external.Database, uids []string, userUID stri
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{
 		"$uids": db.CreateCommaArray(uids), "$userUID": userUID, "$workspaceUID": workspaceUID})
 	if err != nil {
 		return nil, err

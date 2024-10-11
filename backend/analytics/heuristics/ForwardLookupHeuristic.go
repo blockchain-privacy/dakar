@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
@@ -80,14 +81,11 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 //   - parent == transaction: By traversing the mixing graph forward limited by time,
 //     find all destination transactions connected to this transaction.
 //   - parent == heuristic: None, this is not allowed.
-func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
@@ -103,7 +101,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, err
 	}
 
-	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -120,7 +118,7 @@ func (h *forwardHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	var exclusions []string
 	if h.c.ExcludeAddresses {
 		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}

@@ -19,8 +19,11 @@ func TestMain(m *testing.M) {
 func TestAddWorkspace(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	// create dgraph user for tests
-	userUID, err := user.CreateNewUser(dbHandle)
+	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -58,12 +61,12 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	ctx := context.Background()
 	// create dgraph user and workspace for tests
-	userUID, err := user.CreateNewUser(dbHandle)
+	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 	_, err = AddWorkspace(ctx, dbHandle, "test", userUID)
 	require.NoError(t, err)
 
-	userUID2, err := user.CreateNewUser(dbHandle)
+	userUID2, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
 	require.NoError(t, err)
@@ -181,9 +184,10 @@ func TestDeleteNodes(t *testing.T) {
 
 func TestDeleteWorkspace(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	ctx := context.Background()
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
 	// create dgraph user and workspace for tests
-	userUID, err := user.CreateNewUser(dbHandle)
+	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 	workspaceUID, err := AddWorkspace(ctx, dbHandle, "test", userUID)
 	require.NoError(t, err)

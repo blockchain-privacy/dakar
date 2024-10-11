@@ -818,7 +818,7 @@ func getMixingActivity(dgraph external.Database, r *http.Request) (reply mixingA
 	}
 	const maxAddressCount = 2000
 	if req.IsClusterLookup {
-		addressCount, err := clustering.GetClusterAddressCount(dgraph, req.AddressHash)
+		addressCount, err := clustering.GetClusterAddressCount(r.Context(), dgraph, req.AddressHash)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
@@ -1100,7 +1100,7 @@ func getClusterOverviewReply(r *http.Request, dgraph external.Database) (reply c
 		return
 	}
 
-	clusters, err := clustering.GetUserClusters(dgraph, tUser.ID)
+	clusters, err := clustering.GetUserClusters(r.Context(), dgraph, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		reply.Msg = "no clusters found"
@@ -1128,7 +1128,7 @@ func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msg
 		return
 	}
 
-	if err := clustering.DeleteCluster(dgraph, tUser.ID, clusterUID); err != nil {
+	if err := clustering.DeleteCluster(r.Context(), dgraph, tUser.ID, clusterUID); err != nil {
 		reply.Msg = "could not delete cluster"
 		status = http.StatusInternalServerError
 		warn(err)

@@ -9,7 +9,6 @@ import (
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/stretchr/testify/require"
 	"testing"
-	"time"
 )
 
 var dbHandle = &testhelper.TestDB{IsDirty: true}
@@ -29,118 +28,33 @@ func TestInfo(t *testing.T) {
 
 func TestGetBackendContext(t *testing.T) {
 	require.NotPanics(t, func() {
-		_, cancel := GetBackendContext()
+		_, cancel := GetTaskContext()
 		cancel()
 	})
-}
-
-func TestExecRequest(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := execRequest(dbHandle, time.Duration(0), &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.Error(t, err)
-
-	_, err = execRequest(dbHandle, time.Minute, nil)
-	require.Error(t, err)
-
-	_, err = execRequest(dbHandle, time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.NoError(t, err)
 }
 
 func TestExecTx(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	_, err := ExecTx(dbHandle.NewTxn(), time.Duration(0), &api.Request{
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
+	defer cancel()
+
+	_, err := ExecTx(ctx, dbHandle.NewTxn(), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
 	require.Error(t, err)
 
-	_, err = ExecTx(dbHandle.NewTxn(), time.Minute, nil)
+	ctx, cancel = GetShortTaskContext()
+	defer cancel()
+
+	_, err = ExecTx(ctx, nil, nil)
 	require.Error(t, err)
 
-	_, err = ExecTx(dbHandle.NewTxn(), time.Minute, &api.Request{
+	_, err = ExecTx(ctx, dbHandle.NewTxn(), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
-	require.NoError(t, err)
-}
-
-func TestTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	require.Error(t, TxWithRetry(dbHandle, time.Duration(0), &api.Request{
-		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
-
-	require.Error(t, TxWithRetry(dbHandle, time.Minute, nil))
-
-	require.NoError(t, TxWithRetry(dbHandle, time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	}))
-}
-
-func TestTxWithRetryAndResponse(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := TxWithRetryAndResponse(dbHandle, time.Duration(0), &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.Error(t, err)
-
-	_, err = TxWithRetryAndResponse(dbHandle, time.Minute, nil)
-	require.Error(t, err)
-
-	_, err = TxWithRetryAndResponse(dbHandle, time.Minute, &api.Request{
-		Query:     `{q(func:uid(0x1)){uid}}`,
-		CommitNow: true,
-	})
-	require.NoError(t, err)
-}
-
-func TestExecReadOnlyRequest(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := execReadOnlyRequest(dbHandle, time.Minute, "", nil)
-	require.Error(t, err)
-
-	_, err = execReadOnlyRequest(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
-	require.Error(t, err)
-
-	_, err = execReadOnlyRequest(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
-	require.NoError(t, err)
-}
-
-func TestReadOnlyTxVarWithRetry(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "", nil)
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxVarWithRetry(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
-	require.NoError(t, err)
-}
-
-func TestReadOnlyTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
-	_, err := ReadOnlyTxWithRetry(dbHandle, time.Minute, "")
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxWithRetry(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}")
-	require.Error(t, err)
-
-	_, err = ReadOnlyTxWithRetry(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}")
 	require.NoError(t, err)
 }
 

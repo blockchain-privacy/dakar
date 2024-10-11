@@ -90,12 +90,12 @@ func (c *Crawler) Empty() bool {
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (c *Crawler) CalculateInitialState() error {
-	if err := dbstat.SetCrawling(c.db, true); err != nil {
+func (c *Crawler) CalculateInitialState(ctx context.Context) error {
+	if err := dbstat.SetCrawling(ctx, c.db, true); err != nil {
 		return err
 	}
 
-	state, err := getInitialState(c.db, c.rpc)
+	state, err := getInitialState(ctx, c.db, c.rpc)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (c *Crawler) CalculateInitialState() error {
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
 	info(fmt.Sprintf("Loading UTXOs of last %d blocks ...", c.initialBlockCacheSize))
-	c.cache, err = newUTXOCache(c.db, state.id, c.initialBlockCacheSize)
+	c.cache, err = newUTXOCache(ctx, c.db, state.id, c.initialBlockCacheSize)
 	if err != nil {
 		return err
 	}
@@ -116,12 +116,12 @@ func (c *Crawler) CalculateInitialState() error {
 }
 
 // PostExecution sets the crawler status activity flag to false
-func (c *Crawler) PostExecution() error {
-	return dbstat.SetCrawling(c.db, false)
+func (c *Crawler) PostExecution(ctx context.Context) error {
+	return dbstat.SetCrawling(ctx, c.db, false)
 }
 
 // Next tries to increase the internal state to the next block
-func (c *Crawler) Next() (bool, error) {
+func (c *Crawler) Next(context.Context) (bool, error) {
 	if !c.state.incremented {
 		// state is on next block
 		block, err := c.rpc.GetBlockVerbose(c.state.hash)
@@ -158,7 +158,7 @@ func (c *Crawler) Next() (bool, error) {
 
 // Iterate processes the current block. The block, its transactions,
 // its outputs/inputs and all associated addresses are written to the database.
-func (c *Crawler) Iterate() (bool, error) {
+func (c *Crawler) Iterate(ctx context.Context) (bool, error) {
 	if c.Empty() {
 		return false, serror.FromStr("got empty state")
 	}
@@ -171,7 +171,7 @@ func (c *Crawler) Iterate() (bool, error) {
 	}
 
 	// do the actual processing and aggregate the resulting metrics
-	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.rpc, c.state, c.currentBlock,
+	if rBlockCounter, rTransactionCounter, processErr := processRound(ctx, c.db, c.rpc, c.state, c.currentBlock,
 		c.config, c.cache); processErr == nil {
 		c.blocks.Add(float64(rBlockCounter))
 		c.transactions.Add(float64(rTransactionCounter))

@@ -7,6 +7,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
@@ -83,14 +84,11 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 
 // forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
@@ -107,7 +105,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
+	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		[]string{uid}, h.c.UserUID, h.c.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -137,7 +135,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	var exclusions []string
 	if h.c.ExcludeAddresses {
 		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +148,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	clusterDestinations := make([]clusterDestination, 0, len(clusterToOutputTransactions))
 	for c, txMap := range clusterToOutputTransactions {
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
+		destinations, err := getOriginDestinationsWithInputs(ctx, dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
 			exclusions, h.c.ExcludeSpendingGaps)
 		if err != nil {
 			return nil, err

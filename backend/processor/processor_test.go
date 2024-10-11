@@ -221,11 +221,14 @@ func TestProcessAddresses(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	// calling with empty mapping is allowed
-	require.NoError(t, processAddresses(dbHandle, nil, nil))
+	require.NoError(t, processAddresses(ctx, dbHandle, nil, nil))
 
 	// cache is necessary if mapping is not empty
-	require.Error(t, processAddresses(dbHandle, nil, []transactionMapping{{}}))
+	require.Error(t, processAddresses(ctx, dbHandle, nil, []transactionMapping{{}}))
 
 	const (
 		fistAddress   = "XonqFxADHJxSwZCuka5h46HXAdFfBMQc21"
@@ -233,7 +236,7 @@ func TestProcessAddresses(t *testing.T) {
 		txHash        = "fd89e6e3bb0968da20d0253dbddb9e8634bc97e1f173b7c497e0c61e7231398b"
 	)
 
-	mapping, err := db.GetTransactionsOutputs(dbHandle, []string{txHash})
+	mapping, err := db.GetTransactionsOutputs(ctx, dbHandle, []string{txHash})
 	require.NoError(t, err)
 	require.Len(t, mapping, 1)
 	require.Len(t, mapping[0].Outputs, 2)
@@ -259,7 +262,7 @@ func TestProcessAddresses(t *testing.T) {
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs(txHash, outputs[:]))
 
-	require.NoError(t, processAddresses(dbHandle, cache, []transactionMapping{txMap}))
+	require.NoError(t, processAddresses(ctx, dbHandle, cache, []transactionMapping{txMap}))
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
@@ -633,8 +636,10 @@ func Test_processTxVin(t *testing.T) {
 func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
 
-	transactions, err := db.GetTransactionsByBlock(dbHandle,
+	transactions, err := db.GetTransactionsByBlock(ctx, dbHandle,
 		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock)
 	require.NoError(t, err)
 
@@ -661,7 +666,7 @@ func Test_processBlock(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := processBlock(dbHandle, tt.args.transactions, tt.args.currentHash,
+		err := processBlock(ctx, dbHandle, tt.args.transactions, tt.args.currentHash,
 			tt.args.blockID, tt.args.timestamp, tt.args.prevBlockHash)
 		if tt.wantErr {
 			require.Error(t, err)
@@ -675,27 +680,30 @@ func Test_getStartingID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	require.NoError(t, status.SetCrawling(dbHandle, true))
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
 
-	gotStartID, err := getStartingID(dbHandle)
+	require.NoError(t, status.SetCrawling(ctx, dbHandle, true))
+
+	gotStartID, err := getStartingID(ctx, dbHandle)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotStartID)
 
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling: testhelper.GetPointer[bool](true),
 		// make blocks not match
 		LastBlockID: testhelper.GetPointer[int64](5),
 	}))
-	_, err = getStartingID(dbHandle)
+	_, err = getStartingID(ctx, dbHandle)
 	require.Error(t, err)
 
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  testhelper.GetPointer[bool](true),
 		LastBlockID: testhelper.GetPointer[int64](testhelper.BlockFileLastBlock),
 	}))
-	gotStartID, err = getStartingID(dbHandle)
+	gotStartID, err = getStartingID(ctx, dbHandle)
 	require.NoError(t, err)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, gotStartID)
 }
@@ -711,12 +719,15 @@ func Test_getInitialState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	_, err := getInitialState(dbHandle, client)
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	_, err := getInitialState(ctx, dbHandle, client)
 	require.Error(t, err)
 
-	require.NoError(t, status.SetCrawling(dbHandle, true))
+	require.NoError(t, status.SetCrawling(ctx, dbHandle, true))
 
-	_, err = getInitialState(dbHandle, client)
+	_, err = getInitialState(ctx, dbHandle, client)
 	require.NoError(t, err)
 }
 
@@ -738,6 +749,9 @@ func Test_createTransactionHashmap(t *testing.T) {
 func Test_getExternalOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
 
 	tests := []struct {
 		outputs  map[string][]int32
@@ -762,7 +776,7 @@ func Test_getExternalOutputs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		outputs, err := getExternalOutputs(dbHandle, tt.outputs)
+		outputs, err := getExternalOutputs(ctx, dbHandle, tt.outputs)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -776,6 +790,9 @@ func Test_processRound(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
 
 	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
@@ -805,7 +822,7 @@ func Test_processRound(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		_, _, err := processRound(dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		_, _, err := processRound(ctx, dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

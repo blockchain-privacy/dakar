@@ -29,13 +29,16 @@ func TestCrawler_IncrementState(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
 	// initial state is not set yet
 	require.Error(t, crawler.IncrementState())
 
-	require.NoError(t, crawler.CalculateInitialState())
-	block, err := crawler.Next()
+	require.NoError(t, crawler.CalculateInitialState(ctx))
+	block, err := crawler.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, block)
 
@@ -50,12 +53,16 @@ func TestCrawler_Empty(t *testing.T) {
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
-	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
 	require.True(t, crawler.Empty())
 
-	require.NoError(t, crawler.CalculateInitialState())
-	isNewBlock, err := crawler.Next()
+	require.NoError(t, crawler.CalculateInitialState(ctx))
+	isNewBlock, err := crawler.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, isNewBlock)
 
@@ -71,18 +78,24 @@ func TestCrawler_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	crawler := NewCrawler(ctx, dbHandle, client, 0, NewBitcoinConfig())
 	crawler.RegisterMetrics(prometheus.NewRegistry())
-	require.NoError(t, crawler.CalculateInitialState())
+	require.NoError(t, crawler.CalculateInitialState(ctx))
 }
 
 func TestCrawler_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
-	crawler := NewCrawler(context.Background(), dbHandle, client, 0, NewBitcoinConfig())
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
 
-	require.NoError(t, crawler.PostExecution())
+	crawler := NewCrawler(ctx, dbHandle, client, 0, NewBitcoinConfig())
+
+	require.NoError(t, crawler.PostExecution(ctx))
 }
 
 func TestCrawler_NextBlock(t *testing.T) {
@@ -93,13 +106,17 @@ func TestCrawler_NextBlock(t *testing.T) {
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
-	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
-	_, err := crawler.Next()
+	_, err := crawler.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, crawler.CalculateInitialState())
-	isNewBlock, err := crawler.Next()
+	require.NoError(t, crawler.CalculateInitialState(ctx))
+	isNewBlock, err := crawler.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, isNewBlock)
 }
@@ -112,13 +129,17 @@ func TestCrawler_Iterate(t *testing.T) {
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
 	c.ForkRangeLimit = 1
-	crawler := NewCrawler(context.Background(), dbHandle, client, 0, c)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	crawler := NewCrawler(ctx, dbHandle, client, 0, c)
 	crawler.RegisterMetrics(prometheus.NewRegistry())
-	_, err := crawler.Iterate()
+	_, err := crawler.Iterate(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, crawler.CalculateInitialState())
-	isNewBlock, err := crawler.Next()
+	require.NoError(t, crawler.CalculateInitialState(ctx))
+	isNewBlock, err := crawler.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, isNewBlock)
 
@@ -126,7 +147,7 @@ func TestCrawler_Iterate(t *testing.T) {
 	// This is needed because the testrpc client has fewer blocks than the ForkRangeLimit
 	crawler.state.top = 1000000
 
-	success, err := crawler.Iterate()
+	success, err := crawler.Iterate(ctx)
 	require.NoError(t, err)
 	require.True(t, success)
 }

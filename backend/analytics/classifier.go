@@ -166,25 +166,25 @@ func (c *Classifier) Empty() bool {
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (c *Classifier) CalculateInitialState() error {
+func (c *Classifier) CalculateInitialState(ctx context.Context) error {
 	if !c.config.IsClassifyingEnabled {
 		return serror.FromStr("classifying is disabled per configuration")
 	}
 
-	if err := dbstat.SetClassifying(c.db, true); err != nil {
+	if err := dbstat.SetClassifying(ctx, c.db, true); err != nil {
 		return err
 	}
 
-	if err := setInitialClassifierID(c.db); err != nil {
+	if err := setInitialClassifierID(ctx, c.db); err != nil {
 		return err
 	}
 
-	crawlerStatus, err := dbstat.GetCrawlerStatus(c.db)
+	crawlerStatus, err := dbstat.GetCrawlerStatus(ctx, c.db)
 	if err != nil {
 		return err
 	}
 
-	classifierStatus, err := dbstat.GetClassifierStatus(c.db)
+	classifierStatus, err := dbstat.GetClassifierStatus(ctx, c.db)
 	if err != nil {
 		return err
 	}
@@ -224,10 +224,9 @@ func getUids(txs []db.Transaction) []string {
 
 // getConnectedCollaterals returns a set of collateral creation and a set of
 // collateral payment transactions, which are connected to the given transaction set.
-func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransactions []db.Transaction,
-	blockHeight int64) (originCC []db.Transaction, originCP []db.Transaction, err error) {
+func getConnectedCollaterals(ctx context.Context, dgraph external.Database, potentialCollateralTransactions []db.Transaction, blockHeight int64) (originCC []db.Transaction, originCP []db.Transaction, err error) {
 	for len(potentialCollateralTransactions) > 0 {
-		mixing, cc, cp, getErr := classifyTransactions(dgraph, potentialCollateralTransactions)
+		mixing, cc, cp, getErr := classifyTransactions(ctx, dgraph, potentialCollateralTransactions)
 		if getErr != nil {
 			err = getErr
 			return
@@ -252,7 +251,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 		txUids := getUids(append(cc, cp...))
 
 		var dbErr error
-		potentialCollateralTransactions, dbErr = analytics.GetCollateralInputTransactions(dgraph, txUids, blockHeight)
+		potentialCollateralTransactions, dbErr = analytics.GetCollateralInputTransactions(ctx, dgraph, txUids, blockHeight)
 		if dbErr != nil {
 			err = dbErr
 			return
@@ -264,8 +263,8 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 
 // Next tries to increase the internal state to the next block.
 // Returns true if the top block id was changed
-func (c *Classifier) Next() (bool, error) {
-	status, err := dbstat.GetCrawlerStatus(c.db)
+func (c *Classifier) Next(ctx context.Context) (bool, error) {
+	status, err := dbstat.GetCrawlerStatus(ctx, c.db)
 	if err != nil {
 		return false, err
 	} else if status.LastBlockID == nil {
@@ -283,7 +282,7 @@ func (c *Classifier) Next() (bool, error) {
 // Iterate classifies all transactions of the current block based
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
-func (c *Classifier) Iterate() (bool, error) {
+func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
 	if c.maxBlocks == 0 {
 		return false, serror.FromStr("max blocks must be higher than zero")
 	}
@@ -296,13 +295,13 @@ func (c *Classifier) Iterate() (bool, error) {
 	toBlockID := min(c.state.Top, c.state.ID+c.maxBlocks-1)
 
 	// get the transaction of the current block height
-	transactions, err := db.GetTransactionsByBlock(c.db, c.state.ID, toBlockID)
+	transactions, err := db.GetTransactionsByBlock(ctx, c.db, c.state.ID, toBlockID)
 	if err != nil {
 		return false, err
 	}
 
 	// step 1: classify all transactions of the current block locally based on their own properties
-	mixingTransactions, ccTransactions, cpTransactions, err := classifyTransactions(c.db, transactions)
+	mixingTransactions, ccTransactions, cpTransactions, err := classifyTransactions(ctx, c.db, transactions)
 	if err != nil {
 		return false, err
 	}
@@ -313,7 +312,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// step 2.1: store the privacy type of mixing transactions.
 	if len(mixingTransactions) > 0 {
-		if updateErr := db.UpdateTransactions(c.db, mixingTransactions); updateErr != nil {
+		if updateErr := db.UpdateTransactions(ctx, c.db, mixingTransactions); updateErr != nil {
 			return false, updateErr
 		}
 	}
@@ -324,7 +323,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
-		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID, toBlockID)
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(ctx, c.db, c.state.ID, toBlockID)
 	if classErr != nil {
 		return false, classErr
 	}
@@ -334,7 +333,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
 		// been found they are getting classified, before appending them to the set of transactions
 		// which is getting inserted into the db
-		originCC, originCP, err := getConnectedCollaterals(c.db, potentialCollateralTransactions, toBlockID)
+		originCC, originCP, err := getConnectedCollaterals(ctx, c.db, potentialCollateralTransactions, toBlockID)
 		if err != nil {
 			return false, err
 		}
@@ -347,7 +346,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		updatedTransactions = slices.Concat(updatedTransactions, originCC, originCP)
 
 		if len(updatedTransactions) > 0 {
-			if updateErr := db.UpdateTransactions(c.db, updatedTransactions); updateErr != nil {
+			if updateErr := db.UpdateTransactions(ctx, c.db, updatedTransactions); updateErr != nil {
 				return false, updateErr
 			}
 		}
@@ -362,7 +361,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		// need to set type multiple times for the same block as transactions
 		// could be connected to transactions in the same block
 		for numInserted > 0 {
-			numInserted, ccErr = analytics.SetCollateralCreation(c.db, getUids(ccTransactions))
+			numInserted, ccErr = analytics.SetCollateralCreation(ctx, c.db, getUids(ccTransactions))
 			if ccErr != nil {
 				return false, ccErr
 			}
@@ -384,7 +383,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		// need to set type multiple times for the same block as transactions
 		// could be connected to transactions in the same block
 		for numInserted > 0 {
-			numInserted, cpErr = analytics.SetCollateralPayment(c.db, getUids(cpTransactions))
+			numInserted, cpErr = analytics.SetCollateralPayment(ctx, c.db, getUids(cpTransactions))
 			if cpErr != nil {
 				return false, cpErr
 			}
@@ -398,7 +397,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, toBlockID); statusErr != nil {
+	if statusErr := dbstat.SetLastClassifiedBlockID(ctx, c.db, toBlockID); statusErr != nil {
 		return false, statusErr
 	}
 
@@ -411,20 +410,20 @@ func (c *Classifier) Iterate() (bool, error) {
 }
 
 // PostExecution sets the classifier status activity flag to false
-func (c *Classifier) PostExecution() error {
-	return dbstat.SetClassifying(c.db, false)
+func (c *Classifier) PostExecution(ctx context.Context) error {
+	return dbstat.SetClassifying(ctx, c.db, false)
 }
 
 // setInitialClassifierID sets the starting classifier block id to the
 // value of startBlockClassifier if no value has been set yet
-func setInitialClassifierID(dgraph external.Database) (err error) {
-	status, err := dbstat.GetClassifierStatus(dgraph)
+func setInitialClassifierID(ctx context.Context, dgraph external.Database) (err error) {
+	status, err := dbstat.GetClassifierStatus(ctx, dgraph)
 	if err != nil {
 		return
 	}
 
 	if status.LastClassifiedBlockID == nil {
-		if err = dbstat.SetLastClassifiedBlockID(dgraph, 0); err != nil {
+		if err = dbstat.SetLastClassifiedBlockID(ctx, dgraph, 0); err != nil {
 			return
 		}
 	}
@@ -432,7 +431,7 @@ func setInitialClassifierID(dgraph external.Database) (err error) {
 }
 
 // isCollateralCreation checks if the transactions is a collateral creation transaction
-func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, error) {
+func isCollateralCreation(ctx context.Context, dgraph external.Database, t db.Transaction) (bool, error) {
 	if *t.Fee == 0 || len(t.Inputs) < 1 || len(t.Outputs) != 2 {
 		return false, nil
 	}
@@ -453,7 +452,7 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 		return false, nil
 	}
 
-	inputCount, outputCount, err := db.GetOutputAddressCounts(dgraph, t.UID)
+	inputCount, outputCount, err := db.GetOutputAddressCounts(ctx, dgraph, t.UID)
 	if err != nil {
 		return false, err
 	}
@@ -546,7 +545,8 @@ func hasValidTransactionType(tx db.Transaction) bool {
 
 // classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
-func classifyTransactions(dgraph external.Database, transactions []db.Transaction) (mixing []db.Transaction,
+func classifyTransactions(ctx context.Context, dgraph external.Database,
+	transactions []db.Transaction) (mixing []db.Transaction,
 	cc []db.Transaction, cp []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
@@ -564,7 +564,7 @@ func classifyTransactions(dgraph external.Database, transactions []db.Transactio
 			continue
 		}
 
-		isCC, collateralErr := isCollateralCreation(dgraph, transaction)
+		isCC, collateralErr := isCollateralCreation(ctx, dgraph, transaction)
 		if collateralErr != nil {
 			err = collateralErr
 		}

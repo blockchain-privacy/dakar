@@ -3,6 +3,7 @@ package processor
 import (
 	"backend/db"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 )
 
@@ -11,7 +12,7 @@ type outputCache struct {
 }
 
 // newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
-func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoadSize int64) (*outputCache, error) {
+func newUTXOCache(ctx context.Context, dgraph external.Database, mostRecentBlockID int64, initialLoadSize int64) (*outputCache, error) {
 	if initialLoadSize == 0 {
 		return &outputCache{c: make(map[string]map[int32]db.Output)}, nil
 	}
@@ -32,7 +33,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 			stop = true
 		}
 
-		stepTransactions, err := db.GetOutputs(dgraph, i, to)
+		stepTransactions, err := db.GetOutputs(ctx, dgraph, i, to)
 		if err != nil {
 			return nil, err
 		}

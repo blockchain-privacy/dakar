@@ -4,6 +4,7 @@ import (
 	"backend/constants"
 	dban "backend/db/analytics"
 	"backend/external"
+	"context"
 	"encoding/csv"
 	"os"
 	"time"
@@ -15,7 +16,7 @@ type transactionTypePair struct {
 }
 
 // exportTransactionData exports all transaction timestamps in a CSV-file per privacy type (mixing, destination, ...)
-func exportTransactionData(database external.Database, directory string) {
+func exportTransactionData(ctx context.Context, database external.Database, directory string) {
 	info("Creating privacy transaction charts")
 	if len(directory) == 0 {
 		info("invalid directory: " + directory)
@@ -32,7 +33,7 @@ func exportTransactionData(database external.Database, directory string) {
 	}
 
 	for _, t := range transactionTypes {
-		ts, dbErr := dban.GetTransactionTypeData(database, t.transactionType)
+		ts, dbErr := dban.GetTransactionTypeData(ctx, database, t.transactionType)
 		if dbErr != nil {
 			warn(dbErr)
 			return

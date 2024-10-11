@@ -6,6 +6,7 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"backend/jsonrpc"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -147,7 +148,7 @@ func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, output
 }
 
 // processAddresses inserts mappings between addresses and outputs in database
-func processAddresses(dgraph external.Database, cache *outputCache,
+func processAddresses(ctx context.Context, dgraph external.Database, cache *outputCache,
 	transactionMappings []transactionMapping) error {
 	if len(transactionMappings) == 0 {
 		return nil
@@ -178,7 +179,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		return err
 	}
 
-	return db.UpsertAddresses(dgraph, cliutil.GetMapValues(addrMap))
+	return db.UpsertAddresses(ctx, dgraph, cliutil.GetMapValues(addrMap))
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
@@ -395,9 +396,9 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[int32]
 }
 
 // processBlock builds a block with the provided arguments and inserts it in the database
-func processBlock(dgraph external.Database, transactions []db.Transaction, currentHash string,
+func processBlock(ctx context.Context, dgraph external.Database, transactions []db.Transaction, currentHash string,
 	blockID int64, timestamp string, prevBlockHash string) (err error) {
-	return db.UpsertBlock(dgraph, db.Block{
+	return db.UpsertBlock(ctx, dgraph, db.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		ID:        &blockID,
@@ -412,8 +413,8 @@ var errBlockIDsDoNotMatch = errors.New("block id of last crawled block and highe
 
 // getStartingID gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
-func getStartingID(dgraph external.Database) (startID int64, err error) {
-	status, err := dbstat.GetCrawlerStatus(dgraph)
+func getStartingID(ctx context.Context, dgraph external.Database) (startID int64, err error) {
+	status, err := dbstat.GetCrawlerStatus(ctx, dgraph)
 	if err != nil {
 		return
 	}
@@ -424,7 +425,7 @@ func getStartingID(dgraph external.Database) (startID int64, err error) {
 		return
 	}
 
-	highestBlockID, err := dbstat.GetHighestBlockID(dgraph)
+	highestBlockID, err := dbstat.GetHighestBlockID(ctx, dgraph)
 	if err != nil {
 		return
 	}
@@ -496,8 +497,8 @@ func getRPCNumberOfBlocks(client external.RPCClient) (int64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
-	if state.id, err = getStartingID(dgraph); err != nil {
+func getInitialState(ctx context.Context, dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
+	if state.id, err = getStartingID(ctx, dgraph); err != nil {
 		if !errors.Is(err, errBlockIDsDoNotMatch) {
 			return
 		}
@@ -541,12 +542,13 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 }
 
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
-func getExternalOutputs(dgraph external.Database, outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
+func getExternalOutputs(ctx context.Context, dgraph external.Database,
+	outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
 	if len(outputs) == 0 {
 		return map[string]map[int32]db.Output{}, nil
 	}
 
-	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, cliutil.GetMapKeys(outputs))
+	transactionsOutputs, err := db.GetTransactionsOutputs(ctx, dgraph, cliutil.GetMapKeys(outputs))
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +582,7 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]int32) (m
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
+func processRound(ctx context.Context, dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
 	block *jsonrpc.GetBlockVerboseResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []transactionMapping
@@ -591,7 +593,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 		return
 	}
 
-	externalOutputs, err := getExternalOutputs(dgraph, filterExternalOutputs(txHashMap, cache))
+	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txHashMap, cache))
 	if err != nil {
 		return 0, 0, err
 	}
@@ -627,10 +629,10 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 	// Address mappings are upserted in the worst case with same mappings as already included in the database,
 	// so there is no damage done if we upsert the same mapping twice.
 	var b db.Block
-	if b, err = db.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
+	if b, err = db.GetBlock(ctx, dgraph, state.hash); err != nil || !b.IsComplete() {
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
-		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+		if err = processBlock(ctx, dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
 			err = serror.AddContext(err, "state", state.String())
 			return
 		}
@@ -641,7 +643,7 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 		txCounter = 0
 	}
 
-	transactionOutputs, err := db.GetOutputs(dgraph, state.id, state.id)
+	transactionOutputs, err := db.GetOutputs(ctx, dgraph, state.id, state.id)
 	if err != nil {
 		return
 	}
@@ -675,13 +677,13 @@ func processRound(dgraph external.Database, rpcClient external.RPCClient, state 
 		}
 	}
 
-	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
+	if err = processAddresses(ctx, dgraph, allOutputsCache, txMapping); err != nil {
 		err = serror.AddContext(err, "state", state.String())
 		return
 	}
 
 	// save processing state
-	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
+	if err = dbstat.SetLastBlockID(ctx, dgraph, state.id); err != nil {
 		err = serror.AddContext(err, "state", state.String())
 		return
 	}

@@ -30,7 +30,7 @@ func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database,
 	}
 
 	// no updated needed because of dummy heuristics, but maybe because clusters are outdated
-	isOutdated, err := isWorkspaceOutdated(dgraph, w)
+	isOutdated, err := isWorkspaceOutdated(ctx, dgraph, w)
 	if err != nil {
 		return nil, serror.New(err)
 	}
@@ -44,7 +44,7 @@ func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database,
 
 	// workspace can only be truly outdated if there are at least two nodes
 	if isOutdated && len(nodeMap) > 1 {
-		clusterHeight, nodeMap, err = InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
+		clusterHeight, nodeMap, err = InsertNodeConnectionsAndHeuristics(ctx, dgraph, nodeMap, userUID, workspaceUID)
 		if err != nil {
 			return nil, err
 		}
@@ -277,7 +277,7 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 		}
 	}
 
-	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, userUID, workspaceUID)
+	clusterHeight, nodeMap, err := InsertNodeConnectionsAndHeuristics(ctx, dgraph, nodeMap, userUID, workspaceUID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -364,9 +364,9 @@ func encodeAndStoreWorkspaceState(ctx context.Context, dgraph external.Database,
 
 // InsertNodeConnectionsAndHeuristics queries the db for connections between nodes in nodeMap and inserts them.
 // Also inserts found heuristics into the node map
-func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[string]workspace.Node,
+func InsertNodeConnectionsAndHeuristics(ctx context.Context, dgraph external.Database, nodeMap map[string]workspace.Node,
 	userUID string, workspaceUID string) (int64, map[string]workspace.Node, error) {
-	connections, nodeSelectors, clusterHeight, err := workspace.GetWorkspaceConnections(dgraph,
+	connections, nodeSelectors, clusterHeight, err := workspace.GetWorkspaceConnections(ctx, dgraph,
 		cliutil.GetMapKeys(nodeMap), userUID, workspaceUID)
 	if err != nil {
 		return 0, nil, err
@@ -399,7 +399,7 @@ func InsertNodeConnectionsAndHeuristics(dgraph external.Database, nodeMap map[st
 }
 
 // isWorkspaceOutdated returns true if the workspace state is outdated
-func isWorkspaceOutdated(dgraph external.Database, w *workspace.DecodedWorkspace) (bool, error) {
+func isWorkspaceOutdated(ctx context.Context, dgraph external.Database, w *workspace.DecodedWorkspace) (bool, error) {
 	if len(w.Nodes) == 0 {
 		return false, nil
 	}
@@ -428,7 +428,7 @@ func isWorkspaceOutdated(dgraph external.Database, w *workspace.DecodedWorkspace
 		return false, nil
 	}
 
-	isOutdated, err := workspace.IsWorkspaceStateOutdated(dgraph, *w.ClusterHeight, clusterUIDs)
+	isOutdated, err := workspace.IsWorkspaceStateOutdated(ctx, dgraph, *w.ClusterHeight, clusterUIDs)
 	if err != nil {
 		return false, err
 	}

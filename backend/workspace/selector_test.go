@@ -12,7 +12,7 @@ import (
 )
 
 func createUserAndWorkspace() (string, string, error) {
-	userUID, err := user.CreateNewUser(dbHandle)
+	userUID, err := user.CreateNewUser(context.Background(), dbHandle)
 	if err != nil {
 		return "", "", err
 	}
@@ -49,7 +49,7 @@ func TestAddSelector(t *testing.T) {
 		OutputRange: &workspace.AmountRange{Min: &val1, Max: &valPoint1},
 	}
 	m := NewMutex()
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	// add parent
@@ -105,7 +105,7 @@ func Test_isValidParent(t *testing.T) {
 	userUID2, workspaceUID2, err := createUserAndWorkspace()
 	require.NoError(t, err)
 
-	ctx, cancel := db.GetBackendContext()
+	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	selectorUID1, err := workspace.InsertSelector(ctx, dbHandle, &workspace.Selector{

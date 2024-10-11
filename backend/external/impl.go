@@ -54,7 +54,7 @@ func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
 // WaitForDatabase waits until the database is ready to receive requests
 func WaitForDatabase(c Database) bool {
 	for range 20 {
-		if IsConnectionEstablished(c) {
+		if isConnectionEstablished(c) {
 			return true
 		}
 
@@ -64,9 +64,9 @@ func WaitForDatabase(c Database) bool {
 	return false
 }
 
-// IsConnectionEstablished test the database connection
-func IsConnectionEstablished(c Database) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+// isConnectionEstablished test the database connection
+func isConnectionEstablished(c Database) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	_, err := c.Query(ctx, "{q(func: uid(0x1)){uid}}", nil)
 

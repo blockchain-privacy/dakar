@@ -14,7 +14,7 @@ import (
 const uidV = "uid(v)"
 
 // GetCrawlerStatus gets the crawler status from the database
-func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
+func GetCrawlerStatus(ctx context.Context, c external.Database) (status CrawlerStatus, err error) {
 	const query = `{
 				 q(func: type(` + CrawlerStatusDType + `)){
 					uid
@@ -23,7 +23,7 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -39,7 +39,7 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 }
 
 // GetClassifierStatus gets the classifier status from the database
-func GetClassifierStatus(c external.Database) (status ClassifierStatus, err error) {
+func GetClassifierStatus(ctx context.Context, c external.Database) (status ClassifierStatus, err error) {
 	query := `{
 				 q(func: type(` + ClassifierStatusDType + `)){
 					uid
@@ -48,7 +48,7 @@ func GetClassifierStatus(c external.Database) (status ClassifierStatus, err erro
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -64,7 +64,7 @@ func GetClassifierStatus(c external.Database) (status ClassifierStatus, err erro
 }
 
 // GetClusteringHMIStatus gets the hierarchical multi-input clustering status from the database
-func GetClusteringHMIStatus(c external.Database) (status ClusteringHierarchicalMultiInputStatus, err error) {
+func GetClusteringHMIStatus(ctx context.Context, c external.Database) (status ClusteringHierarchicalMultiInputStatus, err error) {
 	query := `{
 				 q(func: type(` + ClusteringHierarchicalMultiInputDType + `)){
 					uid
@@ -73,7 +73,7 @@ func GetClusteringHMIStatus(c external.Database) (status ClusteringHierarchicalM
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -89,7 +89,7 @@ func GetClusteringHMIStatus(c external.Database) (status ClusteringHierarchicalM
 }
 
 // GetClusteringFMIStatus gets the flat multi-input clustering status from the database
-func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInputStatus, err error) {
+func GetClusteringFMIStatus(ctx context.Context, c external.Database) (status ClusteringFlatMultiInputStatus, err error) {
 	query := `{
 				 q(func: type(` + ClusteringFlatMultiInputDType + `)){
 					uid
@@ -98,7 +98,7 @@ func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInpu
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -114,7 +114,7 @@ func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInpu
 }
 
 // GetHighestBlockID gets the highest block id.
-func GetHighestBlockID(c external.Database) (max int64, err error) {
+func GetHighestBlockID(ctx context.Context, c external.Database) (max int64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -123,7 +123,7 @@ func GetHighestBlockID(c external.Database) (max int64, err error) {
 				q(){max:max(val(ids))}
 			   }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*30, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -269,7 +269,7 @@ func GetFrontendStatus(ctx context.Context, c external.Database) (status Fronten
 }
 
 // GetMeta gets the database metadata
-func GetMeta(c external.Database) (meta Meta, err error) {
+func GetMeta(ctx context.Context, c external.Database) (meta Meta, err error) {
 	query := `{
 				 q(func: type(` + MetaDType + `)){
 					uid
@@ -279,7 +279,7 @@ func GetMeta(c external.Database) (meta Meta, err error) {
 				  }
 				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -295,7 +295,7 @@ func GetMeta(c external.Database) (meta Meta, err error) {
 }
 
 // SetCrawlerStatus sets the new crawler status
-func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
+func SetCrawlerStatus(ctx context.Context, c external.Database, status CrawlerStatus) error {
 	status.UID = uidV
 	status.SetDType()
 
@@ -304,7 +304,7 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*10, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Query:     "{q(func: type(" + CrawlerStatusDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
@@ -312,7 +312,7 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 }
 
 // SetClassifierStatus sets the new classifier status
-func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
+func SetClassifierStatus(ctx context.Context, c external.Database, status ClassifierStatus) error {
 	status.UID = uidV
 	status.SetDType()
 
@@ -321,7 +321,7 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*10, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Query:     "{q(func:type(" + ClassifierStatusDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
@@ -329,7 +329,7 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 }
 
 // SetClusteringHMIStatus sets the new hierarchical multi-input clustering status
-func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMultiInputStatus) error {
+func SetClusteringHMIStatus(ctx context.Context, c external.Database, status ClusteringHierarchicalMultiInputStatus) error {
 	status.UID = uidV
 	status.SetDType()
 
@@ -338,7 +338,7 @@ func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMu
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*10, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Query:     "{q(func:type(" + ClusteringHierarchicalMultiInputDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
@@ -346,7 +346,7 @@ func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMu
 }
 
 // SetClusteringFMIStatus sets the new flat multi-input clustering status
-func SetClusteringFMIStatus(c external.Database, status ClusteringFlatMultiInputStatus) error {
+func SetClusteringFMIStatus(ctx context.Context, c external.Database, status ClusteringFlatMultiInputStatus) error {
 	status.UID = uidV
 	status.SetDType()
 
@@ -355,7 +355,7 @@ func SetClusteringFMIStatus(c external.Database, status ClusteringFlatMultiInput
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*10, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Query:     "{q(func:type(" + ClusteringFlatMultiInputDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
@@ -363,68 +363,68 @@ func SetClusteringFMIStatus(c external.Database, status ClusteringFlatMultiInput
 }
 
 // SetCrawling sets the crawling status
-func SetCrawling(c external.Database, crawling bool) error {
-	return SetCrawlerStatus(c, CrawlerStatus{
+func SetCrawling(ctx context.Context, c external.Database, crawling bool) error {
+	return SetCrawlerStatus(ctx, c, CrawlerStatus{
 		IsCrawling: &crawling,
 	})
 }
 
 // SetClassifying sets the classifying status
-func SetClassifying(c external.Database, classifying bool) error {
-	return SetClassifierStatus(c, ClassifierStatus{
+func SetClassifying(ctx context.Context, c external.Database, classifying bool) error {
+	return SetClassifierStatus(ctx, c, ClassifierStatus{
 		IsClassifying: &classifying,
 	})
 }
 
 // SetClusteringHMI sets the hierarchical multi-input clustering status
-func SetClusteringHMI(c external.Database, clustering bool) error {
-	return SetClusteringHMIStatus(c, ClusteringHierarchicalMultiInputStatus{
+func SetClusteringHMI(ctx context.Context, c external.Database, clustering bool) error {
+	return SetClusteringHMIStatus(ctx, c, ClusteringHierarchicalMultiInputStatus{
 		IsClustering: &clustering,
 	})
 }
 
 // SetClusteringFMI sets the flat multi-input clustering status
-func SetClusteringFMI(c external.Database, clustering bool) error {
-	return SetClusteringFMIStatus(c, ClusteringFlatMultiInputStatus{
+func SetClusteringFMI(ctx context.Context, c external.Database, clustering bool) error {
+	return SetClusteringFMIStatus(ctx, c, ClusteringFlatMultiInputStatus{
 		IsClustering: &clustering,
 	})
 }
 
 // SetLastBlockID sets the last block id
-func SetLastBlockID(c external.Database, id int64) error {
-	return SetCrawlerStatus(c, CrawlerStatus{
+func SetLastBlockID(ctx context.Context, c external.Database, id int64) error {
+	return SetCrawlerStatus(ctx, c, CrawlerStatus{
 		LastBlockID: &id,
 	})
 }
 
 // SetLastClassifiedBlockID sets the last classified block id
-func SetLastClassifiedBlockID(c external.Database, id int64) error {
-	return SetClassifierStatus(c, ClassifierStatus{
+func SetLastClassifiedBlockID(ctx context.Context, c external.Database, id int64) error {
+	return SetClassifierStatus(ctx, c, ClassifierStatus{
 		LastClassifiedBlockID: &id,
 	})
 }
 
 // SetLastClusteredHMIBlockID sets the last clustered multi-input block id
-func SetLastClusteredHMIBlockID(c external.Database, id int64) error {
-	return SetClusteringHMIStatus(c, ClusteringHierarchicalMultiInputStatus{
+func SetLastClusteredHMIBlockID(ctx context.Context, c external.Database, id int64) error {
+	return SetClusteringHMIStatus(ctx, c, ClusteringHierarchicalMultiInputStatus{
 		LastClusteredBlockID: &id,
 	})
 }
 
 // SetLastClusteredFMIBlockID sets the last clustered multi-input block id
-func SetLastClusteredFMIBlockID(c external.Database, id int64) error {
-	return SetClusteringFMIStatus(c, ClusteringFlatMultiInputStatus{
+func SetLastClusteredFMIBlockID(ctx context.Context, c external.Database, id int64) error {
+	return SetClusteringFMIStatus(ctx, c, ClusteringFlatMultiInputStatus{
 		LastClusteredBlockID: &id,
 	})
 }
 
 // SetSchemaVersion sets the database schema version
-func SetSchemaVersion(c external.Database, version int) error {
-	return SetMeta(c, Meta{SchemaVersion: &version})
+func SetSchemaVersion(ctx context.Context, c external.Database, version int) error {
+	return SetMeta(ctx, c, Meta{SchemaVersion: &version})
 }
 
 // SetMeta sets the database metadata
-func SetMeta(c external.Database, meta Meta) error {
+func SetMeta(ctx context.Context, c external.Database, meta Meta) error {
 	if meta.SchemaVersion != nil && *meta.SchemaVersion < 0 {
 		return serror.FromStr("negative schema version")
 	}
@@ -437,7 +437,7 @@ func SetMeta(c external.Database, meta Meta) error {
 		return serror.New(err)
 	}
 
-	return db.TxWithRetry(c, time.Minute*10, &api.Request{
+	return db.MutationWithRetry(ctx, c, &api.Request{
 		Query:     "{q(func: type(" + MetaDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
@@ -446,9 +446,9 @@ func SetMeta(c external.Database, meta Meta) error {
 
 // InitializeMeta sets the initial values of the database metadata.
 // It should only be called when new database is set up.
-func InitializeMeta(c external.Database, blockchainMode string) error {
+func InitializeMeta(ctx context.Context, c external.Database, blockchainMode string) error {
 	dbVersion := db.SchemaVersion
-	return SetMeta(c, Meta{
+	return SetMeta(ctx, c, Meta{
 		CreationTime:   time.Now().UTC().Format(time.RFC3339),
 		BlockchainMode: blockchainMode,
 		SchemaVersion:  &dbVersion,

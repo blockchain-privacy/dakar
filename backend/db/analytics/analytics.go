@@ -45,7 +45,7 @@ import (
 
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
-func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNodes int,
+func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int,
 	transactionType string) ([]ConnectedNode, error) {
 	query := fmt.Sprintf(`{
 				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
@@ -65,7 +65,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 				}
 			  }`, numNodes, offsetNodes)
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,8 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 }
 
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
-func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
+func GetPrivacyTransactions(ctx context.Context, c external.Database,
+	numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
 	query := fmt.Sprintf(`{
 				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
 					uid
@@ -104,7 +105,7 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 				}
 			  }`, numNodes, offsetNodes)
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -122,30 +123,32 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 
 // GetMixingTransactions gets the first numNodes mixing transactions including their input transactions
 // from the database. If maxTx is equal to 0, all mixing transaction are returned.
-func GetMixingTransactions(c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeMixing)
+func GetMixingTransactions(ctx context.Context, c external.Database, numNodes int,
+	offsetNodes int) ([]ConnectedNode, error) {
+	return GetConnectedPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeMixing)
 }
 
 // GetDestinationTransactions gets the first numNodes destination transactions including their input transactions
 // from the database. If maxTx is equal to 0, all destination transaction are returned.
-func GetDestinationTransactions(c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeDestination)
+func GetDestinationTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
+	return GetConnectedPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeDestination)
 }
 
 // GetOriginTransactions gets the first numNodes origin transactions from the database.
 // If maxTx is equal to 0, all origin transaction are returned.
-func GetOriginTransactions(c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeOrigin)
+func GetOriginTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
+	return GetPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeOrigin)
 }
 
 // GetCollateralCreationTransactions gets the numNodes maxTx cc transactions from the database.
 // If maxTx is equal to 0, all cc transaction are returned.
-func GetCollateralCreationTransactions(c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.TypeCC)
+func GetCollateralCreationTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
+	return GetPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeCC)
 }
 
 // GetTransactionTypeCount gets the number of transaction per transaction type
-func GetTransactionTypeCount(c external.Database) (mixingCount int, originCount int, ccCount int, cpCount int,
+func GetTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
+	originCount int, ccCount int, cpCount int,
 	destinationCount int, err error) {
 	const query = `{
 				mixing(func: eq(Transaction.type,"` + constants.TypeMixing + `")){
@@ -169,7 +172,7 @@ func GetTransactionTypeCount(c external.Database) (mixingCount int, originCount 
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -216,7 +219,8 @@ func GetTransactionTypeCount(c external.Database) (mixingCount int, originCount 
 
 // GetPrivacyTransactionsByBlock gets all destination transactions, mixing transactions and
 // their connected transactions of the given blockHeight
-func GetPrivacyTransactionsByBlock(c external.Database, blockHeight int64) ([]ConnectedNode, []Node, error) {
+func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
+	blockHeight int64) ([]ConnectedNode, []Node, error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid))
 				var(func: uid(b)){
@@ -260,7 +264,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight int64) ([]Co
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$bid": strconv.FormatInt(blockHeight, 10)})
 	if err != nil {
 		return nil, nil, err
@@ -291,7 +295,8 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight int64) ([]Co
 
 // GetTransactionTypeData returns timestamps when the transactions of the specified type occur.
 // If the type is empty then all transaction types are considered.
-func GetTransactionTypeData(c external.Database, transactionType string) (ts []time.Time, err error) {
+func GetTransactionTypeData(ctx context.Context, c external.Database,
+	transactionType string) (ts []time.Time, err error) {
 	funcQuery := "eq(Transaction.type,$txType)"
 	if transactionType == "" {
 		funcQuery = "has(Transaction.type)"
@@ -305,7 +310,7 @@ func GetTransactionTypeData(c external.Database, transactionType string) (ts []t
 			  	}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$txType": transactionType})
 	if err != nil {
 		return
@@ -332,7 +337,7 @@ func GetTransactionTypeData(c external.Database, transactionType string) (ts []t
 
 // GetForwardLookupTransactions traverses forward in the transaction graph, starting with the transaction
 // specified by startTxHash. This function is used to generate test data.
-func GetForwardLookupTransactions(c external.Database, startTxHash string) (blocks []db.Block,
+func GetForwardLookupTransactions(ctx context.Context, c external.Database, startTxHash string) (blocks []db.Block,
 	addresses []db.Address, transactions []db.Transaction, err error) {
 	const query = `query Q($txhash: string) {
 				var(func: eq(txhash, $txhash))@recurse(depth:3){
@@ -410,7 +415,7 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 					dgraph.type
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$txhash": startTxHash})
 	if err != nil {
 		return
@@ -472,7 +477,7 @@ type SpenderTransaction struct {
 }
 
 // GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
-func GetDestinationTransactionSpenders(c external.Database) (
+func GetDestinationTransactionSpenders(ctx context.Context, c external.Database) (
 	transactions []SpenderTransaction, globalDestinationCount int,
 	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
 	usingDestinationTransactionsCount int, err error) {
@@ -508,7 +513,7 @@ func GetDestinationTransactionSpenders(c external.Database) (
 		}
 	}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}
@@ -588,7 +593,7 @@ func GetDestinationTransactionSpenders(c external.Database) (
 }
 
 // GetTransactionCountPerCluster returns the number of transactions this cluster has created
-func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int, int, error) {
+func GetTransactionCountPerCluster(ctx context.Context, c external.Database, clusterUID string) (int, int, error) {
 	const query = `query Q($uid:string){
 					var(func: uid($uid)){
 						Cluster.addresses {
@@ -608,7 +613,7 @@ func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int,
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$uid": clusterUID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": clusterUID})
 	if err != nil {
 		return 0, 0, err
 	}
@@ -633,14 +638,14 @@ func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int,
 }
 
 // GetAllFMIClusters returns the uids of all FMI clusters
-func GetAllFMIClusters(c external.Database) (uids []string, err error) {
+func GetAllFMIClusters(ctx context.Context, c external.Database) (uids []string, err error) {
 	const query = `{
 		q(func: type(Cluster))@filter(eq(Cluster.type, "fmi")){
 			uid
 		}
 	}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
 		return
 	}

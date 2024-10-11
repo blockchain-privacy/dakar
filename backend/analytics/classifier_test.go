@@ -396,30 +396,31 @@ func TestClassifier_Empty(t *testing.T) {
 func TestClassifier_CalculateInitialState(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
-
-	classifier := NewClassifier(context.Background(), nil, Config{})
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+	classifier := NewClassifier(ctx, nil, Config{})
 	classifier.RegisterMetrics(prometheus.NewRegistry())
-	require.Error(t, classifier.CalculateInitialState())
+	require.Error(t, classifier.CalculateInitialState(ctx))
 
 	classifier.config.IsClassifyingEnabled = true
 
 	// panics because database is nil
 	require.Panics(t, func() {
-		_ = classifier.CalculateInitialState()
+		_ = classifier.CalculateInitialState(ctx)
 	})
 
 	classifier.db = dbHandle
 
 	// status not set yet
-	require.Error(t, classifier.CalculateInitialState())
+	require.Error(t, classifier.CalculateInitialState(ctx))
 
 	yes := true
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  &yes,
 		LastBlockID: testhelper.GetPointer[int64](5),
 	}))
 
-	require.NoError(t, classifier.CalculateInitialState())
+	require.NoError(t, classifier.CalculateInitialState(ctx))
 	require.EqualValues(t, 5, classifier.state.Top)
 	require.EqualValues(t, 1, classifier.state.ID)
 }
@@ -454,6 +455,9 @@ func Test_getConnectedCollaterals(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	txHashes := []string{
 		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
 		"f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7",
@@ -461,7 +465,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 
 	txs := make([]db.Transaction, len(txHashes))
 	for i, hash := range txHashes {
-		transaction, err := db.GetTransaction(dbHandle, hash)
+		transaction, err := db.GetTransaction(ctx, dbHandle, hash)
 		require.NoError(t, err)
 		transaction.Type = ""
 		txs[i] = transaction
@@ -500,7 +504,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotOriginCC, gotOriginCP, err := getConnectedCollaterals(tt.args.dgraph,
+		gotOriginCC, gotOriginCP, err := getConnectedCollaterals(ctx, tt.args.dgraph,
 			tt.args.potentialCollateralTransactions, tt.args.blockHeight)
 
 		if tt.wantErr {
@@ -517,13 +521,16 @@ func TestClassifier_NextBlock(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	no := false
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  &no,
 		LastBlockID: testhelper.GetPointer[int64](testhelper.BlockFileLastBlock),
 	}))
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancelFunc := db.GetShortTaskContext()
 	defer cancelFunc()
 
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
@@ -532,7 +539,7 @@ func TestClassifier_NextBlock(t *testing.T) {
 	classifier.state.ID = testhelper.BlockFileFirstBlock
 	classifier.state.Top = testhelper.BlockFileFirstBlock
 
-	got, err := classifier.Next()
+	got, err := classifier.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, got)
 	require.EqualValues(t, testhelper.BlockFileLastBlock, classifier.state.Top)
@@ -548,19 +555,22 @@ func TestClassifier_Iterate(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling: testhelper.GetPointer(false),
 		// first block of the file
 		LastBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileFirstBlock),
 	}))
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancelFunc := db.GetShortTaskContext()
 	defer cancelFunc()
 
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 	classifier.RegisterMetrics(prometheus.NewRegistry())
 	// state is set to block 0, which does not exist in database
-	_, err := classifier.Iterate()
+	_, err := classifier.Iterate(ctx)
 	require.Error(t, err)
 
 	classifier.state.ID = testhelper.ClassifierFileFirstBlock
@@ -568,11 +578,11 @@ func TestClassifier_Iterate(t *testing.T) {
 
 	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
 
-	_, err = classifier.Iterate()
+	_, err = classifier.Iterate(ctx)
 	require.NoError(t, err)
 
 	// check mixing count after classification
-	mixingCount, _, _, _, _, err := analytics.GetTransactionTypeCount(dbHandle)
+	mixingCount, _, _, _, _, err := analytics.GetTransactionTypeCount(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, mixingCount)
 }
@@ -583,15 +593,15 @@ func TestMultipleBlockIteration(t *testing.T) {
 
 	fileBlockCount := int64(testhelper.ClassifierFileLastBlock - testhelper.ClassifierFileFirstBlock)
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancelFunc := db.GetShortTaskContext()
 	defer cancelFunc()
 
 	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  testhelper.GetPointer(false),
 		LastBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileLastBlock),
 	}))
-	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
+	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
 		IsClassifying:         testhelper.GetPointer(false),
 		LastClassifiedBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileFirstBlock),
 	}))
@@ -613,36 +623,44 @@ func TestMultipleBlockIteration(t *testing.T) {
 func TestClassifier_PostExecution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 
-	classifier := NewClassifier(context.Background(), dbHandle, NewDashConfig())
-
-	require.NoError(t, classifier.PostExecution())
+	require.NoError(t, classifier.PostExecution(ctx))
 }
 
 func Test_setInitialClassifierID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	yes := true
-	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
+	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
 		IsClassifying:         &yes,
 		LastClassifiedBlockID: testhelper.GetPointer[int64](700),
 	}))
-	require.NoError(t, setInitialClassifierID(dbHandle))
+	require.NoError(t, setInitialClassifierID(ctx, dbHandle))
 }
 
 func Test_isCollateralCreation(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	ccTx, err := db.GetTransaction(ctx, dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	cpTx, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
+	cpTx, err := db.GetTransaction(ctx, dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
+	unclassifiedTx, err := db.GetTransaction(ctx, dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
+	mixingTx, err := db.GetTransaction(ctx, dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
-	largeAmount, err := db.GetTransaction(dbHandle, "cb94ed9e7c1e45c2e26585e7b24f8ab1d779cd9b8cd37d74bc7179211734ca85")
+	largeAmount, err := db.GetTransaction(ctx, dbHandle, "cb94ed9e7c1e45c2e26585e7b24f8ab1d779cd9b8cd37d74bc7179211734ca85")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -657,7 +675,7 @@ func Test_isCollateralCreation(t *testing.T) {
 		{t: largeAmount, want: false, wantErr: false},
 	}
 	for _, tt := range tests {
-		got, err := isCollateralCreation(dbHandle, tt.t)
+		got, err := isCollateralCreation(ctx, dbHandle, tt.t)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -692,13 +710,16 @@ func Test_isCollateralPayment(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	cp, err := db.GetTransaction(ctx, dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
+	ccTx, err := db.GetTransaction(ctx, dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
+	unclassifiedTx, err := db.GetTransaction(ctx, dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
+	mixingTx, err := db.GetTransaction(ctx, dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -740,15 +761,18 @@ func Test_isMixing(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	cp, err := db.GetTransaction(ctx, dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
+	ccTx, err := db.GetTransaction(ctx, dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
+	unclassifiedTx, err := db.GetTransaction(ctx, dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
+	mixingTx, err := db.GetTransaction(ctx, dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
-	mixingTx2, err := db.GetTransaction(dbHandle, "8a1b7adf54e37a2165f3bfba9df4abd4552a50af703dbd4ba5ba59b0562ded2f")
+	mixingTx2, err := db.GetTransaction(ctx, dbHandle, "8a1b7adf54e37a2165f3bfba9df4abd4552a50af703dbd4ba5ba59b0562ded2f")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -823,6 +847,9 @@ func Test_classifyTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	txHashes := []string{
 		"6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389",
 		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
@@ -831,7 +858,7 @@ func Test_classifyTransactions(t *testing.T) {
 
 	txs := make([]db.Transaction, len(txHashes))
 	for i, hash := range txHashes {
-		transaction, err := db.GetTransaction(dbHandle, hash)
+		transaction, err := db.GetTransaction(ctx, dbHandle, hash)
 		require.NoError(t, err)
 		transaction.Type = ""
 		txs[i] = transaction
@@ -860,7 +887,7 @@ func Test_classifyTransactions(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		mixing, cc, cp, err := classifyTransactions(dbHandle, tt.transactions)
+		mixing, cc, cp, err := classifyTransactions(ctx, dbHandle, tt.transactions)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -876,18 +903,21 @@ func TestBlockIterator(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling: testhelper.GetPointer(false),
 		// let's classify 2 blocks
 		LastBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileFirstBlock + 3),
 	}))
-	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
+	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
 		IsClassifying: testhelper.GetPointer(false),
 		// let's classify 3 blocks
 		LastClassifiedBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileFirstBlock),
 	}))
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancelFunc := db.GetShortTaskContext()
 	defer cancelFunc()
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 	classifier.RegisterMetrics(prometheus.NewRegistry())
@@ -899,4 +929,31 @@ func TestBlockIterator(t *testing.T) {
 			cancelFunc()
 		}
 	}))
+}
+
+func TestBlockIteratorImmediateExit(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
+		IsCrawling: testhelper.GetPointer(false),
+		// let's classify 2 blocks
+		LastBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileFirstBlock + 3),
+	}))
+	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
+		IsClassifying: testhelper.GetPointer(false),
+		// let's classify 3 blocks
+		LastClassifiedBlockID: testhelper.GetPointer[int64](testhelper.ClassifierFileFirstBlock),
+	}))
+
+	ctx, cancelFunc := db.GetShortTaskContext()
+	// immediatly cancel
+	cancelFunc()
+	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
+	classifier.RegisterMetrics(prometheus.NewRegistry())
+
+	require.NoError(t, blockiterator.StartIteration(classifier, time.Second*10, nil))
 }

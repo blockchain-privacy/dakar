@@ -1,10 +1,9 @@
 package main
 
 import (
-	database "backend/db"
+	"backend/db"
 	"backend/db/status"
 	"backend/external"
-	"context"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
@@ -123,8 +122,11 @@ type Commands struct {
 }
 
 // checks if a crawling process is already running
-func isCrawling(db external.Database) (bool, error) {
-	dbStatus, err := status.GetCrawlerStatus(db)
+func isCrawling(c external.Database) (bool, error) {
+	// short timeout as this is early in the execution process
+	ctx, cancel := db.GetShortTaskContext()
+	defer cancel()
+	dbStatus, err := status.GetCrawlerStatus(ctx, c)
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now
@@ -179,7 +181,7 @@ func shutdownServer(srv *http.Server) {
 	}
 	info("Shutting down server")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := db.GetShortTaskContext()
 	defer func() {
 		// extra handling here
 		cancel()
@@ -209,8 +211,11 @@ func printVersion(blockchainMode string) {
 }
 
 // checkMeta returns true if the blockchain mode and the schema version of the database match with the executable.
-func checkMeta(db external.Database, blockchainMode string) bool {
-	meta, err := status.GetMeta(db)
+func checkMeta(c external.Database, blockchainMode string) bool {
+	// short timeout as this is early in the execution process
+	ctx, cancel := db.GetShortTaskContext()
+	defer cancel()
+	meta, err := status.GetMeta(ctx, c)
 	if err != nil {
 		warn(err)
 		return false
@@ -230,11 +235,11 @@ func checkMeta(db external.Database, blockchainMode string) bool {
 	}
 
 	// check if the database schema version matches the schema version of the executable
-	if *meta.SchemaVersion != database.SchemaVersion {
+	if *meta.SchemaVersion != db.SchemaVersion {
 		// The log message looks wrong, but is right ("executable schema version", database.SchemaVersion)
 		info("Database is using a different schema version than the executable. You may have to upgrade the database schema (CLI option: -upgradeschema) or use a different version of the executable.",
 			"database schema version", *meta.SchemaVersion,
-			"executable schema version", database.SchemaVersion)
+			"executable schema version", db.SchemaVersion)
 		return false
 	}
 

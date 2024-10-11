@@ -2,6 +2,7 @@ package graph
 
 import (
 	"backend/blockiterator"
+	"backend/db"
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
@@ -159,7 +160,10 @@ func (w *Wrapper) LoadGraphs() error {
 
 	w.isLoading = true
 
-	classifierStatus, err := status.GetClassifierStatus(w.db)
+	ctx, cancel := db.GetLongTaskContext()
+	defer cancel()
+
+	classifierStatus, err := status.GetClassifierStatus(ctx, w.db)
 	if err != nil {
 		if errors.Is(err, status.ErrStatusNotFound) {
 			info("Classifier status is not set. Classify at least one block before starting to load graphs.")
@@ -197,7 +201,7 @@ func (w *Wrapper) LoadGraphs() error {
 		}
 	}
 
-	txGraph, err := LoadTransactionGraph(w.db, numTxToLoad)
+	txGraph, err := LoadTransactionGraph(ctx, w.db, numTxToLoad)
 	if errors.Is(err, ErrDBContainsNoPrivacyTransactions) {
 		return nil
 	}
@@ -228,7 +232,7 @@ func (w *Wrapper) Props() blockiterator.Properties {
 
 // CalculateInitialState is a dummy which only checks if LoadGraphs
 // has been executed. LoadGraphs set the initial state.
-func (w *Wrapper) CalculateInitialState() error {
+func (w *Wrapper) CalculateInitialState(context.Context) error {
 	// check if state was set by LoadGraphs
 	if !w.isLoading {
 		return serror.FromStr("graphs were not loaded before iteration started")
@@ -238,12 +242,12 @@ func (w *Wrapper) CalculateInitialState() error {
 }
 
 // Next tries to increase the internal state to the next block
-func (w *Wrapper) Next() (bool, error) {
+func (w *Wrapper) Next(ctx context.Context) (bool, error) {
 	if w.db == nil {
 		return false, serror.FromStr("database handle is not set")
 	}
 
-	classifierStatus, err := status.GetClassifierStatus(w.db)
+	classifierStatus, err := status.GetClassifierStatus(ctx, w.db)
 	if err != nil || classifierStatus.LastClassifiedBlockID == nil {
 		return false, err
 	}
@@ -252,7 +256,7 @@ func (w *Wrapper) Next() (bool, error) {
 }
 
 // PostExecution does nothing
-func (w *Wrapper) PostExecution() error {
+func (w *Wrapper) PostExecution(context.Context) error {
 	// nothing to do
 	return nil
 }
@@ -270,8 +274,8 @@ func (w *Wrapper) Empty() bool {
 
 // Iterate loads the mixing transactions and all connected origin and
 // destination transactions of the current block into the in-memory graph
-func (w *Wrapper) Iterate() (bool, error) {
-	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.ID)
+func (w *Wrapper) Iterate(ctx context.Context) (bool, error) {
+	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(ctx, w.db, w.state.ID)
 	if err != nil {
 		return false, err
 	}

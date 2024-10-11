@@ -38,8 +38,11 @@ func TestImportAttribution(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	// create dgraph user for tests
-	userUID, err := user.CreateNewUser(dbHandle)
+	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
 
 	type args struct {

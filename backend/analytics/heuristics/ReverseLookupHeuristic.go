@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"github.com/qrest/gomisc/serror"
 
 	"fmt"
@@ -81,14 +82,11 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 
 // reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
@@ -99,14 +97,14 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
+	inputTransactions, err := heuristics.GetInputTransactions(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
 
 	var exclusions []string
 	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +114,7 @@ func (h *reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it,
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
 			h.lookBackTime, exclusions, h.c)
 		if err != nil {
 			return nil, err

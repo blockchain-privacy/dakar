@@ -10,7 +10,6 @@ import (
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"regexp"
-	"time"
 )
 
 // AddAttributions adds the given attributions to the database
@@ -200,7 +199,8 @@ func SearchAttributions(ctx context.Context, c external.Database, userID string,
 // GetAttributionsPerCluster returns all attributions (public and private)
 // the user has access to, organized per cluster.
 // The returned map is nil if no attributions could be found.
-func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes []clustering.ClusterType) (
+func GetAttributionsPerCluster(ctx context.Context, c external.Database,
+	userID string, clusterTypes []clustering.ClusterType) (
 	attributions map[string][]string, err error) {
 	var filter string
 	if len(clusterTypes) > 0 {
@@ -233,7 +233,7 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 						}
     			     }`, filter)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$user": userID})
 	if err != nil {
 		return
 	}

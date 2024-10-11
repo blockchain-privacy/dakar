@@ -17,7 +17,11 @@ func TestMain(m *testing.M) {
 func TestGetAllFMIClusters(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	clusters, err := GetAllFMIClusters(dbHandle)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	clusters, err := GetAllFMIClusters(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, clusters)
 }
@@ -25,12 +29,16 @@ func TestGetAllFMIClusters(t *testing.T) {
 func TestGetTransactionCountPerCluster(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	clusters, err := GetAllFMIClusters(dbHandle)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	clusters, err := GetAllFMIClusters(ctx, dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, clusters)
 
 	for i, c := range clusters {
-		inputCount, outputCount, err := GetTransactionCountPerCluster(dbHandle, c)
+		inputCount, outputCount, err := GetTransactionCountPerCluster(ctx, dbHandle, c)
 		require.NoError(t, err)
 		require.NotZero(t, inputCount+outputCount)
 

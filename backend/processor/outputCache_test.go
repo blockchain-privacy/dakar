@@ -10,15 +10,19 @@ import (
 func TestLoadUTXOCache(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
 	// nothing in DB so should not return anything
-	cache, err := newUTXOCache(dbHandle, 0, 0)
+	cache, err := newUTXOCache(ctx, dbHandle, 0, 0)
 	require.NoError(t, err)
 	require.NotNil(t, cache)
 	require.Zero(t, cache.getOutputCounts())
 
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	cache, err = newUTXOCache(dbHandle, testhelper.BlockFileLastBlock, 20)
+	cache, err = newUTXOCache(ctx, dbHandle, testhelper.BlockFileLastBlock, 20)
 	require.NoError(t, err)
 	require.NotNil(t, cache)
 	require.Equal(t, 2, cache.getOutputCounts())

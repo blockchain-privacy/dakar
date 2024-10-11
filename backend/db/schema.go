@@ -212,7 +212,7 @@ func SetupSchema(c external.Database) error {
 
 // IsSchemaSet checks if a schema is set
 func IsSchemaSet(c external.Database) (exists bool, err error) {
-	ctx, cancel := GetBackendContext()
+	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// we check if the type Block exists,

@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
@@ -88,14 +89,11 @@ type txAndOrigins struct {
 //   - filter all origins of sources, which do not occur in all sets of input transaction origins
 //
 // This heuristic does not use the results from its parent heuristic
-func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
 		return nil, nil
 	}
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
@@ -108,7 +106,7 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, pa
 
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash.
-	inputTransactions, err := heuristics.GetInputTransactions(dgraph, h.c.TransactionHash)
+	inputTransactions, err := heuristics.GetInputTransactions(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +131,14 @@ func (h *oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, pa
 	var exclusions []string
 
 	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it,
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
 			h.lookBackTime, exclusions, h.c)
 		if err != nil {
 			return nil, err
