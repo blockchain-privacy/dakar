@@ -156,34 +156,21 @@ func (c *ClusteringFlatMultiInputStatus) SetDType() {
 
 // FrontendStatus is the frontend representation of the crawler status
 type FrontendStatus struct {
-	IsCrawling              bool  `json:"iscrawling"`
-	IsClassifying           bool  `json:"isclassifying"`
-	IsClusteringHMI         bool  `json:"isclusteringhmi"`
-	IsClusteringFMI         bool  `json:"isclusteringfmi"`
-	LastBlockID             int64 `json:"lastblockid"`
-	LastClassifiedBlockID   int64 `json:"lastclassifiedid"`
-	LastClusteredHMIBlockID int64 `json:"lastclusteredhmiid"`
-	LastClusteredFMIBlockID int64 `json:"lastclusteredfmiid"`
-}
-
-func (v FrontendStatus) String() string {
-	return fmt.Sprintf("IsCrawling: %t, IsClassifying: %t, IsClusteringHMI: %t, IsClusteringFMI: %t, "+
-		"LastBlockID: %d, LastClassifiedBlockID: %d, LastClusteredHMIBlockID: %d, LastClusteredFMIBlockID: %d",
-		v.IsCrawling, v.IsClassifying, v.IsClusteringHMI, v.IsClusteringFMI, v.LastBlockID, v.LastClassifiedBlockID,
-		v.LastClusteredHMIBlockID, v.LastClusteredFMIBlockID)
+	IsCrawling              *bool  `json:"iscrawling,omitempty"`
+	IsClassifying           *bool  `json:"isclassifying,omitempty"`
+	IsClusteringHMI         *bool  `json:"isclusteringhmi,omitempty"`
+	IsClusteringFMI         *bool  `json:"isclusteringfmi,omitempty"`
+	LastBlockID             *int64 `json:"lastblockid,omitempty"`
+	LastClassifiedBlockID   *int64 `json:"lastclassifiedid,omitempty"`
+	LastClusteredHMIBlockID *int64 `json:"lastclusteredhmiid,omitempty"`
+	LastClusteredFMIBlockID *int64 `json:"lastclusteredfmiid,omitempty"`
 }
 
 var (
 	// ErrStatusNotFound is returned if the status has not been set yet
-	ErrStatusNotFound                          = errors.New("no status found")
-	errInvalidNumber                           = errors.New("wrong number of status objects returned")
-	errLastBlockIDNotFound                     = errors.New("last block id not found")
-	errIsCrawlingNotFound                      = errors.New("crawler status not found")
-	errIsClassifyingNotFound                   = errors.New("classifier status not found")
-	errIsClusteringMultiInputNotFound          = errors.New("multi-input clustering status not found")
-	errLastClassifiedBlockIDNotFound           = errors.New("block id of last classified block not found")
-	errLastClusteringMultiInputBlockIDNotFound = errors.New("block id of last clustered multi-input block not found")
-	errTopBlockNotFound                        = errors.New("top block not found")
+	ErrStatusNotFound   = errors.New("no status found")
+	errInvalidNumber    = errors.New("wrong number of status objects returned")
+	errTopBlockNotFound = errors.New("top block not found")
 )
 
 type crawlerStatusQuery struct {

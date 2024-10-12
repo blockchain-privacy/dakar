@@ -193,76 +193,24 @@ func GetFrontendStatus(ctx context.Context, c external.Database) (status Fronten
 		return
 	}
 
-	// check if all values are set correctly
-	if len(r.Crawler) != 1 {
-		err = serror.New(errInvalidNumber)
-		return
-	}
-
-	if r.Crawler[0].IsCrawling == nil {
-		err = serror.New(errIsCrawlingNotFound)
-		return
-	}
-
-	if r.Crawler[0].LastBlockID == nil {
-		err = serror.New(errLastBlockIDNotFound)
-		return
+	if len(r.Crawler) == 1 {
+		status.IsCrawling = r.Crawler[0].IsCrawling
+		status.LastBlockID = r.Crawler[0].LastBlockID
 	}
 
 	if len(r.Classifier) == 1 {
-		if r.Classifier[0].IsClassifying == nil {
-			err = serror.New(errIsClassifyingNotFound)
-			return
-		}
-
-		if r.Classifier[0].LastClassifiedBlockID == nil {
-			err = serror.New(errLastClassifiedBlockIDNotFound)
-			return
-		}
+		status.IsClassifying = r.Classifier[0].IsClassifying
+		status.LastClassifiedBlockID = r.Classifier[0].LastClassifiedBlockID
 	}
 
 	if len(r.HMI) == 1 {
-		if r.HMI[0].IsClustering == nil {
-			err = serror.New(errIsClusteringMultiInputNotFound)
-			return
-		}
-
-		if r.HMI[0].LastClusteredBlockID == nil {
-			err = serror.New(errLastClusteringMultiInputBlockIDNotFound)
-			return
-		}
+		status.IsClusteringHMI = r.HMI[0].IsClustering
+		status.LastClusteredHMIBlockID = r.HMI[0].LastClusteredBlockID
 	}
 
 	if len(r.FMI) == 1 {
-		if r.FMI[0].IsClustering == nil {
-			err = serror.New(errIsClusteringMultiInputNotFound)
-			return
-		}
-
-		if r.FMI[0].LastClusteredBlockID == nil {
-			err = serror.New(errLastClusteringMultiInputBlockIDNotFound)
-			return
-		}
-	}
-
-	status = FrontendStatus{
-		IsCrawling:  *r.Crawler[0].IsCrawling,
-		LastBlockID: *r.Crawler[0].LastBlockID,
-	}
-
-	if len(r.Classifier) == 1 {
-		status.IsClassifying = *r.Classifier[0].IsClassifying
-		status.LastClassifiedBlockID = *r.Classifier[0].LastClassifiedBlockID
-	}
-
-	if len(r.HMI) == 1 {
-		status.IsClusteringHMI = *r.HMI[0].IsClustering
-		status.LastClusteredHMIBlockID = *r.HMI[0].LastClusteredBlockID
-	}
-
-	if len(r.FMI) == 1 {
-		status.IsClusteringFMI = *r.FMI[0].IsClustering
-		status.LastClusteredFMIBlockID = *r.FMI[0].LastClusteredBlockID
+		status.IsClusteringFMI = r.FMI[0].IsClustering
+		status.LastClusteredFMIBlockID = r.FMI[0].LastClusteredBlockID
 	}
 
 	return

@@ -158,7 +158,8 @@ func TestGetFrontendStatus(t *testing.T) {
 
 	status, err := GetFrontendStatus(context.Background(), dbHandle)
 	require.NoError(t, err)
-	require.True(t, status.IsCrawling)
+	require.NotNil(t, status.IsCrawling)
+	require.True(t, *status.IsCrawling)
 	require.EqualValues(t, 50, status.LastBlockID)
 }
 
