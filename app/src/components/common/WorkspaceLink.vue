@@ -49,7 +49,7 @@ defineOptions({
 
 const props = defineProps({
 	...RouterLink.props,
-	disableSelect: {type: Boolean, required: false, default: false},
+	disableSelect: {type: Boolean, required: false},
 });
 const emit = defineEmits(['clicked']);
 

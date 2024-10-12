@@ -210,7 +210,7 @@ import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
-	showTitleBar: {type: Boolean, required: false, default: true},
+	showTitleBar: {type: Boolean, required: false},
 });
 
 const dakar = inject('dakar');

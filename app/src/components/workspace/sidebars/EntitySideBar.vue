@@ -4,7 +4,6 @@
     :title="title"
     :icon="sideBarIcon"
     max-width="700px"
-    :title-one-line="false"
   >
     <template
       v-if="!isLoading && entityData"
@@ -85,14 +84,12 @@
                 show-fingerprint-link
                 show-details
                 :embed="false"
-                :show-title-bar="false"
               />
             </template>
           </template>
           <address-view
             v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
             :address-data="entityData"
-            :show-title-bar="false"
           />
           <heuristic-details
             v-else-if="isHeuristic"

@@ -86,7 +86,7 @@ const msgStore = useMsgStore();
 const props = defineProps({
 	flow: {type: Object, required: true},
 	formId: {type: String, required: true},
-	embed: {type: Boolean, required: false, default: false},
+	embed: {type: Boolean, required: false},
 	// DisabledForms is an array of formIDs for which submitting is disabled
 	disabledForms: {type: Array, require: false, default: () => []},
 });

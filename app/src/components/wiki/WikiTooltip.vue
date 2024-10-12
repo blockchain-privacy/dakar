@@ -18,7 +18,7 @@
       <a
         v-else
         v-bind="item.props"
-        :class="{'anchor': true,'d-inline-block':true, 'underline': showLink}"
+        :class="{'anchor': true,'d-inline-block':true, 'underline': !hideLink}"
         :style="$attrs.style"
         @click="requestBlurb"
       ><slot /></a>
@@ -68,7 +68,7 @@ const msgStore = useMsgStore();
 
 const props = defineProps({
 	descriptionUrl: {type: String, required: true},
-	showLink: {type: Boolean, required: false, default: true},
+	hideLink: {type: Boolean, required: false},
 	icon: {type: String, required: false, default: ''},
 	iconColor: {type: String, required: false, default: undefined},
 });

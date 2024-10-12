@@ -48,7 +48,7 @@ import {ref} from 'vue';
 defineProps({
 	label: {type: String, required: false, default: 'Date'},
 	rules: {type: Array, required: false, default: undefined},
-	error: {type: Boolean, required: false, default: false},
+	error: {type: Boolean, required: false},
 });
 
 // In 2009 Bitcoin was created

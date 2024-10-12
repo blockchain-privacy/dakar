@@ -104,6 +104,7 @@
                           show-title-link
                           :show-heuristic-editor-link="isPrivilegedOrHigher"
                           :show-fingerprint-link="isPrivilegedOrHigher"
+                          show-title-bar
                           embed
                         />
                       </v-col>

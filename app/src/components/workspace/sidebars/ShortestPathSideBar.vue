@@ -4,6 +4,7 @@
     title="Shortest Path"
     :icon="mdiChartTimelineVariant"
     max-width="648px"
+    title-one-line
   >
     <template #actions />
     <template #body>

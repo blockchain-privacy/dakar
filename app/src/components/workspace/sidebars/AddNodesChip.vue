@@ -63,9 +63,9 @@ const emit = defineEmits(['addNodes',
 const workspaceStore = useWorkspaceStore();
 
 defineProps({
-	disabled: {type: Boolean, required: false, default: false},
-	showSelectAllTransactions: {type: Boolean, required: false, default: true},
-	showSelectAllAddresses: {type: Boolean, required: false, default: true},
+	disabled: {type: Boolean, required: false},
+	showSelectAllTransactions: {type: Boolean, required: false},
+	showSelectAllAddresses: {type: Boolean, required: false},
 });
 
 const transactionLabel = computed(() => transactionCount.value ? 'Deselect all Transactions' : 'Select all Transactions');
