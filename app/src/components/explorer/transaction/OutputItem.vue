@@ -13,7 +13,7 @@
           <div class="d-flex justify-space-between align-center">
             <workspace-link
               v-if="addressHash"
-              :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
+              :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash, blockchainMode: getSettings.blockchainMode }}"
               class="shorten"
             >
               {{ addressHash }}
@@ -25,7 +25,7 @@
               No Address available
             </div>
             <div class="text-no-wrap ms-2">
-              {{ convertAmount(amount) }} {{ COIN_UNIT }}
+              {{ convertAmount(amount) }} {{ coinUnit }}
             </div>
           </div>
         </v-col>
@@ -36,7 +36,7 @@
             class="d-flex justify-space-between align-center"
           >
             <div class="text-caption d-flex align-center text-no-wrap me-2">
-              <workspace-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
+              <workspace-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}">
                 {{ isInput ? 'created' : 'spent' }}
               </workspace-link>
               on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
@@ -126,11 +126,15 @@
 
 <script setup>
 import {mdiChevronUp, mdiChevronDown, mdiFormatColorText} from '@mdi/js';
-import {convertAmount} from '@/utilities';
-import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {convertAmount, getCoinUnit} from '@/utilities';
+import {
+	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
+} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
-import {ref} from 'vue';
+import {computed, ref} from 'vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 defineProps({
 	isInput: {type: Boolean, required: true},
@@ -146,8 +150,13 @@ defineProps({
 	highlight: {type: Boolean, required: false},
 });
 
+const {getSettings} = storeToRefs(useLocalStore());
+
 const expanded = ref(false);
 const showAscii = ref(false);
+
+// Computed
+const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
 
 // Functions
 const isHex = str => /^[A-F\d]+$/i.test(str);

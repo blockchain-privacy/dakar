@@ -13,7 +13,7 @@
         <adaptive-toolbar
           :name="workspaceName"
           :selected-item-count="lassoSelectedNodes.length"
-          :delete-enabled="isLassoDeletionEnabled"
+          :delete-disabled="!isLassoDeletionEnabled"
           :shortest-path-enabled="isShortestPathLookupEnabled"
           :add-entity-enabled="!isModifyingWorkspace"
           :node-type-items="nodeTypeLabels"

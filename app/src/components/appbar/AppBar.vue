@@ -8,7 +8,7 @@
     <router-link
       v-if="!minimize"
       id="app-logo"
-      :to="{name: ROUTE_NAME_ENTRY_PAGE}"
+      :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: settings.blockchainMode}}"
       class="ms-2"
     >
       <v-img
@@ -22,7 +22,7 @@
     </router-link>
     <router-link
       v-if="!minimize"
-      :to="{name: ROUTE_NAME_ENTRY_PAGE}"
+      :to="{name: ROUTE_NAME_ENTRY_PAGE,params: {blockchainMode: settings.blockchainMode}}"
       style="color: inherit; text-decoration: inherit"
     >
       <v-app-bar-title class="ms-2 d-none d-sm-flex">
@@ -34,6 +34,40 @@
       class="mx-auto px-2"
       style="max-width: 600px"
     />
+    <v-menu v-if="isAdmin">
+      <template #activator="{ props }">
+        <v-btn
+          v-bind="props"
+          id="blockchain-mode"
+          icon
+        >
+          <v-icon>{{ blockchainModeIcon }}</v-icon>
+        </v-btn>
+      </template>
+      <v-list
+        nav
+        density="compact"
+      >
+        <v-list-item
+          :active="settings.blockchainMode === BLOCKCHAIN_BTC"
+          @click="changeBlockchainMode( BLOCKCHAIN_BTC)"
+        >
+          <template #prepend>
+            <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_BTC)" />
+          </template>
+          <v-list-item-title>Bitcoin</v-list-item-title>
+        </v-list-item>
+        <v-list-item
+          :active="settings.blockchainMode === BLOCKCHAIN_DASH"
+          @click="changeBlockchainMode(BLOCKCHAIN_DASH)"
+        >
+          <template #prepend>
+            <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_DASH)" />
+          </template>
+          <v-list-item-title>Dash</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-menu>
     <v-btn
       v-if="isPrivilegedOrHigher"
       icon
@@ -116,7 +150,7 @@ import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
-	APPLICATION_NAME,
+	APPLICATION_NAME, BLOCKCHAIN_BTC, BLOCKCHAIN_DASH,
 	ROUTE_NAME_ENTRY_PAGE,
 	ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
@@ -129,6 +163,7 @@ import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import DakarImg from '@/assets/dakar.svg?url';
+import {bitcoinLogo, dashLogo} from '@/customIcons/index.js';
 
 const ory = inject('ory');
 const localStore = useLocalStore();
@@ -150,14 +185,40 @@ const session = computed({
 	},
 });
 
+const settings = computed({
+	get() {
+		return localStore.getSettings;
+	},
+	set(value) {
+		localStore.setSettings(value);
+	},
+});
+
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const isAdmin = computed(() => isAdminIdentity(session.value));
+const blockchainModeIcon = computed(() => getBlockchainModeIcon(settings.value.blockchainMode));
 
 // Functions
+function getBlockchainModeIcon(mode) {
+	switch (mode) {
+		case BLOCKCHAIN_DASH: return dashLogo;
+		case BLOCKCHAIN_BTC: return bitcoinLogo;
+		default: return mdiCog;
+	}
+}
+
+function changeBlockchainMode(mode) {
+	const set = settings.value;
+	set.blockchainMode = mode;
+	settings.value = set;
+	goToPage(ROUTE_NAME_ENTRY_PAGE, {blockchainMode: settings.value.blockchainMode});
+}
+
 // GoToPage should receive a page name from ./constants
-function goToPage(pageName) {
+function goToPage(pageName, params) {
 	// Only change route if not already on page
-	if (route.name !== pageName) {
-		router.push({name: pageName});
+	if (route.name !== pageName || route.params !== params) {
+		router.push({name: pageName, params});
 	}
 }
 
@@ -170,7 +231,7 @@ async function initLogoutFlow() {
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
-		goToPage(ROUTE_NAME_ENTRY_PAGE);
+		goToPage(ROUTE_NAME_ENTRY_PAGE, {blockchainMode: settings.value.blockchainMode});
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}

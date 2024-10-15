@@ -31,7 +31,7 @@
       </v-menu>
     </v-card-title>
     <v-divider />
-    <v-list-item :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: attribution.address }}">
+    <v-list-item :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: attribution.address, blockchainMode: getSettings.blockchainMode }}">
       {{ attribution.address }}
     </v-list-item>
     <v-list-item v-if="attribution.description">
@@ -70,7 +70,7 @@ import {ref} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 
-const {session} = storeToRefs(useLocalStore());
+const {session, getSettings} = storeToRefs(useLocalStore());
 
 defineProps({attribution: {type: Object, required: true}});
 const emit = defineEmits(['deleted']);

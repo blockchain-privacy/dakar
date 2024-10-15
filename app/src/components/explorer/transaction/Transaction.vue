@@ -4,7 +4,7 @@
       v-if="showTitleBar"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
-      :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}:null"
+      :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}:null"
     >
       <privacy-chip
         v-if="tx.txtype"
@@ -29,7 +29,7 @@
                 :icon="mdiFormatListNumbered"
                 title="Block Height"
               >
-                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
+                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid, blockchainMode: getSettings.blockchainMode }}">
                   {{ tx.bid.toLocaleString() }}
                 </router-link>
               </icon-item>
@@ -61,7 +61,7 @@
                 :icon="mdiFormatHeaderPound"
                 title="Block"
               >
-                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash }}">
+                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash, blockchainMode: getSettings.blockchainMode }}">
                   {{ shortenHash(tx.bhash) }}
                 </router-link>
               </icon-item>
@@ -301,6 +301,8 @@ import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import BarChart from '@/d3Documents/barChart.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -313,6 +315,8 @@ const props = defineProps({
 	highlightTransaction: {type: String, required: false, default: ''},
 	filterHighlightedOutputs: {type: Boolean, required: false},
 });
+
+const {getSettings} = storeToRefs(useLocalStore());
 
 const showTransactionDetails = toRef(props.showDetails);
 const showAllOutputs = ref(false);

@@ -19,7 +19,7 @@
             <workspace-link
               class="shorten"
               disable-select
-              :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+              :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
               @clicked="model = false"
             >
               {{ item.txhash }}
@@ -41,6 +41,10 @@
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {capitalize} from '../../../utilities/index.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
+
+const {getSettings} = storeToRefs(useLocalStore());
 
 defineProps({
 	transactions: {type: Array, required: true},

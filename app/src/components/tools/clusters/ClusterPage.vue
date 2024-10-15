@@ -123,7 +123,7 @@
           <v-list-item
             v-for="address in item.addresses"
             :key="address"
-            :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: address }}"
+            :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: address, blockchainMode: getSettings.blockchainMode }}"
           >
             <div>
               {{ address }}
@@ -149,11 +149,14 @@ import IconTitle from '@/components/common/IconTitle.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
+const {getSettings} = storeToRefs(useLocalStore());
 
 const addClusterDialogModel = ref(false);
 const deleteClusterDialogModel = ref(false);

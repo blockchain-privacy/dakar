@@ -89,7 +89,7 @@
       <template #item.name="{ item }">
         <router-link
           :to="{ name: ROUTE_NAME_WORKSPACE_PAGE,
-                 params: { id: item.uid }}"
+                 params: { id: item.uid, blockchainMode: getSettings.blockchainMode }}"
         >
           {{ item.name }}
         </router-link>
@@ -175,12 +175,15 @@ import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import {useDisplay} from 'vuetify';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const display = useDisplay();
 const context = {addMessage: msgStore.addMessage, $route: route};
+const {getSettings} = storeToRefs(useLocalStore());
 
 const workspaceList = ref([]);
 const showDeleteAllDialog = ref(false);

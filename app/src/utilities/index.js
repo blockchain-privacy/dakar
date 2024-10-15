@@ -1,4 +1,6 @@
 import {
+	BLOCKCHAIN_BTC,
+	BLOCKCHAIN_DASH,
 	CLUSTER_TYPE_CUSTOM,
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
@@ -35,6 +37,14 @@ export function getLocalSettings() {
 	}
 
 	return localStorageSettingsData;
+}
+
+export function getCoinUnit(mode) {
+	switch (mode) {
+		case BLOCKCHAIN_DASH: return 'Dash';
+		case BLOCKCHAIN_BTC: return 'BTC';
+		default: return 'invalid_unit';
+	}
 }
 
 export function shortenHash(hash) {

@@ -12,7 +12,7 @@
           </wiki-tooltip>
           are attached to this address. New clusters can be created at the
           <router-link
-            :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
+            :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW, params: {blockchainMode: getSettings.blockchainMode}}"
             class="d-inline-block"
           >
             custom clusters
@@ -121,7 +121,7 @@
                   <workspace-link
                     class="shorten"
                     disable-select
-                    :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash }}"
+                    :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash, blockchainMode: getSettings.blockchainMode }}"
                   >
                     {{ item.addresshash }}
                   </workspace-link>
@@ -156,9 +156,12 @@ import {inject, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
+import {useLocalStore} from '@/pinia/local.js';
+import {storeToRefs} from 'pinia';
 
 const dakar = inject('dakar');
 const route = useRoute();
+const {getSettings} = storeToRefs(useLocalStore());
 const context = {addMessage: useMsgStore().addMessage, $route: route};
 
 const props = defineProps({addressHash: {type: String, required: true}});

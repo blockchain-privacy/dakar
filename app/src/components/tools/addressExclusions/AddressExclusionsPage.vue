@@ -91,7 +91,7 @@
               <!-- Add padding so the list item covers the full height of the card,
               therefore make the mouse over highlight make nicer -->
               <v-list-item
-                :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
+                :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash, blockchainMode: getSettings.blockchainMode }}"
                 class="py-3"
               >
                 <v-list-item-title>
@@ -154,10 +154,13 @@ import IconTitle from '@/components/common/IconTitle.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
+const {getSettings} = storeToRefs(useLocalStore());
 
 const addAddressExclusions = ref(false);
 const deleteExclusionDialog = ref(false);

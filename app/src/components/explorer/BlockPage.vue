@@ -56,7 +56,7 @@
                           <router-link
                             id="block-page-previous-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.prevblockhash }}"
+                                   params: { id: block.prevblockhash, blockchainMode: getSettings.blockchainMode }}"
                           >
                             {{ shortenHash(block.prevblockhash) }}
                           </router-link>
@@ -70,7 +70,7 @@
                           <router-link
                             id="block-page-next-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.nextblockhash }}"
+                                   params: { id: block.nextblockhash, blockchainMode: getSettings.blockchainMode }}"
                           >
                             {{ shortenHash(block.nextblockhash) }}
                           </router-link>
@@ -161,7 +161,7 @@ const route = useRoute();
 const msgStore = useMsgStore();
 const context = {$route: route, addMessage: msgStore.addMessage};
 const {block} = storeToRefs(useExplorerStore());
-const {session} = storeToRefs(useLocalStore());
+const {session, getSettings} = storeToRefs(useLocalStore());
 
 let offset = 0;
 

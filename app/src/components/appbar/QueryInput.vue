@@ -31,11 +31,13 @@ import {useExplorerStore} from '@/pinia/explorer';
 import {useMsgStore} from '@/pinia/msg';
 import {useNavStore} from '@/pinia/nav';
 import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const router = useRouter();
 const msgStore = useMsgStore();
+const {getSettings} = storeToRefs(useLocalStore());
 const explorerStore = useExplorerStore();
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {addMessage: msgStore.addMessage, $route: useRoute()};
@@ -100,15 +102,15 @@ async function handleInput(q) {
 			break;
 		case RESPONSE_TYPE_ADDRESS:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery}});
+			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		case RESPONSE_TYPE_BLOCK:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery}});
+			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		case RESPONSE_TYPE_TRANSACTION:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery}});
+			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		default:
 			await router.push({name: ROUTE_NAME_NO_RESULTS});

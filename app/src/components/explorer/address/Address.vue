@@ -20,7 +20,7 @@
                 title="Balance"
               >
                 {{ convertAmount(data.output_sum - data.input_sum) }}
-                {{ COIN_UNIT }}
+                {{ coinUnit }}
               </icon-item>
             </v-col>
             <v-col
@@ -32,7 +32,7 @@
                 title="Total amount received"
               >
                 {{ convertAmount(data.output_sum) }}
-                {{ COIN_UNIT }}
+                {{ coinUnit }}
               </icon-item>
             </v-col>
             <v-col>
@@ -41,7 +41,7 @@
                 title="Total amount spent"
               >
                 {{ convertAmount(data.input_sum) }}
-                {{ COIN_UNIT }}
+                {{ coinUnit }}
               </icon-item>
             </v-col>
           </v-row>
@@ -134,7 +134,7 @@
                     v-if="item.input_transaction"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.input_transaction }}"
+                           params: { id: item.input_transaction, blockchainMode: getSettings.blockchainMode }}"
                     class="shorten"
                   >
                     {{ item.input_transaction }}
@@ -145,7 +145,7 @@
                     v-if="item.output_transaction"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.output_transaction }}"
+                           params: { id: item.output_transaction, blockchainMode: getSettings.blockchainMode }}"
                     class="shorten"
                   >
                     {{ item.output_transaction }}
@@ -158,7 +158,7 @@
                   {{ item.output_ts ? new Date(item.output_ts).toLocaleString() : '' }}
                 </template>
                 <template #item.amount="{ item }">
-                  {{ convertAmount(item.amount) }}
+                  {{ convertAmount(item.amount) }} {{ coinUnit }}
                 </template>
               </v-data-table-server>
             </v-sheet>
@@ -189,9 +189,9 @@ import {
 	mdiPound,
 	mdiScaleBalance,
 } from '@mdi/js';
-import {COIN_UNIT, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity,
+	convertAmount, getCoinUnit, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
@@ -216,7 +216,7 @@ const props = defineProps({
 const dakar = inject('dakar');
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const {session} = storeToRefs(useLocalStore());
+const {session, getSettings} = storeToRefs(useLocalStore());
 
 const isLoading = ref(false);
 const tab = ref(null);
@@ -243,6 +243,7 @@ const table = ref({
 // Computed
 const offset = computed(() => (table.value.page * itemsPerPage) - itemsPerPage);
 const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
 
 // Hooks
 onMounted(() => {

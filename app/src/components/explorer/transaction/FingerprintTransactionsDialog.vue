@@ -86,7 +86,8 @@
                       />
                       <td class="transaction-hash">
                         <router-link
-                          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+                          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
+                                 params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
                         >
                           {{ item.txhash }}
                         </router-link>
@@ -125,9 +126,11 @@ import {mdiTestTube} from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {inject, ref, watch} from 'vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const dakar = inject('dakar');
-
+const {getSettings} = storeToRefs(useLocalStore());
 const props = defineProps({transactionHash: {type: String, required: true}});
 const model = defineModel({type: Boolean});
 

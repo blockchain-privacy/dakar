@@ -8,22 +8,22 @@
       <v-divider />
       <v-list nav>
         <v-list-item
-          :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}"
+          :to="{ name: ROUTE_NAME_WORKSPACES_PAGE, params:{blockchainMode: getSettings.blockchainMode}}"
           prepend-icon="$graphIcon"
           title="Workspaces"
         />
         <v-list-item
-          :to="{ name: ROUTE_NAME_ATTRIBUTIONS}"
+          :to="{ name: ROUTE_NAME_ATTRIBUTIONS, params:{blockchainMode: getSettings.blockchainMode}}"
           :prepend-icon="mdiTag"
           title="Attributions"
         />
         <v-list-item
-          :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
+          :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW, params:{blockchainMode: getSettings.blockchainMode}}"
           :prepend-icon="mdiMerge"
           title="Custom Clusters"
         />
         <v-list-item
-          :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS}"
+          :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS, params:{blockchainMode: getSettings.blockchainMode}}"
           :prepend-icon="mdiPlaylistRemove"
           title="Address Exclusions"
         />
@@ -57,6 +57,11 @@ import {
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
+
+const {getSettings} = storeToRefs(useLocalStore());
+
 </script>
 
 <style scoped>

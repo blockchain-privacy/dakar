@@ -17,7 +17,7 @@
         {{ errorDescription }}
       </v-card-text>
       <v-card-actions class="d-flex justify-end">
-        <v-btn :to="{ name: ROUTE_NAME_ENTRY_PAGE }">
+        <v-btn :to="{ name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.settings.blockchainMode}}">
           Go to entry page
         </v-btn>
       </v-card-actions>
@@ -29,6 +29,7 @@
 import {ROUTE_NAME_ENTRY_PAGE, PAGE_TITLE} from '@/constants';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -36,10 +37,11 @@ const props = defineProps({
 	imageSource: {type: String, required: true},
 });
 
-const errorDescription = ref('');
-
 const route = useRoute();
+const localStore = useLocalStore();
 const ory = inject('ory');
+
+const errorDescription = ref('');
 
 onMounted(async () => {
 	document.title = `${route.meta.title} - ${PAGE_TITLE}`;

@@ -31,15 +31,12 @@ export const ROUTE_NAME_PRIVACY = 'Privacy Policy Page';
 // Application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
-export const APPLICATION_SUBTITLE = 'Dash Blockchain Analytics';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const LOCALSTORAGE_FIELD_SESSION = 'session';
-export const DEFAULT_SETTINGS = {dark: false};
 
 // Blockchain
-export const COIN_UNIT_DASH = 'Dash';
-export const COIN_UNIT_BTC = 'BTC';
-export const COIN_UNIT = COIN_UNIT_DASH;
+export const BLOCKCHAIN_DASH = 'dash';
+export const BLOCKCHAIN_BTC = 'bitcoin';
 
 // Cluster
 export const CLUSTER_TYPE_FMI = 'fmi';
