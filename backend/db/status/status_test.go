@@ -145,9 +145,11 @@ func TestGetFrontendStatus(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	// nothing set yet -> should fail
-	_, err := GetFrontendStatus(ctx, dbHandle)
-	require.Error(t, err)
+	// should not fail even if no status is set at all
+	status, err := GetFrontendStatus(ctx, dbHandle)
+	require.NoError(t, err)
+	require.Nil(t, status.IsCrawling)
+	require.Nil(t, status.IsClassifying)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
@@ -156,10 +158,11 @@ func TestGetFrontendStatus(t *testing.T) {
 	require.NoError(t, SetCrawling(ctx, dbHandle, true))
 	require.NoError(t, SetLastBlockID(ctx, dbHandle, 50))
 
-	status, err := GetFrontendStatus(context.Background(), dbHandle)
+	status, err = GetFrontendStatus(context.Background(), dbHandle)
 	require.NoError(t, err)
-	require.True(t, status.IsCrawling)
-	require.EqualValues(t, 50, status.LastBlockID)
+	require.NotNil(t, status.IsCrawling)
+	require.True(t, *status.IsCrawling)
+	require.EqualValues(t, 50, *status.LastBlockID)
 }
 
 func TestGetMeta(t *testing.T) {
