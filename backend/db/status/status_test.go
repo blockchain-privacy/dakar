@@ -162,7 +162,7 @@ func TestGetFrontendStatus(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, status.IsCrawling)
 	require.True(t, *status.IsCrawling)
-	require.EqualValues(t, 50, status.LastBlockID)
+	require.EqualValues(t, 50, *status.LastBlockID)
 }
 
 func TestGetMeta(t *testing.T) {
