@@ -143,7 +143,7 @@ defineProps({
 	txHash: {type: String, required: false, default: ''},
 	timestamp: {type: String, required: false, default: ''},
 	transactionType: {type: String, required: false, default: ''},
-	highlight: {type: Boolean, required: false, default: false},
+	highlight: {type: Boolean, required: false},
 });
 
 const expanded = ref(false);

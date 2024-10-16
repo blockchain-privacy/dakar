@@ -4,7 +4,6 @@
     :title="title"
     :icon="mdiArrowLeftRight"
     max-width="648px"
-    :title-one-line="false"
   >
     <template #actions>
       <add-nodes-chip
@@ -103,7 +102,6 @@
                   :tx="t"
                   show-details
                   :embed="false"
-                  :show-title-bar="false"
                   :highlight-transaction="connectionTarget.transactionHash"
                   :filter-highlighted-outputs="showOnlyHiglightedOutputs"
                 />

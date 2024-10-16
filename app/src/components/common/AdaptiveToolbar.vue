@@ -85,7 +85,6 @@
       v-if="showDeleteButton && selectedItemCount > 0"
       variant="flat"
       class="my-1 me-1"
-      :disabled="!deleteEnabled"
       @click="emit('deleteSelected')"
     >
       <v-icon
@@ -164,17 +163,16 @@ const emit = defineEmits([
 
 const props = defineProps({
 	name: {type: String, required: false, default: ''},
-	showSearchField: {type: Boolean, required: false, default: true},
+	showSearchField: {type: Boolean, required: false},
 	selectedItemCount: {type: Number, required: false, default: 0},
-	deleteEnabled: {type: Boolean, required: false, default: true},
-	shortestPathEnabled: {type: Boolean, required: false, default: false},
-	addEntityEnabled: {type: Boolean, required: false, default: true},
-	oneLine: {type: Boolean, required: false, default: false},
-	showDeleteButton: {type: Boolean, required: false, default: true},
-	showAddSelectorButton: {type: Boolean, required: false, default: true},
+	shortestPathEnabled: {type: Boolean, required: false},
+	addEntityEnabled: {type: Boolean, required: false},
+	oneLine: {type: Boolean, required: false},
+	showDeleteButton: {type: Boolean, required: false},
+	showAddSelectorButton: {type: Boolean, required: false},
 	nodeTypeItems: {type: Array, required: false, default: () => []},
 	transactionTypeItems: {type: Array, required: false, default: () => []},
-	disableFilter: {type: Boolean, required: false, default: false},
+	disableFilter: {type: Boolean, required: false},
 });
 
 const selectionToggle = ref(1);

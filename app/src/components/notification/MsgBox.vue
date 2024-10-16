@@ -12,6 +12,7 @@
         :type="msg.value.type"
         :temporary="msg.value.temporary"
         :text="msg.value.text"
+        closable
         @destructed="removeMessage(msg.key)"
       />
       <messages
@@ -20,7 +21,6 @@
         type="info"
         class="mt-3"
         :temporary="false"
-        :closable="false"
         :text="hiddenMessageText"
       />
     </transition-group>

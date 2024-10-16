@@ -21,6 +21,7 @@
               :tx="t"
               :show-heuristic-editor-link="isPrivilegedOrHigher"
               :show-fingerprint-link="isPrivilegedOrHigher"
+              show-title-bar
               show-details
             />
           </template>

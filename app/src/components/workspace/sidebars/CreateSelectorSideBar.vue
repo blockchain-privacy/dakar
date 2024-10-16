@@ -4,6 +4,7 @@
     :title="title"
     :icon="icon"
     max-width="330px"
+    title-one-line
   >
     <template #body>
       <v-form

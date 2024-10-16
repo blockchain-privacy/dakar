@@ -15,6 +15,7 @@
           <address-view
             v-if="addressData"
             :address-data="addressData"
+            show-title-bar
           />
           <v-skeleton-loader
             v-else

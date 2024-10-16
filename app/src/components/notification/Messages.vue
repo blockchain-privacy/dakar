@@ -29,9 +29,9 @@ import {onBeforeUnmount, onMounted, ref} from 'vue';
 
 const props = defineProps({
 	type: {type: String, required: true},
-	temporary: {type: Boolean, default: false},
+	temporary: {type: Boolean, required: false},
 	text: {type: String, required: true},
-	closable: {type: Boolean, required: false, default: true},
+	closable: {type: Boolean, required: false},
 });
 
 const emit = defineEmits(['destructed']);

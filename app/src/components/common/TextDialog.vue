@@ -58,7 +58,7 @@ const props = defineProps({
 	inputValue: {type: String, required: false, default: ''},
 	cancelColor: {type: String, required: false, default: undefined},
 	submitColor: {type: String, required: false, default: undefined},
-	textArea: {type: Boolean, required: false, default: false},
+	textArea: {type: Boolean, required: false},
 });
 const emit = defineEmits(['submit']);
 

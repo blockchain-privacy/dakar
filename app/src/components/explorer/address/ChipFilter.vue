@@ -38,7 +38,7 @@ defineProps({
 	// Example: [{color: red: text: 'some text'}, ...]
 	items: {type: Array, required: true},
 	label: {type: String, required: false, default: ''},
-	mandatory: {type: Boolean, required: false, default: false},
+	mandatory: {type: Boolean, required: false},
 });
 
 const emit = defineEmits(['changed']);

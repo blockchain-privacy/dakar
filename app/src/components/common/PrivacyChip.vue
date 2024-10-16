@@ -1,7 +1,7 @@
 <template>
   <wiki-tooltip
     :description-url="getTransactionTypeTooltip(transactionType)"
-    :show-link="false"
+    hide-link
   >
     <v-chip
       v-bind="$attrs"

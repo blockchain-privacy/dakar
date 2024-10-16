@@ -100,7 +100,7 @@ const props = defineProps({
 	meta: {type: Object, required: true},
 	attributes: {type: Object, required: true},
 	name: {type: String, required: true},
-	submitEnabled: {type: Boolean, require: false, default: true},
+	submitEnabled: {type: Boolean, require: false},
 });
 
 const emit = defineEmits(['submit']);

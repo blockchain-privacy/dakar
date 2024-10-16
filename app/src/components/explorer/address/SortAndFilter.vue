@@ -59,7 +59,7 @@ import {onMounted, ref} from 'vue';
 
 const props = defineProps({
 	modelValue: {type: Object, required: true},
-	loading: {type: Boolean, required: false, default: false},
+	loading: {type: Boolean, required: false},
 	outputCount: {type: Number, required: true},
 	inputCount: {type: Number, required: true},
 	coinbaseCount: {type: Number, required: true},

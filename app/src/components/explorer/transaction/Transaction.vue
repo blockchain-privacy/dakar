@@ -306,12 +306,12 @@ const props = defineProps({
 	tx: {type: Object, required: true},
 	showHeuristicEditorLink: {type: Boolean, required: true},
 	showFingerprintLink: {type: Boolean, required: true},
-	showDetails: {type: Boolean, required: false, default: false},
-	showTitleLink: {type: Boolean, required: false, default: false},
-	embed: {type: Boolean, required: false, default: false},
-	showTitleBar: {type: Boolean, required: false, default: true},
+	showDetails: {type: Boolean, required: false},
+	showTitleLink: {type: Boolean, required: false},
+	embed: {type: Boolean, required: false},
+	showTitleBar: {type: Boolean, required: false},
 	highlightTransaction: {type: String, required: false, default: ''},
-	filterHighlightedOutputs: {type: Boolean, required: false, default: false},
+	filterHighlightedOutputs: {type: Boolean, required: false},
 });
 
 const showTransactionDetails = toRef(props.showDetails);

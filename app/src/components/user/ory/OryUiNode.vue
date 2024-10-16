@@ -70,7 +70,7 @@ import OryUiMessage from './OryUiMessage.vue';
 defineProps({
 	node: {type: Object, required: true},
 	name: {type: String, required: true},
-	submitEnabled: {type: Boolean, require: false, default: true},
+	submitEnabled: {type: Boolean, require: false},
 });
 
 const emit = defineEmits(['submit']);

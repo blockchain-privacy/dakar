@@ -20,6 +20,7 @@ export default [
 		rules: {
 			'vue/prefer-true-attribute-shorthand': ['error', 'always'],
 			'vue/multi-word-component-names': 'off',
+			'vue/no-boolean-default': 'error',
 			'vue/component-name-in-template-casing': ['error', 'kebab-case'],
 			'no-return-await': 'off',
 			'vue/valid-v-slot': ['error', {allowModifiers: true}],

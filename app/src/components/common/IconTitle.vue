@@ -39,7 +39,7 @@ defineProps({
 	title: {type: String, required: true},
 	icon: {type: String, required: true},
 	to: {type: Object, required: false, default: null},
-	oneLine: {type: Boolean, required: false, default: false},
+	oneLine: {type: Boolean, required: false},
 });
 
 </script>

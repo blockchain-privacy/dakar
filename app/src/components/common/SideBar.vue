@@ -65,7 +65,7 @@ defineProps({
 	icon: {type: String, required: true},
 	maxWidth: {type: String, required: false, default: '600px'},
 	minWidth: {type: String, required: false, default: '300px'},
-	titleOneLine: {type: Boolean, required: false, default: true},
+	titleOneLine: {type: Boolean, required: false},
 });
 
 const model = defineModel({type: Boolean});

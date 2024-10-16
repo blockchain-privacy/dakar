@@ -46,8 +46,8 @@ defineProps({
 	title: {type: String, required: true},
 	icon: {type: String, required: true},
 	tooltip: {type: String, default: ''},
-	isColor: {type: Boolean, default: false},
-	isRed: {type: Boolean, default: false},
+	isColor: {type: Boolean},
+	isRed: {type: Boolean},
 });
 
 </script>
