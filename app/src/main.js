@@ -15,10 +15,11 @@ const pinia = createPinia();
 const app = createApp(App);
 
 app.use(pinia);
-app.use(vuetify).use(router);
 
-// Must not be called before app.use(pinia)
+// Must not be called before app.use(pinia) and not after app.use(vuetify).use(router)
 setupStore();
+
+app.use(vuetify).use(router);
 
 // Provide global variables here, so they can be later injected
 app.provide('ory', oryConfig);
