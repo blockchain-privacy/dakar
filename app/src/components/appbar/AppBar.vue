@@ -34,6 +34,13 @@
       class="mx-auto px-2"
       style="max-width: 600px"
     />
+    <v-btn
+      v-if="isPrivilegedOrHigher"
+      icon
+    >
+      <v-icon>{{ mdiDotsGrid }}</v-icon>
+      <page-menu />
+    </v-btn>
     <v-menu v-if="isAdmin">
       <template #activator="{ props }">
         <v-btn
@@ -50,7 +57,7 @@
       >
         <v-list-item
           :active="settings.blockchainMode === BLOCKCHAIN_BTC"
-          @click="changeBlockchainMode( BLOCKCHAIN_BTC)"
+          :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_BTC}}"
         >
           <template #prepend>
             <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_BTC)" />
@@ -59,7 +66,7 @@
         </v-list-item>
         <v-list-item
           :active="settings.blockchainMode === BLOCKCHAIN_DASH"
-          @click="changeBlockchainMode(BLOCKCHAIN_DASH)"
+          :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_DASH}}"
         >
           <template #prepend>
             <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_DASH)" />
@@ -68,13 +75,6 @@
         </v-list-item>
       </v-list>
     </v-menu>
-    <v-btn
-      v-if="isPrivilegedOrHigher"
-      icon
-    >
-      <v-icon>{{ mdiDotsGrid }}</v-icon>
-      <page-menu />
-    </v-btn>
     <v-menu v-if="session">
       <template #activator="{ props }">
         <v-btn
@@ -205,13 +205,6 @@ function getBlockchainModeIcon(mode) {
 		case BLOCKCHAIN_BTC: return bitcoinLogo;
 		default: return mdiCog;
 	}
-}
-
-function changeBlockchainMode(mode) {
-	const set = settings.value;
-	set.blockchainMode = mode;
-	settings.value = set;
-	goToPage(ROUTE_NAME_ENTRY_PAGE, {blockchainMode: settings.value.blockchainMode});
 }
 
 // GoToPage should receive a page name from ./constants
