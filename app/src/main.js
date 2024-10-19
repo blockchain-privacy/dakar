@@ -22,7 +22,7 @@ setupStore();
 
 // Provide global variables here, so they can be later injected
 app.provide('ory', oryConfig);
-app.provide('dakar', dakarConfig.setup(app.config.globalProperties));
+app.provide('dakar', dakarConfig.setup(app.config.globalProperties, '/dashdakar'));
 app.provide('wikiapi', wikiapiConfig.setup(app.config.globalProperties).default);
 app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties).default);
 
