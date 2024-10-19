@@ -149,7 +149,7 @@ function leave() {
 		goToPage(failedRoute.value);
 		failedRoute.value = null;
 	} else {
-		goToPage({name: ROUTE_NAME_ENTRY_PAGE});
+		goToPage({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}});
 	}
 }
 
