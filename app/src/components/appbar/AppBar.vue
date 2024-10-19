@@ -56,15 +56,6 @@
         density="compact"
       >
         <v-list-item
-          :active="settings.blockchainMode === BLOCKCHAIN_BTC"
-          :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_BTC}}"
-        >
-          <template #prepend>
-            <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_BTC)" />
-          </template>
-          <v-list-item-title>Bitcoin</v-list-item-title>
-        </v-list-item>
-        <v-list-item
           :active="settings.blockchainMode === BLOCKCHAIN_DASH"
           :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_DASH}}"
         >
@@ -72,6 +63,15 @@
             <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_DASH)" />
           </template>
           <v-list-item-title>Dash</v-list-item-title>
+        </v-list-item>
+        <v-list-item
+          :active="settings.blockchainMode === BLOCKCHAIN_BTC"
+          :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_BTC}}"
+        >
+          <template #prepend>
+            <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_BTC)" />
+          </template>
+          <v-list-item-title>Bitcoin</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-menu>

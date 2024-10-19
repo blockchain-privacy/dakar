@@ -36,7 +36,7 @@ export const LOCALSTORAGE_FIELD_SESSION = 'session';
 
 // Blockchain
 export const BLOCKCHAIN_DASH = 'dash';
-export const BLOCKCHAIN_BTC = 'bitcoin';
+export const BLOCKCHAIN_BTC = 'btc';
 
 // Cluster
 export const CLUSTER_TYPE_FMI = 'fmi';

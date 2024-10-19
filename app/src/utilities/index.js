@@ -56,6 +56,13 @@ export function getDakarClient(mode) {
 	}
 }
 
+export function getDakarClients() {
+	return {
+		dash: inject('dashdakar'),
+		btc: inject('btcdakar'),
+	};
+}
+
 export function shortenHash(hash) {
 	const elementLen = 17;
 

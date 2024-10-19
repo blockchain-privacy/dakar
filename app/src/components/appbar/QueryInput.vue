@@ -23,7 +23,7 @@ import {
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
 import {
-	getDakarClient, handleError, isValidQuery, isValidQueryInput,
+	getDakarClients, handleError, isValidQuery, isValidQueryInput,
 } from '@/utilities';
 import {
 	computed, ref, watch,
@@ -42,7 +42,11 @@ const {getSettings} = storeToRefs(useLocalStore());
 const explorerStore = useExplorerStore();
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {addMessage: msgStore.addMessage, $route: useRoute()};
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+
+// When the blockchain mode is switched and the current component is not reloaded,
+// the dakar client is in the wrong state. As a workaround, get all available dakar
+// clients and select the right one when doing a request.
+const dakarClients = getDakarClients();
 
 const query = ref('');
 let lastQuery = '';
@@ -153,17 +157,21 @@ async function handleQuery(q, type) {
 
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakar.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakar.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
 			break;
 		case RESPONSE_TYPE_ADDRESS:
 
-			await storeResult(dakar.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
 			break;
 		default:
-			await storeResult(dakar.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
 	}
 
 	return true;

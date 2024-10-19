@@ -111,7 +111,7 @@ import {
 	ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
 } from '@/constants';
 import {
-	getDakarClient, handleError, isValidQuery, isValidQueryInput,
+	getDakarClients, handleError, isValidQuery, isValidQueryInput,
 } from '@/utilities';
 import {computed, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
@@ -130,7 +130,10 @@ const {getSettings} = storeToRefs(useLocalStore());
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {$route: route, addMessage: msgStore.addMessage};
 
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+// When the blockchain mode is switched and the current component is not reloaded,
+// the dakar client is in the wrong state. As a workaround, get all available dakar
+// clients and select the right one when doing a request.
+const dakarClients = getDakarClients();
 
 const query = ref('');
 
@@ -153,7 +156,7 @@ async function executeQuery(query) {
 	let ok = false;
 
 	try {
-		const response = await dakar.data.blockchainSearchQueryGet({query});
+		const response = await dakarClients[getSettings.value.blockchainMode].data.blockchainSearchQueryGet({query});
 
 		explorerStore.updateSearchResult(response);
 		ok = response?.type !== RESPONSE_EMPTY;
