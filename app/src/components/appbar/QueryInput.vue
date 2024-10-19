@@ -22,9 +22,11 @@ import {
 	RESPONSE_EMPTY, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION,
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
-import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
 import {
-	computed, inject, ref, watch,
+	getDakarClient, handleError, isValidQuery, isValidQueryInput,
+} from '@/utilities';
+import {
+	computed, ref, watch,
 } from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
@@ -33,7 +35,6 @@ import {useNavStore} from '@/pinia/nav';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
 const route = useRoute();
 const router = useRouter();
 const msgStore = useMsgStore();
@@ -41,6 +42,7 @@ const {getSettings} = storeToRefs(useLocalStore());
 const explorerStore = useExplorerStore();
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {addMessage: msgStore.addMessage, $route: useRoute()};
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const query = ref('');
 let lastQuery = '';

@@ -94,16 +94,18 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
 </template>
 
 <script setup>
-import {fileRule, isAdminIdentity} from '@/utilities';
-import {computed, inject, ref} from 'vue';
+import {fileRule, getDakarClient, isAdminIdentity} from '@/utilities';
+import {computed, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
 
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const localStore = useLocalStore();
 const msgStore = useMsgStore();
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['added']);

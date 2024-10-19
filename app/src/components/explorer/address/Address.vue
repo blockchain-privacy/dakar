@@ -191,7 +191,7 @@ import {
 } from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, getCoinUnit, handleError, isAdminIdentity, isPrivilegedIdentity,
+	convertAmount, getCoinUnit, getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
@@ -199,7 +199,7 @@ import SortAndFilter from '@/components/explorer/address/SortAndFilter.vue';
 import ClusterLookup from '@/components/explorer/address/ClusterLookup.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {
-	computed, inject, onMounted, onUpdated, ref,
+	computed, onMounted, onUpdated, ref,
 } from 'vue';
 import {useMsgStore} from '@/pinia/msg';
 import {useRoute} from 'vue-router';
@@ -213,10 +213,10 @@ const props = defineProps({
 	showTitleBar: {type: Boolean, required: false},
 });
 
-const dakar = inject('dakar');
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
 const {session, getSettings} = storeToRefs(useLocalStore());
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const isLoading = ref(false);
 const tab = ref(null);

@@ -216,19 +216,19 @@ import {
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from './common/IconItem.vue';
-import {handleError} from '@/utilities';
+import {getDakarClient, handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {
-	computed, ref, onMounted, onBeforeUnmount, inject,
+	computed, ref, onMounted, onBeforeUnmount,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local.js';
 import {storeToRefs} from 'pinia';
 
-const dakar = inject('dakar');
 const {getSettings} = storeToRefs(useLocalStore());
 const context = {$route: useRoute(), addMessage: useMsgStore().addMessage};
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',

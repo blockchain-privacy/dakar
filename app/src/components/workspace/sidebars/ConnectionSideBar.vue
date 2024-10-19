@@ -118,16 +118,14 @@
 <script setup>
 import {mdiArrowLeftRight, mdiCancel} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
-import {
-	computed, inject, onUpdated, ref,
-} from 'vue';
+import {computed, onUpdated, ref} from 'vue';
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
 import {
 	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import {capitalize, convertAmount} from '../../../utilities/index.js';
+import {capitalize, convertAmount, getDakarClient} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
@@ -149,7 +147,7 @@ const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const {getSettings} = storeToRefs(useLocalStore());
-const dakar = inject('dakar');
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 let oldConnection = null;
 const connectionSource = ref(null);

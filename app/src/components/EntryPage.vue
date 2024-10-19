@@ -110,10 +110,10 @@ import {
 	ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, ROUTE_NAME_ABOUT,
 	ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
 } from '@/constants';
-import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
 import {
-	computed, inject, onMounted, ref,
-} from 'vue';
+	getDakarClient, handleError, isValidQuery, isValidQueryInput,
+} from '@/utilities';
+import {computed, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {useExplorerStore} from '@/pinia/explorer';
@@ -122,7 +122,6 @@ import {useNavStore} from '@/pinia/nav';
 import DakarAnimatedImg from '@/assets/dakar_animated.svg?url';
 import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
 const router = useRouter();
 const route = useRoute();
 const msgStore = useMsgStore();
@@ -130,6 +129,8 @@ const explorerStore = useExplorerStore();
 const {getSettings} = storeToRefs(useLocalStore());
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {$route: route, addMessage: msgStore.addMessage};
+
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const query = ref('');
 

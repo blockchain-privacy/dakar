@@ -12,6 +12,7 @@ import {
 	PRIVACY_TYPE_ORIGIN,
 	ROUTE_NAME_LOGIN_PAGE,
 } from '@/constants';
+import {inject} from 'vue';
 
 export function setLocalSession(sessionData) {
 	localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
@@ -44,6 +45,14 @@ export function getCoinUnit(mode) {
 		case BLOCKCHAIN_DASH: return 'Dash';
 		case BLOCKCHAIN_BTC: return 'BTC';
 		default: return 'invalid_unit';
+	}
+}
+
+export function getDakarClient(mode) {
+	switch (mode) {
+		case BLOCKCHAIN_DASH: return inject('dashdakar');
+		case BLOCKCHAIN_BTC: return inject('btcdakar');
+		default: throw new Error('invalid blockchain mode:', mode);
 	}
 }
 
