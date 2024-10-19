@@ -3,7 +3,7 @@
     id="query-input"
     v-model="query"
     hide-details
-    style="min-width:220px"
+    style="min-width:100px"
     variant="outlined"
     density="compact"
     color="primary"
