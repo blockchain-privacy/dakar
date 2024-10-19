@@ -64,7 +64,9 @@ export const router = createRouter({
 	routes: [
 		{
 			path: '/',
-			redirect: '/home/dash', // Default to dash
+			redirect() {
+				return {name: Constants.ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}};
+			},
 		},
 		{
 			path: '/home/:blockchainMode',
