@@ -48,7 +48,7 @@ const props = defineProps({addressHash: {type: String, required: true}});
 const route = useRoute();
 const localStore = useLocalStore();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const dakar = getDakarClient(session.value.blockchainMode);
+const dakar = getDakarClient(localStore.getSettings.blockchainMode);
 
 const deleteExclusionDialog = ref(false);
 const showExclusionChip = ref(false);
