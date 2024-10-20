@@ -502,7 +502,7 @@ func getInitialState(ctx context.Context, dgraph external.Database, client exter
 		if !errors.Is(err, errBlockIDsDoNotMatch) {
 			return
 		}
-		warn(serror.New(errBlockIDsDoNotMatch), "continuing...")
+		warn(serror.FromFormat("%w, continuing ...", errBlockIDsDoNotMatch))
 	}
 
 	if state.hash, err = client.GetBlockHash(state.id); err != nil {
