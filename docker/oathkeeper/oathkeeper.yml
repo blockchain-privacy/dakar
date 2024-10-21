@@ -80,4 +80,3 @@ mutators:
     config:
       headers:
         X-user: "{{ print .Subject }}"
-        X-dakar-user: "{{ print .Extra.identity.metadata_public.dgraph_uid }}"
