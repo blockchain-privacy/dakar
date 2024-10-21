@@ -5,9 +5,12 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 )
+
+var ErrUserDoesNotExist = errors.New("user does not exist")
 
 // CreateNewUser creates a new user
 func CreateNewUser(ctx context.Context, c external.Database) (string, error) {
@@ -80,7 +83,7 @@ func DeleteUser(ctx context.Context, c external.Database, uid string) (err error
 		err = existsErr
 		return
 	} else if !found {
-		err = serror.FromStr("error user does not exist")
+		err = serror.NewWithContext(ErrUserDoesNotExist, "user", uid)
 		return
 	}
 

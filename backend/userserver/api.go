@@ -9,6 +9,7 @@ import (
 	dbwork "backend/db/workspace"
 	"backend/external"
 	"backend/server"
+	"errors"
 	"net/http"
 )
 
@@ -77,6 +78,11 @@ func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgRep
 	}
 
 	if err := dbus.DeleteUser(ctx, dgraph, uid); err != nil {
+		if errors.Is(err, dbus.ErrUserDoesNotExist) {
+			status = http.StatusNotFound
+			return
+		}
+
 		reply.Msg = "could not delete dgraph user"
 		status = http.StatusInternalServerError
 		warn(err)
@@ -112,6 +118,7 @@ func (s *Server) handlerCreateUser() http.Handler {
 //	@Param		uid	path		string	true	"Identity UID"
 //	@Success	200	{object}	server.msgReply
 //	@Failure	400	{object}	server.msgReply
+//	@Failure	404	{object}	server.msgReply
 //	@Failure	401	{object}	server.msgReply
 //	@Failure	500	{object}	server.msgReply
 //	@Router		/users/{uid} [delete]

@@ -41,5 +41,5 @@ func TestDeleteUser(t *testing.T) {
 	require.NoError(t, DeleteUser(context.Background(), dbHandle, user))
 
 	// try to delete user which does not exist
-	require.Error(t, DeleteUser(context.Background(), dbHandle, "0x9999999"))
+	require.ErrorIs(t, DeleteUser(context.Background(), dbHandle, "0x9999999"), ErrUserDoesNotExist)
 }
