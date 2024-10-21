@@ -327,8 +327,13 @@ func main() {
 	if newConfig.Modules.HTTP.Active || newConfig.Modules.Crawler.Active {
 		client, err = connectBlockchainRPCClient(newConfig.RPC)
 		if err != nil {
-			warn(err)
-			return
+			// only exit if crawler is supposed to be active
+			if newConfig.Modules.Crawler.Active {
+				warn(err)
+				return
+			}
+
+			info("Unable to connect to RPC client. Continuing ...")
 		}
 	}
 

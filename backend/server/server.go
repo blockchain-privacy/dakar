@@ -37,7 +37,7 @@ func warn(err error, v ...any) {
 type Server struct {
 	// dgraph database
 	db external.Database
-	// Dash or Bitcoin RPC client
+	// Dash or Bitcoin RPC client. Can be nil.
 	client external.RPCClient
 	// worker which sequentially processes work packages (currently only used for heuristics)
 	worker *workspace.Worker
@@ -65,7 +65,8 @@ func NewServer(m *workspace.Mutex, db external.Database, client external.RPCClie
 	}
 
 	return &Server{
-		db:             db,
+		db: db,
+		// rpc client can be nil
 		client:         client,
 		worker:         worker,
 		graphWrapper:   graphWrapper,
