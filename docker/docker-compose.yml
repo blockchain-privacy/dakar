@@ -130,6 +130,7 @@ services:
       - "9316:9316"
     expose:
       - 9316
+#    command: --config /config.yml -updateIdentities
     networks:
       - dgraph_default
     logging: *default-logging
