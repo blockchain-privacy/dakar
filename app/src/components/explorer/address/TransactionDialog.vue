@@ -7,7 +7,6 @@
       <v-card-title class="text-h5">
         Transaction
         <workspace-link
-          class="shorten"
           disable-select
           :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
           @clicked="model = false"
@@ -35,7 +34,6 @@
               :key="t.txhash"
             >
               <workspace-link
-                class="shorten"
                 disable-select
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash, blockchainMode: getSettings.blockchainMode }}"
                 @clicked="model = false"

@@ -17,7 +17,6 @@
         >
           <template #item.txhash="{ item }">
             <workspace-link
-              class="shorten"
               disable-select
               :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
               @clicked="model = false"

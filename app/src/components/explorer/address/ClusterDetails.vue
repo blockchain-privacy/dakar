@@ -10,7 +10,6 @@
         </v-list-item-title>
         <v-list-item-subtitle>
           <workspace-link
-            class="shorten"
             disable-select
             :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
           >

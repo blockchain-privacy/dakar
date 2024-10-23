@@ -49,7 +49,6 @@
                 <template #item.txhash="{ item }">
                   <workspace-link
                     style="max-width:200px"
-                    class="shorten"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
                   >

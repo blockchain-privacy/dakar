@@ -206,7 +206,6 @@
               <workspace-link
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                        params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
-                class="shorten"
               >
                 {{ item.txhash }}
               </workspace-link>
