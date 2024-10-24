@@ -5,8 +5,8 @@
     transition="fade-transition"
   >
     <v-card class="mx-auto">
-      <v-card-title>
-        <span class="text-h5">{{ formTitle }}</span>
+      <v-card-title class="text-h5">
+        {{ formTitle }}
       </v-card-title>
       <v-card-text>
         <v-container>
@@ -17,7 +17,6 @@
             >
               <v-text-field
                 v-model="shadowIdentity.email"
-                class="my-1"
                 label="E-mail"
                 type="email"
                 :rules="rules.emailRules"
@@ -25,30 +24,36 @@
                 autofocus
               />
               <v-select
-                v-model="shadowIdentity.roles.dakar_dash"
-                class="my-1"
-                :items="roles"
-                label="Dakar Dash Role"
-              />
-              <v-select
-                v-model="shadowIdentity.roles.dakar_btc"
-                class="my-1"
-                :items="roles"
-                label="Dakar BTC Role"
-              />
-              <v-select
-                v-model="shadowIdentity.roles.kratos_admin"
-                class="my-1"
-                :rules="rules.roleRules"
-                :items="roles"
-                label="Kratos Admin Role"
-              />
-              <v-select
                 v-model="shadowIdentity.state"
-                class="my-1"
+                class="mt-2"
                 :rules="rules.stateRules"
                 :items="states"
                 label="State"
+              />
+              <named-divider
+                title="Roles"
+                :vertical-margin="3"
+              />
+              <p class="text-subtitle-2 mb-3">
+                Applying a role will create a new user if no users currently exist in the system
+              </p>
+              <v-select
+                v-model="shadowIdentity.roles.dakar_dash"
+                :items="roles"
+                label="Dakar Dash"
+                clearable
+              />
+              <v-select
+                v-model="shadowIdentity.roles.dakar_btc"
+                :items="roles"
+                label="Dakar BTC"
+                clearable
+              />
+              <v-select
+                v-model="shadowIdentity.roles.kratos_admin"
+                :rules="rules.roleRules"
+                :items="roles"
+                label="Kratos Admin"
               />
             </v-form>
           </v-row>
@@ -77,6 +82,7 @@ import {
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import NamedDivider from '@/components/common/NamedDivider.vue';
 
 const route = useRoute();
 const kratosAdmin = inject('kratosadmin');
@@ -135,6 +141,13 @@ async function saveIdentity() {
 	if (!valid) {
 		return;
 	}
+
+	// Remove all object keys which have no attached value
+	Object.keys(shadowIdentity.value.roles).forEach(key => {
+		if (!shadowIdentity.value.roles[key]) {
+			delete shadowIdentity.value.roles[key];
+		}
+	});
 
 	isLoading.value = true;
 	if (props.createNewUser) {
