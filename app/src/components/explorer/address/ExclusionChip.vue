@@ -63,7 +63,8 @@ const session = computed({
 	},
 });
 
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, localStore.getSettings.blockchainMode)
+	|| isAdminIdentity(session.value, localStore.getSettings.blockchainMode));
 
 // Hooks
 onMounted(() => {

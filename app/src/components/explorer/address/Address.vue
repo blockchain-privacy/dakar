@@ -240,7 +240,8 @@ const table = ref({
 
 // Computed
 const offset = computed(() => (table.value.page * itemsPerPage) - itemsPerPage);
-const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const showAdvanced = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
+	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
 const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
 
 // Hooks

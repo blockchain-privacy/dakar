@@ -7,8 +7,7 @@
         {{ attribution.ts.toLocaleDateString() }}
       </div>
       <v-menu
-        v-if="!attribution.isPublic ||
-          (attribution.isPublic && isAdminIdentity(session))"
+        v-if="!attribution.isPublic || (attribution.isPublic && isAdmin)"
         location="bottom"
       >
         <template #activator="{ props }">
@@ -66,7 +65,7 @@ import {ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import DeleteAttributionDialog from './DeleteAttributionDialog.vue';
 import AttributionTag from './AttributionTag.vue';
 import {isAdminIdentity} from '@/utilities';
-import {ref} from 'vue';
+import {computed, ref} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 
@@ -79,6 +78,9 @@ const deleteAttributionDialogModel = ref(false);
 const deleteAttributionTag = ref('');
 const deleteAttributionUid = ref('');
 const deleteAttributionPublic = ref(false);
+
+// Computed
+const isAdmin = computed(() => isAdminIdentity(session.value, getSettings.value.blockchainMode));
 
 // Functions
 // Credit: https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url/43467144#43467144

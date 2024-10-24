@@ -194,8 +194,8 @@ const settings = computed({
 	},
 });
 
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
-const isAdmin = computed(() => isAdminIdentity(session.value));
+const isAdmin = computed(() => isAdminIdentity(session.value, settings.value.blockchainMode));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode) || isAdmin.value);
 const blockchainModeIcon = computed(() => getBlockchainModeIcon(settings.value.blockchainMode));
 
 // Functions

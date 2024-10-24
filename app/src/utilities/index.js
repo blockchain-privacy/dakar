@@ -187,18 +187,20 @@ export function isValidQuery(str) {
 	return trimmed.length === 0 ? true : isValidQueryInput(trimmed);
 }
 
-function isRole(session, roleName) {
-	return Boolean(session && session.identity && session.identity.metadata_public
-		&& session.identity.metadata_public.roles
-		&& session.identity.metadata_public.roles.some(d => d === roleName));
+function isRole(session, mode, roleName) {
+	switch (mode) {
+		case BLOCKCHAIN_BTC: return Boolean(session?.identity?.metadata_public?.roles?.dakar_btc === roleName);
+		case BLOCKCHAIN_DASH: return Boolean(session?.identity?.metadata_public?.roles?.dakar_dash === roleName);
+		default: return false;
+	}
 }
 
-export function isPrivilegedIdentity(session) {
-	return isRole(session, 'privileged');
+export function isPrivilegedIdentity(session, mode) {
+	return isRole(session, mode, 'privileged');
 }
 
-export function isAdminIdentity(session) {
-	return isRole(session, 'admin');
+export function isAdminIdentity(session, mode) {
+	return isRole(session, mode, 'admin');
 }
 
 // Returns the corresponding tooltip path

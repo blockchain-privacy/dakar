@@ -25,20 +25,23 @@
                 autofocus
               />
               <v-select
-                v-model="shadowIdentity.roles"
+                v-model="shadowIdentity.roles.dakar_dash"
+                class="my-1"
+                :items="roles"
+                label="Dakar Dash Role"
+              />
+              <v-select
+                v-model="shadowIdentity.roles.dakar_btc"
+                class="my-1"
+                :items="roles"
+                label="Dakar BTC Role"
+              />
+              <v-select
+                v-model="shadowIdentity.roles.kratos_admin"
                 class="my-1"
                 :rules="rules.roleRules"
                 :items="roles"
-                label="Roles"
-                multiple
-              />
-              <v-select
-                v-model="shadowIdentity.services"
-                class="my-1"
-                :rules="rules.serviceRules"
-                :items="services"
-                label="Services"
-                multiple
+                label="Kratos Admin Role"
               />
               <v-select
                 v-model="shadowIdentity.state"
@@ -89,23 +92,20 @@ const props = defineProps({
 
 const isLoading = ref(false);
 const shadowIdentity = ref({
-	id: '', email: '', roles: [], state: '', services: [],
+	// eslint-disable-next-line camelcase
+	id: '', email: '', roles: {dakar_dash: '', dakar_btc: '', kratos_admin: ''}, state: '',
 });
 // Template ref
 const modifyIdentityForm = ref(null);
 
 const roles = [{title: 'Admin', value: 'admin'}, {title: 'Privileged', value: 'privileged'}];
-const services = [{title: 'Dakar Dash', value: 'dakarDash'}, {title: 'Dakar BTC', value: 'dakarBTC'}];
 const states = [{title: 'Active', value: 'active'}, {title: 'Inactive', value: 'inactive'}];
 const rules = {
 	roleRules: [
-		v => v.length > 0 || 'At least one role is required',
-	],
-	serviceRules: [
-		v => v.length > 0 || 'At least one service is required',
+		v => (Boolean(v) && v.length > 0) || 'Role must be set',
 	],
 	stateRules: [
-		v => v.length > 0 || 'State must be set',
+		v => (Boolean(v) && v.length > 0) || 'State must be set',
 	],
 	emailRules,
 };
@@ -115,14 +115,6 @@ const formTitle = computed(() => props.createNewUser ? 'Create Identity' : 'Edit
 
 onMounted(() => {
 	shadowIdentity.value = props.identity;
-	shadowIdentity.value.services = [];
-	if (props.identity.metadata_public?.dakar_dash_user) {
-		shadowIdentity.value.services.push('dakarDash');
-	}
-
-	if (props.identity.metadata_public?.dakar_btc_user) {
-		shadowIdentity.value.services.push('dakarBTC');
-	}
 });
 
 function setErrorMessage(msg) {
@@ -152,7 +144,6 @@ async function saveIdentity() {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
 					state: shadowIdentity.value.state,
-					services: shadowIdentity.value.services,
 				},
 			});
 			if (response.msg) {
@@ -169,9 +160,8 @@ async function saveIdentity() {
 				identity: {
 					uid: shadowIdentity.value.id,
 					email: shadowIdentity.value.email,
-					state: shadowIdentity.value.state,
 					roles: shadowIdentity.value.roles,
-					services: shadowIdentity.value.services,
+					state: shadowIdentity.value.state,
 				},
 			});
 

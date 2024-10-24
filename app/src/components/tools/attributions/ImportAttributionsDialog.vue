@@ -127,7 +127,7 @@ const separatorItems = [
 ];
 
 // Computed
-const isAdmin = computed(() => isAdminIdentity(localStore.getSession));
+const isAdmin = computed(() => isAdminIdentity(localStore.getSession, localStore.getSettings.blockchainMode));
 
 // Functions
 // CodeToMsg returns a message for the given message code
