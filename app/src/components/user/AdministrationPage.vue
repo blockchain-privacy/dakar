@@ -31,6 +31,7 @@
             >
               <v-text-field
                 v-model="search"
+                class="ms-3"
                 :append-inner-icon="mdiMagnify"
                 label="Filter users"
                 single-line
@@ -40,6 +41,7 @@
               <v-spacer />
               <v-btn
                 variant="outlined"
+                class="me-3"
                 :disabled="isLoading"
                 @click="refreshUsers"
               >
@@ -47,7 +49,7 @@
               </v-btn>
               <v-btn
                 variant="outlined"
-                class="ml-1"
+                class="me-3"
                 @click="showCreateDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
@@ -72,6 +74,7 @@
               />
               <v-spacer />
               <v-btn
+                class="me-3"
                 variant="outlined"
                 :disabled="isLoading"
                 @click="refreshUsers"
@@ -83,7 +86,7 @@
               </v-btn>
               <v-btn
                 variant="outlined"
-                class="ml-1"
+                class="me-3"
                 @click="showCreateDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
@@ -159,7 +162,6 @@
                 label="Filter sessions"
                 single-line
                 hide-details
-                style="max-width: 500px"
               />
             </v-toolbar>
             <v-toolbar
@@ -170,11 +172,11 @@
               <v-spacer />
               <v-text-field
                 v-model="searchSessions"
+                class="me-3"
                 :append-inner-icon="mdiMagnify"
                 label="Filter sessions"
                 single-line
                 hide-details
-                style="max-width: 500px"
               />
             </v-toolbar>
           </template>
