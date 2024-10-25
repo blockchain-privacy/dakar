@@ -145,10 +145,11 @@ func TestGetFrontendStatus(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	// nothing set yet -> should not fail
+	// should not fail even if no status is set at all
 	status, err := GetFrontendStatus(ctx, dbHandle)
 	require.NoError(t, err)
-	require.Nil(t, status.LastBlockID)
+	require.Nil(t, status.IsCrawling)
+	require.Nil(t, status.IsClassifying)
 
 	// set up schema
 	require.NoError(t, db.SetupSchema(dbHandle))
