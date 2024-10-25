@@ -88,7 +88,7 @@ build:
 swaggo:
   stage: build
   script:
-    - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download/v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_amd64.tar.gz
+    - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download//v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_amd64.tar.gz
     - make openapi-fmt
     - make openapi-spec
