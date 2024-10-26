@@ -4,6 +4,7 @@ import (
 	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
@@ -24,7 +25,7 @@ var ConstructorMap = make(map[string]heuristicConstructor)
 var (
 	errHeuristicNotValid = errors.New("error heuristics are not valid")
 	// errNoOriginsAtStart defines an error which should be used when no origins are available
-	errNoOriginsAtStart    = errors.New("no origins can be fetched")
+	errNoOriginsAtStart    = errors.New("no origins could be fetched")
 	errInvalidClusterTypes = errors.New("cluster types are not valid")
 )
 
@@ -250,39 +251,6 @@ func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *gra
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes)
-}
-
-// getOriginDestinationTimeLimited returns UID map of all destinations of the given origin UIDs
-func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
-	dur time.Duration, exclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
-	uidMap := make(map[string]bool)
-	// do forward lookup for all origin transactions
-	for _, it := range originUIDs {
-		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, exclusions, excludeSpendingGaps)
-		if lookupErr != nil {
-			return nil, lookupErr
-		}
-
-		for k := range endpoints {
-			uidMap[k] = true
-		}
-	}
-
-	return uidMap, nil
-}
-
-// getOriginDestinationsWithInputs returns all destinations
-// of the given transactions limited by time. Each transaction contains its inputs.
-func getOriginDestinationsWithInputs(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration, exclusions []string,
-	excludeSpendingGaps bool) (origins []heuristics.HeuristicTransaction, err error) {
-	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions, excludeSpendingGaps)
-	if err != nil {
-		return nil, err
-	}
-
-	// get tx details for each uid
-	return heuristics.GetTransactionsWithInputAmount(ctx, dgraph, cliutil.GetMapKeys(uidMap))
 }
 
 func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {

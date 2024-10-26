@@ -124,8 +124,7 @@ func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g
 		}
 	}
 
-	uidMap, err := getOriginDestinationTimeLimited(g, []string{results[0].UID}, h.lookForwardTime,
-		exclusions, h.c.ExcludeSpendingGaps)
+	uidMap, err := g.ForwardLookupByTime(uid, h.lookForwardTime, exclusions, h.c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, err
 	}
