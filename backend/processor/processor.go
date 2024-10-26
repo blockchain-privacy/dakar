@@ -463,7 +463,6 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 		case <-ticker.C:
 			currentBlock, err = client.GetBlockVerbose(hashObj)
 			if err != nil {
-				err = serror.New(err)
 				return
 			}
 		}
@@ -486,7 +485,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 func getRPCNumberOfBlocks(client external.RPCClient) (int64, error) {
 	blocksCount, err := client.GetBlockCount()
 	if err != nil {
-		return 0, serror.New(err)
+		return 0, err
 	}
 
 	if blocksCount < 0 {
@@ -506,14 +505,12 @@ func getInitialState(ctx context.Context, dgraph external.Database, client exter
 	}
 
 	if state.hash, err = client.GetBlockHash(state.id); err != nil {
-		err = serror.New(err)
 		return
 	}
 
 	// get RPC client block count
-	numBlocks, rpcErr := getRPCNumberOfBlocks(client)
-	if rpcErr != nil {
-		err = rpcErr
+	numBlocks, err := getRPCNumberOfBlocks(client)
+	if err != nil {
 		return
 	}
 

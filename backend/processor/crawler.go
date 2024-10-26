@@ -126,7 +126,7 @@ func (c *Crawler) Next(context.Context) (bool, error) {
 		// state is on next block
 		block, err := c.rpc.GetBlockVerbose(c.state.hash)
 		if err != nil {
-			return false, serror.New(err)
+			return false, err
 		}
 
 		if block.NextHash == "" {
@@ -146,7 +146,7 @@ func (c *Crawler) Next(context.Context) (bool, error) {
 	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
 		currentBlock, getErr := c.rpc.GetBlockVerbose(c.state.hash)
 		if getErr != nil {
-			return false, serror.New(getErr)
+			return false, getErr
 		}
 		c.currentBlock = currentBlock
 		c.state.top = numBlocks
@@ -167,7 +167,7 @@ func (c *Crawler) Iterate(ctx context.Context) (bool, error) {
 	// get block from RPC-Client
 	c.currentBlock, err = c.rpc.GetBlockVerbose(c.state.hash)
 	if err != nil {
-		return false, serror.New(err)
+		return false, err
 	}
 
 	// do the actual processing and aggregate the resulting metrics
