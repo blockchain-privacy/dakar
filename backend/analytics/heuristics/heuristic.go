@@ -147,6 +147,32 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 	return analytics.CountAmountDenominations(denominations)
 }
 
+// If the given transaction hash belongs to a mixing transaction then it returns the transaction itself,
+// otherwise it return the input transactions of the transaction.
+func getInputTransactions(ctx context.Context, c external.Database, txhash string) ([]heuristics.HeuristicTransaction, error) {
+	transaction, err := db.GetTransaction(ctx, c, txhash)
+	if err != nil {
+		return nil, err
+	}
+
+	var inputTransactions []heuristics.HeuristicTransaction
+	if transaction.Type == constants.TypeMixing {
+		hs, err := heuristics.GetInputTransaction(ctx, c, txhash)
+		if err != nil {
+			return nil, err
+		}
+		inputTransactions = []heuristics.HeuristicTransaction{*hs}
+	} else {
+		hs, err := heuristics.GetInputTransactions(ctx, c, txhash)
+		if err != nil {
+			return nil, err
+		}
+		inputTransactions = hs
+	}
+
+	return inputTransactions, nil
+}
+
 // gets the counts of each denomination type
 func getDenominationCounts(it heuristics.HeuristicTransaction) [analytics.NumDenominations]int {
 	denominations := make([]int64, len(it.Outputs))

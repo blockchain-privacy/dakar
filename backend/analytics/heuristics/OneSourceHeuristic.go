@@ -106,7 +106,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash.
-	inputTransactions, err := heuristics.GetInputTransactions(ctx, dgraph, h.c.TransactionHash)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}

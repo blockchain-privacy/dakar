@@ -192,8 +192,63 @@ func GetInputTransactions(ctx context.Context, c external.Database,
 	return
 }
 
+// GetInputTransaction gets for given transaction hash the HeuristicTransaction
+func GetInputTransaction(ctx context.Context, c external.Database, txhash string) (*HeuristicTransaction, error) {
+	query := `query Q($txhash: string){
+				q(func: eq(txhash,$txhash)){
+					uid
+					tx_outputs@normalize{
+						amount:amount
+						~tx_inputs{
+							input_tx:txhash
+						}
+					}
+					~transactions{
+						ts
+					}
+				}
+				}`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txhash": txhash})
+	if err != nil {
+		return nil, err
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+			Inputs  []struct {
+				Address string `json:"addr_uid,omitempty"`
+				Cluster string `json:"cluster_uid,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Block []struct {
+				Timestamp time.Time `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	if len(r.Transaction) != 1 {
+		return nil, serror.New(errInvalidDatabaseResponse)
+	}
+
+	if len(r.Transaction[0].Block) != 1 || len(r.Transaction[0].Outputs) == 0 {
+		return nil, serror.New(errInvalidDatabaseResponse)
+	}
+
+	return &HeuristicTransaction{
+		UID:       r.Transaction[0].UID,
+		Timestamp: r.Transaction[0].Block[0].Timestamp,
+		Outputs:   r.Transaction[0].Outputs}, nil
+}
+
 // GetTransactionsWithOutputAmountAndCluster returns a slice of transactions and used attributions per cluster.
-// Each transaction contains its output amounts and the cluster of all inputs.
+// Each transaction contains its output amounts and the clusters of all inputs.
 // If no attributions were used or found the returned map is nil.
 func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.Database, uids []string, userUID string,
 	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction,
@@ -216,7 +271,6 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 	}
 
 	/// build query
-
 	var usedClusterTypes string
 	if !isSimpleClustering {
 		for i, ct := range requestedClusterTypes {
@@ -229,6 +283,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 		usedClusterTypes = " or (eq(Cluster.type, " + usedClusterTypes + ")  and uid_in(Cluster.user," + userUID + "))"
 	}
 
+	// todo review if usedClusterTypes can not be queried here, because the merged/associated clusters are used anyway a few lines below
 	query := fmt.Sprintf(`query Q($uids:string){
 				q(func: uid($uids)){
 					uid
@@ -244,7 +299,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 						}
 					}
 			   	}
-			  }`, string(clustering.TypeFMI), usedClusterTypes)
+			  }`, clustering.TypeFMI, usedClusterTypes)
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
@@ -272,7 +327,6 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 
 	var superClusters []mergedClusterItem
 	allClusters := make(map[string]bool)
-
 	if !isSimpleClustering {
 		// get all merged clusters
 		for _, userCluster := range userClusterUIDs {
