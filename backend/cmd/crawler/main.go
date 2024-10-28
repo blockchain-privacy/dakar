@@ -538,6 +538,7 @@ func main() {
 		// the server is still active at this point
 
 		<-chSignal
+		terminateApp()
 		shutdownServer(apiHTTPServer)
 		shutdownServer(userHTTPServer)
 		shutdownServer(metricsHTTPServer)
