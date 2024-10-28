@@ -106,9 +106,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 	}
 
 	inputDenominationCounts := getDenominationCounts(transaction)
-
 	originAmounts := buildSourceAmounts(origins)
-
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k, o := range originAmounts {
 		if isEqualDenomination(inputDenominationCounts, o) {

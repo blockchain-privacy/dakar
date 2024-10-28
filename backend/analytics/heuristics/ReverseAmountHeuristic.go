@@ -65,7 +65,7 @@ func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 }
 
 // reverseAmountHeuristic applies the following heuristic:
-// - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
+// - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
 func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
