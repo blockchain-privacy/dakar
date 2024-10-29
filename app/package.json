@@ -27,7 +27,7 @@
     "d3-time": "^3.1.0",
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
-    "pinia": "^2.2.4",
+    "pinia": "^2.2.5",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5",
     "vuetify": "^3.7.3"
@@ -36,7 +36,7 @@
     "@vitejs/plugin-vue": "^5.1.4",
     "eslint": "^9.13.0",
     "eslint-config-xo": "^0.46.0",
-    "eslint-plugin-vue": "^9.29.1",
+    "eslint-plugin-vue": "^9.30.0",
     "eslint-plugin-vuetify": "^2.4.0",
     "sass": "^1.80.4",
     "vite": "^5.4.10",
