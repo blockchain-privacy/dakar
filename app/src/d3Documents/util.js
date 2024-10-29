@@ -28,41 +28,25 @@ export function abbreviateNumber(number) {
 }
 
 // Returns the ratio of a shortened line
-export function getRatio(d, nodeRadius) {
-	const c = Math.sqrt(((d.target.x - d.source.x) ** 2) + ((d.target.y - d.source.y) ** 2));
+export function getRatio(source, target, nodeRadius) {
+	const c = Math.sqrt(((target.x - source.x) ** 2) + ((target.y - source.y) ** 2));
 	// 10 is the marker width
-	const c2 = c - nodeRadius - 10;
+	// c2 must not be negative
+	const c2 = Math.max(c - nodeRadius - 10, 0);
+
 	return c2 / c;
 }
 
-// Returns the ratio of a shortened line
-export function getRatioR(d, nodeRadius) {
-	const c = Math.sqrt(((d.source.x - d.target.x) ** 2) + ((d.source.y - d.target.y) ** 2));
-	// 10 is the marker width
-	const c2 = c - nodeRadius - 10;
-	return c2 / c;
+// Returns a new reduced y coordinate of the target point.
+// To switch the direction, switch source and target arguments
+export function reduceY(source, target, nodeRadius) {
+	const dy = (target.y - source.y) * getRatio(source, target, nodeRadius);
+	return source.y + dy;
 }
 
-// Returns a new reduced y coordinate of the target point
-export function reduceY(d, nodeRadius) {
-	const dy = (d.target.y - d.source.y) * getRatio(d, nodeRadius);
-	return d.source.y + dy;
-}
-
-// Returns a new reduced x coordinate of the target point
-export function reduceX(d, nodeRadius) {
-	const dx = (d.target.x - d.source.x) * getRatio(d, nodeRadius);
-	return d.source.x + dx;
-}
-
-// Returns a new reduced y coordinate of the source point
-export function reduceYR(d, nodeRadius) {
-	const dy = (d.source.y - d.target.y) * getRatioR(d, nodeRadius);
-	return d.target.y + dy;
-}
-
-// Returns a new reduced x coordinate of the source point
-export function reduceXR(d, nodeRadius) {
-	const dx = (d.source.x - d.target.x) * getRatioR(d, nodeRadius);
-	return d.target.x + dx;
+// Returns a new reduced x coordinate of the target point.
+// To switch the direction, switch source and target arguments
+export function reduceX(source, target, nodeRadius) {
+	const dx = (target.x - source.x) * getRatio(source, target, nodeRadius);
+	return source.x + dx;
 }

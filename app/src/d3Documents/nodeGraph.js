@@ -3,9 +3,7 @@ import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
 import {forceCollide, forceLink, forceSimulation} from 'd3-force';
-import {
-	abbreviateNumber, reduceX, reduceY, reduceXR, reduceYR,
-} from '@/d3Documents/util';
+import {abbreviateNumber, reduceX, reduceY} from '@/d3Documents/util';
 import {mdiExclamationThick} from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
@@ -1061,27 +1059,6 @@ export default class NodeGraph {
 			.text(d => d.nodeDisplayTitle)
 			.each(elide);
 
-		// Privacy type subtitle
-		// let nodeSubtitle = textContainer.select('.nodeSubtitle');
-		// if (nodeSubtitle.empty()) {
-		// 	nodeSubtitle = textContainer.append('text').classed('nodeSubtitle', true);
-		// }
-		//
-		// nodeSubtitle
-		// 	.attr('font-size', fontSize)
-		// 	.attr('text-anchor', 'middle')
-		// 	.style('cursor', 'default')
-		// 	.attr('fill', 'currentColor')
-		// 	.attr('y', this.#nodeRadius + textHeight * 2 + textAreaMargin)
-		// 	.text(d => {
-		// 		if (d.type === WORKSPACE_NODE_TYPE_TRANSACTION && d.txtype) {
-		// 			return d.txtype;
-		// 		}
-		//
-		// 		return '';
-		// 	})
-		// 	.each(elide);
-
 		// Symbol or text which is centered on the node
 		let resultCount = entityGroup.select('.resultCount');
 		if (resultCount.empty()) {
@@ -1194,10 +1171,10 @@ export default class NodeGraph {
 			.join('line')
 			.classed('arrow', true)
 			.attr('marker-start', d => d.isDual ? `url(#${this.#svgID}_arrowhead_reversed)` : undefined)
-			.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
-			.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
-			.attr('x2', d => reduceX(d, this.#nodeRadius))
-			.attr('y2', d => reduceY(d, this.#nodeRadius));
+			.attr('x1', d => d.isDual ? reduceX(d.target, d.source, this.#nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceY(d.target, d.source, this.#nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d.source, d.target, this.#nodeRadius))
+			.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
 		// For mouseover and click events
 		const shadowLinks = this.#shadowLineGroup
@@ -1206,10 +1183,10 @@ export default class NodeGraph {
 			.join('line')
 			.classed('shadowArrow', true)
 			.attr('marker-start', d => d.isDual ? `url(#${this.#svgID}_arrowhead_reversed_shadow)` : undefined)
-			.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
-			.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
-			.attr('x2', d => reduceX(d, this.#nodeRadius))
-			.attr('y2', d => reduceY(d, this.#nodeRadius));
+			.attr('x1', d => d.isDual ? reduceX(d.target, d.source, this.#nodeRadius) : d.source.x)
+			.attr('y1', d => d.isDual ? reduceY(d.target, d.source, this.#nodeRadius) : d.source.y)
+			.attr('x2', d => reduceX(d.source, d.target, this.#nodeRadius))
+			.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
 		const arrowText = this.#lineGroup
 			.selectAll('.arrowText')
@@ -1271,15 +1248,15 @@ export default class NodeGraph {
 
 		this.simulation.on('tick', () => {
 			link
-				.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
-				.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
-				.attr('x2', d => reduceX(d, this.#nodeRadius))
-				.attr('y2', d => reduceY(d, this.#nodeRadius));
+				.attr('x1', d => d.isDual ? reduceX(d.target, d.source, this.#nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceY(d.target, d.source, this.#nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d.source, d.target, this.#nodeRadius))
+				.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 			shadowLinks
-				.attr('x1', d => d.isDual ? reduceXR(d, this.#nodeRadius) : d.source.x)
-				.attr('y1', d => d.isDual ? reduceYR(d, this.#nodeRadius) : d.source.y)
-				.attr('x2', d => reduceX(d, this.#nodeRadius))
-				.attr('y2', d => reduceY(d, this.#nodeRadius));
+				.attr('x1', d => d.isDual ? reduceX(d.target, d.source, this.#nodeRadius) : d.source.x)
+				.attr('y1', d => d.isDual ? reduceY(d.target, d.source, this.#nodeRadius) : d.source.y)
+				.attr('x2', d => reduceX(d.source, d.target, this.#nodeRadius))
+				.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 			arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
