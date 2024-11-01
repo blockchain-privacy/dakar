@@ -196,7 +196,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 		IsClassifying:         &yes,
 		LastClassifiedBlockID: testhelper.GetPointer[int64](700),
 	}))
-	require.NoError(t, setInitialClassifierID(ctx, dbHandle))
+	require.NoError(t, setInitialClassifierID(ctx, dbHandle, 0))
 }
 
 func TestBlockIterator(t *testing.T) {

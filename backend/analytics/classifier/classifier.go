@@ -24,15 +24,20 @@ func InitLogger() {
 }
 
 type Config struct {
-	iteratorFunc func(ctx context.Context, c external.Database, from int64, to int64) (bool, error)
+	iteratorFunc   func(ctx context.Context, c external.Database, from int64, to int64) (bool, error)
+	minBlockHeight int64
 }
 
 func NewDashConfig() Config {
-	return Config{iteratorFunc: dash.Iterate}
+	return Config{iteratorFunc: dash.Iterate, minBlockHeight: 0}
 }
 
 func NewBTCConfig() Config {
-	return Config{iteratorFunc: btc.Iterate}
+	return Config{
+		iteratorFunc: btc.Iterate,
+		// 740000 -> Jun 9, 2022 shortly before Wasabi 2.0 was released on Jun 15, 2022
+		minBlockHeight: 740000,
+	}
 }
 
 // Classifier implements BlockIterator which classifies the transactions of each traversed block
@@ -106,7 +111,7 @@ func (c *Classifier) CalculateInitialState(ctx context.Context) error {
 		return err
 	}
 
-	if err := setInitialClassifierID(ctx, c.db); err != nil {
+	if err := setInitialClassifierID(ctx, c.db, c.config.minBlockHeight); err != nil {
 		return err
 	}
 
@@ -150,7 +155,9 @@ func (c *Classifier) Next(ctx context.Context) (bool, error) {
 	status, err := dbstat.GetCrawlerStatus(ctx, c.db)
 	if err != nil {
 		return false, err
-	} else if status.LastBlockID == nil {
+	}
+
+	if status.LastBlockID == nil {
 		return false, serror.FromStr("last crawled block is not set")
 	}
 
@@ -204,14 +211,14 @@ func (c *Classifier) PostExecution(ctx context.Context) error {
 
 // setInitialClassifierID sets the starting classifier block id to the
 // value of startBlockClassifier if no value has been set yet
-func setInitialClassifierID(ctx context.Context, dgraph external.Database) (err error) {
+func setInitialClassifierID(ctx context.Context, dgraph external.Database, minBlockHeight int64) (err error) {
 	status, err := dbstat.GetClassifierStatus(ctx, dgraph)
 	if err != nil {
 		return
 	}
 
-	if status.LastClassifiedBlockID == nil {
-		if err = dbstat.SetLastClassifiedBlockID(ctx, dgraph, 0); err != nil {
+	if status.LastClassifiedBlockID == nil || *status.LastClassifiedBlockID < minBlockHeight {
+		if err = dbstat.SetLastClassifiedBlockID(ctx, dgraph, minBlockHeight); err != nil {
 			return
 		}
 	}
