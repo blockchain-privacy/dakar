@@ -309,69 +309,69 @@ func newDestinationGraph(t *testing.T) *ReversibleGraph {
 	now := time.Now()
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 1, Type: constants.TypeDestination},
-		TransactionNode{TS: tx1ts1, id: 10, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 1, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx1ts1, id: 10, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 1, Type: constants.TypeDestination},
-		TransactionNode{TS: tx1ts2, id: 11, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 1, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx1ts2, id: 11, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 1, Type: constants.TypeDestination},
-		TransactionNode{TS: tx1ts3, id: 12, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 1, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx1ts3, id: 12, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 1, Type: constants.TypeDestination},
-		TransactionNode{TS: tx1ts4, id: 13, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 1, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx1ts4, id: 13, Type: constants.TypeDashMixing}, 0)
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 2, Type: constants.TypeDestination},
-		TransactionNode{TS: tx2ts1, id: 20, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 2, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx2ts1, id: 20, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 2, Type: constants.TypeDestination},
-		TransactionNode{TS: tx2ts2, id: 21, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 2, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx2ts2, id: 21, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 2, Type: constants.TypeDestination},
-		TransactionNode{TS: tx2ts3, id: 22, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 2, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx2ts3, id: 22, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 2, Type: constants.TypeDestination},
-		TransactionNode{TS: tx2ts4, id: 23, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 2, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx2ts4, id: 23, Type: constants.TypeDashMixing}, 0)
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 3, Type: constants.TypeDestination},
-		TransactionNode{TS: tx3ts1, id: 30, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 3, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx3ts1, id: 30, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 3, Type: constants.TypeDestination},
-		TransactionNode{TS: tx3ts2, id: 31, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 3, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx3ts2, id: 31, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 3, Type: constants.TypeDestination},
-		TransactionNode{TS: tx3ts3, id: 32, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 3, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx3ts3, id: 32, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 3, Type: constants.TypeDestination},
-		TransactionNode{TS: tx3ts4, id: 33, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 3, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx3ts4, id: 33, Type: constants.TypeDashMixing}, 0)
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 4, Type: constants.TypeDestination},
-		TransactionNode{TS: tx4ts1, id: 40, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 4, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx4ts1, id: 40, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 4, Type: constants.TypeDestination},
-		TransactionNode{TS: tx4ts2, id: 41, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 4, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx4ts2, id: 41, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 4, Type: constants.TypeDestination},
-		TransactionNode{TS: tx4ts3, id: 42, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 4, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx4ts3, id: 42, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 4, Type: constants.TypeDestination},
-		TransactionNode{TS: tx4ts4, id: 43, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 4, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx4ts4, id: 43, Type: constants.TypeDashMixing}, 0)
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 5, Type: constants.TypeDestination},
-		TransactionNode{TS: tx5ts1, id: 50, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 5, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx5ts1, id: 50, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 5, Type: constants.TypeDestination},
-		TransactionNode{TS: tx5ts2, id: 51, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 5, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx5ts2, id: 51, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 5, Type: constants.TypeDestination},
-		TransactionNode{TS: tx5ts3, id: 52, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 5, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx5ts3, id: 52, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 5, Type: constants.TypeDestination},
-		TransactionNode{TS: tx5ts4, id: 53, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 5, Type: constants.TypeDashDestination},
+		TransactionNode{TS: tx5ts4, id: 53, Type: constants.TypeDashMixing}, 0)
 
 	return graph
 }

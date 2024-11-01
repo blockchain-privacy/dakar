@@ -72,7 +72,7 @@ func TestHasSpendingGap(t *testing.T) {
 		graph.AddNode(TransactionNode{
 			TS:   now.Add(time.Hour * time.Duration(i)),
 			id:   int64(i),
-			Type: constants.TypeMixing,
+			Type: constants.TypeDashMixing,
 		})
 	}
 
@@ -179,41 +179,41 @@ func newTestGraph() *ReversibleGraph {
 	oneHourOld := now.Add(-time.Hour * 1)
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 11, Type: constants.TypeMixing},
-		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 11, Type: constants.TypeDashMixing},
+		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeMixing},
-		TransactionNode{TS: twoHoursOld, id: 5, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeDashMixing},
+		TransactionNode{TS: twoHoursOld, id: 5, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeMixing},
-		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeDashMixing},
+		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeMixing},
-		TransactionNode{TS: threeHoursOld, id: 1, Type: constants.TypeOrigin}, 0)
+		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeDashMixing},
+		TransactionNode{TS: threeHoursOld, id: 1, Type: constants.TypeDashOrigin}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeMixing},
-		TransactionNode{TS: threeHoursOld, id: 2, Type: constants.TypeOrigin}, 0)
+		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeDashMixing},
+		TransactionNode{TS: threeHoursOld, id: 2, Type: constants.TypeDashOrigin}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 11, Type: constants.TypeMixing},
-		TransactionNode{TS: oneHourOld, id: 9, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 11, Type: constants.TypeDashMixing},
+		TransactionNode{TS: oneHourOld, id: 9, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 12, Type: constants.TypeMixing},
-		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: now, id: 12, Type: constants.TypeDashMixing},
+		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeMixing},
-		TransactionNode{TS: twoHoursOld, id: 7, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeDashMixing},
+		TransactionNode{TS: twoHoursOld, id: 7, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeMixing},
-		TransactionNode{TS: oneHourOld, id: 13, Type: constants.TypeOrigin}, 0)
+		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeDashMixing},
+		TransactionNode{TS: oneHourOld, id: 13, Type: constants.TypeDashOrigin}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: oneHourOld, id: 9, Type: constants.TypeMixing},
-		TransactionNode{TS: twoHoursOld, id: 7, Type: constants.TypeMixing}, 0)
+		TransactionNode{TS: oneHourOld, id: 9, Type: constants.TypeDashMixing},
+		TransactionNode{TS: twoHoursOld, id: 7, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: twoHoursOld, id: 7, Type: constants.TypeMixing},
-		TransactionNode{TS: threeHoursOld, id: 3, Type: constants.TypeMixing}, 123456)
+		TransactionNode{TS: twoHoursOld, id: 7, Type: constants.TypeDashMixing},
+		TransactionNode{TS: threeHoursOld, id: 3, Type: constants.TypeDashMixing}, 123456)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: threeHoursOld, id: 3, Type: constants.TypeMixing},
-		TransactionNode{TS: threeHoursOld, id: 4, Type: constants.TypeOrigin}, 0)
+		TransactionNode{TS: threeHoursOld, id: 3, Type: constants.TypeDashMixing},
+		TransactionNode{TS: threeHoursOld, id: 4, Type: constants.TypeDashOrigin}, 0)
 	return graph
 }
 

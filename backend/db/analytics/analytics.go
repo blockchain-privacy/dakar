@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,8 +46,8 @@ import (
 // from the database.
 func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int,
 	transactionType string) ([]ConnectedNode, error) {
-	query := fmt.Sprintf(`{
-				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
+	const query = `query Q($type:string,$first:int,$offset:int){
+				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
 					uid
 					Transaction.type
 					block:~transactions{
@@ -63,9 +62,10 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 						}
 					}
 				}
-			  }`, numNodes, offsetNodes)
+			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
+		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
 	if err != nil {
 		return nil, err
 	}
@@ -95,17 +95,18 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
 func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
-	query := fmt.Sprintf(`{
-				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
+	const query = `query Q($type:string,$first:int,$offset:int){
+				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
 					uid
 					Transaction.type
 					block:~transactions{
 						ts
 					}
 				}
-			  }`, numNodes, offsetNodes)
+			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
+		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
 	if err != nil {
 		return nil, err
 	}
@@ -121,53 +122,28 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	return r.Q, nil
 }
 
-// GetMixingTransactions gets the first numNodes mixing transactions including their input transactions
-// from the database. If maxTx is equal to 0, all mixing transaction are returned.
-func GetMixingTransactions(ctx context.Context, c external.Database, numNodes int,
-	offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeMixing)
-}
-
-// GetDestinationTransactions gets the first numNodes destination transactions including their input transactions
-// from the database. If maxTx is equal to 0, all destination transaction are returned.
-func GetDestinationTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeDestination)
-}
-
-// GetOriginTransactions gets the first numNodes origin transactions from the database.
-// If maxTx is equal to 0, all origin transaction are returned.
-func GetOriginTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeOrigin)
-}
-
-// GetCollateralCreationTransactions gets the numNodes maxTx cc transactions from the database.
-// If maxTx is equal to 0, all cc transaction are returned.
-func GetCollateralCreationTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeCC)
-}
-
-// GetTransactionTypeCount gets the number of transaction per transaction type
-func GetTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
+// GetDashTransactionTypeCount gets the number of transaction per transaction type
+func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
 	originCount int, ccCount int, cpCount int,
 	destinationCount int, err error) {
 	const query = `{
-				mixing(func: eq(Transaction.type,"` + constants.TypeMixing + `")){
+				mixing(func: eq(Transaction.type,"` + constants.TypeDashMixing + `")){
 					count(uid)
 				}
 
-				origin(func: eq(Transaction.type,"` + constants.TypeOrigin + `")){
+				origin(func: eq(Transaction.type,"` + constants.TypeDashOrigin + `")){
 					count(uid)
 				}
 
-				destination(func: eq(Transaction.type,"` + constants.TypeDestination + `")){
+				destination(func: eq(Transaction.type,"` + constants.TypeDashDestination + `")){
 					count(uid)
 				}
 
-				cc(func: eq(Transaction.type,"` + constants.TypeCC + `")){
+				cc(func: eq(Transaction.type,"` + constants.TypeDashCC + `")){
 					count(uid)
 				}
 
-				cp(func: eq(Transaction.type,"` + constants.TypeCP + `")){
+				cp(func: eq(Transaction.type,"` + constants.TypeDashCP + `")){
 					count(uid)
 				}
 			  }`
@@ -227,13 +203,13 @@ func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
 					txs as transactions
 				}
 				# get mixing transactions
-				mx as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeMixing + `")){
+				mx as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDashMixing + `")){
 					tx_inputs{
 						mxi as ~tx_outputs
 					}
 				}
 				# get destination transactions
-				dst as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDestination + `")){
+				dst as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDashDestination + `")){
 					tx_inputs{
 						dsti as ~tx_outputs
 					}
@@ -482,7 +458,7 @@ func GetDestinationTransactionSpenders(ctx context.Context, c external.Database)
 	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
 	usingDestinationTransactionsCount int, err error) {
 	const query = `{
-		destinations as var(func: eq(Transaction.type,"` + constants.TypeDestination + `"))@cascade{
+		destinations as var(func: eq(Transaction.type,"` + constants.TypeDashDestination + `"))@cascade{
 			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
 		}
 
@@ -500,7 +476,7 @@ func GetDestinationTransactionSpenders(ctx context.Context, c external.Database)
 			uid
 			txhash
 			tx_inputs@normalize{
-				~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDestination + `")){
+				~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDashDestination + `")){
 					uid:uid
 					txhash:txhash
 				}

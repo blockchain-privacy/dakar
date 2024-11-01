@@ -24,11 +24,11 @@ func exportTransactionData(ctx context.Context, database external.Database, dire
 	}
 
 	transactionTypes := []transactionTypePair{
-		{label: "mixing", transactionType: constants.TypeMixing},
-		{label: "origin", transactionType: constants.TypeOrigin},
-		{label: "destination", transactionType: constants.TypeDestination},
-		{label: "collateral creation", transactionType: constants.TypeCC},
-		{label: "collateral payment", transactionType: constants.TypeCP},
+		{label: "mixing", transactionType: constants.TypeDashMixing},
+		{label: "origin", transactionType: constants.TypeDashOrigin},
+		{label: "destination", transactionType: constants.TypeDashDestination},
+		{label: "collateral creation", transactionType: constants.TypeDashCC},
+		{label: "collateral payment", transactionType: constants.TypeDashCP},
 		{label: "all", transactionType: ""},
 	}
 

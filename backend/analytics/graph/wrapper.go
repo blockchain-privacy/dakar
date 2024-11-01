@@ -149,7 +149,7 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 }
 
 // LoadGraphs loads the transaction graph into the wrapper
-func (w *Wrapper) LoadGraphs() error {
+func (w *Wrapper) LoadGraphs(config Config) error {
 	if w.isLoading {
 		return serror.FromStr("can not load graph as it is already loaded or still loading")
 	}
@@ -201,7 +201,7 @@ func (w *Wrapper) LoadGraphs() error {
 		}
 	}
 
-	txGraph, err := LoadTransactionGraph(ctx, w.db, numTxToLoad)
+	txGraph, err := LoadTransactionGraph(ctx, config, w.db, numTxToLoad)
 	if errors.Is(err, ErrDBContainsNoPrivacyTransactions) {
 		return nil
 	}

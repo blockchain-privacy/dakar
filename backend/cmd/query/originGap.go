@@ -43,7 +43,7 @@ func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration,
 	nodes := g.Nodes()
 	for nodes.Next() {
 		txNode, ok := nodes.Node().(mgraph.TransactionNode)
-		if !ok || txNode.Type != constants.TypeMixing || txNode.TS.Before(year2016) {
+		if !ok || txNode.Type != constants.TypeDashMixing || txNode.TS.Before(year2016) {
 			continue
 		}
 

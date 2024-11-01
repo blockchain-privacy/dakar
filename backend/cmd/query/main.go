@@ -257,7 +257,7 @@ func main() {
 		newConfig.ExclusionSimulations.Active ||
 		newConfig.OriginGap.Active ||
 		newConfig.DestinationCount.Active {
-		g, err = graph.LoadTransactionGraph(ctx, dgraph, 0)
+		g, err = graph.LoadTransactionGraph(ctx, graph.NewDashConfig(), dgraph, 0)
 		if err != nil && !errors.Is(err, graph.ErrDBContainsNoPrivacyTransactions) {
 			warn(err)
 			return

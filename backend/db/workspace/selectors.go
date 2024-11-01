@@ -37,6 +37,8 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 }
 
 // DoSelection returns transactions specified by the options. It also returns the number of total results.
+//
+//nolint:gocyclo
 func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, parentUID string) ([]string, int, error) {
 	if !o.IsValid(parentUID != "") {
 		return nil, 0, serror.New(ErrInvalidOptions)
@@ -112,16 +114,22 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 			}
 
 			switch txType {
-			case constants.TypeMixing:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeMixing + "\")"
-			case constants.TypeDestination:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDestination + "\")"
-			case constants.TypeOrigin:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeOrigin + "\")"
-			case constants.TypeCC:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeCC + "\")"
-			case constants.TypeCP:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeCP + "\")"
+			case constants.TypeDashOrigin:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashOrigin + "\")"
+			case constants.TypeDashMixing:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashMixing + "\")"
+			case constants.TypeDashDestination:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashDestination + "\")"
+			case constants.TypeDashCC:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashCC + "\")"
+			case constants.TypeDashCP:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashCP + "\")"
+			case constants.TypeWasabi2Origin:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeWasabi2Origin + "\")"
+			case constants.TypeWasabi2Mixing:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeWasabi2Mixing + "\")"
+			case constants.TypeWasabi2Destination:
+				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeWasabi2Destination + "\")"
 			default:
 				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", txType)
 			}

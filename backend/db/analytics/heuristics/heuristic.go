@@ -128,7 +128,7 @@ func GetInputTransactions(ctx context.Context, c external.Database,
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
-						v as ~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeMixing + `"))
+						v as ~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDashMixing + `"))
 					}
 				}
 				

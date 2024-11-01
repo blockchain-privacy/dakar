@@ -23,7 +23,7 @@ func GetInputAddressesByBlock(ctx context.Context, c external.Database,
 	const query = `query Q($block:string,$ctype:string) {
 				var(func: eq(id, $block)){
 					# do not consider mixing transaction
-					txs as transactions@filter(not eq(Transaction.type,"` + constants.TypeMixing + `"))
+					txs as transactions@filter(not eq(Transaction.type,"` + constants.TypeDashMixing + `"))
 				}
 
 				q(func: uid(txs))@filter(gt(count(tx_inputs),1))@cascade{

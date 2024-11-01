@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/analytics"
+	"backend/analytics/classifier"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
 	"backend/blockiterator"
@@ -79,37 +80,29 @@ func setCommandFlags(c *Commands) {
 	flag.StringVar(&c.CPUProfilePath, "cpuprofile", "", "Path where the cpu profile should be stored (default: <empty>)")
 }
 
-// selectConfig returns processor and analytics configurations based on the given blockchain mode.
-func selectConfig(blockchainMode string) (processor.Config, analytics.Config, error) {
-	switch blockchainMode {
-	case "Dash":
-		return processor.NewDashConfig(), analytics.NewDashConfig(), nil
-	case "Bitcoin":
-		return processor.NewBitcoinConfig(), analytics.NewBitcoinConfig(), nil
-	default:
-		return processor.Config{}, analytics.Config{}, serror.FromStr("invalid blockchain mode")
-	}
+type iteratorConfigurations struct {
+	processor  processor.Config
+	classifier classifier.Config
+	graph      graph.Config
 }
 
-// disableModules disables modules in config based on analyserConfig
-func disableModules(analyserConfig analytics.Config, config *Config) {
-	if !analyserConfig.IsHeuristicWorkerEnabled {
-		config.Modules.Heuristics = false
-	}
-
-	// disable classifying if it is disabled per configuration
-	if !analyserConfig.IsClassifyingEnabled {
-		config.Modules.Classifier.Active = false
-	}
-
-	// disable HMI clustering if it is disabled per configuration
-	if !analyserConfig.IsHMIClusteringEnabled {
-		config.Modules.HMI = false
-	}
-
-	// disable FMI clustering if it is disabled per configuration
-	if !analyserConfig.IsFMIClusteringEnabled {
-		config.Modules.FMI.Active = false
+// selectConfig returns iterator configurations based on the given blockchain mode.
+func selectConfig(blockchainMode string) (*iteratorConfigurations, error) {
+	switch blockchainMode {
+	case "Dash":
+		return &iteratorConfigurations{
+			processor:  processor.NewDashConfig(),
+			classifier: classifier.NewDashConfig(),
+			graph:      graph.NewDashConfig(),
+		}, nil
+	case "Bitcoin":
+		return &iteratorConfigurations{
+			processor:  processor.NewBitcoinConfig(),
+			classifier: classifier.NewBTCConfig(),
+			graph:      graph.NewBTCConfig(),
+		}, nil
+	default:
+		return nil, serror.FromStr("invalid blockchain mode")
 	}
 }
 
@@ -246,15 +239,13 @@ func main() {
 
 	initAllLoggers(f)
 
-	processorConfig, analyserConfig, err := selectConfig(newConfig.BlockchainMode)
+	iterConfigs, err := selectConfig(newConfig.BlockchainMode)
 	if err != nil {
 		fmt.Printf("invalid blockchain mode: '%s', valid values are 'Dash' and 'Bitcoin'\n", newConfig.BlockchainMode)
 		return
 	}
 
-	disableModules(analyserConfig, &newConfig)
-
-	info("Blockchain mode: " + processorConfig.BlockchainName)
+	info("Blockchain mode: " + newConfig.BlockchainMode)
 
 	////// CONNECT TO DATABASE //////
 
@@ -364,7 +355,7 @@ func main() {
 			}()
 
 			crawler := processor.NewCrawler(appContext, graphDB, client,
-				newConfig.Modules.Crawler.InitialCacheSize, processorConfig)
+				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.processor)
 			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
 			if processorErr := blockiterator.StartIteration(crawler, 0, nil); processorErr != nil {
 				warn(processorErr)
@@ -384,7 +375,7 @@ func main() {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
-			if graphErr := graphWrapper.LoadGraphs(); graphErr != nil {
+			if graphErr := graphWrapper.LoadGraphs(iterConfigs.graph); graphErr != nil {
 				warn(graphErr)
 				return
 			}
@@ -403,10 +394,10 @@ func main() {
 					defer func() {
 						chClassifyingStopped <- true
 					}()
-					classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
-					classifier.RegisterMetrics(prometheus.DefaultRegisterer)
+					cl := classifier.NewClassifier(appContext, graphDB, iterConfigs.classifier)
+					cl.RegisterMetrics(prometheus.DefaultRegisterer)
 
-					if classifierErr := blockiterator.StartIteration(classifier,
+					if classifierErr := blockiterator.StartIteration(cl,
 						time.Second*time.Duration(newConfig.Modules.Classifier.TargetDuration),
 						nil); classifierErr != nil {
 						warn(classifierErr)
@@ -431,9 +422,9 @@ func main() {
 			defer func() {
 				chClassifyingStopped <- true
 			}()
-			classifier := analytics.NewClassifier(appContext, graphDB, analyserConfig)
-			classifier.RegisterMetrics(prometheus.DefaultRegisterer)
-			if classifierErr := blockiterator.StartIteration(classifier,
+			cl := classifier.NewClassifier(appContext, graphDB, iterConfigs.classifier)
+			cl.RegisterMetrics(prometheus.DefaultRegisterer)
+			if classifierErr := blockiterator.StartIteration(cl,
 				time.Second*time.Duration(newConfig.Modules.Classifier.TargetDuration),
 				nil); classifierErr != nil {
 				warn(classifierErr)

@@ -77,10 +77,10 @@ func TestTransaction_IsMixingTransaction(t *testing.T) {
 	}
 	require.False(t, tx.IsMixingTransaction())
 
-	tx.Type = constants.TypeMixing
+	tx.Type = constants.TypeDashMixing
 	require.True(t, tx.IsMixingTransaction())
 
-	tx.Type = constants.TypeCC
+	tx.Type = constants.TypeDashCC
 	require.False(t, tx.IsMixingTransaction())
 }
 
@@ -91,10 +91,10 @@ func TestTransaction_IsDestinationTransaction(t *testing.T) {
 	}
 	require.False(t, tx.IsDestinationTransaction())
 
-	tx.Type = constants.TypeMixing
+	tx.Type = constants.TypeDashMixing
 	require.False(t, tx.IsDestinationTransaction())
 
-	tx.Type = constants.TypeDestination
+	tx.Type = constants.TypeDashDestination
 	require.True(t, tx.IsDestinationTransaction())
 }
 
@@ -313,7 +313,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	// set all transactions to be a mixing transaction
 	for i := range transactions {
-		transactions[i].Type = constants.TypeMixing
+		transactions[i].Type = constants.TypeDashMixing
 	}
 
 	require.NoError(t, UpdateTransactions(ctx, dbHandle, transactions))

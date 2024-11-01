@@ -1,7 +1,7 @@
 package heuristics
 
 import (
-	"backend/analytics"
+	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
 	"backend/db"
 	"backend/db/analytics/heuristics"
@@ -120,7 +120,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 }
 
 // returns true if all denominations with the same amount of denom1 are contained in denom2
-func isEqualDenomination(denom1 [analytics.NumDenominations]int, denom2 [analytics.NumDenominations]int) bool {
+func isEqualDenomination(denom1 [dash.NumDenominations]int, denom2 [dash.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] != d {
 			return false

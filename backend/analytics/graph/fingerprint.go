@@ -157,7 +157,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 	}
 
 	rootTx, ok := rootNode.(TransactionNode)
-	if !ok || rootTx.Type != constants.TypeDestination {
+	if !ok || rootTx.Type != constants.TypeDashDestination {
 		return nil, 0, serror.FromStr(uid + " is not a destination transaction")
 	}
 
@@ -180,7 +180,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 		}
 
 		txNode, ok := node.(TransactionNode)
-		if !ok || txNode.Type != constants.TypeDestination || earliestInputTimestamp-txNode.TS.Unix() > maximumDistance {
+		if !ok || txNode.Type != constants.TypeDashDestination || earliestInputTimestamp-txNode.TS.Unix() > maximumDistance {
 			continue
 		}
 

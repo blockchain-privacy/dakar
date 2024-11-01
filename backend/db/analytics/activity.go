@@ -40,18 +40,18 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 						}
 					}
 					
-					not_mixing as var(func: uid(t1,t2))@filter(has(Transaction.type) and not eq(Transaction.type,"`+constants.TypeMixing+`"))
+					not_mixing as var(func: uid(t1,t2))@filter(has(Transaction.type) and not eq(Transaction.type,"`+constants.TypeDashMixing+`"))
 					
 					var(func: uid(not_mixing))@recurse{
 						tx_outputs
-						c_not_mixing as ~tx_inputs@filter(has(Transaction.type) and not eq(Transaction.type,"`+constants.TypeMixing+`"))
+						c_not_mixing as ~tx_inputs@filter(has(Transaction.type) and not eq(Transaction.type,"`+constants.TypeDashMixing+`"))
 					}
 					
 					all_not_mixing as var(func: uid(not_mixing, c_not_mixing))
 					
 					var(func: uid(all_not_mixing)){
 						tx_outputs {
-							mixing as ~tx_inputs@filter(eq(Transaction.type,"`+constants.TypeMixing+`"))
+							mixing as ~tx_inputs@filter(eq(Transaction.type,"`+constants.TypeDashMixing+`"))
 						}
 					}
 					

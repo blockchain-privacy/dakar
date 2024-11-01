@@ -1,17 +1,29 @@
 package constants
 
-var validTransactionTypes = map[string]bool{TypeOrigin: true, TypeMixing: true,
-	TypeDestination: true, TypeCC: true, TypeCP: true}
+var validDashTransactionTypes = map[string]bool{TypeDashOrigin: true, TypeDashMixing: true,
+	TypeDashDestination: true, TypeDashCC: true, TypeDashCP: true}
+
+var validWasabi2TransactionTypes = map[string]bool{TypeWasabi2Origin: true, TypeWasabi2Mixing: true,
+	TypeWasabi2Destination: true}
 
 const (
-	TypeOrigin      = "origin"
-	TypeMixing      = "mixing"
-	TypeDestination = "destination"
-	TypeCC          = "collateral creation"
-	TypeCP          = "collateral payment"
+	TypeDashOrigin      = "origin"
+	TypeDashMixing      = "mixing"
+	TypeDashDestination = "destination"
+	TypeDashCC          = "collateral creation"
+	TypeDashCP          = "collateral payment"
+
+	TypeWasabi2Origin      = "wasabi origin"
+	TypeWasabi2Mixing      = "wasabi mixing"
+	TypeWasabi2Destination = "wasabi destination"
 )
 
-// IsValidTransactionType returns true if the provided string maps to a transaction type
-func IsValidTransactionType(t string) bool {
-	return validTransactionTypes[t]
+// IsValidDashTransactionType returns true if the provided string maps to a dash transaction type
+func IsValidDashTransactionType(t string) bool {
+	return validDashTransactionTypes[t]
+}
+
+// IsValidWasabi2TransactionType returns true if the provided string maps to a wasabi 2.0 transaction type
+func IsValidWasabi2TransactionType(t string) bool {
+	return validWasabi2TransactionTypes[t]
 }

@@ -1,7 +1,7 @@
 package heuristics
 
 import (
-	"backend/analytics"
+	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/constants"
@@ -138,7 +138,7 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 
 // getDenominationCountsWithFilter gets the counts of each denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
-func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [analytics.NumDenominations]int {
+func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dash.NumDenominations]int {
 	var denominations []int64 //nolint:prealloc
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
@@ -147,7 +147,7 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 		denominations = append(denominations, output.Amount)
 	}
 
-	return analytics.CountAmountDenominations(denominations)
+	return dash.CountAmountDenominations(denominations)
 }
 
 // If the given transaction hash belongs to a mixing transaction then it returns the transaction itself,
@@ -159,7 +159,7 @@ func getInputTransactions(ctx context.Context, c external.Database, txhash strin
 	}
 
 	var inputTransactions []heuristics.HeuristicTransaction
-	if transaction.Type == constants.TypeMixing {
+	if transaction.Type == constants.TypeDashMixing {
 		hs, err := heuristics.GetInputTransaction(ctx, c, txhash)
 		if err != nil {
 			return nil, err
@@ -177,13 +177,13 @@ func getInputTransactions(ctx context.Context, c external.Database, txhash strin
 }
 
 // gets the counts of each denomination type
-func getDenominationCounts(it heuristics.HeuristicTransaction) [analytics.NumDenominations]int {
+func getDenominationCounts(it heuristics.HeuristicTransaction) [dash.NumDenominations]int {
 	denominations := make([]int64, len(it.Outputs))
 	for i, output := range it.Outputs {
 		denominations[i] = output.Amount
 	}
 
-	return analytics.CountAmountDenominations(denominations)
+	return dash.CountAmountDenominations(denominations)
 }
 
 type clusterDenominations struct {
@@ -224,8 +224,8 @@ func countClusterDenominations(origins []heuristics.HeuristicTransaction,
 	return
 }
 
-func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][analytics.NumDenominations]int {
-	sourceAmounts := make(map[heuristics.ClusterUID][analytics.NumDenominations]int)
+func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dash.NumDenominations]int {
+	sourceAmounts := make(map[heuristics.ClusterUID][dash.NumDenominations]int)
 
 	for _, o := range origins {
 		denominationSlice := getDenominationCounts(o)
