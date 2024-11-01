@@ -42,12 +42,11 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(dest), 0))",
-				SetNquads: []byte("uid(dest) <Transaction.type> \"" + constants.TypeDashDestination + "\" ."),
+				SetNquads: []byte("uid(dest) <Transaction.type> \"" + constants.TypeWasabi2Destination + "\" ."),
 			},
 			{
-				// only insert origins if there are no transactions to classify
 				Cond:      "@if(gt(len(orig), 0))",
-				SetNquads: []byte("uid(orig) <Transaction.type> \"" + constants.TypeDashOrigin + "\" ."),
+				SetNquads: []byte("uid(orig) <Transaction.type> \"" + constants.TypeWasabi2Origin + "\" ."),
 			}},
 		CommitNow: true,
 	}

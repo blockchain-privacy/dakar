@@ -13,9 +13,9 @@ const (
 	TypeDashCC          = "collateral creation"
 	TypeDashCP          = "collateral payment"
 
-	TypeWasabi2Origin      = "wasabi origin"
-	TypeWasabi2Mixing      = "wasabi mixing"
-	TypeWasabi2Destination = "wasabi destination"
+	TypeWasabi2Origin      = "wasabi 2.0 origin"
+	TypeWasabi2Mixing      = "wasabi 2.0 mixing"
+	TypeWasabi2Destination = "wasabi 2.0 destination"
 )
 
 // IsValidDashTransactionType returns true if the provided string maps to a dash transaction type
