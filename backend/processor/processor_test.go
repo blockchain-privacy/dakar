@@ -640,7 +640,7 @@ func Test_processBlock(t *testing.T) {
 	defer cancel()
 
 	transactions, err := db.GetTransactionsByBlock(ctx, dbHandle,
-		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock)
+		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock, false)
 	require.NoError(t, err)
 
 	type args struct {

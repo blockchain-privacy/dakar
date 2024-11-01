@@ -7,6 +7,7 @@ import (
 	"backend/external"
 	"context"
 	"github.com/qrest/gomisc/serror"
+	"slices"
 )
 
 // NumWasabi2Denominations is the number of Wasabi 2.0 PrivateSend denominations
@@ -26,7 +27,7 @@ var denominationsTypesWasabi2 = [NumWasabi2Denominations]int64{5000, 6561, 8192,
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
 	// get the transaction of the current block range
-	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to)
+	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, true)
 	if err != nil {
 		return false, err
 	}
@@ -70,32 +71,50 @@ func classifyTransactions(transactions []db.Transaction) (mixing []db.Transactio
 }
 
 // isWasabi2Mixing checks if the transaction is a wasabi 2.0 mixing transaction
+// credit to paper: "Heuristics for Detecting CoinJoin Transactions
+// on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
 func isWasabi2Mixing(t db.Transaction) bool {
-	denominationIn := countWasabi2Denominations(t.Inputs)
-
-	var inputDenominationCount int
-	for _, denomination := range denominationIn {
-		inputDenominationCount += denomination
+	// number of target inputs
+	const p = 50
+	if len(t.Inputs) < p {
+		return false
 	}
 
-	// number of input denominations must be at least 30% of the number of inputs
-	if inputDenominationCount < len(t.Inputs)/3 {
+	sigScripts := map[string]bool{}
+	for _, o := range t.Outputs {
+		sigScripts[o.KeyAsm] = true
+	}
+	// output scripts must be unique
+	if len(sigScripts) != len(t.Outputs) {
+		return false
+	}
+
+	// mininmum input output
+	const vMin = int64(5000)
+	if slices.ContainsFunc(t.Outputs, func(output db.Output) bool {
+		return output.Amount == nil || *output.Amount < vMin
+	}) {
 		return false
 	}
 
 	denominationOut := countWasabi2Denominations(t.Outputs)
-
 	var outputDenominationCount int
 	for _, denomination := range denominationOut {
 		outputDenominationCount += denomination
 	}
 
-	// number of output denominations must be at least 30% of the number of outputs
-	if outputDenominationCount < len(t.Outputs)/3 {
+	// number of participants
+	const aMax = 10
+	if outputDenominationCount < len(t.Inputs)/aMax {
 		return false
 	}
 
-	return false
+	// number of output denominations must be at half of the number of outputs
+	if outputDenominationCount < (len(t.Outputs)-1)/2 {
+		return false
+	}
+
+	return true
 }
 
 // newWasabi2MixingTransaction returns a new wasabi 2.0 mixing transaction with the given type and uid.

@@ -189,8 +189,13 @@ func GetTransactionsOutputs(ctx context.Context, c external.Database, transactio
 
 // GetTransactionsByBlock returns the transaction contained in the requested block
 func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockID int64,
-	toBlockID int64) (transactions []Transaction, err error) {
-	const query = `query Q($from:int,$to:int) {
+	toBlockID int64, withOutputScripts bool) (transactions []Transaction, err error) {
+	var keyAsm string
+	if withOutputScripts {
+		keyAsm = "keyasm"
+	}
+
+	query := `query Q($from:int,$to:int) {
 				var(func: between(id, $from, $to)){
 					txs as transactions
 				}
@@ -211,6 +216,7 @@ func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockI
 						amount
 						inputindex
 						outputindex
+						` + keyAsm + `
 					}
 				}
 			  }`

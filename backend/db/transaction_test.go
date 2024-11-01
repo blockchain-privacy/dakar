@@ -119,11 +119,11 @@ func TestGetTransactionByBlock(t *testing.T) {
 	defer cancel()
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 1, 1)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 1, 1, false)
 	require.Error(t, err)
 	require.Nil(t, transactions)
 
-	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
+	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 }
@@ -148,7 +148,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 
@@ -235,7 +235,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005, false)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 
@@ -275,7 +275,7 @@ func TestUpdateTransactions(t *testing.T) {
 	require.Error(t, UpdateTransactions(ctx, dbHandle, nil))
 	require.Error(t, UpdateTransactions(ctx, dbHandle, []Transaction{}))
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false)
 	require.NoError(t, err)
 
 	// no mixing transactions should be in this block
@@ -290,7 +290,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	require.NoError(t, UpdateTransactions(ctx, dbHandle, transactions))
 
-	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001)
+	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false)
 	require.NoError(t, err)
 
 	// all transactions should now have the privacy type set to 'mixing'
@@ -379,7 +379,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005, false)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 
