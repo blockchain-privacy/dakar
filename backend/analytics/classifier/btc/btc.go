@@ -49,7 +49,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 		return false, err
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // classifyTransactions detects mixing transactions and sets the privacy type appropriately
