@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics/classifier/btc"
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
 	"slices"
 )
 
@@ -50,7 +49,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 		return false, err
 	}
 
-	return false, serror.FromStr("bitcoin classifier not implemented")
+	return false, nil
 }
 
 // classifyTransactions detects mixing transactions and sets the privacy type appropriately
