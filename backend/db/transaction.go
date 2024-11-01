@@ -1,7 +1,6 @@
 package db
 
 import (
-	"backend/constants"
 	"backend/external"
 	"context"
 	"encoding/json"
@@ -75,18 +74,6 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	t.Fee = &fee
 
 	return
-}
-
-// IsMixingTransaction evaluates the privacy type of the transaction and
-// returns true if the transaction is a mixing transaction. Inputs and Outputs are not checked
-func (t *Transaction) IsMixingTransaction() bool {
-	return t.Type == constants.TypeDashMixing
-}
-
-// IsDestinationTransaction evaluates the privacy type of the transaction and
-// returns true if the transaction is a destination transaction. Inputs and Outputs are not checked
-func (t *Transaction) IsDestinationTransaction() bool {
-	return t.Type == constants.TypeDashDestination
 }
 
 type transactionQuery struct {

@@ -70,34 +70,6 @@ func TestTransaction_CalculateTransactionFee(t *testing.T) {
 	require.Error(t, tx.CalculateTransactionFee())
 }
 
-func TestTransaction_IsMixingTransaction(t *testing.T) {
-	tx := Transaction{
-		UID:  "some_uid",
-		Hash: "some_long_hex_hash",
-	}
-	require.False(t, tx.IsMixingTransaction())
-
-	tx.Type = constants.TypeDashMixing
-	require.True(t, tx.IsMixingTransaction())
-
-	tx.Type = constants.TypeDashCC
-	require.False(t, tx.IsMixingTransaction())
-}
-
-func TestTransaction_IsDestinationTransaction(t *testing.T) {
-	tx := Transaction{
-		UID:  "some_uid",
-		Hash: "some_long_hex_hash",
-	}
-	require.False(t, tx.IsDestinationTransaction())
-
-	tx.Type = constants.TypeDashMixing
-	require.False(t, tx.IsDestinationTransaction())
-
-	tx.Type = constants.TypeDashDestination
-	require.True(t, tx.IsDestinationTransaction())
-}
-
 func TestFrontendTransaction_String(t *testing.T) {
 	tx := FrontendTransaction{
 		BlockHash: "some_long_hex_hash",
@@ -308,7 +280,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	// no mixing transactions should be in this block
 	for _, tx := range transactions {
-		require.False(t, tx.IsMixingTransaction())
+		require.NotEqual(t, constants.TypeDashMixing, tx.Type)
 	}
 
 	// set all transactions to be a mixing transaction
@@ -323,7 +295,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	// all transactions should now have the privacy type set to 'mixing'
 	for _, tx := range transactions {
-		require.True(t, tx.IsMixingTransaction())
+		require.Equal(t, constants.TypeDashMixing, tx.Type)
 	}
 }
 

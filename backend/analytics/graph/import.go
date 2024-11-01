@@ -274,6 +274,41 @@ func LoadDashTransactionGraph(ctx context.Context, c external.Database, numTxToL
 // LoadBTCTransactionGraph loads and constructs the bitcoin privacy transaction graph from the database.
 // numTxToLoad == 0: load all transactions
 // numTxToLoad > 0: load numTxToLoad transactions of each privacy type
-func LoadBTCTransactionGraph(_ context.Context, _ external.Database, _ int) (*ReversibleGraph, error) {
-	return nil, serror.FromStr("not implemented")
+func LoadBTCTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
+	mixingCount, originCount, destinationCount, getErr := analytics.GetBTCTransactionTypeCount(ctx, c)
+	if getErr != nil {
+		return nil, getErr
+	}
+
+	// nothing to do
+	if mixingCount == 0 {
+		return nil, ErrDBContainsNoPrivacyTransactions
+	}
+
+	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
+		"destination_count", destinationCount)
+
+	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
+
+	// load all origin transactions from the database
+	info("Loading origin nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWasabi2Origin, true); err != nil {
+		return nil, err
+	}
+
+	// load all mixing transactions from the database
+	info("Loading mixing nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWasabi2Mixing, false); err != nil {
+		return nil, err
+	}
+	// load all destination transactions from the database
+	info("Loading destination nodes")
+	if err := loadTransactions(ctx, c, g, 10000, numTxToLoad,
+		constants.TypeWasabi2Destination, false); err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }

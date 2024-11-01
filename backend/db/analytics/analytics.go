@@ -122,7 +122,7 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	return r.Q, nil
 }
 
-// GetDashTransactionTypeCount gets the number of transaction per transaction type
+// GetDashTransactionTypeCount gets the number of transaction per dash transaction type
 func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
 	originCount int, ccCount int, cpCount int,
 	destinationCount int, err error) {
@@ -189,6 +189,57 @@ func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixi
 	destinationCount = r.Destination[0].Count
 	ccCount = r.CC[0].Count
 	cpCount = r.CP[0].Count
+
+	return
+}
+
+// GetBTCTransactionTypeCount gets the number of transaction per bitcoin transaction type
+func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
+	originCount int, destinationCount int, err error) {
+	const query = `{
+				origin(func: eq(Transaction.type,"` + constants.TypeWasabi2Origin + `")){
+					count(uid)
+				}
+
+				mixing(func: eq(Transaction.type,"` + constants.TypeWasabi2Mixing + `")){
+					count(uid)
+				}
+
+				destination(func: eq(Transaction.type,"` + constants.TypeWasabi2Destination + `")){
+					count(uid)
+				}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		Origin []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"origin,omitempty"`
+		Mixing []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"mixing,omitempty"`
+		Destination []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"destination,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 {
+		err = serror.FromStr("invalid response from database")
+		return
+	}
+
+	mixingCount = r.Mixing[0].Count
+	originCount = r.Origin[0].Count
+	destinationCount = r.Destination[0].Count
 
 	return
 }

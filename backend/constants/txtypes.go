@@ -27,3 +27,8 @@ func IsValidDashTransactionType(t string) bool {
 func IsValidWasabi2TransactionType(t string) bool {
 	return validWasabi2TransactionTypes[t]
 }
+
+// IsMixingTransaction returns true for mixing types
+func IsMixingTransaction(transactionType string) bool {
+	return transactionType == TypeDashMixing || transactionType == TypeWasabi2Mixing
+}

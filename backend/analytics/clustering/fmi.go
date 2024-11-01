@@ -168,11 +168,6 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 		txUID, existingClusters, addressesWithoutCluster)
 }
 
-// isMixingTransaction returns true for mixing types
-func isMixingTransaction(transactionType string) bool {
-	return transactionType == constants.TypeDashMixing || transactionType == constants.TypeWasabi2Mixing
-}
-
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 	if m.maxBlocks == 0 {
@@ -202,7 +197,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 		for _, tx := range transactions {
 			// tx inputs
 			if len(tx.InputAddresses) > 0 {
-				if isMixingTransaction(tx.Type) {
+				if constants.IsMixingTransaction(tx.Type) {
 					// treat inputs of mixing transations not with the multi-input heuristic
 					processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				} else {
