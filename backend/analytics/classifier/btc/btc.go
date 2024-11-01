@@ -73,9 +73,9 @@ func classifyTransactions(transactions []db.Transaction) (mixing []db.Transactio
 // credit to paper: "Heuristics for Detecting CoinJoin Transactions
 // on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
 func isWasabi2Mixing(t db.Transaction) bool {
-	// number of target inputs. Paper suggest 50, but practice shows that transactions with only 15 exist.
-	const p = 15
-	if len(t.Inputs) < p {
+	// paper suggest a minimum of 50 inputs, but data shows that transactions with only 15 exist.
+	// also set minimum of outputs to 10.
+	if len(t.Inputs) < 15 || len(t.Outputs) < 10 {
 		return false
 	}
 
@@ -90,7 +90,7 @@ func isWasabi2Mixing(t db.Transaction) bool {
 
 	// mininmum input output
 	const vMin = int64(5000)
-	if slices.ContainsFunc(t.Outputs, func(output db.Output) bool {
+	if slices.ContainsFunc(t.Inputs, func(output db.Output) bool {
 		return output.Amount == nil || *output.Amount < vMin
 	}) {
 		return false
@@ -104,12 +104,19 @@ func isWasabi2Mixing(t db.Transaction) bool {
 
 	// number of participants
 	const aMax = 10
-	if outputDenominationCount < len(t.Inputs)/aMax {
+	if float64(outputDenominationCount) < float64(len(t.Inputs))/aMax {
 		return false
 	}
 
 	// number of output denominations must be at least half of the number of outputs
-	if outputDenominationCount < (len(t.Outputs)-1)/2 {
+	if float64(outputDenominationCount) < float64(len(t.Outputs)-1)/2 {
+		return false
+	}
+
+	// exclude high percentage of same denominations
+	if slices.ContainsFunc(denominationOut[:], func(i int) bool {
+		return float64(i) >= float64(outputDenominationCount)*0.9
+	}) {
 		return false
 	}
 

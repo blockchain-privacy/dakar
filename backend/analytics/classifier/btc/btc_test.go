@@ -2,6 +2,7 @@ package btc
 
 import (
 	"backend/db"
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -81,5 +82,138 @@ func TestCountWasabi2Denominations(t *testing.T) {
 
 	for _, c := range cases {
 		require.Equal(t, c.result, countWasabi2Denominations(c.outputs))
+	}
+}
+
+func Test_isWasabi2Mixing(t *testing.T) {
+	type transactionTest struct {
+		tx         db.Transaction
+		shouldFail bool
+	}
+
+	onlyOneDenomation := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](5001)},
+			{Amount: testhelper.GetPointer[int64](5002)},
+			{Amount: testhelper.GetPointer[int64](5003)},
+			{Amount: testhelper.GetPointer[int64](5004)},
+			{Amount: testhelper.GetPointer[int64](5005)},
+			{Amount: testhelper.GetPointer[int64](5006)},
+			{Amount: testhelper.GetPointer[int64](5007)},
+			{Amount: testhelper.GetPointer[int64](5008)},
+			{Amount: testhelper.GetPointer[int64](5009)},
+			{Amount: testhelper.GetPointer[int64](50010)},
+			{Amount: testhelper.GetPointer[int64](50011)},
+			{Amount: testhelper.GetPointer[int64](50012)},
+			{Amount: testhelper.GetPointer[int64](50013)},
+			{Amount: testhelper.GetPointer[int64](50014)},
+			{Amount: testhelper.GetPointer[int64](50015)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "5"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "6"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "7"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "8"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "9"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "10"},
+		},
+	}
+
+	lowNumberOfDenominations := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](5001)},
+			{Amount: testhelper.GetPointer[int64](5002)},
+			{Amount: testhelper.GetPointer[int64](5003)},
+			{Amount: testhelper.GetPointer[int64](5004)},
+			{Amount: testhelper.GetPointer[int64](5005)},
+			{Amount: testhelper.GetPointer[int64](5006)},
+			{Amount: testhelper.GetPointer[int64](5007)},
+			{Amount: testhelper.GetPointer[int64](5008)},
+			{Amount: testhelper.GetPointer[int64](5009)},
+			{Amount: testhelper.GetPointer[int64](50010)},
+			{Amount: testhelper.GetPointer[int64](50011)},
+			{Amount: testhelper.GetPointer[int64](50012)},
+			{Amount: testhelper.GetPointer[int64](50013)},
+			{Amount: testhelper.GetPointer[int64](50014)},
+			{Amount: testhelper.GetPointer[int64](50015)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](100000000000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](1), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](2), KeyAsm: "5"},
+			{Amount: testhelper.GetPointer[int64](3), KeyAsm: "6"},
+			{Amount: testhelper.GetPointer[int64](4), KeyAsm: "7"},
+			{Amount: testhelper.GetPointer[int64](5), KeyAsm: "8"},
+			{Amount: testhelper.GetPointer[int64](6), KeyAsm: "9"},
+			{Amount: testhelper.GetPointer[int64](7), KeyAsm: "10"},
+		},
+	}
+
+	shouldWork := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](5001)},
+			{Amount: testhelper.GetPointer[int64](5002)},
+			{Amount: testhelper.GetPointer[int64](5003)},
+			{Amount: testhelper.GetPointer[int64](5004)},
+			{Amount: testhelper.GetPointer[int64](5005)},
+			{Amount: testhelper.GetPointer[int64](5006)},
+			{Amount: testhelper.GetPointer[int64](5007)},
+			{Amount: testhelper.GetPointer[int64](5008)},
+			{Amount: testhelper.GetPointer[int64](5009)},
+			{Amount: testhelper.GetPointer[int64](50010)},
+			{Amount: testhelper.GetPointer[int64](50011)},
+			{Amount: testhelper.GetPointer[int64](50012)},
+			{Amount: testhelper.GetPointer[int64](50013)},
+			{Amount: testhelper.GetPointer[int64](50014)},
+			{Amount: testhelper.GetPointer[int64](50015)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](258280326), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](4782969), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](8388608), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](19683), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](20000), KeyAsm: "5"},
+			{Amount: testhelper.GetPointer[int64](1), KeyAsm: "6"},
+			{Amount: testhelper.GetPointer[int64](2), KeyAsm: "7"},
+			{Amount: testhelper.GetPointer[int64](3), KeyAsm: "8"},
+			{Amount: testhelper.GetPointer[int64](4), KeyAsm: "9"},
+			{Amount: testhelper.GetPointer[int64](5), KeyAsm: "10"},
+		},
+	}
+
+	lowNumberOfOutputs := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](5001)},
+			{Amount: testhelper.GetPointer[int64](5002)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](258280326), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](4782969), KeyAsm: "2"},
+		},
+	}
+
+	var cases = []transactionTest{
+		{onlyOneDenomation, true},
+		{lowNumberOfDenominations, true},
+		{lowNumberOfOutputs, true},
+		{shouldWork, false},
+	}
+
+	for _, c := range cases {
+		require.EqualValues(t, !c.shouldFail, isWasabi2Mixing(c.tx))
 	}
 }
