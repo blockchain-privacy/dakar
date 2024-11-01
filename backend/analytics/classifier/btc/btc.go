@@ -73,8 +73,8 @@ func classifyTransactions(transactions []db.Transaction) (mixing []db.Transactio
 // credit to paper: "Heuristics for Detecting CoinJoin Transactions
 // on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
 func isWasabi2Mixing(t db.Transaction) bool {
-	// number of target inputs
-	const p = 50
+	// number of target inputs. Paper suggest 50, but practice shows that transactions with only 15 exist.
+	const p = 15
 	if len(t.Inputs) < p {
 		return false
 	}
@@ -108,7 +108,7 @@ func isWasabi2Mixing(t db.Transaction) bool {
 		return false
 	}
 
-	// number of output denominations must be at half of the number of outputs
+	// number of output denominations must be at least half of the number of outputs
 	if outputDenominationCount < (len(t.Outputs)-1)/2 {
 		return false
 	}
