@@ -11,8 +11,8 @@ import (
 	"strconv"
 )
 
-// ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block range and
-// the origin privacy type for all transactions which are connected to mixing
+// ClassifyDestinationAndOriginsByBlock sets the transaction type for destination transactions in the given block range and
+// the origin transaction type for all transactions which are connected to mixing
 // transactions in this block. Additionally, it returns all transactions connected to newly
 // classified origin transaction which have no privacy type set yet.
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the

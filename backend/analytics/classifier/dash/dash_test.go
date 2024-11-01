@@ -628,21 +628,6 @@ func Test_newOriginTransaction(t *testing.T) {
 	}
 }
 
-func Test_hasValidTransactionType(t *testing.T) {
-	tests := []struct {
-		tx   db.Transaction
-		want bool
-	}{
-		{tx: db.Transaction{Type: ""}, want: false},
-		{tx: db.Transaction{Type: constants.TypeDashMixing}, want: true},
-		{tx: db.Transaction{Type: constants.TypeDashCP + "asdf"}, want: false},
-		{tx: db.Transaction{Type: constants.TypeDashDestination}, want: true},
-	}
-	for _, tt := range tests {
-		require.Equal(t, tt.want, hasValidTransactionType(tt.tx))
-	}
-}
-
 func Test_classifyTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)

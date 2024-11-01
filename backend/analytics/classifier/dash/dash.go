@@ -7,7 +7,6 @@ import (
 	"backend/external"
 	"context"
 	"github.com/qrest/gomisc/serror"
-	"log"
 	"slices"
 )
 
@@ -64,7 +63,7 @@ var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100
 // - true when iterating should continue
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
-	// get the transaction of the current block height
+	// get the transaction of the current block range
 	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to)
 	if err != nil {
 		return false, err
@@ -190,7 +189,6 @@ func countOutputDenominations(outputs []db.Output) [NumDenominations]int {
 
 	for i, o := range outputs {
 		if o.Amount == nil {
-			log.Println("error amount not set")
 			return [NumDenominations]int{}
 		}
 		amounts[i] = *o.Amount
@@ -311,7 +309,7 @@ func newCollateralPaymentTransaction(uid string) db.Transaction {
 	return db.Transaction{UID: uid, Type: constants.TypeDashCP}
 }
 
-// isMixing checks if the transactions is a mixing transaction
+// isMixing checks if the transaction is a mixing transaction
 func isMixing(t db.Transaction) bool {
 	// At least 3 clients per mixing transaction -> more than 2 inputs/outputs
 	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
@@ -355,11 +353,6 @@ func newOriginTransaction(uid string) db.Transaction {
 	return db.Transaction{UID: uid, Type: constants.TypeDashOrigin}
 }
 
-// hasValidTransactionType check is the transaction has a valid privacy type
-func hasValidTransactionType(tx db.Transaction) bool {
-	return constants.IsValidDashTransactionType(tx.Type)
-}
-
 // classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
 func classifyTransactions(ctx context.Context, dgraph external.Database,
@@ -367,7 +360,7 @@ func classifyTransactions(ctx context.Context, dgraph external.Database,
 	cc []db.Transaction, cp []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
-		if hasValidTransactionType(transaction) {
+		if constants.IsValidDashTransactionType(transaction.Type) {
 			continue
 		}
 
@@ -384,6 +377,7 @@ func classifyTransactions(ctx context.Context, dgraph external.Database,
 		isCC, collateralErr := isCollateralCreation(ctx, dgraph, transaction)
 		if collateralErr != nil {
 			err = collateralErr
+			return
 		}
 
 		if isCC {
