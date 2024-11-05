@@ -194,18 +194,31 @@ func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixi
 }
 
 // GetBTCTransactionTypeCount gets the number of transaction per bitcoin transaction type
-func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
-	originCount int, destinationCount int, err error) {
+func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (wasabi2MixingCount int,
+	wasabi2OriginCount int, wasabi2DestinationCount int, whirlpoolMixingCount int,
+	whirlpoolOriginCount int, whirlpoolDestinationCount int, err error) {
 	const query = `{
-				origin(func: eq(Transaction.type,"` + constants.TypeWasabi2Origin + `")){
+				wasabi2Origin(func: eq(Transaction.type,"` + constants.TypeWasabi2Origin + `")){
 					count(uid)
 				}
 
-				mixing(func: eq(Transaction.type,"` + constants.TypeWasabi2Mixing + `")){
+				wasabi2Mixing(func: eq(Transaction.type,"` + constants.TypeWasabi2Mixing + `")){
 					count(uid)
 				}
 
-				destination(func: eq(Transaction.type,"` + constants.TypeWasabi2Destination + `")){
+				wasabi2Destination(func: eq(Transaction.type,"` + constants.TypeWasabi2Destination + `")){
+					count(uid)
+				}
+
+				whirlpoolOrigin(func: eq(Transaction.type,"` + constants.TypeWhirlpoolOrigin + `")){
+					count(uid)
+				}
+
+				whirlpoolMixing(func: eq(Transaction.type,"` + constants.TypeWhirlpoolMixing + `")){
+					count(uid)
+				}
+
+				whirlpoolDestination(func: eq(Transaction.type,"` + constants.TypeWhirlpoolDestination + `")){
 					count(uid)
 				}
 			  }`
@@ -216,15 +229,24 @@ func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (mixin
 	}
 
 	var r struct {
-		Origin []struct {
+		Wasabi2Origin []struct {
 			Count int `json:"count,omitempty"`
-		} `json:"origin,omitempty"`
-		Mixing []struct {
+		} `json:"wasabi2Origin,omitempty"`
+		Wasabi2Mixing []struct {
 			Count int `json:"count,omitempty"`
-		} `json:"mixing,omitempty"`
-		Destination []struct {
+		} `json:"wasabi2Mixing,omitempty"`
+		Wasabi2Destination []struct {
 			Count int `json:"count,omitempty"`
-		} `json:"destination,omitempty"`
+		} `json:"wasabi2Destination,omitempty"`
+		WhirlpoolOrigin []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"whirlpoolOrigin,omitempty"`
+		WhirlpoolMixing []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"whirlpoolMixing,omitempty"`
+		WhirlpoolDestination []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"whirlpoolDestination,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -232,14 +254,18 @@ func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (mixin
 		return
 	}
 
-	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 {
+	if len(r.Wasabi2Mixing) != 1 || len(r.Wasabi2Origin) != 1 || len(r.Wasabi2Destination) != 1 ||
+		len(r.WhirlpoolOrigin) != 1 || len(r.WhirlpoolMixing) != 1 || len(r.WhirlpoolDestination) != 1 {
 		err = serror.FromStr("invalid response from database")
 		return
 	}
 
-	mixingCount = r.Mixing[0].Count
-	originCount = r.Origin[0].Count
-	destinationCount = r.Destination[0].Count
+	wasabi2MixingCount = r.Wasabi2Mixing[0].Count
+	wasabi2OriginCount = r.Wasabi2Origin[0].Count
+	wasabi2DestinationCount = r.Wasabi2Destination[0].Count
+	whirlpoolMixingCount = r.WhirlpoolMixing[0].Count
+	whirlpoolOriginCount = r.WhirlpoolOrigin[0].Count
+	whirlpoolDestinationCount = r.WhirlpoolDestination[0].Count
 
 	return
 }

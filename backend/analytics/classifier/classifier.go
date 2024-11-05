@@ -36,7 +36,8 @@ func NewBTCConfig() Config {
 	return Config{
 		iteratorFunc: btc.Iterate,
 		// 740000 -> Jun 9, 2022 shortly before Wasabi 2.0 was released on Jun 15, 2022
-		minBlockHeight: 740000,
+		// 520000 -> Apr 26, 2018 shortly before Whirlpool repo was created on Apr 28, 2018
+		minBlockHeight: 520000,
 	}
 }
 

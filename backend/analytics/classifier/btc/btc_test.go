@@ -217,3 +217,276 @@ func Test_isWasabi2Mixing(t *testing.T) {
 		require.EqualValues(t, !c.shouldFail, isWasabi2Mixing(c.tx))
 	}
 }
+
+func Test_isWhirlpoolMixing(t *testing.T) {
+	type transactionTest struct {
+		tx         db.Transaction
+		shouldFail bool
+	}
+
+	shouldWork := db.Transaction{
+		Fee:  new(int64),
+		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](50000000)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000000)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "5"},
+		},
+	}
+
+	shouldWork2 := db.Transaction{
+		Fee:  new(int64),
+		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](50006655)},
+			{Amount: testhelper.GetPointer[int64](50002218)},
+			{Amount: testhelper.GetPointer[int64](50005646)},
+			{Amount: testhelper.GetPointer[int64](50002218)},
+			{Amount: testhelper.GetPointer[int64](50002420)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](50000000), KeyAsm: "5"},
+		},
+	}
+
+	lowerDenomination := db.Transaction{
+		Fee:  new(int64),
+		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100050)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+			{Amount: testhelper.GetPointer[int64](100030)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "5"},
+		},
+	}
+
+	fail := db.Transaction{
+		Fee:  new(int64),
+		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100050)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+			{Amount: testhelper.GetPointer[int64](100030)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+			{Amount: testhelper.GetPointer[int64](250000)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "5"},
+		},
+	}
+
+	fail2 := db.Transaction{
+		Fee:  new(int64),
+		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100050)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+			{Amount: testhelper.GetPointer[int64](100030)},
+			{Amount: testhelper.GetPointer[int64](100000)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](100000), KeyAsm: "5"},
+		},
+	}
+
+	var cases = []transactionTest{
+		{shouldWork, false},
+		{shouldWork2, false},
+		{lowerDenomination, false},
+		{fail, true},
+		{fail2, true},
+	}
+
+	for _, c := range cases {
+		require.EqualValues(t, !c.shouldFail, isWhirlpoolMixing(c.tx))
+	}
+}
+
+func Test_isWhirlpoolOrigin(t *testing.T) {
+	type transactionTest struct {
+		tx         db.Transaction
+		shouldFail bool
+	}
+
+	shouldWork := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+		},
+	}
+
+	noNilAmount := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](1)},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+		},
+	}
+
+	twoNilAmount := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+		},
+	}
+
+	mostFrequentAmountNotCloseToDenomation := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](5)},
+			{Amount: testhelper.GetPointer[int64](5)},
+			{Amount: testhelper.GetPointer[int64](5)},
+		},
+	}
+
+	twoDenominationGroups := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](5000302)},
+			{Amount: testhelper.GetPointer[int64](5000302)},
+			{Amount: testhelper.GetPointer[int64](5000302)},
+		},
+	}
+
+	noExactDenomation := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](50000000)},
+			{Amount: testhelper.GetPointer[int64](50000000)},
+			{Amount: testhelper.GetPointer[int64](50000000)},
+		},
+	}
+
+	mostFrequentAmountNotCloseToDenomation2 := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](70000000)},
+			{Amount: testhelper.GetPointer[int64](70000000)},
+			{Amount: testhelper.GetPointer[int64](70000000)},
+		},
+	}
+
+	lowDenomationCount := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: nil},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](5000302)},
+		},
+	}
+
+	var cases = []transactionTest{
+		{shouldWork, false},
+		{twoDenominationGroups, true},
+		{lowDenomationCount, false},
+		{noNilAmount, true},
+		{twoNilAmount, true},
+		{mostFrequentAmountNotCloseToDenomation, true},
+		{mostFrequentAmountNotCloseToDenomation2, true},
+		{noExactDenomation, true},
+	}
+
+	for _, c := range cases {
+		require.EqualValues(t, !c.shouldFail, isWhirlpoolOrigin(c.tx))
+	}
+}

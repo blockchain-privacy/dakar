@@ -275,38 +275,59 @@ func LoadDashTransactionGraph(ctx context.Context, c external.Database, numTxToL
 // numTxToLoad == 0: load all transactions
 // numTxToLoad > 0: load numTxToLoad transactions of each privacy type
 func LoadBTCTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
-	mixingCount, originCount, destinationCount, getErr := analytics.GetBTCTransactionTypeCount(ctx, c)
+	wasabi2MixingCount, wasabi2OriginCount, wasabi2Destinationcount, whirlpoolMixingCount,
+		whirlpoolOriginCount, whirlpoolDestinationcount, getErr := analytics.GetBTCTransactionTypeCount(ctx, c)
 	if getErr != nil {
 		return nil, getErr
 	}
 
 	// nothing to do
-	if mixingCount == 0 {
+	if wasabi2MixingCount+whirlpoolMixingCount == 0 {
 		return nil, ErrDBContainsNoPrivacyTransactions
 	}
 
-	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
-		"destination_count", destinationCount)
+	info("db stats", "wasabi 2.0 mixing count", wasabi2MixingCount, "wasabi 2.0 origin count", wasabi2OriginCount,
+		"wasabi 2.0 destination count", wasabi2Destinationcount, "whirlpool mixing count", whirlpoolMixingCount,
+		"whirlpool origin count", whirlpoolOriginCount, "whirlpool destination count", whirlpoolDestinationcount)
 
-	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
+	g := NewReversibleGraph(wasabi2MixingCount + wasabi2OriginCount + wasabi2Destinationcount)
 
 	// load all origin transactions from the database
-	info("Loading origin nodes")
+	info("Loading wasabi 2.0 origin nodes")
 	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
 		constants.TypeWasabi2Origin, true); err != nil {
 		return nil, err
 	}
 
+	info("Loading whirlpool origin nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWhirlpoolOrigin, true); err != nil {
+		return nil, err
+	}
+
 	// load all mixing transactions from the database
-	info("Loading mixing nodes")
+	info("Loading wasabi 2.0 mixing nodes")
 	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
 		constants.TypeWasabi2Mixing, false); err != nil {
 		return nil, err
 	}
+
+	// load all mixing transactions from the database
+	info("Loading whirlpool mixing nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWhirlpoolMixing, false); err != nil {
+		return nil, err
+	}
 	// load all destination transactions from the database
-	info("Loading destination nodes")
+	info("Loading wasabi 2.0 destination nodes")
 	if err := loadTransactions(ctx, c, g, 10000, numTxToLoad,
 		constants.TypeWasabi2Destination, false); err != nil {
+		return nil, err
+	}
+
+	info("Loading whirlpool destination nodes")
+	if err := loadTransactions(ctx, c, g, 10000, numTxToLoad,
+		constants.TypeWhirlpoolDestination, false); err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"backend/constants"
 	"backend/db"
 	"backend/external"
 	"context"
@@ -110,30 +109,12 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 	if o.TransactionTypes != nil {
 		for _, txType := range o.TransactionTypes {
 			if transactionTypeFilter != "" {
-				transactionTypeFilter += " or "
+				transactionTypeFilter += ","
 			}
-
-			switch txType {
-			case constants.TypeDashOrigin:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashOrigin + "\")"
-			case constants.TypeDashMixing:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashMixing + "\")"
-			case constants.TypeDashDestination:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashDestination + "\")"
-			case constants.TypeDashCC:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashCC + "\")"
-			case constants.TypeDashCP:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDashCP + "\")"
-			case constants.TypeWasabi2Origin:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeWasabi2Origin + "\")"
-			case constants.TypeWasabi2Mixing:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeWasabi2Mixing + "\")"
-			case constants.TypeWasabi2Destination:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeWasabi2Destination + "\")"
-			default:
-				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", txType)
-			}
+			transactionTypeFilter += "\"" + txType + "\""
 		}
+
+		transactionTypeFilter = "eq(Transaction.type," + transactionTypeFilter + ")"
 	}
 
 	// construct @filter(eq(Transaction.type, ..., ...) or eq(Transaction.type, ..., ....) ...)

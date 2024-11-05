@@ -12,6 +12,8 @@ import (
 // NumWasabi2Denominations is the number of Wasabi 2.0 PrivateSend denominations
 const NumWasabi2Denominations = 79
 
+const NumWhirlpoolDenominations = 4
+
 var denominationsTypesWasabi2 = [NumWasabi2Denominations]int64{5000, 6561, 8192, 10000, 13122, 16384, 19683, 20000,
 	32768, 39366, 50000, 59049, 65536, 100000, 118098, 131072, 177147, 200000, 262144, 354294, 500000, 524288, 531441,
 	1000000, 1048576, 1062882, 1594323, 2000000, 2097152, 3188646, 4194304, 4782969, 5000000, 8388608, 9565938,
@@ -20,6 +22,8 @@ var denominationsTypesWasabi2 = [NumWasabi2Denominations]int64{5000, 6561, 8192,
 	1073741824, 1162261467, 2000000000, 2147483648, 2324522934, 3486784401, 4294967296, 5000000000, 6973568802,
 	8589934592, 10000000000, 10460353203, 17179869184, 20000000000, 20920706406, 31381059609, 34359738368, 50000000000,
 	62762119218, 68719476736, 94143178827, 100000000000, 137438953472}
+
+var denominationTypesWhirlpool = [NumWhirlpoolDenominations]int64{100000, 1000000, 5000000, 50000000}
 
 // Iterate returns
 // - true when iterating should continue
@@ -31,22 +35,45 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 		return false, err
 	}
 
-	// step 1: classify all transactions of the current block locally based on their own properties
-	mixingTransactions, err := classifyTransactions(transactions)
+	// step 1.1: classify all transactions of the current block locally based on their own properties
+	wasabiMixingAndWhirlpoolOrigins, err := classifyTransactions(transactions)
 	if err != nil {
 		return false, err
 	}
 
-	// step 2.1: store the privacy type of mixing transactions.
-	if len(mixingTransactions) > 0 {
-		if err = db.UpdateTransactions(ctx, c, mixingTransactions); err != nil {
+	// step 1.2: store the privacy type of wasabi mixing and whirlpool origin transactions.
+	if len(wasabiMixingAndWhirlpoolOrigins) > 0 {
+		if err = db.UpdateTransactions(ctx, c, wasabiMixingAndWhirlpoolOrigins); err != nil {
 			return false, err
 		}
 	}
 
-	// step 2.2: set the privacy type of destination transactions by analyzing the connected transactions.
-	if err = btc.ClassifyDestinationAndOriginsByBlock(ctx, c, from, to); err != nil {
+	// step 2.1: set the privacy type of destination transactions by analyzing the connected transactions.
+
+	// step 2.1.1: set the privacy type of wasabi destination, wasabi origin and whirlpool destination
+	// transactions by analyzing the connected transactions. Potential whirlpool mixing transactions are
+	// only returned in this step and not set directly. The potential whirlpool mixing transactions are
+	// further evaluated in the next step
+	potWhirlpoolMixingTransactions, err := btc.ClassifyDestinationAndOriginsByBlock(ctx, c, from, to)
+	if err != nil {
 		return false, err
+	}
+
+	// setp 2.1.2: classify and store whirlpool mixing transactions
+	if len(potWhirlpoolMixingTransactions) > 0 {
+		var whirlpoolMixingTransactions []db.Transaction
+		for _, mixingTx := range potWhirlpoolMixingTransactions {
+			if isWhirlpoolMixing(mixingTx) {
+				whirlpoolMixingTransactions = append(whirlpoolMixingTransactions,
+					db.Transaction{UID: mixingTx.UID, Type: constants.TypeWhirlpoolMixing})
+			}
+		}
+
+		if len(whirlpoolMixingTransactions) > 0 {
+			if err = db.UpdateTransactions(ctx, c, whirlpoolMixingTransactions); err != nil {
+				return false, err
+			}
+		}
 	}
 
 	return true, nil
@@ -57,12 +84,17 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 func classifyTransactions(transactions []db.Transaction) (mixing []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
-		if constants.IsValidDashTransactionType(transaction.Type) {
+		if constants.IsValidWasabi2TransactionType(transaction.Type) || constants.IsValidWhirlpoolTransactionType(transaction.Type) {
 			continue
 		}
 
 		if isWasabi2Mixing(transaction) {
-			mixing = append(mixing, newWasabi2MixingTransaction(transaction.UID))
+			mixing = append(mixing, db.Transaction{UID: transaction.UID, Type: constants.TypeWasabi2Mixing})
+			continue
+		}
+
+		if isWhirlpoolOrigin(transaction) {
+			mixing = append(mixing, db.Transaction{UID: transaction.UID, Type: constants.TypeWhirlpoolOrigin})
 			continue
 		}
 	}
@@ -123,9 +155,111 @@ func isWasabi2Mixing(t db.Transaction) bool {
 	return true
 }
 
-// newWasabi2MixingTransaction returns a new wasabi 2.0 mixing transaction with the given type and uid.
-func newWasabi2MixingTransaction(uid string) db.Transaction {
-	return db.Transaction{UID: uid, Type: constants.TypeWasabi2Mixing}
+// isWhirlpoolMixing checks if the transaction is a whirlpool mixing transaction
+// credit to paper: "Heuristics for Detecting CoinJoin Transactions
+// on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
+func isWhirlpoolMixing(t db.Transaction) bool {
+	const numOutputs = 5
+	if len(t.Inputs) != numOutputs || len(t.Outputs) != numOutputs {
+		return false
+	}
+
+	denominationOut := countWhirlpoolDenominations(t.Outputs)
+	denomationIndex := -1
+	for i, outputDenomationCount := range denominationOut {
+		// there must be only one denomation type, which must be all 5 outputs
+		if outputDenomationCount == numOutputs {
+			denomationIndex = i
+			break
+		}
+	}
+
+	// no denomation has exactly 5 occurrences
+	if denomationIndex == -1 {
+		return false
+	}
+
+	// there must be at least one non-denomation input
+	denominationIn := countWhirlpoolDenominations(t.Inputs)
+	if denominationIn[denomationIndex] == numOutputs {
+		return false
+	}
+
+	for _, input := range t.Inputs {
+		if input.Amount == nil {
+			return false
+		}
+
+		if !isAmountWhirlpoolDenomationPlusE(*input.Amount, denominationTypesWhirlpool[denomationIndex], 0) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isAmountWhirlpoolDenomationPlusE returns true if it is close to the given whirlpool denomination.
+// set minDiff to > 0 if the amount must not be equal to the denomination
+func isAmountWhirlpoolDenomationPlusE(amount int64, denomation int64, minDiff int64) bool {
+	diff := amount - denomation
+	// diff must be between 0 and 100000 and not not be higher than the denomination itself
+	return diff <= 100000 && diff >= minDiff && diff <= denomation
+}
+
+// isWhirlpoolOrigin checks if the transaction is a whirlpool origin transaction
+// credit to paper: "Heuristics for Detecting CoinJoin Transactions
+// on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
+func isWhirlpoolOrigin(t db.Transaction) bool {
+	if len(t.Inputs) == 0 || len(t.Outputs) < 3 {
+		return false
+	}
+
+	amountCounts := map[int64]int{}
+	hasOutputWithoutAmount := false
+	for _, output := range t.Outputs {
+		if output.Amount == nil {
+			if hasOutputWithoutAmount {
+				// can not have more than one output without amount
+				return false
+			}
+
+			hasOutputWithoutAmount = true
+			continue
+		}
+
+		// 100 satoshi is the minimum fee per denomination
+		if isAnyWhirlpoolDenominationPlusE(*output.Amount, 100) {
+			amountCounts[*output.Amount] = amountCounts[*output.Amount] + 1
+		}
+	}
+
+	if !hasOutputWithoutAmount {
+		return false
+	}
+
+	// find most frequent amount
+	var highestCount int
+	var highestCountAmount int64
+	for amount, amountCount := range amountCounts {
+		if amountCount > highestCount {
+			highestCount = amountCount
+			highestCountAmount = amount
+		} else if amountCount == highestCount && amount > highestCountAmount {
+			highestCountAmount = amount
+		}
+	}
+
+	// 3: fee, change  and data output, change might not always be present
+	return highestCount >= len(t.Outputs)-3
+}
+
+func isAnyWhirlpoolDenominationPlusE(amount int64, minDiff int64) bool {
+	for _, denomation := range denominationTypesWhirlpool {
+		if isAmountWhirlpoolDenomationPlusE(amount, denomation, minDiff) {
+			return true
+		}
+	}
+	return false
 }
 
 // countWasabi2Denominations returns for each denomination how often it occurred in the given outputs
@@ -147,6 +281,35 @@ func CountAmountWasabi2Denominations(amounts []int64) (denominations [NumWasabi2
 	for _, amt := range amounts {
 	inner:
 		for i, v := range denominationsTypesWasabi2 {
+			if amt == v {
+				denominations[i]++
+				break inner
+			}
+		}
+	}
+
+	return
+}
+
+// countWhirlpoolDenominations returns for each denomination how often it occurred in the given outputs
+func countWhirlpoolDenominations(outputs []db.Output) [NumWhirlpoolDenominations]int {
+	amounts := make([]int64, len(outputs))
+
+	for i, o := range outputs {
+		if o.Amount == nil {
+			return [NumWhirlpoolDenominations]int{}
+		}
+		amounts[i] = *o.Amount
+	}
+
+	return CountAmountWhirlpoolDenominations(amounts)
+}
+
+// CountAmountWhirlpoolDenominations returns the number of occurrences of each denomination in the given amounts
+func CountAmountWhirlpoolDenominations(amounts []int64) (denominations [NumWhirlpoolDenominations]int) {
+	for _, amt := range amounts {
+	inner:
+		for i, v := range denominationTypesWhirlpool {
 			if amt == v {
 				denominations[i]++
 				break inner
