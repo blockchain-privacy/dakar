@@ -233,7 +233,8 @@ func isWhirlpoolOrigin(t db.Transaction) bool {
 		}
 	}
 
-	if !hasOutputWithoutAmount {
+	// does not have zero amount or no amount close to a denomation
+	if !hasOutputWithoutAmount || len(amountCounts) == 0 {
 		return false
 	}
 
