@@ -356,6 +356,25 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		},
 	}
 
+	shouldWork2 := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](2130879553)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](0)},
+			{Amount: testhelper.GetPointer[int64](2500000)},
+			{Amount: testhelper.GetPointer[int64](28361985)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+			{Amount: testhelper.GetPointer[int64](50000302)},
+		},
+	}
+
 	noNilAmount := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
@@ -477,6 +496,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 
 	var cases = []transactionTest{
 		{shouldWork, false},
+		{shouldWork2, false},
 		{twoDenominationGroups, true},
 		{lowDenomationCount, false},
 		{noNilAmount, true},

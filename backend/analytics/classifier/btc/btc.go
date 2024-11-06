@@ -217,7 +217,7 @@ func isWhirlpoolOrigin(t db.Transaction) bool {
 	amountCounts := map[int64]int{}
 	hasOutputWithoutAmount := false
 	for _, output := range t.Outputs {
-		if output.Amount == nil {
+		if output.Amount == nil || *output.Amount == 0 {
 			if hasOutputWithoutAmount {
 				// can not have more than one output without amount
 				return false
