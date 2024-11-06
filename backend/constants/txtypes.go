@@ -1,12 +1,8 @@
 package constants
 
-var validDashTransactionTypes = map[string]bool{TypeDashOrigin: true, TypeDashMixing: true,
-	TypeDashDestination: true, TypeDashCC: true, TypeDashCP: true}
-
-var validWasabi2TransactionTypes = map[string]bool{TypeWasabi2Origin: true, TypeWasabi2Mixing: true,
-	TypeWasabi2Destination: true}
-
-var validWhirlpoolTransactionTypes = map[string]bool{TypeWhirlpoolOrigin: true, TypeWhirlpoolMixing: true,
+var validTransactionTypes = map[string]bool{TypeDashOrigin: true, TypeDashMixing: true,
+	TypeDashDestination: true, TypeDashCC: true, TypeDashCP: true, TypeWasabi2Origin: true, TypeWasabi2Mixing: true,
+	TypeWasabi2Destination: true, TypeWhirlpoolOrigin: true, TypeWhirlpoolMixing: true,
 	TypeWhirlpoolDestination: true}
 
 const (
@@ -32,19 +28,9 @@ const (
 		TypeWhirlpoolDestination + "\",\"" + TypeDashDestination + "\""
 )
 
-// IsValidDashTransactionType returns true if the provided string maps to a dash transaction type
-func IsValidDashTransactionType(t string) bool {
-	return validDashTransactionTypes[t]
-}
-
-// IsValidWasabi2TransactionType returns true if the provided string maps to a wasabi 2.0 transaction type
-func IsValidWasabi2TransactionType(t string) bool {
-	return validWasabi2TransactionTypes[t]
-}
-
-// IsValidWhirlpoolTransactionType returns true if the provided string maps to a whirlpool transaction type
-func IsValidWhirlpoolTransactionType(t string) bool {
-	return validWhirlpoolTransactionTypes[t]
+// IsValidTransactionType returns true if the provided string maps to a valid transaction type
+func IsValidTransactionType(t string) bool {
+	return validTransactionTypes[t]
 }
 
 // IsMixingTransaction returns true for mixing types

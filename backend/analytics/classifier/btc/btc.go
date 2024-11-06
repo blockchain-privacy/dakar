@@ -84,7 +84,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 func classifyTransactions(transactions []db.Transaction) (mixing []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
-		if constants.IsValidWasabi2TransactionType(transaction.Type) || constants.IsValidWhirlpoolTransactionType(transaction.Type) {
+		if transaction.Type != "" {
 			continue
 		}
 

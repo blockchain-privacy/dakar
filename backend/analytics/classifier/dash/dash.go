@@ -360,7 +360,7 @@ func classifyTransactions(ctx context.Context, dgraph external.Database,
 	cc []db.Transaction, cp []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
-		if constants.IsValidDashTransactionType(transaction.Type) {
+		if transaction.Type != "" {
 			continue
 		}
 
