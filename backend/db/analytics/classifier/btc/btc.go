@@ -18,8 +18,8 @@ import (
 // same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themselves.
 func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Database,
-	fromBlockID int64, toBlockID int64) ([]db.Transaction, error) {
-	query := `query Q($from:int,$to:int) {
+	fromBlockID int64, toBlockID int64, whirlpoolMixingUIDs []string) ([]db.Transaction, map[string][]string, error) {
+	query := `query Q($from:int,$to:int,$whirlpoolMixingUIDs:string) {
 				b as var(func: between(id, $from, $to))
 				var(func: uid(b))@cascade{
 					wasabi2Destinations as transactions@filter(not has(Transaction.type)){
@@ -56,22 +56,28 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 					}
 				}
 
-				q(func: uid(whirlpoolMixing)){
+
+				q(func: uid($whirlpoolMixingUIDs)){
 					uid
-					txhash
-					fee
-					Transaction.type
 					tx_inputs{
-						uid
-						amount
-						inputindex
-						outputindex
-					}
-					tx_outputs{
-						uid
-						amount
-						inputindex
-						outputindex
+						~tx_outputs@filter(not has(Transaction.type)){
+							uid
+							txhash
+							fee
+							Transaction.type
+							tx_inputs{
+								uid
+								amount
+								inputindex
+								outputindex
+							}
+							tx_outputs{
+								uid
+								amount
+								inputindex
+								outputindex
+							}
+						}
 					}
 				}
 			  }`
@@ -79,7 +85,7 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 	req := &api.Request{
 		Query: query,
 		Vars: map[string]string{"$from": strconv.FormatInt(fromBlockID, 10),
-			"$to": strconv.FormatInt(toBlockID, 10)},
+			"$to": strconv.FormatInt(toBlockID, 10), "$whirlpoolMixingUIDs": db.CreateCommaArray(whirlpoolMixingUIDs)},
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(whirlpoolDestinations), 0))",
@@ -99,16 +105,32 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 
 	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// json struct
 	var r struct {
-		Mixing []db.Transaction `json:"q,omitempty"`
+		Mixing []struct {
+			UID    string `json:"uid,omitempty"`
+			Inputs []struct {
+				Origins []db.Transaction `json:"~tx_outputs,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, serror.New(err)
+		return nil, nil, serror.New(err)
 	}
 
-	return r.Mixing, nil
+	originToMixing := map[string][]string{}
+	var origins []db.Transaction
+	for _, m := range r.Mixing {
+		for _, input := range m.Inputs {
+			for _, origin := range input.Origins {
+				originToMixing[origin.UID] = append(originToMixing[origin.UID], m.UID)
+				origins = append(origins, origin)
+			}
+		}
+	}
+
+	return origins, originToMixing, nil
 }

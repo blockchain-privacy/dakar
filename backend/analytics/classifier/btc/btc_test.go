@@ -1,6 +1,7 @@
 package btc
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
@@ -522,5 +523,106 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 
 	for _, c := range cases {
 		require.EqualValues(t, !c.shouldFail, isWhirlpoolOrigin(c.tx))
+	}
+}
+
+func Test_classifyWhirlpoolOriginTransactions(t *testing.T) {
+	tests := []struct {
+		origins           []db.Transaction
+		originToMixingMap map[string][]string
+		want              []db.Transaction
+	}{
+		{},
+		{
+			origins: []db.Transaction{{
+				UID: "0x1",
+				Inputs: []db.Output{
+					{Amount: testhelper.GetPointer[int64](2130879553)},
+				},
+				Outputs: []db.Output{
+					{Amount: nil},
+					{Amount: testhelper.GetPointer[int64](2500000)},
+					{Amount: testhelper.GetPointer[int64](28361985)},
+					{Amount: testhelper.GetPointer[int64](50000302)},
+					{Amount: testhelper.GetPointer[int64](50000302)},
+					{Amount: testhelper.GetPointer[int64](50000302)},
+					{Amount: testhelper.GetPointer[int64](50000302)},
+					{Amount: testhelper.GetPointer[int64](50000302)},
+					{Amount: testhelper.GetPointer[int64](50000302)},
+				},
+			}},
+			want: []db.Transaction{{UID: "0x1", Type: constants.TypeWhirlpoolOrigin}},
+		},
+		{
+			originToMixingMap: map[string][]string{"0x1": {"0x10", "0x11"}, "0x2": {"0x12", "0x13"}},
+			want: []db.Transaction{
+				{UID: "0x1", Type: constants.TypeWhirlpoolOrigin},
+				{UID: "0x2", Type: constants.TypeWhirlpoolOrigin},
+				{UID: "0x10", Type: constants.TypeWhirlpoolMixing},
+				{UID: "0x11", Type: constants.TypeWhirlpoolMixing},
+				{UID: "0x12", Type: constants.TypeWhirlpoolMixing},
+				{UID: "0x13", Type: constants.TypeWhirlpoolMixing},
+			},
+			origins: []db.Transaction{
+				{
+					UID: "0x1",
+					Inputs: []db.Output{
+						{Amount: testhelper.GetPointer[int64](2130879553)},
+					},
+					Outputs: []db.Output{
+						{Amount: nil},
+						{Amount: testhelper.GetPointer[int64](2500000)},
+						{Amount: testhelper.GetPointer[int64](28361985)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+					},
+				},
+				{
+					UID: "0x2",
+					Inputs: []db.Output{
+						{Amount: testhelper.GetPointer[int64](2130879553)},
+					},
+					Outputs: []db.Output{
+						{Amount: testhelper.GetPointer[int64](0)},
+						{Amount: testhelper.GetPointer[int64](2500000)},
+						{Amount: testhelper.GetPointer[int64](28361985)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+					},
+				},
+				{
+					UID: "0x3",
+					Inputs: []db.Output{
+						{Amount: testhelper.GetPointer[int64](2130879553)},
+					},
+					Outputs: []db.Output{
+						{Amount: testhelper.GetPointer[int64](1)},
+						{Amount: testhelper.GetPointer[int64](2500000)},
+						{Amount: testhelper.GetPointer[int64](28361985)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+						{Amount: testhelper.GetPointer[int64](50000302)},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		txs := classifyWhirlpoolOriginTransactions(tt.origins, tt.originToMixingMap)
+		require.Len(t, txs, len(tt.want))
+		for _, tx := range txs {
+			require.Contains(t, tt.want, tx)
+		}
 	}
 }
