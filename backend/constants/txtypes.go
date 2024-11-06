@@ -28,8 +28,8 @@ const (
 		TypeWhirlpoolDestination + "\",\"" + TypeDashDestination + "\""
 )
 
-// IsValidTransactionType returns true if the provided string maps to a valid transaction type
-func IsValidTransactionType(t string) bool {
+// IsTransactionType returns true if the provided string is equal to a transaction type
+func IsTransactionType(t string) bool {
 	return validTransactionTypes[t]
 }
 

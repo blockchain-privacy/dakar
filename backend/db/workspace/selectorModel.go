@@ -136,7 +136,7 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 	}
 
 	for _, transactionType := range o.TransactionTypes {
-		if !constants.IsValidTransactionType(transactionType) {
+		if !constants.IsTransactionType(transactionType) {
 			return false
 		}
 	}
