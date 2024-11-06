@@ -48,30 +48,35 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 		}
 	}
 
-	// step 2: set the privacy type of transactions by analyzing the connected transactions.
+	if len(whirlpoolMixingUIDs) > 0 {
+		// step 2.1: get potential whirlpool origin transactions
+		potWhirlpoolOrigins, originsToMixingMap, err := btc.GetPotentialWhirlpoolMixingTransactions(ctx, c, whirlpoolMixingUIDs)
+		if err != nil {
+			return false, err
+		}
 
-	// step 2.1: set the privacy type of wasabi destination, wasabi origin and whirlpool destination
-	// transactions by analyzing the connected transactions. Potential whirlpool origin transactions are
-	// only returned in this step and not set directly. The potential whirlpool origin transactions are
-	// further evaluated in the next step
-	potWhirlpoolOrigins, originsToMixingMap, err := btc.ClassifyDestinationAndOriginsByBlock(ctx, c, from, to, whirlpoolMixingUIDs)
-	if err != nil {
-		return false, err
-	}
-
-	// step 2.2: whirlpool mixing transactions must be connected to at least one whirlpool origin transaction.
-	// Whirlpool origin transactions have a high chance to be misclassified,
-	// therefore classify both mixing and origin transactions only if they are connnected to each other.
-	if len(potWhirlpoolOrigins) > 0 {
-		// - get all unclassified transactions which are connected to the potential whirlpool mixing transactions
-		// - from the results, check if any transaction can be classified as a whirlpool origin transaction
-		// - persist classifications of all origin-mixing pairs
-		classfiedTransactions := classifyWhirlpoolOriginTransactions(potWhirlpoolOrigins, originsToMixingMap)
-		if len(classfiedTransactions) > 0 {
-			if err = db.UpdateTransactions(ctx, c, classfiedTransactions); err != nil {
-				return false, err
+		// step 2.2: whirlpool mixing transactions must be connected to at least one whirlpool origin transaction.
+		// Whirlpool origin transactions have a high chance to be misclassified,
+		// therefore classify both mixing and origin transactions only if they are connnected to each other.
+		if len(potWhirlpoolOrigins) > 0 {
+			// - get all unclassified transactions which are connected to the potential whirlpool mixing transactions
+			// - from the results, check if any transaction can be classified as a whirlpool origin transaction
+			// - persist classifications of all origin-mixing pairs
+			classfiedTransactions := classifyWhirlpoolOriginTransactions(potWhirlpoolOrigins, originsToMixingMap)
+			if len(classfiedTransactions) > 0 {
+				if err = db.UpdateTransactions(ctx, c, classfiedTransactions); err != nil {
+					return false, err
+				}
 			}
 		}
+	}
+
+	// step 3: set the privacy type of
+	// - wasabi 2.0 origin transactions
+	// - wasabi 2.0 destination transactions
+	// - whirlpool destination transactions
+	if err = btc.ClassifyDestinationAndOriginsByBlock(ctx, c, from, to); err != nil {
+		return false, err
 	}
 
 	return true, nil
