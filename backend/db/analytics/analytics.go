@@ -280,13 +280,13 @@ func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
 					txs as transactions
 				}
 				# get mixing transactions
-				mx as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDashMixing + `")){
+				mx as var(func: uid(txs))@filter(eq(Transaction.type,` + constants.AllMixingTypes + `)){
 					tx_inputs{
 						mxi as ~tx_outputs
 					}
 				}
 				# get destination transactions
-				dst as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDashDestination + `")){
+				dst as var(func: uid(txs))@filter(eq(Transaction.type,` + constants.AllDestinationTypes + `)){
 					tx_inputs{
 						dsti as ~tx_outputs
 					}

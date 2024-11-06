@@ -25,7 +25,11 @@ const (
 	TypeWhirlpoolDestination = "whirlpool destination"
 
 	// AllMixingTypes is a helper for query construction
-	AllMixingTypes = "\"" + TypeWasabi2Mixing + "\",\"" + TypeWhirlpoolMixing + "\",\"" + TypeDashMixing + "\""
+	AllMixingTypes = "\"" + TypeWasabi2Mixing + "\",\"" +
+		TypeWhirlpoolMixing + "\",\"" + TypeDashMixing + "\""
+	// AllDestinationTypes is a helper for query construction
+	AllDestinationTypes = "\"" + TypeWasabi2Destination + "\",\"" +
+		TypeWhirlpoolDestination + "\",\"" + TypeDashDestination + "\""
 )
 
 // IsValidDashTransactionType returns true if the provided string maps to a dash transaction type
