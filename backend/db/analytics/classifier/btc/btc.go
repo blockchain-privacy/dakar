@@ -48,15 +48,6 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 					}
 				}
 
-				var(func: uid(b))@cascade{
-					whirlpoolMixing as transactions@filter(not has(Transaction.type)){
-						tx_inputs{
-							~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeWhirlpoolOrigin + `"))
-						}
-					}
-				}
-
-
 				q(func: uid($whirlpoolMixingUIDs)){
 					uid
 					tx_inputs{
