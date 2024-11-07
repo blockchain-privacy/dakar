@@ -3,10 +3,17 @@ package btc
 import (
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
+
+var dbHandle = &testhelper.TestDB{IsDirty: true}
+
+func TestMain(m *testing.M) {
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
+}
 
 func TestCountAmountWasabi2Denominations(t *testing.T) {
 	type testCase struct {
@@ -376,6 +383,24 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		},
 	}
 
+	shouldWork3 := db.Transaction{
+		Fee:  new(int64),
+		Hash: "2a3f2423a7964206be75075460a8623f0a9b1fe7fb57c2424602f39ed50a25d9",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](1502688613)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](0)},
+			{Amount: testhelper.GetPointer[int64](250000)},
+			{Amount: testhelper.GetPointer[int64](5010000)},
+			{Amount: testhelper.GetPointer[int64](5010000)},
+			{Amount: testhelper.GetPointer[int64](5010000)},
+			{Amount: testhelper.GetPointer[int64](5010000)},
+			{Amount: testhelper.GetPointer[int64](5010000)},
+			{Amount: testhelper.GetPointer[int64](1477358853)},
+		},
+	}
+
 	noNilAmount := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
@@ -512,6 +537,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		{shouldFail, true},
 		{shouldWork, false},
 		{shouldWork2, false},
+		{shouldWork3, false},
 		{twoDenominationGroups, true},
 		{lowDenomationCount, false},
 		{noNilAmount, true},
@@ -625,4 +651,18 @@ func Test_classifyWhirlpoolOriginTransactions(t *testing.T) {
 			require.Contains(t, tt.want, tx)
 		}
 	}
+}
+
+func TestIterate(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	db.SetupDB(t, dbHandle, testhelper.UseBTCPrivacyFile)
+
+	ctx, cancel := db.GetTaskContext()
+	defer cancel()
+
+	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
+
+	ok, err := Iterate(ctx, dbHandle, 574040, 574040)
+	require.NoError(t, err)
+	require.True(t, ok)
 }
