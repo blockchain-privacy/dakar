@@ -49,7 +49,8 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 	}
 
 	if len(whirlpoolMixingUIDs) > 0 {
-		// step 2.1: get potential whirlpool origin transactions
+		// step 2.1: get transactions which provide inputs to the potential mixing transactions.
+		// Note: this may include already classified transactions
 		potWhirlpoolOrigins, originsToMixingMap, err := btc.GetPotentialWhirlpoolMixingTransactions(ctx, c, whirlpoolMixingUIDs)
 		if err != nil {
 			return false, err

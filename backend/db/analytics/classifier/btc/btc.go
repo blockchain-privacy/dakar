@@ -80,22 +80,14 @@ func GetPotentialWhirlpoolMixingTransactions(ctx context.Context, c external.Dat
 				q(func: uid($whirlpoolMixingUIDs)){
 					uid
 					tx_inputs{
-						~tx_outputs@filter(not has(Transaction.type)){
+						~tx_outputs@filter(not eq(Transaction.type,"` + constants.TypeWasabi2Mixing + `")){
 							uid
-							txhash
-							fee
 							Transaction.type
 							tx_inputs{
-								uid
 								amount
-								inputindex
-								outputindex
 							}
 							tx_outputs{
-								uid
 								amount
-								inputindex
-								outputindex
 							}
 						}
 					}
