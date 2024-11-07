@@ -292,11 +292,6 @@ func doExportBlocks(ctx context.Context, dgraph external.Database, fileName stri
 		return
 	}
 
-	if len(clusterRange) == 0 {
-		info("no clusters to write")
-		return
-	}
-
 	// merge addresses and blocks
 	toEncode := make([]any, len(blockRange)+len(addressRange)+len(clusterRange))
 
