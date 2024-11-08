@@ -9,7 +9,7 @@ import {
 	PRIVACY_TYPE_CP,
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_MIXING,
-	PRIVACY_TYPE_ORIGIN,
+	PRIVACY_TYPE_ORIGIN, PRIVACY_TYPE_WASABI_2_DESTINATION, PRIVACY_TYPE_WASABI_2_MIXING, PRIVACY_TYPE_WASABI_2_ORIGIN,
 	ROUTE_NAME_LOGIN_PAGE,
 } from '@/constants';
 import {inject} from 'vue';
@@ -207,27 +207,17 @@ export function isAdminIdentity(session, mode) {
 export function getTransactionTypeTooltip(privacyType) {
 	const folder = 'transactionTypes';
 
-	if (privacyType === PRIVACY_TYPE_MIXING) {
-		return `${folder}/mixingTransaction.md`;
+	switch (privacyType) {
+		case PRIVACY_TYPE_ORIGIN: return `${folder}/originTransaction.md`;
+		case PRIVACY_TYPE_MIXING: return `${folder}/mixingTransaction.md`;
+		case PRIVACY_TYPE_DESTINATION: return `${folder}/destinationTransaction.md`;
+		case PRIVACY_TYPE_CC: return `${folder}/collateralCreationTransaction.md`;
+		case PRIVACY_TYPE_CP: return `${folder}/collateralPaymentTransaction.md`;
+		case PRIVACY_TYPE_WASABI_2_ORIGIN: return `${folder}/wasabi2.0OriginTransaction.md`;
+		case PRIVACY_TYPE_WASABI_2_MIXING: return `${folder}/wasabi2.0MixingTransaction.md`;
+		case PRIVACY_TYPE_WASABI_2_DESTINATION: return `${folder}/wasabi2.0DestinationTransaction.md`;
+		default: return '';
 	}
-
-	if (privacyType === PRIVACY_TYPE_DESTINATION) {
-		return `${folder}/destinationTransaction.md`;
-	}
-
-	if (privacyType === PRIVACY_TYPE_ORIGIN) {
-		return `${folder}/originTransaction.md`;
-	}
-
-	if (privacyType === PRIVACY_TYPE_CC) {
-		return `${folder}/collateralCreationTransaction.md`;
-	}
-
-	if (privacyType === PRIVACY_TYPE_CP) {
-		return `${folder}/collateralPaymentTransaction.md`;
-	}
-
-	return '';
 }
 
 // GetClusterTypeLabel translates the cluster shorthand of cluster types to a readable string
@@ -242,29 +232,9 @@ export function getClusterTypeLabel(clusterType) {
 	}
 }
 
-// Returns true if the provided transaction type is mixing
-export function isMixing(type) {
-	return type === PRIVACY_TYPE_MIXING;
-}
-
-// Returns true if the provided transaction type is origin
-export function isOrigin(type) {
-	return type === PRIVACY_TYPE_ORIGIN;
-}
-
 // Returns true if the provided transaction type is destination
 export function isDestination(type) {
-	return type === PRIVACY_TYPE_DESTINATION;
-}
-
-// Returns true if the provided transaction type is collateral creation
-export function isCollateralCreation(type) {
-	return type === PRIVACY_TYPE_CC;
-}
-
-// Returns true if the provided transaction type is collateral payment
-export function isCollateralPayment(type) {
-	return type === PRIVACY_TYPE_CP;
+	return type === PRIVACY_TYPE_DESTINATION || type === PRIVACY_TYPE_WASABI_2_DESTINATION;
 }
 
 // Returns true if the provided argument is a function
@@ -282,15 +252,48 @@ export function plural(subject, count) {
 	return count > 1 ? `${subject}s` : subject;
 }
 
-// Returns a mapping between transaction types and their colors
-export function getColorMap() {
+// Returns a mapping between transaction types and their colors.
+// If a blockchain mode is provided, only transaction types of the given mode are returned.
+export function getColorMap(mode) {
 	// Colors from https://sashamaps.net/docs/resources/20-colors/
+	const dashTransactionTypes = [
+		{name: 'origin', color: '#800000'},
+		{name: 'mixing', color: '#e6194b'},
+		{name: 'destination', color: '#fabed4'},
+		{name: 'collateral creation', color: '#3cb44b'},
+		{name: 'collateral payment', color: '#bfef45'},
+	];
+
+	const wasabi2TransactionTypes = [
+		{name: 'wasabi 2.0 origin', color: '#800000'},
+		{name: 'wasabi 2.0 mixing', color: '#e6194b'},
+		{name: 'wasabi 2.0 destination', color: '#fabed4'},
+	];
+
+	const whirlPoolTransactionTypes = [
+		{name: 'whirlpool origin', color: '#3cb44b'},
+		{name: 'whirlpool mixing', color: '#bfef45'},
+		{name: 'whirlpool destination', color: '#45ef87'},
+	];
+
 	const colorMap = new Map();
-	colorMap.set('origin', '#800000');
-	colorMap.set('mixing', '#e6194b');
-	colorMap.set('destination', '#fabed4');
-	colorMap.set('collateral creation', '#3cb44b');
-	colorMap.set('collateral payment', '#bfef45');
+
+	switch (mode) {
+		case BLOCKCHAIN_DASH:
+			dashTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+			break;
+		case BLOCKCHAIN_BTC:
+			wasabi2TransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+			whirlPoolTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+			break;
+		case undefined:
+			dashTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+			wasabi2TransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+			whirlPoolTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+			break;
+		default:
+	}
+
 	return colorMap;
 }
 

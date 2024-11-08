@@ -248,7 +248,7 @@ const props = defineProps({selectorData: {type: Object, required: true}});
 
 const {getSettings} = storeToRefs(useLocalStore());
 
-const colorMap = getColorMap();
+const colorMap = getColorMap(getSettings.value.blockchainMode);
 let svgBarChart = null;
 const tableHeaders = [
 	{

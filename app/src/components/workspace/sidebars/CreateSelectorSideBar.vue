@@ -270,10 +270,12 @@ import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
 import RangeOption from '@/components/workspace/sidebars/RangeOption.vue';
+import {useLocalStore} from '@/pinia/local.js';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selector']);
 const msgStore = useMsgStore();
+const localStore = useLocalStore();
 const route = useRoute();
 
 const props = defineProps({
@@ -344,7 +346,7 @@ const transactionTypeItems = [];
 
 // Hooks
 onMounted(() => {
-	getColorMap().forEach((v, k) => {
+	getColorMap(localStore.getSettings.blockchainMode).forEach((v, k) => {
 		transactionTypeItems.push({title: capitalize(k), value: k, color: v});
 	});
 });

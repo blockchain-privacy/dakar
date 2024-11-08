@@ -29,10 +29,8 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col v-if="isInput || inputIndex >= 0">
-          <div
-            class="d-flex justify-space-between align-center"
-          >
+        <v-col v-if="txHash !== '' && (isInput || inputIndex >= 0)">
+          <div class="d-flex justify-space-between align-center">
             <div class="text-caption d-flex align-center text-no-wrap me-2">
               <workspace-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}">
                 {{ isInput ? 'created' : 'spent' }}

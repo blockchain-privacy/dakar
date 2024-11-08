@@ -266,9 +266,9 @@ const filepathToFilename = computed(() => {
 	return fileMap;
 });
 
-// SeparateWords adds a space before each capitalized letter
+// SeparateWords adds a space before each capitalized letter and numbers
 function separateWords(string) {
-	return string.replace(/([A-Z])/g, ' $1').trim();
+	return string.replace(/([A-Z])/g, ' $1').replace(/(\d+(\.\d+)?)/g, ' $1').trim();
 }
 
 // Capitalize capitalizes the given string

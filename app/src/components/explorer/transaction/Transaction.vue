@@ -325,7 +325,7 @@ const maxOutputs = ref(3);
 
 let svgInputGraph = null;
 let svgOutputGraph = null;
-const colorMap = getColorMap();
+const colorMap = getColorMap(getSettings.value.blockchainMode);
 // Set color for non-privacy transaction
 colorMap.set(undefined, '#607D8B');
 const enoughDataForInputGraph = ref(true);
