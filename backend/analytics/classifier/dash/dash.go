@@ -40,21 +40,18 @@ import (
 //   │C Payment├─┤C Payment│          └─┤C Creation├─┤C Payment│
 //   └─────────┘ └─────────┘            └──────────┘ └─────────┘
 
-// NumDenominations is the number of Dash PrivateSend denominations
-const NumDenominations = 5
-
 const (
 	// minCollateral is 1/10 of the smallest denomination: round(100001/10).
 	minCollateral = 10000
-
 	// OldMinCollateral is the minimum collateral before the 5th denomination
 	// was added in protocol version 70213 it was round(1000010/10): 100000
 	// OldMinCollateral = 100000
-
 	// maxCollateral is the maximum allowed collateral
 	maxCollateral = 40000 // 4*minCollateral
 	// oldMaxCollateral is to old collateral
 	oldMaxCollateral = 400000 // 4*OldMinCollateral
+	// NumDenominations is the number of Dash PrivateSend denominations
+	NumDenominations = 5
 )
 
 var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}

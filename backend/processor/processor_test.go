@@ -633,49 +633,6 @@ func Test_processTxVin(t *testing.T) {
 	}
 }
 
-func Test_processBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	ctx, cancel := db.GetTaskContext()
-	defer cancel()
-
-	transactions, err := db.GetTransactionsByBlock(ctx, dbHandle,
-		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock, false)
-	require.NoError(t, err)
-
-	type args struct {
-		transactions  []db.Transaction
-		currentHash   string
-		blockID       int64
-		timestamp     string
-		prevBlockHash string
-	}
-	tests := []struct {
-		args    args
-		wantErr bool
-	}{
-		{
-			args: args{
-				transactions:  transactions,
-				currentHash:   "some_hash",
-				blockID:       5,
-				timestamp:     time.Now().Format(time.RFC3339),
-				prevBlockHash: "some_other_hash",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		err := processBlock(ctx, dbHandle, tt.args.transactions, tt.args.currentHash,
-			tt.args.blockID, tt.args.timestamp, tt.args.prevBlockHash)
-		if tt.wantErr {
-			require.Error(t, err)
-		} else {
-			require.NoError(t, err)
-		}
-	}
-}
-
 func Test_getStartingID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)

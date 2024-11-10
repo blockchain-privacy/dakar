@@ -163,22 +163,22 @@ func (c *Crawler) Iterate(ctx context.Context) (bool, error) {
 		return false, serror.FromStr("got empty state")
 	}
 
-	var err error
 	// get block from RPC-Client
-	c.currentBlock, err = c.rpc.GetBlockVerbose(c.state.hash)
+	blk, err := c.rpc.GetBlockVerbose(c.state.hash)
+	if err != nil {
+		return false, err
+	}
+	c.currentBlock = blk
+
+	// do the actual processing and aggregate the resulting metrics
+	rBlockCounter, rTransactionCounter, err := processRound(ctx, c.db, c.rpc, c.state, c.currentBlock, c.config, c.cache)
 	if err != nil {
 		return false, err
 	}
 
-	// do the actual processing and aggregate the resulting metrics
-	if rBlockCounter, rTransactionCounter, processErr := processRound(ctx, c.db, c.rpc, c.state, c.currentBlock,
-		c.config, c.cache); processErr == nil {
-		c.blocks.Add(float64(rBlockCounter))
-		c.transactions.Add(float64(rTransactionCounter))
-		c.blockHeight.Set(float64(c.state.id))
-	} else {
-		return false, processErr
-	}
+	c.blocks.Add(float64(rBlockCounter))
+	c.transactions.Add(float64(rTransactionCounter))
+	c.blockHeight.Set(float64(c.state.id))
 
 	return true, nil
 }

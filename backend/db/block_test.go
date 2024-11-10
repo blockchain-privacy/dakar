@@ -123,3 +123,40 @@ func TestGetFrontendBlock(t *testing.T) {
 	_, err = GetFrontendBlock(context.Background(), dbHandle, "", 0)
 	require.Error(t, err)
 }
+
+func TestUpsertBlock(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	ctx, cancel := GetTaskContext()
+	defer cancel()
+
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle,
+		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock, false)
+	require.NoError(t, err)
+
+	tests := []struct {
+		block   Block
+		wantErr bool
+	}{
+		{
+			block: Block{
+				Transactions: transactions,
+				Hash:         "some_hash",
+				ID:           getNumPointer[int64](5),
+				Timestamp:    time.Now().Format(time.RFC3339),
+				PrevBlock: &Block{
+					Hash: "some_other_hash",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := UpsertBlock(ctx, dbHandle, tt.block)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}

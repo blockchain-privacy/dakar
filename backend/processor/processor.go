@@ -395,20 +395,6 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[int32]
 	return nil
 }
 
-// processBlock builds a block with the provided arguments and inserts it in the database
-func processBlock(ctx context.Context, dgraph external.Database, transactions []db.Transaction, currentHash string,
-	blockID int64, timestamp string, prevBlockHash string) (err error) {
-	return db.UpsertBlock(ctx, dgraph, db.Block{
-		Hash:      currentHash,
-		Timestamp: timestamp,
-		ID:        &blockID,
-		PrevBlock: &db.Block{
-			Hash: prevBlockHash,
-		},
-		Transactions: transactions,
-	})
-}
-
 var errBlockIDsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
 
 // getStartingID gets the block id from which the crawling will be resumed. If no crawling has
@@ -582,8 +568,6 @@ func getExternalOutputs(ctx context.Context, dgraph external.Database,
 func processRound(ctx context.Context, dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
 	block *jsonrpc.GetBlockVerboseResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
-	var txMapping []transactionMapping
-
 	txHashMap, err := createTransactionHashmap(rpcClient, block.Tx)
 	if err != nil {
 		err = serror.AddContext(err, "state", state.String())
@@ -595,6 +579,7 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 		return 0, 0, err
 	}
 
+	var txMapping []transactionMapping
 	transactions := make([]db.Transaction, 0, len(txHashMap))
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
@@ -628,8 +613,15 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 	var b db.Block
 	if b, err = db.GetBlock(ctx, dgraph, state.hash); err != nil || !b.IsComplete() {
 		// block is not yet in database -> create new block
-		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
-		if err = processBlock(ctx, dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+		if err = db.UpsertBlock(ctx, dgraph, db.Block{
+			Hash:      state.hash,
+			Timestamp: time.Unix(block.Time, 0).Format(time.RFC3339),
+			ID:        &state.id,
+			PrevBlock: &db.Block{
+				Hash: block.PreviousHash,
+			},
+			Transactions: transactions,
+		}); err != nil {
 			err = serror.AddContext(err, "state", state.String())
 			return
 		}
