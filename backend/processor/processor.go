@@ -503,25 +503,6 @@ func getInitialState(ctx context.Context, dgraph external.Database, client exter
 	return
 }
 
-// createTransactionHashmap gets all requested transactions from the RPCClient
-// and organizes them in a map indexed by the transaction hash
-func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]jsonrpc.TxRawResult, error) {
-	rawTransactions, err := client.GetRawTransactionVerboseBatch(transactions)
-	if err != nil {
-		return nil, err
-	}
-	txs := make(map[string]jsonrpc.TxRawResult, len(rawTransactions))
-	for _, rawTransaction := range rawTransactions {
-		if rawTransaction == nil {
-			return nil, serror.FromFormat("raw transaction is nil. Request: %v", transactions)
-		}
-
-		txs[rawTransaction.Txid] = *rawTransaction
-	}
-
-	return txs, nil
-}
-
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
 func getExternalOutputs(ctx context.Context, dgraph external.Database,
 	outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
@@ -563,24 +544,19 @@ func getExternalOutputs(ctx context.Context, dgraph external.Database,
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(ctx context.Context, dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
-	block *jsonrpc.GetBlockVerboseResult, config Config, cache *outputCache) (
+func processRound(ctx context.Context, dgraph external.Database, state crawlerState,
+	block *jsonrpc.GetBlockVerboseResult, txMap map[string]jsonrpc.TxRawResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
-	txHashMap, err := createTransactionHashmap(rpcClient, block.Tx)
-	if err != nil {
-		err = serror.AddContext(err, "state", state.String())
-		return
-	}
 
-	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txHashMap, cache))
+	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txMap, cache))
 	if err != nil {
 		return 0, 0, err
 	}
 
 	var txMapping []transactionMapping
-	transactions := make([]db.Transaction, 0, len(txHashMap))
-	for _, t := range txHashMap {
-		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
+	transactions := make([]db.Transaction, 0, len(txMap))
+	for _, t := range txMap {
+		newTx, tMap, buildErr := buildTransactionMapping(t, txMap, externalOutputs, config, cache)
 		if buildErr != nil {
 			err = serror.AddContext(err, "state", state.String())
 			return

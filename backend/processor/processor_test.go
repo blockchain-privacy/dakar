@@ -435,7 +435,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rawTxResult)
 
-	txHashMap, err := createTransactionHashmap(client, block.Tx)
+	txHashMap, err := createTransactionMap(client, block.Tx)
 	require.NoError(t, err)
 
 	txWithoutAddresses := rawTxResult
@@ -688,21 +688,6 @@ func Test_getInitialState(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_createTransactionHashmap(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
-	require.NoError(t, err)
-	require.NotEmpty(t, blockHashes)
-
-	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
-	require.NoError(t, err)
-
-	hashmap, err := createTransactionHashmap(client, verboseBlock.Tx)
-	require.NoError(t, err)
-	require.NotEmpty(t, hashmap)
-}
-
 func Test_getExternalOutputs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
@@ -758,9 +743,14 @@ func Test_processRound(t *testing.T) {
 	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
 	require.NoError(t, err)
 
+	txMap, err := createTransactionMap(client, verboseBlock.Tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, txMap)
+
 	type args struct {
 		state  crawlerState
 		block  *jsonrpc.GetBlockVerboseResult
+		txMap  map[string]jsonrpc.TxRawResult
 		config Config
 		cache  *outputCache
 	}
@@ -772,6 +762,7 @@ func Test_processRound(t *testing.T) {
 			args: args{
 				state:  crawlerState{top: int64(3), id: int64(1)},
 				block:  verboseBlock,
+				txMap:  txMap,
 				config: NewBitcoinConfig(),
 				cache:  newOutputCache(),
 			},
@@ -779,7 +770,7 @@ func Test_processRound(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		_, _, err := processRound(ctx, dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		_, _, err := processRound(ctx, dbHandle, tt.args.state, tt.args.block, tt.args.txMap, tt.args.config, tt.args.cache)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

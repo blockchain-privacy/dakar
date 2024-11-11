@@ -170,8 +170,13 @@ func (c *Crawler) Iterate(ctx context.Context) (bool, error) {
 	}
 	c.currentBlock = blk
 
+	txMap, err := createTransactionMap(c.rpc, blk.Tx)
+	if err != nil {
+		return false, err
+	}
+
 	// do the actual processing and aggregate the resulting metrics
-	rBlockCounter, rTransactionCounter, err := processRound(ctx, c.db, c.rpc, c.state, c.currentBlock, c.config, c.cache)
+	rBlockCounter, rTransactionCounter, err := processRound(ctx, c.db, c.state, c.currentBlock, txMap, c.config, c.cache)
 	if err != nil {
 		return false, err
 	}
@@ -181,4 +186,23 @@ func (c *Crawler) Iterate(ctx context.Context) (bool, error) {
 	c.blockHeight.Set(float64(c.state.id))
 
 	return true, nil
+}
+
+// createTransactionMap gets all requested transactions from the RPCClient
+// and organizes them in a map indexed by the transaction hash
+func createTransactionMap(client external.RPCClient, transactions []string) (map[string]jsonrpc.TxRawResult, error) {
+	rawTransactions, err := client.GetRawTransactionVerboseBatch(transactions)
+	if err != nil {
+		return nil, err
+	}
+	txs := make(map[string]jsonrpc.TxRawResult, len(rawTransactions))
+	for _, rawTransaction := range rawTransactions {
+		if rawTransaction == nil {
+			return nil, serror.FromFormat("raw transaction is nil. Request: %v", transactions)
+		}
+
+		txs[rawTransaction.Txid] = *rawTransaction
+	}
+
+	return txs, nil
 }

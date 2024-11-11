@@ -151,3 +151,18 @@ func TestCrawler_Iterate(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, success)
 }
+
+func Test_createTransactionMap(t *testing.T) {
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
+	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
+	require.NoError(t, err)
+	require.NotEmpty(t, blockHashes)
+
+	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
+	require.NoError(t, err)
+
+	txMap, err := createTransactionMap(client, verboseBlock.Tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, txMap)
+}
