@@ -190,7 +190,7 @@ func createOutputUID(transaction string, outputID int32) string {
 // newAmount mulitplies the given float times 1e8 and returns an integer
 func newAmount(f float64) (int64, error) {
 	// The amount is only considered invalid if it cannot be represented
-	// as an integer type.  This may happen if f is NaN or +-Infinity.
+	// as an integer type. This may happen if f is NaN or +-Infinity.
 	switch {
 	case math.IsNaN(f):
 		fallthrough
@@ -342,9 +342,7 @@ func filterExternalOutputs(txHashMap map[string]jsonrpc.TxRawResult, cache *outp
 			}
 
 			if _, ok := txHashMap[vin.Txid]; !ok && cache.getOutput(vin.Txid, vin.Vout) == nil {
-				ids := externalOutputs[vin.Txid]
-				ids = append(ids, vin.Vout)
-				externalOutputs[vin.Txid] = ids
+				externalOutputs[vin.Txid] = append(externalOutputs[vin.Txid], vin.Vout)
 			}
 		}
 	}
