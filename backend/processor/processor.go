@@ -547,7 +547,6 @@ func getExternalOutputs(ctx context.Context, dgraph external.Database,
 func processRound(ctx context.Context, dgraph external.Database, state crawlerState,
 	block *jsonrpc.GetBlockVerboseResult, txMap map[string]jsonrpc.TxRawResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
-
 	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txMap, cache))
 	if err != nil {
 		return 0, 0, err

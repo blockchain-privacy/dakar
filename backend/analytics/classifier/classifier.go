@@ -91,8 +91,8 @@ func (c *Classifier) Props() blockiterator.Properties {
 	}
 }
 
-func (c *Classifier) SetMaxBlocks(max int64) {
-	c.maxBlocks = max
+func (c *Classifier) SetMaxBlocks(maxBlocks int64) {
+	c.maxBlocks = maxBlocks
 }
 
 // IncrementState increments the state one block

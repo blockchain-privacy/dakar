@@ -114,7 +114,7 @@ func GetClusteringFMIStatus(ctx context.Context, c external.Database) (status Cl
 }
 
 // GetHighestBlockID gets the highest block id.
-func GetHighestBlockID(ctx context.Context, c external.Database) (max int64, err error) {
+func GetHighestBlockID(ctx context.Context, c external.Database) (int64, error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -125,7 +125,7 @@ func GetHighestBlockID(ctx context.Context, c external.Database) (max int64, err
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	var r struct {
@@ -135,23 +135,19 @@ func GetHighestBlockID(ctx context.Context, c external.Database) (max int64, err
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return
+		return 0, serror.New(err)
 	}
 
 	switch {
 	case len(r.TopBlock) == 0:
-		err = serror.New(errTopBlockNotFound)
-		return
+		return 0, serror.New(errTopBlockNotFound)
 	case len(r.TopBlock) > 1:
-		err = serror.New(errInvalidNumber)
-		return
+		return 0, serror.New(errInvalidNumber)
 	case r.TopBlock[0].Max == 0:
-		err = serror.New(errTopBlockNotFound)
-		return
+		return 0, serror.New(errTopBlockNotFound)
 	}
-	max = r.TopBlock[0].Max
 
-	return
+	return r.TopBlock[0].Max, nil
 }
 
 // GetFrontendStatus gets verbose status information from the database

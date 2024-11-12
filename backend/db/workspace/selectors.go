@@ -17,7 +17,7 @@ var ErrInvalidSelector = errors.New("invalid selector")
 
 // appendFilterArgs appends '<and> ge(filterSubject, number)' or '<and> le(filterSubject, number)' filter
 // to the given string and returns it
-func appendFilterArgs(filter string, fiterSubject string, number *int64, min bool) string {
+func appendFilterArgs(filter string, fiterSubject string, number *int64, greaterOrEqual bool) string {
 	if number == nil {
 		return filter
 	}
@@ -26,7 +26,7 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 		filter += " and "
 	}
 
-	if min {
+	if greaterOrEqual {
 		filter += "ge"
 	} else {
 		filter += "le"

@@ -151,11 +151,11 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 }
 
 // loadDashOriginTransactions loads transactions filtered by type from the database into the graph.
-// max: the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+// maxTransactions: the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
 // step: how many transactions are loaded in a single call to the database
 // loadSingleNodes: wether single nodes or edges are supposed to be loaded
 func loadTransactions(ctx context.Context, c external.Database, g *ReversibleGraph,
-	step int, max int, transactionType string, loadSingleNodes bool) error {
+	step int, maxTransactions int, transactionType string, loadSingleNodes bool) error {
 	for i := 0; ; i += step {
 		var numNodesLoaded int
 		if loadSingleNodes {
@@ -187,7 +187,7 @@ func loadTransactions(ctx context.Context, c external.Database, g *ReversibleGra
 			numNodesLoaded = len(edges)
 		}
 
-		if numNodesLoaded < step || (max > 0 && i+step >= max) {
+		if numNodesLoaded < step || (maxTransactions > 0 && i+step >= maxTransactions) {
 			break
 		}
 	}
