@@ -219,11 +219,13 @@ func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (sear
 func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *http.Request) (metaReply, int) {
 	var reply metaReply
 
-	// get block info
-	blocks, err := rpcClient.GetBlockCount()
-	if err != nil {
-		warn(serror.New(err))
-		return reply, http.StatusInternalServerError
+	if rpcClient != nil {
+		var err error
+		*reply.Blocks, err = rpcClient.GetBlockCount()
+		if err != nil {
+			warn(serror.New(err))
+			return reply, http.StatusInternalServerError
+		}
 	}
 
 	verboseStatus, err := dbstat.GetFrontendStatus(r.Context(), dgraph)
@@ -232,11 +234,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 		return reply, http.StatusInternalServerError
 	}
 
-	// set response struct
-	return metaReply{
-		Status: &verboseStatus,
-		Blocks: &blocks,
-	}, http.StatusOK
+	return metaReply{Status: &verboseStatus}, http.StatusOK
 }
 
 func getSelectorStatus(workspaceMutex *workspace.Mutex, dgraph external.Database, r *http.Request) (reply selectorStatusReply, status int) {

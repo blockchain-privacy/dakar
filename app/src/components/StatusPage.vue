@@ -190,7 +190,7 @@
                       </icon-item>
                     </v-col>
                   </v-row>
-                  <v-row>
+                  <v-row v-if="data.blocks > 0">
                     <v-col>
                       <icon-item
                         :icon="mdiCounter"
