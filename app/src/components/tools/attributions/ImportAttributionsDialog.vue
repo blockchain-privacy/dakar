@@ -116,7 +116,7 @@ const isLoading = ref(false);
 const areAttributionsPublic = ref(false);
 const csv = ref({
 	valid: false,
-	file: null,
+	file: undefined,
 	separator: ',',
 	firstRowContainsHeader: false,
 });
@@ -176,7 +176,7 @@ async function handleCSVUpload() {
 	const attributionData = {
 		separator: csv.value.separator,
 		hasHeader: csv.value.firstRowContainsHeader,
-		file: csv.value.file[0],
+		file: csv.value.file,
 	};
 
 	try {
@@ -193,7 +193,7 @@ async function handleCSVUpload() {
 	}
 
 	isLoading.value = false;
-	csv.value.file = null;
+	csv.value.file = undefined;
 	model.value = false;
 }
 </script>

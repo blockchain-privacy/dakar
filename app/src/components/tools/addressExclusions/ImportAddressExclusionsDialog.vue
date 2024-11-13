@@ -83,7 +83,7 @@ const csvForm = ref(null);
 const isLoading = ref(false);
 const csv = ref({
 	valid: false,
-	file: null,
+	file: undefined,
 });
 
 // Functions
@@ -114,7 +114,7 @@ async function handleCSVUpload() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.addressExclusion.exclusionsPost({file: csv.value.file[0]});
+		const response = await dakar.addressExclusion.exclusionsPost({file: csv.value.file});
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}
@@ -126,7 +126,7 @@ async function handleCSVUpload() {
 	}
 
 	isLoading.value = false;
-	csv.value.file = null;
+	csv.value.file = undefined;
 	model.value = false;
 }
 

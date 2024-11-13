@@ -101,7 +101,7 @@ const csvForm = ref(null);
 const isLoading = ref(false);
 const csv = ref({
 	valid: false,
-	file: null,
+	file: undefined,
 	separator: ',',
 	firstRowContainsHeader: false,
 });
@@ -136,7 +136,7 @@ async function handleCSVUpload() {
 		await dakar.cluster.clustersPost({
 			separator: csv.value.separator,
 			hasHeader: csv.value.firstRowContainsHeader,
-			file: csv.value.file[0],
+			file: csv.value.file,
 		});
 
 		setSuccessMessage('import was successful');
@@ -146,7 +146,7 @@ async function handleCSVUpload() {
 	}
 
 	isLoading.value = false;
-	csv.value.file = null;
+	csv.value.file = undefined;
 	model.value = false;
 }
 
