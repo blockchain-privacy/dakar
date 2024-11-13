@@ -2,43 +2,45 @@ import {defineStore} from 'pinia';
 import {
 	getLocalSession, getLocalSettings, setLocalSession, setLocalSettings,
 } from '@/utilities';
+import {BLOCKCHAIN_DASH} from '@/constants/index.js';
 
-// InsertLocalSettingsData inserts settings data, which is
+// InsertLocalData inserts session and settings data, which is
 // stored in LocalStorage, into the store. This is not done
-// in App.vue on purpose so settings data is available in the
+// in App.vue so settings data is available in the
 // route guards even on page load.
-function insertLocalSettingsData(state) {
-	const localStorageSettingsData = getLocalSettings();
-	if (localStorageSettingsData !== null) {
-		state.settings = localStorageSettingsData;
+function insertLocalData(state) {
+	const localSettings = getLocalSettings();
+	if (localSettings !== null) {
+		// Explictly set values, so new settings are merged with old localstorage settings
+		if (localSettings.dark !== undefined) {
+			state.settings.dark = localSettings.dark;
+		}
+
+		if (localSettings.blockchainMode !== undefined) {
+			state.settings.blockchainMode = localSettings.blockchainMode;
+		}
+	}
+
+	const localSession = getLocalSession();
+	if (localSession !== null) {
+		state.session = localSession;
 	}
 
 	return state;
 }
 
-// InsertLocalSessionData inserts session data, which is
-// stored in LocalStorage, into the store. This is not done
-// in App.vue on purpose so settings data is available in the
-// route guards even on page load.
-function insertLocalSessionData(state) {
-	const localStorageSessionData = getLocalSession();
-	if (localStorageSessionData !== null) {
-		state.session = localStorageSessionData;
-	}
-
-	return state;
-}
-
-let initialState = {
+const initialState = {
 	// Ory kratos session
 	session: null,
-	settings: null,
+	settings: {
+		// Set dark to be not initialized, so initial value can be set from media query
+		dark: null,
+		blockchainMode: BLOCKCHAIN_DASH,
+	},
 };
-initialState = insertLocalSettingsData(initialState);
-initialState = insertLocalSessionData(initialState);
 
 export const useLocalStore = defineStore('local', {
-	state: () => initialState,
+	state: () => insertLocalData(initialState),
 	getters: {
 		getSession: state => state.session,
 		getSettings: state => state.settings,

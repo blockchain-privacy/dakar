@@ -204,7 +204,8 @@
           <template #item.txhash="{item}">
             <td>
               <workspace-link
-                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: item.txhash }}"
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
+                       params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
                 class="shorten"
               >
                 {{ item.txhash }}
@@ -241,8 +242,12 @@ import {
 	cashLeft, cashRight, sigmaLeft, sigmaRight, incognitoFilter,
 } from '@/customIcons/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
+import {useLocalStore} from '@/pinia/local.js';
+import {storeToRefs} from 'pinia';
 
 const props = defineProps({selectorData: {type: Object, required: true}});
+
+const {getSettings} = storeToRefs(useLocalStore());
 
 const colorMap = getColorMap();
 let svgBarChart = null;

@@ -50,7 +50,8 @@
                   <workspace-link
                     style="max-width:200px"
                     class="shorten"
-                    :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
+                    :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
+                           params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
                   >
                     {{ item.txhash }}
                   </workspace-link>
@@ -117,21 +118,21 @@
 <script setup>
 import {mdiArrowLeftRight, mdiCancel} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
-import {
-	computed, inject, onUpdated, ref,
-} from 'vue';
+import {computed, onUpdated, ref} from 'vue';
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
 import {
 	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_CLUSTER,
 	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import {capitalize, convertAmount} from '../../../utilities/index.js';
+import {capitalize, convertAmount, getDakarClient} from '../../../utilities/index.js';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
@@ -145,7 +146,8 @@ const model = defineModel({type: Boolean});
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 let oldConnection = null;
 const connectionSource = ref(null);

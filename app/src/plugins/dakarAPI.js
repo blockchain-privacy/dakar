@@ -12,9 +12,10 @@ import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
 import {useLocalStore} from '@/pinia/local';
 
-function newConfig(v) {
+// BashPathPrefix should have a leading slash: /someprefix
+function newConfig(v, basePathPrefix) {
 	return new Configuration({
-		basePath: '/api/v1',
+		basePath: basePathPrefix + '/api/v1',
 		credentials: 'include',
 		middleware: [{
 			async post(d) {
@@ -25,8 +26,12 @@ function newConfig(v) {
 }
 
 export default {
-	setup(v) {
-		const c = newConfig(v);
+	setup(v, basePathPrefix) {
+		if (!basePathPrefix) {
+			throw new Error('prefix for dakar client not set');
+		}
+
+		const c = newConfig(v, basePathPrefix);
 		return {
 			attribution: new AttributionApi(c),
 			tools: new ToolsApi(c),

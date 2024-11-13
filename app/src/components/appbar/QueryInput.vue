@@ -3,7 +3,7 @@
     id="query-input"
     v-model="query"
     hide-details
-    style="min-width:220px"
+    style="min-width:100px"
     variant="outlined"
     density="compact"
     color="primary"
@@ -22,23 +22,31 @@ import {
 	RESPONSE_EMPTY, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION,
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
-import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
 import {
-	computed, inject, ref, watch,
+	getDakarClients, handleError, isValidQuery, isValidQueryInput,
+} from '@/utilities';
+import {
+	computed, ref, watch,
 } from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {useMsgStore} from '@/pinia/msg';
 import {useNavStore} from '@/pinia/nav';
 import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
 const route = useRoute();
 const router = useRouter();
 const msgStore = useMsgStore();
+const {getSettings} = storeToRefs(useLocalStore());
 const explorerStore = useExplorerStore();
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {addMessage: msgStore.addMessage, $route: useRoute()};
+
+// When the blockchain mode is switched and the current component is not reloaded,
+// the dakar client is in the wrong state. As a workaround, get all available dakar
+// clients and select the right one when doing a request.
+const dakarClients = getDakarClients();
 
 const query = ref('');
 let lastQuery = '';
@@ -100,15 +108,15 @@ async function handleInput(q) {
 			break;
 		case RESPONSE_TYPE_ADDRESS:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery}});
+			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		case RESPONSE_TYPE_BLOCK:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery}});
+			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		case RESPONSE_TYPE_TRANSACTION:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery}});
+			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		default:
 			await router.push({name: ROUTE_NAME_NO_RESULTS});
@@ -149,17 +157,21 @@ async function handleQuery(q, type) {
 
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakar.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakar.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
 			break;
 		case RESPONSE_TYPE_ADDRESS:
 
-			await storeResult(dakar.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
 			break;
 		default:
-			await storeResult(dakar.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
+			await storeResult(dakarClients[getSettings.value.blockchainMode]
+				.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
 	}
 
 	return true;

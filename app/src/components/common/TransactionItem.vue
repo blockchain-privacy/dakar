@@ -3,7 +3,7 @@
     <icon-title
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
-      :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}"
+      :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}"
     >
       <privacy-chip
         v-if="tx.txtype"
@@ -13,7 +13,7 @@
     </icon-title>
     <v-card-text>
       <v-list>
-        <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash }}">
+        <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash, blockchainMode: getSettings.blockchainMode }}">
           <v-list-item-title>
             Block Hash
           </v-list-item-title>
@@ -21,7 +21,7 @@
             {{ tx.bhash }}
           </v-list-item-subtitle>
         </v-list-item>
-        <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
+        <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid, blockchainMode: getSettings.blockchainMode }}">
           <v-list-item-title>
             Block ID
           </v-list-item-title>
@@ -39,6 +39,10 @@ import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {mdiTransfer} from '@mdi/js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
+
+const {getSettings} = storeToRefs(useLocalStore());
 
 defineProps({tx: {type: Object, required: true}});
 

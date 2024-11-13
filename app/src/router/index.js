@@ -25,6 +25,7 @@ import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import NoResultsImg from '@/assets/no_results.webp';
 import BugsImg from '@/assets/bugs.webp';
+import {BLOCKCHAIN_BTC, BLOCKCHAIN_DASH} from '../constants';
 
 let msgStore = null;
 let navStore = null;
@@ -63,32 +64,38 @@ export const router = createRouter({
 	routes: [
 		{
 			path: '/',
+			redirect() {
+				return {name: Constants.ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}};
+			},
+		},
+		{
+			path: '/home/:blockchainMode',
 			name: Constants.ROUTE_NAME_ENTRY_PAGE,
 			component: EntryPage,
 		},
 		{
-			path: '/status',
+			path: '/status/:blockchainMode',
 			name: Constants.ROUTE_NAME_STATUS_PAGE,
 			component: StatusPage,
 			meta: {limitToRole: 'privileged'},
 		},
 		{
-			path: '/block/:id',
+			path: '/block/:blockchainMode/:id',
 			name: Constants.ROUTE_NAME_BLOCK_PAGE,
 			component: BlockPage,
 		},
 		{
-			path: '/tx/:id',
+			path: '/tx/:blockchainMode/:id',
 			name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
 			component: TransactionPage,
 		},
 		{
-			path: '/address/:id',
+			path: '/address/:blockchainMode/:id',
 			name: Constants.ROUTE_NAME_ADDRESS_PAGE,
 			component: AddressPage,
 		},
 		{
-			path: '/workspace/:id',
+			path: '/workspace/:blockchainMode/:id',
 			name: Constants.ROUTE_NAME_WORKSPACE_PAGE,
 			component: WorkspaceEditorPage,
 			meta: {limitToRole: 'privileged'},
@@ -130,7 +137,7 @@ export const router = createRouter({
 			],
 		},
 		{
-			path: '/tools',
+			path: '/tools/:blockchainMode',
 			component: ToolsPage,
 			meta: {limitToRole: 'privileged'},
 			children: [
@@ -216,6 +223,12 @@ export const router = createRouter({
 	],
 });
 
+function persistBlockchainMode(mode) {
+	const set = localStore.getSettings;
+	set.blockchainMode = mode;
+	localStore.setSettings(set);
+}
+
 router.beforeEach((to, from) => {
 	// Check for role
 	if (to.meta.limitToRole) {
@@ -229,6 +242,18 @@ router.beforeEach((to, from) => {
 		const routeTo = checkSession(to, fn);
 		if (routeTo !== null) {
 			return routeTo;
+		}
+	}
+
+	if (to.params.blockchainMode) {
+		switch (to.params.blockchainMode) {
+			case BLOCKCHAIN_DASH:
+				persistBlockchainMode(to.params.blockchainMode);
+				break;
+			case BLOCKCHAIN_BTC:
+				persistBlockchainMode(to.params.blockchainMode);
+				break;
+			default: return {name: Constants.ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}};
 		}
 	}
 

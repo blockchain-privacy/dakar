@@ -36,13 +36,17 @@
 </template>
 
 <script setup>
-import {inject, ref} from 'vue';
+import {ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
+import {getDakarClient} from '@/utilities/index.js';
 
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
 const msgStore = useMsgStore();
 const route = useRoute();
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const model = defineModel({type: Boolean});
 defineProps({count: {type: Number, required: true}});

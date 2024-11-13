@@ -9,7 +9,7 @@
         <workspace-link
           class="shorten"
           disable-select
-          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}"
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
           @clicked="model = false"
         >
           {{ txHash }}
@@ -37,7 +37,7 @@
               <workspace-link
                 class="shorten"
                 disable-select
-                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash }}"
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash, blockchainMode: getSettings.blockchainMode }}"
                 @clicked="model = false"
               >
                 {{ t.txhash }}
@@ -53,6 +53,9 @@
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
+const {getSettings} = storeToRefs(useLocalStore());
 
 defineProps({
 	txHash: {type: String, required: true},
@@ -62,7 +65,6 @@ defineProps({
 });
 
 const model = defineModel({type: Boolean});
-
 </script>
 
 <style scoped>

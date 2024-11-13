@@ -34,15 +34,18 @@
 <script setup>
 import {mdiMagnify} from '@mdi/js';
 import AttributionDetails from './AttributionDetails.vue';
-import {handleError} from '@/utilities';
-import {inject, ref} from 'vue';
+import {getDakarClient, handleError} from '@/utilities';
+import {ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const loading = ref(false);
 const query = ref('');

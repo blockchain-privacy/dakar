@@ -34,19 +34,21 @@
 import {mdiCloseCircle} from '@mdi/js';
 import DeleteAddressExclusionDialog from '@/components/tools/addressExclusions/DeleteAddressExclusionDialog.vue';
 import {
-	computed, inject, onMounted, ref,
+	computed, onMounted, ref,
 } from 'vue';
-import {handleError, isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {
+	getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
+} from '@/utilities';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local';
 
 const props = defineProps({addressHash: {type: String, required: true}});
 
-const dakar = inject('dakar');
 const route = useRoute();
 const localStore = useLocalStore();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
+const dakar = getDakarClient(localStore.getSettings.blockchainMode);
 
 const deleteExclusionDialog = ref(false);
 const showExclusionChip = ref(false);

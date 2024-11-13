@@ -56,7 +56,7 @@
                           <router-link
                             id="block-page-previous-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.prevblockhash }}"
+                                   params: { id: block.prevblockhash, blockchainMode: getSettings.blockchainMode }}"
                           >
                             {{ shortenHash(block.prevblockhash) }}
                           </router-link>
@@ -70,7 +70,7 @@
                           <router-link
                             id="block-page-next-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.nextblockhash }}"
+                                   params: { id: block.nextblockhash, blockchainMode: getSettings.blockchainMode }}"
                           >
                             {{ shortenHash(block.nextblockhash) }}
                           </router-link>
@@ -148,22 +148,24 @@ import Transaction from './transaction/Transaction.vue';
 import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {
-	computed, inject, onMounted, onUpdated, watch,
+	computed, onMounted, onUpdated, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {storeToRefs} from 'pinia';
 import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local';
+import {getDakarClient} from '@/utilities';
 
-const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {$route: route, addMessage: msgStore.addMessage};
 const {block} = storeToRefs(useExplorerStore());
-const {session} = storeToRefs(useLocalStore());
+const {session, getSettings} = storeToRefs(useLocalStore());
 
 let offset = 0;
+
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 // Computed
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));

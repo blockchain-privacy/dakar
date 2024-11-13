@@ -15,14 +15,16 @@ const pinia = createPinia();
 const app = createApp(App);
 
 app.use(pinia);
-app.use(vuetify).use(router);
 
-// Must not be called before app.use(pinia)
+// Must not be called before app.use(pinia) and not after app.use(vuetify).use(router)
 setupStore();
+
+app.use(vuetify).use(router);
 
 // Provide global variables here, so they can be later injected
 app.provide('ory', oryConfig);
-app.provide('dakar', dakarConfig.setup(app.config.globalProperties));
+app.provide('dashdakar', dakarConfig.setup(app.config.globalProperties, '/dashdakar'));
+app.provide('btcdakar', dakarConfig.setup(app.config.globalProperties, '/btcdakar'));
 app.provide('wikiapi', wikiapiConfig.setup(app.config.globalProperties).default);
 app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties).default);
 

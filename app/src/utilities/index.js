@@ -1,4 +1,6 @@
 import {
+	BLOCKCHAIN_BTC,
+	BLOCKCHAIN_DASH,
 	CLUSTER_TYPE_CUSTOM,
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
@@ -10,6 +12,7 @@ import {
 	PRIVACY_TYPE_ORIGIN,
 	ROUTE_NAME_LOGIN_PAGE,
 } from '@/constants';
+import {inject} from 'vue';
 
 export function setLocalSession(sessionData) {
 	localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
@@ -35,6 +38,29 @@ export function getLocalSettings() {
 	}
 
 	return localStorageSettingsData;
+}
+
+export function getCoinUnit(mode) {
+	switch (mode) {
+		case BLOCKCHAIN_DASH: return 'Dash';
+		case BLOCKCHAIN_BTC: return 'BTC';
+		default: return 'invalid_unit';
+	}
+}
+
+export function getDakarClient(mode) {
+	switch (mode) {
+		case BLOCKCHAIN_DASH: return inject('dashdakar');
+		case BLOCKCHAIN_BTC: return inject('btcdakar');
+		default: throw new Error('invalid blockchain mode:', mode);
+	}
+}
+
+export function getDakarClients() {
+	return {
+		dash: inject('dashdakar'),
+		btc: inject('btcdakar'),
+	};
 }
 
 export function shortenHash(hash) {

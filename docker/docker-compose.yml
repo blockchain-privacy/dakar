@@ -196,13 +196,18 @@ services:
       - dgraph_default
 
 #  dakar:
-#    image: dakar-dash:latest
+#    image: dakar:latest
 #    container_name: dakar
+#    depends_on:
+#      - zero
+#      - alpha
+#      - dashd
 #    environment:
 #      - DEV_GRAPH_LIMIT=10000
 #    ports:
 #      - '8081:8081'
 #      - '8481:8481'
+#      - '8085:8085'
 #    volumes:
 #      - ./dakar/config.yml:/data/config.yml
 #    networks:

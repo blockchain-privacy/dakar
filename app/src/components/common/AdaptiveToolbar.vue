@@ -83,6 +83,7 @@
 
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
+      :disabled="deleteDisabled"
       variant="flat"
       class="my-1 me-1"
       @click="emit('deleteSelected')"
@@ -167,6 +168,7 @@ const props = defineProps({
 	selectedItemCount: {type: Number, required: false, default: 0},
 	shortestPathEnabled: {type: Boolean, required: false},
 	addEntityEnabled: {type: Boolean, required: false},
+	deleteDisabled: {type: Boolean, required: false},
 	oneLine: {type: Boolean, required: false},
 	showDeleteButton: {type: Boolean, required: false},
 	showAddSelectorButton: {type: Boolean, required: false},

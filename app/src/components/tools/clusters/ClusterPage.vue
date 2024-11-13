@@ -123,7 +123,7 @@
           <v-list-item
             v-for="address in item.addresses"
             :key="address"
-            :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: address }}"
+            :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: address, blockchainMode: getSettings.blockchainMode }}"
           >
             <div>
               {{ address }}
@@ -140,20 +140,23 @@ import {
 	mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
-import {handleError} from '@/utilities';
+import {getDakarClient, handleError} from '@/utilities';
 import ImportClusterDialog from './ImportClustersDialog.vue';
 import DeleteClusterDialog from './DeleteClusterDialog.vue';
 import DeleteAllClustersDialog from './DeleteAllClustersDialog.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {inject, onMounted, ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
+const {getSettings} = storeToRefs(useLocalStore());
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const addClusterDialogModel = ref(false);
 const deleteClusterDialogModel = ref(false);

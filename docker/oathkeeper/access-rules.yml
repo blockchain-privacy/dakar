@@ -82,12 +82,13 @@
     - handler: json
       config:
         verbose: false
-- id: "ory:dakar_public"
+- id: "ory:dakar_dash_public"
   upstream:
     preserve_host: true
     url: "http://host.docker.internal:8081"
+    strip_path: "/dashdakar"
   match:
-    url: "http://localhost:4455/api/v1/blockchain/<.*>"
+    url: "http://localhost:4455/dashdakar/api/v1/blockchain/<.*>"
     methods:
       - GET
       - POST
@@ -104,12 +105,13 @@
     - handler: json
       config:
         verbose: true
-- id: "ory:dakar_protected"
+- id: "ory:dakar_dash_protected"
   upstream:
     preserve_host: true
     url: "http://host.docker.internal:8081"
+    strip_path: "/dashdakar"
   match:
-    url: "http://localhost:4455/api/v1/<(?!blockchain).*>"
+    url: "http://localhost:4455/dashdakar/api/v1/<(?!blockchain).*>"
     methods:
       - GET
       - POST

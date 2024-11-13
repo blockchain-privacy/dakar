@@ -231,12 +231,12 @@
 
 <script setup>
 import BarChart from '@/d3Documents/barChart.js';
-import {getColorMap} from '@/utilities';
+import {getColorMap, getDakarClient} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
 import {
-	computed, inject, nextTick, onBeforeMount, onMounted, ref, toRaw, watch,
+	computed, nextTick, onBeforeMount, onMounted, ref, toRaw, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -246,12 +246,15 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
+const {getSettings} = storeToRefs(useLocalStore());
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const colorMap = getColorMap();
 let svgBarChart = null;

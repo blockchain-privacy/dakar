@@ -91,18 +91,21 @@ import {
 	mdiDelete, mdiDotsVertical,	mdiFileImport, mdiTagPlus,
 } from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
-import {handleError} from '@/utilities';
+import {getDakarClient, handleError} from '@/utilities';
 import ImportAttributionDialog from './ImportAttributionsDialog.vue';
 import DeleteAllAttributionsDialog from './DeleteAllAttributionsDialog.vue';
 import AttributionDetails from './AttributionDetails.vue';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-import {inject, onMounted, ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const isLoading = ref(false);
 const addAttributionDialog = ref(false);

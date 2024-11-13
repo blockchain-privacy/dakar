@@ -13,7 +13,7 @@
         <adaptive-toolbar
           :name="workspaceName"
           :selected-item-count="lassoSelectedNodes.length"
-          :delete-enabled="isLassoDeletionEnabled"
+          :delete-disabled="!isLassoDeletionEnabled"
           :shortest-path-enabled="isShortestPathLookupEnabled"
           :add-entity-enabled="!isModifyingWorkspace"
           :node-type-items="nodeTypeLabels"
@@ -202,11 +202,10 @@ import {
 	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN, SELECTOR_STATUS_SUCCESS,
 } from '@/constants';
 import {
-	getColorMap, handleError,
+	getColorMap, getDakarClient, handleError,
 } from '@/utilities';
 import {
-	computed,
-	inject, nextTick, onMounted, onUnmounted, ref, watch,
+	computed, nextTick, onMounted, onUnmounted, ref, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -222,12 +221,15 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const colorMap = getColorMap();
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');

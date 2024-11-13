@@ -98,17 +98,20 @@
 <script setup>
 import SideBar from '@/components/common/SideBar.vue';
 import {mdiChartTimelineVariant} from '@mdi/js';
-import {handleError} from '@/utilities';
+import {getDakarClient, handleError} from '@/utilities';
 import TransactionItem from '@/components/common/TransactionItem.vue';
-import {inject, onUpdated, ref} from 'vue';
+import {onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const model = defineModel({type: Boolean});
-const dakar = inject('dakar');
+const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const props = defineProps({
 	from: {type: String, required: true},

@@ -119,9 +119,7 @@ import {
 	mdiTransfer,
 } from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
-import {
-	computed, inject, onUpdated, ref,
-} from 'vue';
+import {computed, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
 import {useRoute} from 'vue-router';
@@ -131,7 +129,7 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
-import {getCurrentDate, isDestination} from '@/utilities/index.js';
+import {getCurrentDate, getDakarClient, isDestination} from '@/utilities/index.js';
 import {
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
@@ -142,6 +140,8 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -154,11 +154,14 @@ const props = defineProps({
 const emit = defineEmits(['addNodes']);
 const model = defineModel({type: Boolean});
 
-const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
 const workspaceStore = useWorkspaceStore();
+
+const {getSettings} = storeToRefs(useLocalStore());
+
+const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const isLoading = ref(true);
 const entityData = ref();

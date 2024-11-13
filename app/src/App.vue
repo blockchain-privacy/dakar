@@ -17,7 +17,7 @@
 <script setup>
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
-import {DEFAULT_SETTINGS, ROUTE_NAME_ENTRY_PAGE} from './constants';
+import {ROUTE_NAME_ENTRY_PAGE} from './constants';
 import AppBar from './components/appbar/AppBar.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {computed, onBeforeMount} from 'vue';
@@ -47,12 +47,16 @@ function persistDarkTheme(isDark) {
 	settings.value = set;
 }
 
+function persistBlockchainMode(mode) {
+	const set = settings.value;
+	set.blockchainMode = mode;
+	settings.value = set;
+}
+
 function setDarkTheme() {
 	// Create new settings object if necessary
-	if (settings.value === null) {
-		const defaultSettings = DEFAULT_SETTINGS;
-		defaultSettings.dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-		settings.value = defaultSettings;
+	if (settings.value.dark === null) {
+		persistDarkTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
 	}
 
 	theme.global.name.value = settings.value.dark ? 'dark' : 'light';
@@ -61,6 +65,12 @@ function setDarkTheme() {
 // Hooks
 onBeforeMount(() => {
 	setDarkTheme();
+
+	const mode = route.params.blockchainMode;
+	if (mode !== undefined) {
+		persistBlockchainMode(mode);
+	}
+
 	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
 		persistDarkTheme(e.matches);
 		setDarkTheme();

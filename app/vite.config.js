@@ -52,7 +52,11 @@ export default defineConfig({
 	server: {
 		port: 3000,
 		proxy: {
-			'/api': {
+			'/dashdakar': {
+				target: 'http://localhost:4455',
+				changeOrigin: true,
+			},
+			'/btcdakar': {
 				target: 'http://localhost:4455',
 				changeOrigin: true,
 			},

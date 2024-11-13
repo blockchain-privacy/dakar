@@ -12,7 +12,7 @@
               title="Workspaces"
               icon="$graphIcon"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_WORKSPACES_PAGE }"
+              :to="{ name: ROUTE_NAME_WORKSPACES_PAGE, params:{blockchainMode:settings.blockchainMode} }"
             />
           </v-col>
           <v-col>
@@ -20,7 +20,7 @@
               title="Attributions"
               :icon="mdiTag"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_ATTRIBUTIONS }"
+              :to="{ name: ROUTE_NAME_ATTRIBUTIONS, params:{blockchainMode:settings.blockchainMode} }"
             />
           </v-col>
           <v-col>
@@ -28,7 +28,7 @@
               title="Custom Clusters"
               :icon="mdiMerge"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW }"
+              :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW, params:{blockchainMode:settings.blockchainMode}}"
             />
           </v-col>
         </v-row>
@@ -38,7 +38,7 @@
               title="Address Exclusions"
               :icon="mdiPlaylistRemove"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS }"
+              :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS, params:{blockchainMode:settings.blockchainMode} }"
             />
           </v-col>
           <v-col>
@@ -46,7 +46,7 @@
               title="Server Status"
               :icon="mdiServer"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_STATUS_PAGE }"
+              :to="{ name: ROUTE_NAME_STATUS_PAGE, params:{blockchainMode:settings.blockchainMode} }"
             />
           </v-col>
           <v-col>
@@ -91,7 +91,7 @@ import {computed} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 
-const {session} = storeToRefs(useLocalStore());
+const {session, settings} = storeToRefs(useLocalStore());
 
 const iconColor = {default: 'primary', admin: 'red darken-3'};
 
