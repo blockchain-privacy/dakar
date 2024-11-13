@@ -133,6 +133,69 @@
         }
   mutators:
     - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Subject }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_dash_user }}"
+  errors:
+    - handler: json
+      config:
+        verbose: false
+- id: "ory:dakar_btc_public"
+  upstream:
+    preserve_host: true
+    url: "http://btc_dakar:8081"
+    strip_path: "/btcdakar"
+  match:
+    url: "http://localhost:4455/btcdakar/api/v1/blockchain/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+  errors:
+    - handler: json
+      config:
+        verbose: true
+- id: "ory:dakar_btc_protected"
+  upstream:
+    preserve_host: true
+    url: "http://btc_dakar:8081"
+    strip_path: "/btcdakar"
+  match:
+    url: "http://localhost:4455/btcdakar/api/v1/<(?!blockchain).*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ index .Extra.identity.metadata_public.roles 0 | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_protected"
+        }
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Subject }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_btc_user }}"
   errors:
     - handler: json
       config:

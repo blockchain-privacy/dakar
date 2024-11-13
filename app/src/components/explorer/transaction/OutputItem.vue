@@ -6,7 +6,6 @@
   >
     <v-card-text
       style="min-height: 90px"
-      class="overflow-scroll"
     >
       <v-row>
         <v-col>
@@ -14,7 +13,6 @@
             <workspace-link
               v-if="addressHash"
               :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash, blockchainMode: getSettings.blockchainMode }}"
-              class="shorten"
             >
               {{ addressHash }}
             </workspace-link>
@@ -24,7 +22,7 @@
             >
               No Address available
             </div>
-            <div class="text-no-wrap ms-2">
+            <div class="text-no-wrap ms-1">
               {{ convertAmount(amount) }} {{ coinUnit }}
             </div>
           </div>

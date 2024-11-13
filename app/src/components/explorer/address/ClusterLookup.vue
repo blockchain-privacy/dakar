@@ -119,7 +119,6 @@
               >
                 <template #item.addresshash="{ item }">
                   <workspace-link
-                    class="shorten"
                     disable-select
                     :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash, blockchainMode: getSettings.blockchainMode }}"
                   >

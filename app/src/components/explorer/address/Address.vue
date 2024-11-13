@@ -135,7 +135,6 @@
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.input_transaction, blockchainMode: getSettings.blockchainMode }}"
-                    class="shorten"
                   >
                     {{ item.input_transaction }}
                   </workspace-link>
@@ -146,7 +145,6 @@
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                            params: { id: item.output_transaction, blockchainMode: getSettings.blockchainMode }}"
-                    class="shorten"
                   >
                     {{ item.output_transaction }}
                   </workspace-link>

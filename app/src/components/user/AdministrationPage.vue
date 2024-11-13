@@ -277,7 +277,10 @@ const identityHeaders = [
 		title: 'ID', key: 'id', align: 'start', sortable: false,
 	},
 	{
-		title: 'Dgraph UID', key: 'dgraphUID',
+		title: 'Dakar Dash User', key: 'dakarDashUser',
+	},
+	{
+		title: 'Dakar BTC User', key: 'dakarBTCUser',
 	},
 	{
 		title: 'E-Mail', key: 'email',
@@ -381,9 +384,13 @@ async function refreshUsers() {
 				d.renderedRoles = '';
 			}
 
-			// Extract dgraph uid
-			if (d.metadata_public.dgraph_uid) {
-				d.dgraphUID = d.metadata_public.dgraph_uid;
+			// Extract user UIDs
+			if (d.metadata_public.dakar_dash_user) {
+				d.dakarDashUser = d.metadata_public.dakar_dash_user;
+			}
+
+			if (d.metadata_public.dakar_btc_user) {
+				d.dakarBTCUser = d.metadata_public.dakar_btc_user;
 			}
 		}
 

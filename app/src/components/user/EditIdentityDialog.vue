@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-model="model"
-    max-width="500px"
+    max-width="300px"
     transition="fade-transition"
   >
     <v-card class="mx-auto">
@@ -17,6 +17,7 @@
             >
               <v-text-field
                 v-model="shadowIdentity.email"
+                class="my-1"
                 label="E-mail"
                 type="email"
                 :rules="rules.emailRules"
@@ -25,13 +26,23 @@
               />
               <v-select
                 v-model="shadowIdentity.roles"
+                class="my-1"
                 :rules="rules.roleRules"
                 :items="roles"
                 label="Roles"
                 multiple
               />
               <v-select
+                v-model="shadowIdentity.services"
+                class="my-1"
+                :rules="rules.serviceRules"
+                :items="services"
+                label="Services"
+                multiple
+              />
+              <v-select
                 v-model="shadowIdentity.state"
+                class="my-1"
                 :rules="rules.stateRules"
                 :items="states"
                 label="State"
@@ -78,16 +89,20 @@ const props = defineProps({
 
 const isLoading = ref(false);
 const shadowIdentity = ref({
-	id: '', email: '', roles: [], state: '',
+	id: '', email: '', roles: [], state: '', services: [],
 });
 // Template ref
 const modifyIdentityForm = ref(null);
 
-const roles = ['admin', 'privileged'];
-const states = ['active', 'inactive'];
+const roles = [{title: 'Admin', value: 'admin'}, {title: 'Privileged', value: 'privileged'}];
+const services = [{title: 'Dakar Dash', value: 'dakarDash'}, {title: 'Dakar BTC', value: 'dakarBTC'}];
+const states = [{title: 'Active', value: 'active'}, {title: 'Inactive', value: 'inactive'}];
 const rules = {
 	roleRules: [
 		v => v.length > 0 || 'At least one role is required',
+	],
+	serviceRules: [
+		v => v.length > 0 || 'At least one service is required',
 	],
 	stateRules: [
 		v => v.length > 0 || 'State must be set',
@@ -100,6 +115,14 @@ const formTitle = computed(() => props.createNewUser ? 'Create Identity' : 'Edit
 
 onMounted(() => {
 	shadowIdentity.value = props.identity;
+	shadowIdentity.value.services = [];
+	if (props.identity.metadata_public?.dakar_dash_user) {
+		shadowIdentity.value.services.push('dakarDash');
+	}
+
+	if (props.identity.metadata_public?.dakar_btc_user) {
+		shadowIdentity.value.services.push('dakarBTC');
+	}
 });
 
 function setErrorMessage(msg) {
@@ -129,6 +152,7 @@ async function saveIdentity() {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
 					state: shadowIdentity.value.state,
+					services: shadowIdentity.value.services,
 				},
 			});
 			if (response.msg) {
@@ -147,6 +171,7 @@ async function saveIdentity() {
 					email: shadowIdentity.value.email,
 					state: shadowIdentity.value.state,
 					roles: shadowIdentity.value.roles,
+					services: shadowIdentity.value.services,
 				},
 			});
 
