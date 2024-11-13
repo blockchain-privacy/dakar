@@ -49,9 +49,9 @@ export const PRIVACY_TYPE_CP = 'collateral payment';
 export const PRIVACY_TYPE_ORIGIN = 'origin';
 export const PRIVACY_TYPE_MIXING = 'mixing';
 
-export const PRIVACY_TYPE_WASABI_2_ORIGIN = 'wasabi 2.00 origin';
-export const PRIVACY_TYPE_WASABI_2_MIXING = 'wasabi 2.00 mixing';
-export const PRIVACY_TYPE_WASABI_2_DESTINATION = 'wasabi 2.00 destination';
+export const PRIVACY_TYPE_WASABI_2_ORIGIN = 'wasabi 2.0 origin';
+export const PRIVACY_TYPE_WASABI_2_MIXING = 'wasabi 2.0 mixing';
+export const PRIVACY_TYPE_WASABI_2_DESTINATION = 'wasabi 2.0 destination';
 
 // Workspace node type
 export const WORKSPACE_NODE_TYPE_TRANSACTION = 'transaction';
