@@ -1,35 +1,37 @@
 <template>
-  <div
-    class="d-flex align-center text-h6 ma-2"
-    style="white-space: nowrap"
-  >
-    <v-icon class="me-2">
-      {{ icon }}
-    </v-icon>
-    <router-link
-      v-if="to"
-      class="shorten"
-      style="color: inherit;"
-      :to="to"
-    >
-      {{ title }}
-    </router-link>
-    <span
-      v-else
-      class="shorten"
-    > {{ title }}</span>
+  <div>
     <div
-      v-if="oneLine || !$vuetify.display.xs"
-      class="ms-auto"
+      class="d-flex align-center text-h6 ma-2"
+      style="white-space: nowrap"
+    >
+      <v-icon class="me-2">
+        {{ icon }}
+      </v-icon>
+      <router-link
+        v-if="to"
+        class="shorten"
+        style="color: inherit;"
+        :to="to"
+      >
+        {{ title }}
+      </router-link>
+      <span
+        v-else
+        class="shorten"
+      > {{ title }}</span>
+      <div
+        v-if="oneLine || !$vuetify.display.xs"
+        class="ms-auto"
+      >
+        <slot />
+      </div>
+    </div>
+    <div
+      v-if="!oneLine && $vuetify.display.xs"
+      class="d-flex align-center justify-end"
     >
       <slot />
     </div>
-  </div>
-  <div
-    v-if="!oneLine && $vuetify.display.xs"
-    class="d-flex align-center justify-end"
-  >
-    <slot />
   </div>
 </template>
 

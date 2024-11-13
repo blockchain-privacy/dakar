@@ -5,8 +5,8 @@
     transition="fade-transition"
   >
     <v-card class="mx-auto">
-      <v-card-title>
-        <span class="text-h5">{{ formTitle }}</span>
+      <v-card-title class="text-h5">
+        {{ formTitle }}
       </v-card-title>
       <v-card-text>
         <v-container>
@@ -17,7 +17,6 @@
             >
               <v-text-field
                 v-model="shadowIdentity.email"
-                class="my-1"
                 label="E-mail"
                 type="email"
                 :rules="rules.emailRules"
@@ -25,27 +24,36 @@
                 autofocus
               />
               <v-select
-                v-model="shadowIdentity.roles"
-                class="my-1"
-                :rules="rules.roleRules"
-                :items="roles"
-                label="Roles"
-                multiple
-              />
-              <v-select
-                v-model="shadowIdentity.services"
-                class="my-1"
-                :rules="rules.serviceRules"
-                :items="services"
-                label="Services"
-                multiple
-              />
-              <v-select
                 v-model="shadowIdentity.state"
-                class="my-1"
+                class="mt-2"
                 :rules="rules.stateRules"
                 :items="states"
                 label="State"
+              />
+              <named-divider
+                title="Roles"
+                :vertical-margin="3"
+              />
+              <p class="text-subtitle-2 mb-3">
+                Applying a role will create a new user if no users currently exist in the system
+              </p>
+              <v-select
+                v-model="shadowIdentity.roles.dakar_dash"
+                :items="roles"
+                label="Dakar Dash"
+                clearable
+              />
+              <v-select
+                v-model="shadowIdentity.roles.dakar_btc"
+                :items="roles"
+                label="Dakar BTC"
+                clearable
+              />
+              <v-select
+                v-model="shadowIdentity.roles.kratos_admin"
+                :rules="rules.roleRules"
+                :items="roles"
+                label="Kratos Admin"
               />
             </v-form>
           </v-row>
@@ -74,6 +82,7 @@ import {
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import NamedDivider from '@/components/common/NamedDivider.vue';
 
 const route = useRoute();
 const kratosAdmin = inject('kratosadmin');
@@ -89,23 +98,20 @@ const props = defineProps({
 
 const isLoading = ref(false);
 const shadowIdentity = ref({
-	id: '', email: '', roles: [], state: '', services: [],
+	// eslint-disable-next-line camelcase
+	id: '', email: '', roles: {dakar_dash: '', dakar_btc: '', kratos_admin: ''}, state: '',
 });
 // Template ref
 const modifyIdentityForm = ref(null);
 
 const roles = [{title: 'Admin', value: 'admin'}, {title: 'Privileged', value: 'privileged'}];
-const services = [{title: 'Dakar Dash', value: 'dakarDash'}, {title: 'Dakar BTC', value: 'dakarBTC'}];
 const states = [{title: 'Active', value: 'active'}, {title: 'Inactive', value: 'inactive'}];
 const rules = {
 	roleRules: [
-		v => v.length > 0 || 'At least one role is required',
-	],
-	serviceRules: [
-		v => v.length > 0 || 'At least one service is required',
+		v => (Boolean(v) && v.length > 0) || 'Role must be set',
 	],
 	stateRules: [
-		v => v.length > 0 || 'State must be set',
+		v => (Boolean(v) && v.length > 0) || 'State must be set',
 	],
 	emailRules,
 };
@@ -115,14 +121,6 @@ const formTitle = computed(() => props.createNewUser ? 'Create Identity' : 'Edit
 
 onMounted(() => {
 	shadowIdentity.value = props.identity;
-	shadowIdentity.value.services = [];
-	if (props.identity.metadata_public?.dakar_dash_user) {
-		shadowIdentity.value.services.push('dakarDash');
-	}
-
-	if (props.identity.metadata_public?.dakar_btc_user) {
-		shadowIdentity.value.services.push('dakarBTC');
-	}
 });
 
 function setErrorMessage(msg) {
@@ -144,6 +142,13 @@ async function saveIdentity() {
 		return;
 	}
 
+	// Remove all object keys which have no attached value
+	Object.keys(shadowIdentity.value.roles).forEach(key => {
+		if (!shadowIdentity.value.roles[key]) {
+			delete shadowIdentity.value.roles[key];
+		}
+	});
+
 	isLoading.value = true;
 	if (props.createNewUser) {
 		try {
@@ -152,7 +157,6 @@ async function saveIdentity() {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
 					state: shadowIdentity.value.state,
-					services: shadowIdentity.value.services,
 				},
 			});
 			if (response.msg) {
@@ -169,9 +173,8 @@ async function saveIdentity() {
 				identity: {
 					uid: shadowIdentity.value.id,
 					email: shadowIdentity.value.email,
-					state: shadowIdentity.value.state,
 					roles: shadowIdentity.value.roles,
-					services: shadowIdentity.value.services,
+					state: shadowIdentity.value.state,
 				},
 			});
 

@@ -31,6 +31,7 @@
             >
               <v-text-field
                 v-model="search"
+                class="ms-3"
                 :append-inner-icon="mdiMagnify"
                 label="Filter users"
                 single-line
@@ -40,6 +41,7 @@
               <v-spacer />
               <v-btn
                 variant="outlined"
+                class="me-3"
                 :disabled="isLoading"
                 @click="refreshUsers"
               >
@@ -47,7 +49,7 @@
               </v-btn>
               <v-btn
                 variant="outlined"
-                class="ml-1"
+                class="me-3"
                 @click="showCreateDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
@@ -72,6 +74,7 @@
               />
               <v-spacer />
               <v-btn
+                class="me-3"
                 variant="outlined"
                 :disabled="isLoading"
                 @click="refreshUsers"
@@ -83,7 +86,7 @@
               </v-btn>
               <v-btn
                 variant="outlined"
-                class="ml-1"
+                class="me-3"
                 @click="showCreateDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
@@ -159,7 +162,6 @@
                 label="Filter sessions"
                 single-line
                 hide-details
-                style="max-width: 500px"
               />
             </v-toolbar>
             <v-toolbar
@@ -170,11 +172,11 @@
               <v-spacer />
               <v-text-field
                 v-model="searchSessions"
+                class="me-3"
                 :append-inner-icon="mdiMagnify"
                 label="Filter sessions"
                 single-line
                 hide-details
-                style="max-width: 500px"
               />
             </v-toolbar>
           </template>
@@ -276,30 +278,16 @@ const identityHeaders = [
 	{
 		title: 'ID', key: 'id', align: 'start', sortable: false,
 	},
-	{
-		title: 'Dakar Dash User', key: 'dakarDashUser',
-	},
-	{
-		title: 'Dakar BTC User', key: 'dakarBTCUser',
-	},
-	{
-		title: 'E-Mail', key: 'email',
-	},
-	{
-		title: 'State', key: 'state',
-	},
-	{
-		title: 'Schema ID', key: 'schema_id',
-	},
-	{
-		title: 'Roles', key: 'renderedRoles',
-	},
-	{
-		title: 'Created', key: 'createdAt',
-	},
-	{
-		title: 'Updated', key: 'updatedAt',
-	},
+	{title: 'E-Mail', key: 'email'},
+	{title: 'Dakar Dash User', key: 'dakarDashUser'},
+	{title: 'Dakar BTC User', key: 'dakarBTCUser'},
+	{title: 'State', key: 'state'},
+	{title: 'Schema ID', key: 'schema_id'},
+	{title: 'Role Dakar Dash', key: 'roleDakarDash'},
+	{title: 'Role Dakar BTC', key: 'roleDakarBTC'},
+	{title: 'Role Kratos Admin', key: 'roleKratosAdmin'},
+	{title: 'Created', key: 'createdAt'},
+	{title: 'Updated', key: 'updatedAt'},
 	{
 		title: '', key: 'actions', sortable: false, align: 'end',
 	},
@@ -326,10 +314,10 @@ const sessionHeaders = [
 
 const createNewUser = ref(false);
 const editedItem = ref({
-	id: '', email: '', state: '', roles: [],
+	id: '', email: '', state: '', roles: {},
 });
 const defaultItem = ref({
-	id: '', email: '', state: '', roles: [],
+	id: '', email: '', state: '', roles: {},
 });
 const identities = ref(null);
 const sessions = ref(null);
@@ -378,10 +366,20 @@ async function refreshUsers() {
 		if (d.metadata_public) {
 			// Extract roles
 			if (d.metadata_public.roles) {
-				d.roles = d.metadata_public.roles.map(f => f);
-				d.renderedRoles = d.roles.toString();
-			} else {
-				d.renderedRoles = '';
+				// For table
+				d.roleDakarDash = d.metadata_public.roles.dakar_dash;
+				d.roleDakarBTC = d.metadata_public.roles.dakar_btc;
+				d.roleKratosAdmin = d.metadata_public.roles.kratos_admin;
+
+				// For dialog
+				d.roles = {
+					// eslint-disable-next-line camelcase
+					dakar_dash: d.metadata_public.roles.dakar_dash,
+					// eslint-disable-next-line camelcase
+					dakar_btc: d.metadata_public.roles.dakar_btc,
+					// eslint-disable-next-line camelcase
+					kratos_admin: d.metadata_public.roles.kratos_admin,
+				};
 			}
 
 			// Extract user UIDs

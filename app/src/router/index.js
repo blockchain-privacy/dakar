@@ -38,12 +38,13 @@ export function setupStore() {
 	localStore = useLocalStore();
 }
 
-function isPrivileged() {
-	return isPrivilegedIdentity(localStore.getSession) || isAdminIdentity(localStore.getSession);
+function isAdmin() {
+	return isAdminIdentity(localStore.getSession, localStore.getSettings.blockchainMode);
 }
 
-function isAdmin() {
-	return isAdminIdentity(localStore.getSession);
+function isPrivileged() {
+	return isPrivilegedIdentity(localStore.getSession, localStore.getSettings.blockchainMode)
+		|| isAdmin();
 }
 
 function checkSession(to, fn) {
@@ -53,7 +54,7 @@ function checkSession(to, fn) {
 	}
 
 	if ((fn) ? !fn() : false) {
-		return {name: Constants.ROUTE_NAME_ENTRY_PAGE};
+		return {name: Constants.ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}};
 	}
 
 	return null;
@@ -230,6 +231,18 @@ function persistBlockchainMode(mode) {
 }
 
 router.beforeEach((to, from) => {
+	if (to.params.blockchainMode) {
+		switch (to.params.blockchainMode) {
+			case BLOCKCHAIN_DASH:
+				persistBlockchainMode(to.params.blockchainMode);
+				break;
+			case BLOCKCHAIN_BTC:
+				persistBlockchainMode(to.params.blockchainMode);
+				break;
+			default: return {name: Constants.ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}};
+		}
+	}
+
 	// Check for role
 	if (to.meta.limitToRole) {
 		let fn = null;
@@ -242,18 +255,6 @@ router.beforeEach((to, from) => {
 		const routeTo = checkSession(to, fn);
 		if (routeTo !== null) {
 			return routeTo;
-		}
-	}
-
-	if (to.params.blockchainMode) {
-		switch (to.params.blockchainMode) {
-			case BLOCKCHAIN_DASH:
-				persistBlockchainMode(to.params.blockchainMode);
-				break;
-			case BLOCKCHAIN_BTC:
-				persistBlockchainMode(to.params.blockchainMode);
-				break;
-			default: return {name: Constants.ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}};
 		}
 	}
 

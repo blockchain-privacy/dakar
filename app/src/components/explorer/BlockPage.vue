@@ -168,7 +168,8 @@ let offset = 0;
 const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 // Computed
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
+	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
 
 // Watchers
 watch(route, () => {

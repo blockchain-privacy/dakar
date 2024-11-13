@@ -2,6 +2,7 @@
   <v-card :variant="embed?undefined:'text'">
     <icon-title
       v-if="showTitleBar"
+      class="ma-2"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
       :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}:null"

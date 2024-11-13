@@ -96,8 +96,8 @@ const {session, settings} = storeToRefs(useLocalStore());
 const iconColor = {default: 'primary', admin: 'red darken-3'};
 
 // Computed
-const showUserAdmin = computed(() => isAdminIdentity(session.value));
-const showTools = computed(() => isPrivilegedIdentity(session.value) || showUserAdmin);
+const showUserAdmin = computed(() => isAdminIdentity(session.value, settings.value.blockchainMode));
+const showTools = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode) || showUserAdmin.value);
 
 </script>
 

@@ -19,13 +19,25 @@
   },
   {
     "namespace": "Service",
-    "object": "dakar_protected",
+    "object": "dakar_dash_protected",
     "relation": "callers",
     "subject_id": "admin"
   },
   {
     "namespace": "Service",
-    "object": "dakar_protected",
+    "object": "dakar_dash_protected",
+    "relation": "callers",
+    "subject_id": "privileged"
+  },
+  {
+    "namespace": "Service",
+    "object": "dakar_btc_protected",
+    "relation": "callers",
+    "subject_id": "admin"
+  },
+  {
+    "namespace": "Service",
+    "object": "dakar_btc_protected",
     "relation": "callers",
     "subject_id": "privileged"
   }

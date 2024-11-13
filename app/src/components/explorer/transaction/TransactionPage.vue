@@ -48,10 +48,11 @@ import {useLocalStore} from '@/pinia/local';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 
 const {transaction: tx} = storeToRefs(useExplorerStore());
-const {session} = storeToRefs(useLocalStore());
+const {session, getSettings} = storeToRefs(useLocalStore());
 
 // Computed
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
+	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
 
 // Watchers
 watch(tx, () => {
