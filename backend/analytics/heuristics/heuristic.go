@@ -89,8 +89,10 @@ type Descriptor struct {
 	Description string `json:"description,omitempty"`
 	Category    string `json:"category,omitempty"`
 	// pointer so Parameter does not appear in JSON if not set
-	Parameter      *DescriptorParameter `json:"parameter,omitempty"`
-	AllowedParents []string             `json:"allowedParents,omitempty"`
+	Parameter *DescriptorParameter `json:"parameter,omitempty"`
+	// controls which types of parent are allowed for a heuristic. Possible types are transactions and heuristic types.
+	// currently not enforced in the backend.
+	AllowedParents []string `json:"allowedParents,omitempty"`
 }
 
 type heuristic interface {

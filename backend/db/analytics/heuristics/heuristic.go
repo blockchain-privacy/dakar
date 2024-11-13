@@ -12,7 +12,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"sort"
 	"strconv"
@@ -172,11 +171,6 @@ func GetInputTransactions(ctx context.Context, c external.Database,
 		return
 	}
 
-	if len(r.Transaction) == 0 {
-		err = serror.New(errInvalidDatabaseResponse)
-		return
-	}
-
 	for _, t := range r.Transaction {
 		if len(t.Block) != 1 || len(t.Outputs) == 0 {
 			err = serror.New(errInvalidDatabaseResponse)
@@ -270,21 +264,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 		}
 	}
 
-	/// build query
-	var usedClusterTypes string
-	if !isSimpleClustering {
-		for i, ct := range requestedClusterTypes {
-			usedClusterTypes += string(ct)
-
-			if i+1 < len(requestedClusterTypes) {
-				usedClusterTypes += ","
-			}
-		}
-		usedClusterTypes = " or (eq(Cluster.type, " + usedClusterTypes + ")  and uid_in(Cluster.user," + userUID + "))"
-	}
-
-	// todo review if usedClusterTypes can not be queried here, because the merged/associated clusters are used anyway a few lines below
-	query := fmt.Sprintf(`query Q($uids:string){
+	query := `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
 					tx_outputs{
@@ -293,13 +273,13 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 					tx_inputs(first:1){
 						~addr_outputs{
 							uid
-							~Cluster.addresses@filter(eq(Cluster.type,%s)%s){
+							~Cluster.addresses@filter(eq(Cluster.type,` + string(clustering.TypeFMI) + `)){
 								uid
 							}
 						}
 					}
 			   	}
-			  }`, clustering.TypeFMI, usedClusterTypes)
+			  }`
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
@@ -360,41 +340,27 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 
 	type usedCluster struct{ superCluster map[string]bool }
 
-	// allUsedClusters holds all cluster IDs which are used by the generated HeuristicTransactions below
+	// holds all cluster IDs which are used by the generated HeuristicTransactions below
 	allUsedClusters := make(map[string]usedCluster)
-
 	for _, o := range r.Origins {
-		if o.Inputs == nil || o.Inputs[0].Address == nil {
+		if o.Inputs == nil || o.Inputs[0].Address == nil || o.Inputs[0].Address[0].Cluster == nil {
 			err = serror.FromFormat("invalid cluster information for transaction %s", o.UID)
 			return
 		}
 
 		var cUID ClusterUID
-
-		// If the cluster is not set, we use the address UID as the "cluster".
-		// This can happen if the address has not been assigned to a cluster yet.
-		if o.Inputs[0].Address[0].Cluster == nil {
-			id := o.Inputs[0].Address[0].UID
-			cUID = ClusterUID(id)
-			allUsedClusters[id] = usedCluster{superCluster: nil}
-		} else if firstClusterUID := o.Inputs[0].Address[0].Cluster[0].UID; isSimpleClustering {
-			// must have a multi-input cluster UID
-			cUID = ClusterUID(firstClusterUID)
-			allUsedClusters[firstClusterUID] = usedCluster{superCluster: nil}
+		clusterUID := o.Inputs[0].Address[0].Cluster[0].UID
+		if isSimpleClustering || !allClusters[clusterUID] {
+			// address of origin is only associated with multi-input clusters
+			cUID = ClusterUID(clusterUID)
+			allUsedClusters[clusterUID] = usedCluster{superCluster: nil}
 		} else {
-			// If this cluster's UID does not appear in the merged user clusters,
-			// then use the multi-input cluster UID.
-			if !allClusters[firstClusterUID] {
-				cUID = ClusterUID(firstClusterUID)
-				allUsedClusters[firstClusterUID] = usedCluster{superCluster: nil}
-			} else {
-				var superCluster map[string]bool
-				cUID, superCluster, err = getClusterUIDFromMergedClusters(superClusters, firstClusterUID)
-				if err != nil {
-					return
-				}
-				allUsedClusters[string(cUID)] = usedCluster{superCluster: superCluster}
+			var superCluster map[string]bool
+			cUID, superCluster, err = getClusterUIDFromMergedClusters(superClusters, clusterUID)
+			if err != nil {
+				return
 			}
+			allUsedClusters[string(cUID)] = usedCluster{superCluster: superCluster}
 		}
 
 		origins = append(origins, HeuristicTransaction{

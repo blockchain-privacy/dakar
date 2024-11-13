@@ -102,6 +102,11 @@ func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, err
 	}
 
+	if len(inputTransactions) == 0 {
+		// nothing to do
+		return nil, nil
+	}
+
 	var exclusions []string
 	if h.c.ExcludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)

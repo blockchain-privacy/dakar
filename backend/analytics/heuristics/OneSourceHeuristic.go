@@ -87,8 +87,6 @@ type txAndOrigins struct {
 //   - filter all origins of sources, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of sources, which do not occur in all sets of input transaction origins
-//
-// This heuristic does not use the results from its parent heuristic
 func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
@@ -111,16 +109,11 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 		return nil, err
 	}
 
-	// sources holds all sources found in all input transactions
-	sources := make(map[heuristics.ClusterUID]bool)
-	// mRemovableSources holds all sources which can be removed,
-	// due to not being able to fund all connected input transactions
-	mRemovableSources := make(map[heuristics.ClusterUID]bool)
-	// maps a cluster to its origin transactions
-	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
-	// for each input transaction to the destination transaction,
-	// inputSources holds one map with all its occurring sources
-	var inputSources []map[heuristics.ClusterUID]bool //nolint:prealloc
+	if len(inputTransactions) == 0 {
+		// nothing to do
+		return nil, nil
+	}
+
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
@@ -129,7 +122,6 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 
 	var exclusions []string
-
 	if h.c.ExcludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
 		if err != nil {
@@ -158,9 +150,16 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
 	}
 
+	// mRemovableSources holds all sources which can be removed,
+	// due to not being able to fund all connected input transactions
+	mRemovableSources := make(map[heuristics.ClusterUID]bool)
+	// sources holds all sources found in all input transactions
+	sources := make(map[heuristics.ClusterUID]bool)
 	// save origins in global cluster->origin map
-	sourceTransactionMap = addTransactionToCluster(sourceTransactionMap, allTimeLimitedOrigins)
-
+	sourceTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, allTimeLimitedOrigins)
+	// for each input transaction to the destination transaction,
+	// inputSources holds one map with all its occurring sources
+	var inputSources []map[heuristics.ClusterUID]bool //nolint:prealloc
 	for _, t := range allTxAndOrigins {
 		// get input denominations
 		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, h.c.TransactionHash)
@@ -194,7 +193,6 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 
 	// save all addresses (sources) which are not part of all input transactions
 	var omniSources []heuristics.ClusterUID
-
 	for k := range sources {
 		found := true
 		// check for each input transaction if the source k exists. If not set the flag to false
