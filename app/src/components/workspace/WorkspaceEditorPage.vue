@@ -199,7 +199,12 @@ import {
 	WORKSPACE_NODE_TYPE_NOTE,
 	PRIVACY_TYPE_DESTINATION,
 	SELECTOR_TYPE_HEURISTIC,
-	SELECTOR_TYPE_TX_PROP, SELECTOR_STATUS_WAITING, SELECTOR_TYPE_TX_GRAPH, PRIVACY_TYPE_ORIGIN, SELECTOR_STATUS_SUCCESS,
+	SELECTOR_TYPE_TX_PROP,
+	SELECTOR_STATUS_WAITING,
+	SELECTOR_TYPE_TX_GRAPH,
+	PRIVACY_TYPE_ORIGIN,
+	SELECTOR_STATUS_SUCCESS,
+	PRIVACY_TYPE_MIXING,
 } from '@/constants';
 import {
 	getColorMap, getDakarClient, handleError,
@@ -287,8 +292,7 @@ const nodeActions = ref([
 		color: 'primary',
 		icon: blenderPlus,
 		show: () => isHeuristicNode(nodeGraph.getContextNode())
-		|| isDestiationNode(nodeGraph.getContextNode())
-		|| isOriginNode(nodeGraph.getContextNode()),
+		|| isCoinJoinTransactionNode(nodeGraph.getContextNode()),
 		action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
 		disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 	},
@@ -503,20 +507,18 @@ function isHeuristicNode(node) {
 	return node.type === WORKSPACE_NODE_TYPE_SELECTOR && node.selectorType === SELECTOR_TYPE_HEURISTIC;
 }
 
-function isDestiationNode(node) {
+function isCoinJoinTransactionNode(node) {
 	if (!node) {
 		return false;
 	}
 
-	return node.txtype === PRIVACY_TYPE_DESTINATION;
-}
-
-function isOriginNode(node) {
-	if (!node) {
-		return false;
+	switch (node.txtype) {
+		case PRIVACY_TYPE_ORIGIN:
+		case PRIVACY_TYPE_DESTINATION:
+		case PRIVACY_TYPE_MIXING:
+			return true;
+		default: return false;
 	}
-
-	return node.txtype === PRIVACY_TYPE_ORIGIN;
 }
 
 function isNote(node) {
@@ -534,7 +536,7 @@ function isDeleteEnabled(contextNode) {
 		return false;
 	}
 
-	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && !isDestiationNode(contextNode) && !isOriginNode(contextNode)) {
+	if (contextNode.type !== WORKSPACE_NODE_TYPE_SELECTOR && !isCoinJoinTransactionNode(contextNode)) {
 		return true;
 	}
 

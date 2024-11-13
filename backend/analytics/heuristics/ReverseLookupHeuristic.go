@@ -97,7 +97,7 @@ func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	inputTransactions, err := heuristics.GetInputTransactions(ctx, dgraph, h.c.TransactionHash)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, h.c.TransactionHash)
 	if err != nil {
 		return nil, err
 	}

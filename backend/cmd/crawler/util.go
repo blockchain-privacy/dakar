@@ -159,7 +159,7 @@ func waitForRPCClient(client external.RPCClient) error {
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			return serror.FromFormat("Authentication error: %w", err)
+			return err
 		}
 
 		if !printedErrMessage {

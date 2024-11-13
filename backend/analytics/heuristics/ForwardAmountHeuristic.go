@@ -118,20 +118,6 @@ func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	// maps a cluster to its origin transactions
-	clusterToOutputTransactions := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
-
-	// outputTransactions hold all outputTransactions found bei either the parent heuristic
-	// or the destination transaction specified by txHash
-	outputTransactions := make(map[string]heuristics.HeuristicTransaction, len(results))
-	for _, r := range results {
-		outputTransactions[r.UID] = r
-	}
-
-	if len(outputTransactions) == 0 || len(clusterToOutputTransactions) == 0 {
-		return nil, serror.New(errNoOriginsAtStart)
-	}
-
 	var exclusions []string
 	if h.c.ExcludeAddresses {
 		var err error
@@ -141,51 +127,29 @@ func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		}
 	}
 
-	type clusterDestination struct {
-		cluster heuristics.ClusterUID
-		txs     map[string]heuristics.HeuristicTransaction
+	destinationUIDsMap, err := g.ForwardLookupByTime(uid, h.lookForwardTime, exclusions, h.c.ExcludeSpendingGaps)
+	if err != nil {
+		return nil, err
 	}
 
-	clusterDestinations := make([]clusterDestination, 0, len(clusterToOutputTransactions))
-	for c, txMap := range clusterToOutputTransactions {
-		destinations, err := getOriginDestinationsWithInputs(ctx, dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
-			exclusions, h.c.ExcludeSpendingGaps)
-		if err != nil {
-			return nil, err
-		}
-
-		destinationMap := make(map[string]heuristics.HeuristicTransaction)
-		for _, d := range destinations {
-			destinationMap[d.UID] = d
-		}
-
-		clusterDestinations = append(clusterDestinations, clusterDestination{cluster: c, txs: destinationMap})
+	// get tx details for each uid
+	destinations, err := heuristics.GetTransactionsWithInputAmount(ctx, dgraph, cliutil.GetMapKeys(destinationUIDsMap))
+	if err != nil {
+		return nil, err
 	}
 
-	originAmounts := buildSourceAmounts(outputTransactions)
-
-	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
-	for _, destinations := range clusterDestinations {
-		var clusterFilteredDestinations []db.UIDNode
-		for _, tx := range destinations.txs {
-			inputDenominationCounts := getDenominationCounts(tx)
-
-			// check if the denominations of the destination transactions can be funded by the denomination of its cluster
-			if containsDenomination(inputDenominationCounts, originAmounts[destinations.cluster]) {
-				clusterFilteredDestinations = append(clusterFilteredDestinations, db.UIDNode{UID: tx.UID})
-			}
+	originOutputDenominations := buildSourceAmounts(map[string]heuristics.HeuristicTransaction{uid: results[0]})
+	var clusterFilteredDestinations []db.UIDNode
+	for _, tx := range destinations {
+		// check if the denominations of the destination transactions can be funded by the denomination of its cluster
+		if containsDenomination(getDenominationCounts(tx), originOutputDenominations[results[0].Cluster]) {
+			clusterFilteredDestinations = append(clusterFilteredDestinations, db.UIDNode{UID: tx.UID})
 		}
+	}
 
-		if len(clusterFilteredDestinations) > 0 {
-			// get cluster ID of a random origin of this cluster
-			var clusterID heuristics.ClusterUID
-			for _, v := range clusterToOutputTransactions[destinations.cluster] {
-				clusterID = v.Cluster
-				break
-			}
-
-			resultClusters[clusterID] = clusterFilteredDestinations
-		}
+	resultClusters := map[heuristics.ClusterUID][]db.UIDNode{}
+	if len(clusterFilteredDestinations) > 0 {
+		resultClusters[results[0].Cluster] = clusterFilteredDestinations
 	}
 
 	return createHeuristicClusters(resultClusters, attributionMap), nil

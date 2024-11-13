@@ -216,25 +216,27 @@ func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (sear
 	return reply, status
 }
 
-func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *http.Request) (metaReply, int) {
-	var reply metaReply
-
+func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *http.Request) (reply metaReply, status int) {
 	if rpcClient != nil {
-		var err error
-		*reply.Blocks, err = rpcClient.GetBlockCount()
+		blocks, err := rpcClient.GetBlockCount()
 		if err != nil {
-			warn(serror.New(err))
-			return reply, http.StatusInternalServerError
+			status = http.StatusInternalServerError
+			warn(err)
+			return
 		}
+		reply.Blocks = &blocks
 	}
 
 	verboseStatus, err := dbstat.GetFrontendStatus(r.Context(), dgraph)
 	if err != nil {
+		status = http.StatusInternalServerError
 		warn(err)
-		return reply, http.StatusInternalServerError
+		return
 	}
 
-	return metaReply{Status: &verboseStatus}, http.StatusOK
+	reply.Status = &verboseStatus
+
+	return
 }
 
 func getSelectorStatus(workspaceMutex *workspace.Mutex, dgraph external.Database, r *http.Request) (reply selectorStatusReply, status int) {
