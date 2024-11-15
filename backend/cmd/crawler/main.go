@@ -6,6 +6,7 @@ import (
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
 	"backend/blockiterator"
+	"backend/constants"
 	"backend/db"
 	"backend/db/status"
 	"backend/db/upgrades"
@@ -89,13 +90,13 @@ type iteratorConfigurations struct {
 // selectConfig returns iterator configurations based on the given blockchain mode.
 func selectConfig(blockchainMode string) (*iteratorConfigurations, error) {
 	switch blockchainMode {
-	case "Dash":
+	case constants.BlockchainModeDash:
 		return &iteratorConfigurations{
 			processor:  processor.NewDashConfig(),
 			classifier: classifier.NewDashConfig(),
 			graph:      graph.NewDashConfig(),
 		}, nil
-	case "Bitcoin":
+	case constants.BlockchainModeBTC:
 		return &iteratorConfigurations{
 			processor:  processor.NewBitcoinConfig(),
 			classifier: classifier.NewBTCConfig(),
