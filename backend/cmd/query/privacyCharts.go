@@ -69,7 +69,7 @@ func exportTransactionData(ctx context.Context, database external.Database, dire
 			label = t.transactionType
 		}
 
-		writeTimestampsToCSV(directory+"/"+t.label+".csv", ts)
+		writeTimestampsToCSV(directory+"/"+label+".csv", ts)
 	}
 }
 
