@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/dgraph-io/dgo/v240"
 	"github.com/dgraph-io/dgo/v240/protos/api"
+	"time"
 )
 
 // This package defines interfaces for external dependencies,
@@ -13,6 +14,8 @@ import (
 // RPCClient defines the methods which rpcclient of btcsuite implements.
 // Descriptions are copied from there.
 type RPCClient interface {
+	// SetTimeout sets the request timeout of the rpc client
+	SetTimeout(timeout time.Duration)
 	// GetBlockCount returns the number of blocks in the longest blockchain.
 	GetBlockCount() (int64, error)
 	// GetBlockVerbose returns a data structure from the server with information about a block given its hash.

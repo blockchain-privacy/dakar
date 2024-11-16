@@ -144,10 +144,14 @@ func isCrawling(c external.Database) (bool, error) {
 
 // waitForRPCClient waits until the RPC client is ready to receive requests
 func waitForRPCClient(client external.RPCClient) error {
-	const maxRetries = 5
+	const maxRetries = 10
 	const retrySleepDuration = time.Second * 5
 
 	var printedErrMessage bool
+
+	// set short time out for testing the connection and reset at end of function
+	client.SetTimeout(time.Second)
+	defer client.SetTimeout(0)
 
 	for i := range maxRetries {
 		_, err := client.GetBlockCount()
