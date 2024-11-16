@@ -188,10 +188,15 @@ func isWasabi2Mixing(t db.Transaction) bool {
 // credit to paper: "Heuristics for Detecting CoinJoin Transactions
 // on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
 func isWhirlpoolMixing(t db.Transaction) bool {
-	const numOutputs = 5
-	if len(t.Inputs) != numOutputs || len(t.Outputs) != numOutputs {
+	// "Surge Cycles" increased max number of outputs to 8
+	// source: https://medium.com/samourai-wallet/introducing-whirlpool-surge-cycles-b5b484a1670f
+	const minOutputs = 5
+	const maxOutputs = 8
+	if len(t.Inputs) != len(t.Outputs) || len(t.Inputs) < minOutputs || len(t.Inputs) > maxOutputs {
 		return false
 	}
+
+	numOutputs := len(t.Inputs)
 
 	denominationOut := countWhirlpoolDenominations(t.Outputs)
 	denomationIndex := -1
@@ -203,7 +208,7 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 		}
 	}
 
-	// no denomation has exactly 5 occurrences
+	// no denomation has the required number of occurrences
 	if denomationIndex == -1 {
 		return false
 	}

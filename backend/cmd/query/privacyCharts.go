@@ -64,6 +64,11 @@ func exportTransactionData(ctx context.Context, database external.Database, dire
 			return
 		}
 
+		if len(ts) == 0 {
+			info("no transactions found, continuing with next transaction type", "transaction type", t.transactionType)
+			continue
+		}
+
 		label := t.label
 		if label == "" {
 			label = t.transactionType
