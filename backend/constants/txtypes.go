@@ -37,3 +37,8 @@ func IsTransactionType(t string) bool {
 func IsMixingTransaction(transactionType string) bool {
 	return transactionType == TypeDashMixing || transactionType == TypeWasabi2Mixing || transactionType == TypeWhirlpoolMixing
 }
+
+// IsDestinationTransaction returns true for destination types
+func IsDestinationTransaction(transactionType string) bool {
+	return transactionType == TypeDashDestination || transactionType == TypeWasabi2Destination || transactionType == TypeWhirlpoolDestination
+}
