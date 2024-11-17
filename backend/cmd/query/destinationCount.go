@@ -7,6 +7,7 @@ import (
 	"backend/external"
 	"context"
 	"encoding/csv"
+	"github.com/qrest/gomisc/serror"
 	"os"
 	"slices"
 	"strconv"
@@ -19,9 +20,20 @@ import (
 // timestamp fingerprinting. This is achieved by collecting all transactions
 // (spending transactions) which are directly connected to multiple (>=2) destination
 // transactions. Spending transactions created by large clusters (>1000) are excluded.
-func doDestinationCountAnalysis(ctx context.Context, dgraph external.Database, g *graph.ReversibleGraph, fileName string) {
+func doDestinationCountAnalysis(ctx context.Context, dgraph external.Database, g *graph.ReversibleGraph,
+	fileName string, transactionType string) {
+	if fileName == "" {
+		warn(serror.FromStr("file name is empty"))
+		return
+	}
+
+	if transactionType == "" {
+		warn(serror.FromStr("transaction type is empty"))
+		return
+	}
+
 	spenders, globalDestinationCount, spentDestinationTransactionCount, excludedBecauseOfClusterSizeCount, usingDestinationTransactionsCount, err :=
-		analytics.GetDestinationTransactionSpenders(ctx, dgraph)
+		analytics.GetDestinationTransactionSpenders(ctx, dgraph, transactionType)
 	if err != nil {
 		warn(err)
 		return

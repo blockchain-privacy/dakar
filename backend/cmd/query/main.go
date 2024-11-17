@@ -95,8 +95,9 @@ type ExportBlocksModule struct {
 }
 
 type DestinationCountModule struct {
-	Active   bool   `yaml:"active"`
-	Filename string `yaml:"filename"`
+	Active          bool   `yaml:"active"`
+	Filename        string `yaml:"filename"`
+	TransactionType string `yaml:"transactionType"`
 }
 
 type ExportPrivacyTransactionsModule struct {
@@ -298,7 +299,7 @@ func main() {
 	}
 
 	if newConfig.DestinationCount.Active {
-		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename)
+		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename, newConfig.DestinationCount.TransactionType)
 	}
 
 	if newConfig.ExportClusterActivity.Active {
