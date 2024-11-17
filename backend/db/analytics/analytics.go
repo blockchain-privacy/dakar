@@ -349,14 +349,10 @@ func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
 // GetTransactionTypeData returns timestamps when the transactions of the specified type occur.
 // If the type is empty then all transaction types are considered.
 func GetTransactionTypeData(ctx context.Context, c external.Database,
-	transactionType string) (ts []time.Time, err error) {
-	funcQuery := "eq(Transaction.type,$txType)"
-	if transactionType == "" {
-		funcQuery = "has(Transaction.type)"
-	}
-
+	transactionType string) (ts []time.Time, counts []int, err error) {
 	query := `query Q($txType:string){
-				q(func:` + funcQuery + `)@normalize{
+				q(func:eq(Transaction.type,$txType))@normalize{
+					outputCount:count(tx_outputs)
 					~transactions{
 						ts:ts
 					}
@@ -372,7 +368,8 @@ func GetTransactionTypeData(ctx context.Context, c external.Database,
 	// json struct
 	var r struct {
 		Query []struct {
-			Timestamp time.Time `json:"ts,omitempty"`
+			Timestamp   time.Time `json:"ts,omitempty"`
+			OutputCount int       `json:"outputCount,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -381,8 +378,11 @@ func GetTransactionTypeData(ctx context.Context, c external.Database,
 		return
 	}
 
-	for _, q := range r.Query {
-		ts = append(ts, q.Timestamp.UTC())
+	ts = make([]time.Time, len(r.Query))
+	counts = make([]int, len(r.Query))
+	for i, q := range r.Query {
+		ts[i] = q.Timestamp.UTC()
+		counts[i] = q.OutputCount
 	}
 
 	return
