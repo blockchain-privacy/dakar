@@ -530,12 +530,12 @@ type SpenderTransaction struct {
 }
 
 // GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
-func GetDestinationTransactionSpenders(ctx context.Context, c external.Database) (
+func GetDestinationTransactionSpenders(ctx context.Context, c external.Database, transactionType string) (
 	transactions []SpenderTransaction, globalDestinationCount int,
 	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
 	usingDestinationTransactionsCount int, err error) {
-	const query = `{
-		destinations as var(func: eq(Transaction.type,"` + constants.TypeDashDestination + `"))@cascade{
+	query := `{
+		destinations as var(func: eq(Transaction.type,"` + transactionType + `"))@cascade{
 			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
 		}
 
@@ -553,7 +553,7 @@ func GetDestinationTransactionSpenders(ctx context.Context, c external.Database)
 			uid
 			txhash
 			tx_inputs@normalize{
-				~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDashDestination + `")){
+				~tx_outputs@filter(eq(Transaction.type,"` + transactionType + `")){
 					uid:uid
 					txhash:txhash
 				}
