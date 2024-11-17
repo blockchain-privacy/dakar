@@ -180,7 +180,8 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 		}
 
 		txNode, ok := node.(TransactionNode)
-		if !ok || constants.IsDestinationTransaction(rootTx.Type) || earliestInputTimestamp-txNode.TS.Unix() > maximumDistance {
+		// filter for exact transaction type, so we don't match transactions from different coinjoin types
+		if !ok || txNode.Type != rootTx.Type || earliestInputTimestamp-txNode.TS.Unix() > maximumDistance {
 			continue
 		}
 
