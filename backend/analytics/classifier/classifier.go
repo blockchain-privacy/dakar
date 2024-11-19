@@ -23,18 +23,20 @@ func InitLogger() {
 	clustering.InitLogger()
 }
 
+type iteratorFunction func(ctx context.Context, c external.Database, from int64, to int64) (bool, error)
+
 type Config struct {
-	iteratorFunc   func(ctx context.Context, c external.Database, from int64, to int64) (bool, error)
+	iterFunc       iteratorFunction
 	minBlockHeight int64
 }
 
 func NewDashConfig() Config {
-	return Config{iteratorFunc: dash.Iterate, minBlockHeight: 0}
+	return Config{iterFunc: dash.Iterate, minBlockHeight: 0}
 }
 
 func NewBTCConfig() Config {
 	return Config{
-		iteratorFunc: btc.Iterate,
+		iterFunc: btc.Iterate,
 		// 740000 -> Jun 9, 2022 shortly before Wasabi 2.0 was released on Jun 15, 2022
 		// 520000 -> Apr 26, 2018 shortly before Whirlpool repo was created on Apr 28, 2018
 		minBlockHeight: 520000,
@@ -174,7 +176,7 @@ func (c *Classifier) Next(ctx context.Context) (bool, error) {
 // on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
 func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
-	if c.config.iteratorFunc == nil {
+	if c.config.iterFunc == nil {
 		return false, serror.FromStr("iterator function is nil")
 	}
 
@@ -189,7 +191,7 @@ func (c *Classifier) Iterate(ctx context.Context) (bool, error) {
 	// state.ID is a new block already, therefore maxBlocks has to be reduced by 1
 	toBlockID := min(c.state.Top, c.state.ID+c.maxBlocks-1)
 
-	if ok, err := c.config.iteratorFunc(ctx, c.db, c.state.ID, toBlockID); err != nil || !ok {
+	if ok, err := c.config.iterFunc(ctx, c.db, c.state.ID, toBlockID); err != nil || !ok {
 		return ok, err
 	}
 

@@ -41,8 +41,10 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 		return false, err
 	}
 
-	// step 1.2: store the privacy type of wasabi mixing.
-	if len(wasabiMixing) > 0 {
+	// step 1.2: update transactions classified as wasabi 2.0 mixing transactions.
+	// Only allow wasabi 2.0 classification after block 740000 to limit the number of false positives.
+	// Block 740000 is shortly before the release of wasabi 2.0.
+	if len(wasabiMixing) > 0 && (to > 740000 || from > 740000) {
 		if err = db.UpdateTransactions(ctx, c, wasabiMixing); err != nil {
 			return false, err
 		}
