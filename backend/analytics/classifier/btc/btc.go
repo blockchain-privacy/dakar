@@ -183,6 +183,13 @@ func isWasabi2Mixing(t db.Transaction) bool {
 		return false
 	}
 
+	// exclude if transaction only contains common denominations (multiple of 5000)
+	if !slices.ContainsFunc(denominationOut[:], func(i int) bool {
+		return i%5000 != 0
+	}) {
+		return false
+	}
+
 	return true
 }
 
