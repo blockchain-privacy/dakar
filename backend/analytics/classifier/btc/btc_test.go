@@ -214,11 +214,62 @@ func Test_isWasabi2Mixing(t *testing.T) {
 		},
 	}
 
+	noUncommonDenomation := db.Transaction{
+		Fee:  new(int64),
+		Hash: "f7a484919cee80b71d61a37cb901a6aa6204e7f26535cb7e479079722d571b10",
+		Inputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+			{Amount: testhelper.GetPointer[int64](874642)},
+		},
+		Outputs: []db.Output{
+			{Amount: testhelper.GetPointer[int64](133200000), KeyAsm: "1"},
+			{Amount: testhelper.GetPointer[int64](5000000), KeyAsm: "2"},
+			{Amount: testhelper.GetPointer[int64](150000000), KeyAsm: "3"},
+			{Amount: testhelper.GetPointer[int64](3799000000), KeyAsm: "4"},
+			{Amount: testhelper.GetPointer[int64](100000000), KeyAsm: "5"},
+			{Amount: testhelper.GetPointer[int64](1700000), KeyAsm: "6"},
+			{Amount: testhelper.GetPointer[int64](1000000), KeyAsm: "7"},
+			{Amount: testhelper.GetPointer[int64](2000000), KeyAsm: "8"},
+			{Amount: testhelper.GetPointer[int64](482500000), KeyAsm: "9"},
+			{Amount: testhelper.GetPointer[int64](100000000), KeyAsm: "10"},
+			{Amount: testhelper.GetPointer[int64](234403702357), KeyAsm: "11"},
+		},
+	}
+
 	var cases = []transactionTest{
 		{onlyOneDenomation, true},
 		{lowNumberOfDenominations, true},
 		{lowNumberOfOutputs, true},
 		{shouldWork, false},
+		{noUncommonDenomation, true},
 	}
 
 	for _, c := range cases {
