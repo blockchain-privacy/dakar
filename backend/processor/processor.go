@@ -190,7 +190,7 @@ func createOutputUID(transaction string, outputID int32) string {
 // newAmount mulitplies the given float times 1e8 and returns an integer
 func newAmount(f float64) (int64, error) {
 	// The amount is only considered invalid if it cannot be represented
-	// as an integer type.  This may happen if f is NaN or +-Infinity.
+	// as an integer type. This may happen if f is NaN or +-Infinity.
 	switch {
 	case math.IsNaN(f):
 		fallthrough
@@ -342,9 +342,7 @@ func filterExternalOutputs(txHashMap map[string]jsonrpc.TxRawResult, cache *outp
 			}
 
 			if _, ok := txHashMap[vin.Txid]; !ok && cache.getOutput(vin.Txid, vin.Vout) == nil {
-				ids := externalOutputs[vin.Txid]
-				ids = append(ids, vin.Vout)
-				externalOutputs[vin.Txid] = ids
+				externalOutputs[vin.Txid] = append(externalOutputs[vin.Txid], vin.Vout)
 			}
 		}
 	}
@@ -393,20 +391,6 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[int32]
 
 	details.Inputs = append(details.Inputs, refOutput)
 	return nil
-}
-
-// processBlock builds a block with the provided arguments and inserts it in the database
-func processBlock(ctx context.Context, dgraph external.Database, transactions []db.Transaction, currentHash string,
-	blockID int64, timestamp string, prevBlockHash string) (err error) {
-	return db.UpsertBlock(ctx, dgraph, db.Block{
-		Hash:      currentHash,
-		Timestamp: timestamp,
-		ID:        &blockID,
-		PrevBlock: &db.Block{
-			Hash: prevBlockHash,
-		},
-		Transactions: transactions,
-	})
 }
 
 var errBlockIDsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
@@ -519,25 +503,6 @@ func getInitialState(ctx context.Context, dgraph external.Database, client exter
 	return
 }
 
-// createTransactionHashmap gets all requested transactions from the RPCClient
-// and organizes them in a map indexed by the transaction hash
-func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]jsonrpc.TxRawResult, error) {
-	rawTransactions, err := client.GetRawTransactionVerboseBatch(transactions)
-	if err != nil {
-		return nil, err
-	}
-	txs := make(map[string]jsonrpc.TxRawResult, len(rawTransactions))
-	for _, rawTransaction := range rawTransactions {
-		if rawTransaction == nil {
-			return nil, serror.FromFormat("raw transaction is nil. Request: %v", transactions)
-		}
-
-		txs[rawTransaction.Txid] = *rawTransaction
-	}
-
-	return txs, nil
-}
-
 // getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
 func getExternalOutputs(ctx context.Context, dgraph external.Database,
 	outputs map[string][]int32) (map[string]map[int32]db.Output, error) {
@@ -579,25 +544,18 @@ func getExternalOutputs(ctx context.Context, dgraph external.Database,
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(ctx context.Context, dgraph external.Database, rpcClient external.RPCClient, state crawlerState,
-	block *jsonrpc.GetBlockVerboseResult, config Config, cache *outputCache) (
+func processRound(ctx context.Context, dgraph external.Database, state crawlerState,
+	block *jsonrpc.GetBlockVerboseResult, txMap map[string]jsonrpc.TxRawResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
-	var txMapping []transactionMapping
-
-	txHashMap, err := createTransactionHashmap(rpcClient, block.Tx)
-	if err != nil {
-		err = serror.AddContext(err, "state", state.String())
-		return
-	}
-
-	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txHashMap, cache))
+	externalOutputs, err := getExternalOutputs(ctx, dgraph, filterExternalOutputs(txMap, cache))
 	if err != nil {
 		return 0, 0, err
 	}
 
-	transactions := make([]db.Transaction, 0, len(txHashMap))
-	for _, t := range txHashMap {
-		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
+	var txMapping []transactionMapping
+	transactions := make([]db.Transaction, 0, len(txMap))
+	for _, t := range txMap {
+		newTx, tMap, buildErr := buildTransactionMapping(t, txMap, externalOutputs, config, cache)
 		if buildErr != nil {
 			err = serror.AddContext(err, "state", state.String())
 			return
@@ -628,8 +586,15 @@ func processRound(ctx context.Context, dgraph external.Database, rpcClient exter
 	var b db.Block
 	if b, err = db.GetBlock(ctx, dgraph, state.hash); err != nil || !b.IsComplete() {
 		// block is not yet in database -> create new block
-		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
-		if err = processBlock(ctx, dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+		if err = db.UpsertBlock(ctx, dgraph, db.Block{
+			Hash:      state.hash,
+			Timestamp: time.Unix(block.Time, 0).Format(time.RFC3339),
+			ID:        &state.id,
+			PrevBlock: &db.Block{
+				Hash: block.PreviousHash,
+			},
+			Transactions: transactions,
+		}); err != nil {
 			err = serror.AddContext(err, "state", state.String())
 			return
 		}

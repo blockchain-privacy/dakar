@@ -435,7 +435,7 @@ func Test_buildTransactionMapping(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rawTxResult)
 
-	txHashMap, err := createTransactionHashmap(client, block.Tx)
+	txHashMap, err := createTransactionMap(client, block.Tx)
 	require.NoError(t, err)
 
 	txWithoutAddresses := rawTxResult
@@ -633,49 +633,6 @@ func Test_processTxVin(t *testing.T) {
 	}
 }
 
-func Test_processBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	ctx, cancel := db.GetTaskContext()
-	defer cancel()
-
-	transactions, err := db.GetTransactionsByBlock(ctx, dbHandle,
-		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock)
-	require.NoError(t, err)
-
-	type args struct {
-		transactions  []db.Transaction
-		currentHash   string
-		blockID       int64
-		timestamp     string
-		prevBlockHash string
-	}
-	tests := []struct {
-		args    args
-		wantErr bool
-	}{
-		{
-			args: args{
-				transactions:  transactions,
-				currentHash:   "some_hash",
-				blockID:       5,
-				timestamp:     time.Now().Format(time.RFC3339),
-				prevBlockHash: "some_other_hash",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		err := processBlock(ctx, dbHandle, tt.args.transactions, tt.args.currentHash,
-			tt.args.blockID, tt.args.timestamp, tt.args.prevBlockHash)
-		if tt.wantErr {
-			require.Error(t, err)
-		} else {
-			require.NoError(t, err)
-		}
-	}
-}
-
 func Test_getStartingID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
@@ -729,21 +686,6 @@ func Test_getInitialState(t *testing.T) {
 
 	_, err = getInitialState(ctx, dbHandle, client)
 	require.NoError(t, err)
-}
-
-func Test_createTransactionHashmap(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
-	require.NoError(t, err)
-	require.NotEmpty(t, blockHashes)
-
-	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
-	require.NoError(t, err)
-
-	hashmap, err := createTransactionHashmap(client, verboseBlock.Tx)
-	require.NoError(t, err)
-	require.NotEmpty(t, hashmap)
 }
 
 func Test_getExternalOutputs(t *testing.T) {
@@ -801,9 +743,14 @@ func Test_processRound(t *testing.T) {
 	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
 	require.NoError(t, err)
 
+	txMap, err := createTransactionMap(client, verboseBlock.Tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, txMap)
+
 	type args struct {
 		state  crawlerState
 		block  *jsonrpc.GetBlockVerboseResult
+		txMap  map[string]jsonrpc.TxRawResult
 		config Config
 		cache  *outputCache
 	}
@@ -815,6 +762,7 @@ func Test_processRound(t *testing.T) {
 			args: args{
 				state:  crawlerState{top: int64(3), id: int64(1)},
 				block:  verboseBlock,
+				txMap:  txMap,
 				config: NewBitcoinConfig(),
 				cache:  newOutputCache(),
 			},
@@ -822,7 +770,7 @@ func Test_processRound(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		_, _, err := processRound(ctx, dbHandle, client, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		_, _, err := processRound(ctx, dbHandle, tt.args.state, tt.args.block, tt.args.txMap, tt.args.config, tt.args.cache)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

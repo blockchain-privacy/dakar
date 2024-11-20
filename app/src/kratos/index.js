@@ -81,6 +81,27 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 		}
 	}
 
+	if (error.response?.error?.reason || error.response?.error?.status) {
+		let msg = '';
+
+		if (error.response.error.status) {
+			msg = error.response.error.status;
+		}
+
+		if (error.response.error.reason) {
+			if (msg !== '') {
+				msg += ': ';
+			}
+
+			msg += error.response.error.reason;
+		}
+
+		context.msgStore.addMessage({
+			text: msg, type: 'error', temporary: true, category: context.$route.name,
+		});
+		return Promise.resolve();
+	}
+
 	if (error.response?.status) {
 		if (await checkErrorStatus(context, error, onRefreshFlow)) {
 			return Promise.resolve();
@@ -91,6 +112,7 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 		context.msgStore.addMessage({
 			text: error.message, type: 'error', temporary: true, category: context.$route.name,
 		});
+		return Promise.resolve();
 	}
 
 	// Return error if it was not possible to handle it

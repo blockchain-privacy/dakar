@@ -22,6 +22,7 @@ const (
 	UseClassifierFile        = "classifier"
 	UseBlockFile             = "block"
 	UsePrivacyFile           = "privacy"
+	UseBTCPrivacyFile        = "btc_privacy"
 	ClassifierFileFirstBlock = 1557775
 	ClassifierFileLastBlock  = 1557830
 	BlockFileFirstBlock      = 60000
@@ -45,6 +46,11 @@ var ClassifierFile []byte
 //
 //go:embed privacy_transactions.json
 var PrivacyFile []byte
+
+// BTCPrivacyFile contains a bitcoin blocks between 573945 574040
+//
+//go:embed btc_privacy_transactions.json
+var BTCPrivacyFile []byte
 
 type TestDB struct {
 	DB          external.Database

@@ -136,7 +136,7 @@ func TestDoSelection(t *testing.T) {
 			o: TxPropOptions{
 				StartDate:        &startDate1,
 				EndDate:          &endDate1,
-				TransactionTypes: []string{constants.TypeOrigin, constants.TypeMixing},
+				TransactionTypes: []string{constants.TypeDashOrigin, constants.TypeDashMixing},
 				InputSum:         &AmountRange{Min: &val1},
 				InputRange:       &AmountRange{Min: &valPoint01, Max: &valPoint1},
 				OutputRange:      &AmountRange{Min: &val1, Max: &valPoint1},
@@ -147,7 +147,7 @@ func TestDoSelection(t *testing.T) {
 			o: TxPropOptions{
 				StartDate:                  &startDate1,
 				EndDate:                    &endDate1,
-				TransactionTypes:           []string{constants.TypeOrigin, constants.TypeOrigin},
+				TransactionTypes:           []string{constants.TypeDashOrigin, constants.TypeDashOrigin},
 				ExcludePrivacyTransactions: &yes,
 			},
 			wantErr: true,

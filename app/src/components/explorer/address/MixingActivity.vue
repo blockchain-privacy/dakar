@@ -256,7 +256,7 @@ const props = defineProps({addressHash: {type: String, required: true}});
 const {getSettings} = storeToRefs(useLocalStore());
 const dakar = getDakarClient(getSettings.value.blockchainMode);
 
-const colorMap = getColorMap();
+const colorMap = getColorMap(getSettings.value.blockchainMode);
 let svgBarChart = null;
 const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;

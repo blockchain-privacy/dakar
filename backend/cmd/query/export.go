@@ -121,7 +121,7 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 	mixingTransactions := make([]exportTransaction, 0, nodes.Len())
 	for nodes.Next() {
 		txNode, ok := nodes.Node().(mgraph.TransactionNode)
-		if !ok || txNode.Type != constants.TypeMixing || txNode.TS.Before(year2016) {
+		if !ok || txNode.Type != constants.TypeDashMixing || txNode.TS.Before(year2016) {
 			continue
 		}
 
@@ -207,7 +207,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 			}
 
 			// if it is not a mixing transaction save it and stop following that edge
-			if toNode.Type != constants.TypeMixing {
+			if toNode.Type != constants.TypeDashMixing {
 				return false
 			}
 
@@ -229,7 +229,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 
 		// collect mixing nodes start
 		txNode, ok := n.(mgraph.TransactionNode)
-		if !ok || txNode.Type != constants.TypeMixing {
+		if !ok || txNode.Type != constants.TypeDashMixing {
 			return false
 		}
 
@@ -289,11 +289,6 @@ func doExportBlocks(ctx context.Context, dgraph external.Database, fileName stri
 	clusterRange, err := getClusterRange(ctx, dgraph, startBlock, endBlock)
 	if err != nil {
 		warn(err, "msg", "error getting clusters")
-		return
-	}
-
-	if len(clusterRange) == 0 {
-		info("no clusters to write")
 		return
 	}
 

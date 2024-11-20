@@ -462,14 +462,14 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// database is not set
-	require.Error(t, w.LoadGraphs())
+	require.Error(t, w.LoadGraphs(NewDashConfig()))
 
 	db.SetupDBWithoutData(t, dbHandle)
 
 	w.db = dbHandle
 
 	// database is empty, therefore classifier status is not set. Should return no error and set isLoading to true.
-	require.NoError(t, w.LoadGraphs())
+	require.NoError(t, w.LoadGraphs(NewDashConfig()))
 	require.True(t, w.isLoading)
 
 	ctx, cancel := db.GetTaskContext()
@@ -483,7 +483,7 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	// only load a small graph (should have no effect, as graph is small anyway)
 	w.isLoading = false
 	t.Setenv("DEV_GRAPH_LIMIT", "10000")
-	require.NoError(t, w.LoadGraphs())
+	require.NoError(t, w.LoadGraphs(NewDashConfig()))
 	require.NotNil(t, w.transactionGraph)
 }
 
@@ -521,7 +521,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
-	require.NoError(t, w.LoadGraphs())
+	require.NoError(t, w.LoadGraphs(NewDashConfig()))
 
 	// false because w.state.top is higher than most recent classified block
 	flag, err = w.Next(ctx)
@@ -566,7 +566,7 @@ func TestWrapper_Iterate(t *testing.T) {
 
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
-	require.NoError(t, w.LoadGraphs())
+	require.NoError(t, w.LoadGraphs(NewDashConfig()))
 
 	// state.ID is set to a block which does not exist,
 	// therefore iterate detects no nodes to insert and moves on

@@ -3,8 +3,10 @@ package main
 import (
 	"backend/analytics"
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/clustering"
+	"backend/db/status"
 	"backend/external"
 	"backend/processor"
 	"backend/server"
@@ -95,8 +97,9 @@ type ExportBlocksModule struct {
 }
 
 type DestinationCountModule struct {
-	Active   bool   `yaml:"active"`
-	Filename string `yaml:"filename"`
+	Active          bool   `yaml:"active"`
+	Filename        string `yaml:"filename"`
+	TransactionType string `yaml:"transactionType"`
 }
 
 type ExportPrivacyTransactionsModule struct {
@@ -257,7 +260,24 @@ func main() {
 		newConfig.ExclusionSimulations.Active ||
 		newConfig.OriginGap.Active ||
 		newConfig.DestinationCount.Active {
-		g, err = graph.LoadTransactionGraph(ctx, dgraph, 0)
+		meta, err := status.GetMeta(ctx, dgraph)
+		if err != nil {
+			warn(err)
+			return
+		}
+
+		var graphConfig graph.Config
+		switch meta.BlockchainMode {
+		case constants.BlockchainModeDash:
+			graphConfig = graph.NewDashConfig()
+		case constants.BlockchainModeBTC:
+			graphConfig = graph.NewBTCConfig()
+		default:
+			warn(serror.FromStrWithContext("invalid blockchain mode", "mode", meta.BlockchainMode))
+			return
+		}
+
+		g, err = graph.LoadTransactionGraph(ctx, graphConfig, dgraph, 0)
 		if err != nil && !errors.Is(err, graph.ErrDBContainsNoPrivacyTransactions) {
 			warn(err)
 			return
@@ -298,7 +318,7 @@ func main() {
 	}
 
 	if newConfig.DestinationCount.Active {
-		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename)
+		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename, newConfig.DestinationCount.TransactionType)
 	}
 
 	if newConfig.ExportClusterActivity.Active {

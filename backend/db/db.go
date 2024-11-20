@@ -225,6 +225,8 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 		fileBytes = testhelper.BlockFile
 	case testhelper.UsePrivacyFile:
 		fileBytes = testhelper.PrivacyFile
+	case testhelper.UseBTCPrivacyFile:
+		fileBytes = testhelper.BTCPrivacyFile
 	default:
 		log.Panic("invalid file key")
 	}

@@ -71,7 +71,7 @@ func TestWorker_work(t *testing.T) {
 	wrapper.RegisterMetrics(prometheus.NewRegistry())
 
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
-	require.NoError(t, wrapper.LoadGraphs())
+	require.NoError(t, wrapper.LoadGraphs(graph.NewDashConfig()))
 
 	w := NewWorker(NewMutex(), dbHandle, wrapper)
 	w.RegisterMetrics(prometheus.NewRegistry())

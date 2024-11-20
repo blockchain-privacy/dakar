@@ -1,17 +1,15 @@
 package analytics
 
 import (
+	"backend/analytics/classifier"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
 	"errors"
-	"log/slog"
 )
-
-var analyticsLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger() {
-	analyticsLogger = slog.With(slog.String("module", "analytics"))
+	classifier.InitLogger()
 	graph.InitLogger()
 	clustering.InitLogger()
 }

@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,8 +46,8 @@ import (
 // from the database.
 func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int,
 	transactionType string) ([]ConnectedNode, error) {
-	query := fmt.Sprintf(`{
-				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
+	const query = `query Q($type:string,$first:int,$offset:int){
+				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
 					uid
 					Transaction.type
 					block:~transactions{
@@ -63,9 +62,10 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 						}
 					}
 				}
-			  }`, numNodes, offsetNodes)
+			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
+		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
 	if err != nil {
 		return nil, err
 	}
@@ -95,17 +95,18 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
 func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
-	query := fmt.Sprintf(`{
-				q(func: eq(Transaction.type,"`+transactionType+`"), first:%d, offset:%d ){
+	const query = `query Q($type:string,$first:int,$offset:int){
+				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
 					uid
 					Transaction.type
 					block:~transactions{
 						ts
 					}
 				}
-			  }`, numNodes, offsetNodes)
+			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
+		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
 	if err != nil {
 		return nil, err
 	}
@@ -121,53 +122,28 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	return r.Q, nil
 }
 
-// GetMixingTransactions gets the first numNodes mixing transactions including their input transactions
-// from the database. If maxTx is equal to 0, all mixing transaction are returned.
-func GetMixingTransactions(ctx context.Context, c external.Database, numNodes int,
-	offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeMixing)
-}
-
-// GetDestinationTransactions gets the first numNodes destination transactions including their input transactions
-// from the database. If maxTx is equal to 0, all destination transaction are returned.
-func GetDestinationTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeDestination)
-}
-
-// GetOriginTransactions gets the first numNodes origin transactions from the database.
-// If maxTx is equal to 0, all origin transaction are returned.
-func GetOriginTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeOrigin)
-}
-
-// GetCollateralCreationTransactions gets the numNodes maxTx cc transactions from the database.
-// If maxTx is equal to 0, all cc transaction are returned.
-func GetCollateralCreationTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int) ([]Node, error) {
-	return GetPrivacyTransactions(ctx, c, numNodes, offsetNodes, constants.TypeCC)
-}
-
-// GetTransactionTypeCount gets the number of transaction per transaction type
-func GetTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
+// GetDashTransactionTypeCount gets the number of transaction per dash transaction type
+func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
 	originCount int, ccCount int, cpCount int,
 	destinationCount int, err error) {
 	const query = `{
-				mixing(func: eq(Transaction.type,"` + constants.TypeMixing + `")){
+				mixing(func: eq(Transaction.type,"` + constants.TypeDashMixing + `")){
 					count(uid)
 				}
 
-				origin(func: eq(Transaction.type,"` + constants.TypeOrigin + `")){
+				origin(func: eq(Transaction.type,"` + constants.TypeDashOrigin + `")){
 					count(uid)
 				}
 
-				destination(func: eq(Transaction.type,"` + constants.TypeDestination + `")){
+				destination(func: eq(Transaction.type,"` + constants.TypeDashDestination + `")){
 					count(uid)
 				}
 
-				cc(func: eq(Transaction.type,"` + constants.TypeCC + `")){
+				cc(func: eq(Transaction.type,"` + constants.TypeDashCC + `")){
 					count(uid)
 				}
 
-				cp(func: eq(Transaction.type,"` + constants.TypeCP + `")){
+				cp(func: eq(Transaction.type,"` + constants.TypeDashCP + `")){
 					count(uid)
 				}
 			  }`
@@ -217,6 +193,83 @@ func GetTransactionTypeCount(ctx context.Context, c external.Database) (mixingCo
 	return
 }
 
+// GetBTCTransactionTypeCount gets the number of transaction per bitcoin transaction type
+func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (wasabi2MixingCount int,
+	wasabi2OriginCount int, wasabi2DestinationCount int, whirlpoolMixingCount int,
+	whirlpoolOriginCount int, whirlpoolDestinationCount int, err error) {
+	const query = `{
+				wasabi2Origin(func: eq(Transaction.type,"` + constants.TypeWasabi2Origin + `")){
+					count(uid)
+				}
+
+				wasabi2Mixing(func: eq(Transaction.type,"` + constants.TypeWasabi2Mixing + `")){
+					count(uid)
+				}
+
+				wasabi2Destination(func: eq(Transaction.type,"` + constants.TypeWasabi2Destination + `")){
+					count(uid)
+				}
+
+				whirlpoolOrigin(func: eq(Transaction.type,"` + constants.TypeWhirlpoolOrigin + `")){
+					count(uid)
+				}
+
+				whirlpoolMixing(func: eq(Transaction.type,"` + constants.TypeWhirlpoolMixing + `")){
+					count(uid)
+				}
+
+				whirlpoolDestination(func: eq(Transaction.type,"` + constants.TypeWhirlpoolDestination + `")){
+					count(uid)
+				}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		Wasabi2Origin []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"wasabi2Origin,omitempty"`
+		Wasabi2Mixing []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"wasabi2Mixing,omitempty"`
+		Wasabi2Destination []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"wasabi2Destination,omitempty"`
+		WhirlpoolOrigin []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"whirlpoolOrigin,omitempty"`
+		WhirlpoolMixing []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"whirlpoolMixing,omitempty"`
+		WhirlpoolDestination []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"whirlpoolDestination,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	if len(r.Wasabi2Mixing) != 1 || len(r.Wasabi2Origin) != 1 || len(r.Wasabi2Destination) != 1 ||
+		len(r.WhirlpoolOrigin) != 1 || len(r.WhirlpoolMixing) != 1 || len(r.WhirlpoolDestination) != 1 {
+		err = serror.FromStr("invalid response from database")
+		return
+	}
+
+	wasabi2MixingCount = r.Wasabi2Mixing[0].Count
+	wasabi2OriginCount = r.Wasabi2Origin[0].Count
+	wasabi2DestinationCount = r.Wasabi2Destination[0].Count
+	whirlpoolMixingCount = r.WhirlpoolMixing[0].Count
+	whirlpoolOriginCount = r.WhirlpoolOrigin[0].Count
+	whirlpoolDestinationCount = r.WhirlpoolDestination[0].Count
+
+	return
+}
+
 // GetPrivacyTransactionsByBlock gets all destination transactions, mixing transactions and
 // their connected transactions of the given blockHeight
 func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
@@ -227,13 +280,13 @@ func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
 					txs as transactions
 				}
 				# get mixing transactions
-				mx as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeMixing + `")){
+				mx as var(func: uid(txs))@filter(eq(Transaction.type,` + constants.AllMixingTypes + `)){
 					tx_inputs{
 						mxi as ~tx_outputs
 					}
 				}
 				# get destination transactions
-				dst as var(func: uid(txs))@filter(eq(Transaction.type,"` + constants.TypeDestination + `")){
+				dst as var(func: uid(txs))@filter(eq(Transaction.type,` + constants.AllDestinationTypes + `)){
 					tx_inputs{
 						dsti as ~tx_outputs
 					}
@@ -296,14 +349,10 @@ func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
 // GetTransactionTypeData returns timestamps when the transactions of the specified type occur.
 // If the type is empty then all transaction types are considered.
 func GetTransactionTypeData(ctx context.Context, c external.Database,
-	transactionType string) (ts []time.Time, err error) {
-	funcQuery := "eq(Transaction.type,$txType)"
-	if transactionType == "" {
-		funcQuery = "has(Transaction.type)"
-	}
-
+	transactionType string) (ts []time.Time, counts []int, err error) {
 	query := `query Q($txType:string){
-				q(func:` + funcQuery + `)@normalize{
+				q(func:eq(Transaction.type,$txType))@normalize{
+					outputCount:count(tx_outputs)
 					~transactions{
 						ts:ts
 					}
@@ -319,7 +368,8 @@ func GetTransactionTypeData(ctx context.Context, c external.Database,
 	// json struct
 	var r struct {
 		Query []struct {
-			Timestamp time.Time `json:"ts,omitempty"`
+			Timestamp   time.Time `json:"ts,omitempty"`
+			OutputCount int       `json:"outputCount,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -328,8 +378,11 @@ func GetTransactionTypeData(ctx context.Context, c external.Database,
 		return
 	}
 
-	for _, q := range r.Query {
-		ts = append(ts, q.Timestamp.UTC())
+	ts = make([]time.Time, len(r.Query))
+	counts = make([]int, len(r.Query))
+	for i, q := range r.Query {
+		ts[i] = q.Timestamp.UTC()
+		counts[i] = q.OutputCount
 	}
 
 	return
@@ -477,12 +530,12 @@ type SpenderTransaction struct {
 }
 
 // GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
-func GetDestinationTransactionSpenders(ctx context.Context, c external.Database) (
+func GetDestinationTransactionSpenders(ctx context.Context, c external.Database, transactionType string) (
 	transactions []SpenderTransaction, globalDestinationCount int,
 	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
 	usingDestinationTransactionsCount int, err error) {
-	const query = `{
-		destinations as var(func: eq(Transaction.type,"` + constants.TypeDestination + `"))@cascade{
+	query := `{
+		destinations as var(func: eq(Transaction.type,"` + transactionType + `"))@cascade{
 			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
 		}
 
@@ -500,7 +553,7 @@ func GetDestinationTransactionSpenders(ctx context.Context, c external.Database)
 			uid
 			txhash
 			tx_inputs@normalize{
-				~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDestination + `")){
+				~tx_outputs@filter(eq(Transaction.type,"` + transactionType + `")){
 					uid:uid
 					txhash:txhash
 				}

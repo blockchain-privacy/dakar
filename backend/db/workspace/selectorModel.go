@@ -135,13 +135,8 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 		return false
 	}
 
-	// there are only 5 privacy types
-	if len(o.TransactionTypes) > 5 {
-		return false
-	}
-
 	for _, transactionType := range o.TransactionTypes {
-		if !constants.IsValidTransactionType(transactionType) {
+		if !constants.IsTransactionType(transactionType) {
 			return false
 		}
 	}

@@ -29,7 +29,7 @@
             class="ms-auto"
             variant="text"
             size="small"
-            @click="logoutAndGoToPage(ROUTE_NAME_ACCOUNT_RECOVERY)"
+            @click="logoutAndGoToPage({name: ROUTE_NAME_ACCOUNT_RECOVERY})"
           >
             Recover account
           </v-btn>
@@ -38,7 +38,7 @@
             variant="text"
             size="small"
             color="red"
-            @click="logoutAndGoToPage(ROUTE_NAME_ENTRY_PAGE)"
+            @click="logoutAndGoToPage({name: ROUTE_NAME_ENTRY_PAGE, params:{blockchainMode: localStore.getSettings.blockchainMode}})"
           >
             Log out
           </v-btn>
@@ -154,7 +154,7 @@ function leave() {
 }
 
 // Used to break login flow (when aal2 or higher is required) and go to a different page
-async function logoutAndGoToPage(pageName) {
+async function logoutAndGoToPage(toObj) {
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
 		if (!response.logout_token) {
@@ -163,11 +163,11 @@ async function logoutAndGoToPage(pageName) {
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
-		goToPage({name: pageName});
+		goToPage(toObj);
 	} catch (e) {
 		// Could not log out because no session was found -> go to requested page
 		if (e.response?.error?.id === 'session_inactive') {
-			goToPage({name: pageName});
+			goToPage(toObj);
 		} else {
 			await handleGetFlowError(context, e, null);
 		}

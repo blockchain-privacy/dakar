@@ -108,7 +108,7 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 						// for a certain user-defined duration. Funds from mixing transaction are usually
 						// not spent directly after the mixing process is finished. Because of this, the next
 						// connected non-mixing transaction must be included to the returned set.
-						if toNode.Type != constants.TypeMixing {
+						if !constants.IsMixingTransaction(toNode.Type) {
 							foundEndpoints[toNode.String()] = true
 						}
 
@@ -120,7 +120,7 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 			}
 
 			// if it is not a mixing transaction save it and stop following that edge
-			if toNode.Type != constants.TypeMixing {
+			if !constants.IsMixingTransaction(toNode.Type) {
 				foundEndpoints[toNode.String()] = true
 				return false
 			}

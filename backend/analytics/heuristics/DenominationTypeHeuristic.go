@@ -1,7 +1,7 @@
 package heuristics
 
 import (
-	"backend/analytics"
+	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
 	"backend/db"
 	"backend/db/analytics/heuristics"
@@ -126,8 +126,8 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 }
 
 // returns true if both destinationDenominations and originDenominations have the exact same types
-func hasSameDenominationTypes(destinationDenominations [analytics.NumDenominations]int,
-	originDenominations [analytics.NumDenominations]int) bool {
+func hasSameDenominationTypes(destinationDenominations [dash.NumDenominations]int,
+	originDenominations [dash.NumDenominations]int) bool {
 	for i, destinationDenomination := range destinationDenominations {
 		if originDenominations[i] == destinationDenomination && destinationDenomination == 0 {
 			continue

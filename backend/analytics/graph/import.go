@@ -1,13 +1,13 @@
 package graph
 
 import (
+	"backend/constants"
 	"backend/db/analytics"
 	"backend/external"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
-
 	"runtime"
 
 	"gonum.org/v1/gonum/graph"
@@ -16,161 +16,16 @@ import (
 
 var ErrDBContainsNoPrivacyTransactions = errors.New("db contains no privacy transactions")
 
-// loadOriginTransactions loads origin transactions from the database into the graph.
-// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadOriginTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
-	const step = 50000
-	for i := 0; ; i += step {
-		originNodes, err := analytics.GetOriginTransactions(ctx, c, step, i)
-		if err != nil {
-			return err
-		}
-
-		err = addSingleNodes(g, originNodes)
-		if err != nil {
-			return err
-		}
-
-		if len(originNodes) < step || (max > 0 && i+step >= max) {
-			break
-		}
-	}
-
-	return nil
+type Config struct {
+	loadFunc func(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error)
 }
 
-// loadCCTransactions loads cc transactions from the database into the graph.
-// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadCCTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
-	const step = 50000
-	for i := 0; ; i += step {
-		ccNodes, err := analytics.GetCollateralCreationTransactions(ctx, c, step, i)
-		if err != nil {
-			return err
-		}
-
-		err = addSingleNodes(g, ccNodes)
-		if err != nil {
-			return err
-		}
-
-		if len(ccNodes) < step || (max > 0 && i+step >= max) {
-			break
-		}
-	}
-
-	return nil
+func NewDashConfig() Config {
+	return Config{loadFunc: LoadDashTransactionGraph}
 }
 
-// loadMixingTransactions loads mixing transactions from the database into the graph.
-// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadMixingTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
-	const step = 50000
-	for i := 0; ; i += step {
-		if i/step > 10 && (i/step)%3 == 0 {
-			runtime.GC()
-		}
-		mixingNodes, err := analytics.GetMixingTransactions(ctx, c, step, i)
-		if err != nil {
-			return err
-		}
-
-		err = addEdges(g, mixingNodes)
-		if err != nil {
-			return err
-		}
-
-		if len(mixingNodes) < step || (max > 0 && i+step >= max) {
-			break
-		}
-	}
-
-	return nil
-}
-
-// loadDestinationTransactions loads destination transactions from the database into the graph
-// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadDestinationTransactions(ctx context.Context, c external.Database, g *ReversibleGraph, max int) error {
-	const step = 10000
-	for i := 0; ; i += step {
-		if i/step > 5 && (i/step)%2 == 0 {
-			runtime.GC()
-		}
-		destinationNodes, err := analytics.GetDestinationTransactions(ctx, c, step, i)
-		if err != nil {
-			return err
-		}
-
-		err = addEdges(g, destinationNodes)
-		if err != nil {
-			return err
-		}
-
-		if len(destinationNodes) < step || (max > 0 && i+step >= max) {
-			break
-		}
-	}
-
-	return nil
-}
-
-// LoadTransactionGraph loads and constructs a transaction graph from the database.
-// numTxToLoad == 0: load all transactions
-// numTxToLoad > 0: load numTxToLoad transactions of each privacy type
-func LoadTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
-	mixingCount, originCount, ccCount, cpCount, destinationCount, getErr :=
-		analytics.GetTransactionTypeCount(ctx, c)
-	if getErr != nil {
-		return nil, getErr
-	}
-
-	// nothing to do
-	if mixingCount == 0 {
-		return nil, ErrDBContainsNoPrivacyTransactions
-	}
-
-	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
-		"destination_count", destinationCount, "cc_count", ccCount, "cp_count", cpCount)
-
-	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
-
-	// load all origin transactions from the database
-	info("Loading origin nodes")
-	if err := loadOriginTransactions(ctx, c, g, numTxToLoad); err != nil {
-		return nil, err
-	}
-
-	// load all cc transactions from the database
-	info("Loading cc nodes")
-	if err := loadCCTransactions(ctx, c, g, numTxToLoad); err != nil {
-		return nil, err
-	}
-
-	// load all mixing transactions from the database
-	info("Loading mixing nodes")
-	if err := loadMixingTransactions(ctx, c, g, numTxToLoad); err != nil {
-		return nil, err
-	}
-	// load all destination transactions from the database
-	info("Loading destination nodes")
-	if err := loadDestinationTransactions(ctx, c, g, numTxToLoad/10); err != nil {
-		return nil, err
-	}
-
-	// only need to prune if a subset of transaction is loaded
-	if err := pruneNodes(g); err != nil {
-		return nil, err
-	}
-	info(fmt.Sprintf("transaction graph contains %d nodes", g.Nodes().Len()))
-	// check
-	info("verifying transaction graph")
-	if verificationErr := verifyTransactionGraph(g); verificationErr != nil {
-		return nil, verificationErr
-	}
-	runtime.GC()
-	info("transaction graph loaded")
-
-	return g, nil
+func NewBTCConfig() Config {
+	return Config{loadFunc: LoadBTCTransactionGraph}
 }
 
 // addSingleNodes adds the given nodes to g. Edges will not be set.
@@ -293,4 +148,188 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 	}
 
 	return nil
+}
+
+// loadDashOriginTransactions loads transactions filtered by type from the database into the graph.
+// maxTransactions: the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+// step: how many transactions are loaded in a single call to the database
+// loadSingleNodes: wether single nodes or edges are supposed to be loaded
+func loadTransactions(ctx context.Context, c external.Database, g *ReversibleGraph,
+	step int, maxTransactions int, transactionType string, loadSingleNodes bool) error {
+	for i := 0; ; i += step {
+		var numNodesLoaded int
+		if loadSingleNodes {
+			singleNodes, err := analytics.GetPrivacyTransactions(ctx, c, step, i, transactionType)
+			if err != nil {
+				return err
+			}
+
+			err = addSingleNodes(g, singleNodes)
+			if err != nil {
+				return err
+			}
+			numNodesLoaded = len(singleNodes)
+		} else {
+			// loading edges allocates a lot of memory, so run gc
+			if i/step > 10 && (i/step)%3 == 0 {
+				runtime.GC()
+			}
+			edges, err := analytics.GetConnectedPrivacyTransactions(ctx, c, step, i, transactionType)
+			if err != nil {
+				return err
+			}
+
+			err = addEdges(g, edges)
+			if err != nil {
+				return err
+			}
+
+			numNodesLoaded = len(edges)
+		}
+
+		if numNodesLoaded < step || (maxTransactions > 0 && i+step >= maxTransactions) {
+			break
+		}
+	}
+
+	return nil
+}
+
+func LoadTransactionGraph(ctx context.Context, config Config, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
+	if config.loadFunc == nil {
+		return nil, serror.FromStr("nil loading function")
+	}
+
+	g, err := config.loadFunc(ctx, c, numTxToLoad)
+	if err != nil {
+		return nil, err
+	}
+
+	// only need to prune if a subset of transaction is loaded
+	if err = pruneNodes(g); err != nil {
+		return nil, err
+	}
+	info(fmt.Sprintf("transaction graph contains %d nodes", g.Nodes().Len()))
+	// check
+	info("verifying transaction graph")
+	if verificationErr := verifyTransactionGraph(g); verificationErr != nil {
+		return nil, verificationErr
+	}
+	runtime.GC()
+	info("transaction graph loaded")
+
+	return g, nil
+}
+
+// LoadDashTransactionGraph loads and constructs the dash privacy transaction graph from the database.
+// numTxToLoad == 0: load all transactions
+// numTxToLoad > 0: load numTxToLoad transactions of each privacy type
+func LoadDashTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
+	mixingCount, originCount, ccCount, cpCount, destinationCount, getErr :=
+		analytics.GetDashTransactionTypeCount(ctx, c)
+	if getErr != nil {
+		return nil, getErr
+	}
+
+	// nothing to do
+	if mixingCount == 0 {
+		return nil, ErrDBContainsNoPrivacyTransactions
+	}
+
+	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
+		"destination_count", destinationCount, "cc_count", ccCount, "cp_count", cpCount)
+
+	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
+
+	// load all origin transactions from the database
+	info("Loading origin nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeDashOrigin, true); err != nil {
+		return nil, err
+	}
+
+	// load all cc transactions from the database
+	info("Loading cc nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeDashCC, true); err != nil {
+		return nil, err
+	}
+
+	// load all mixing transactions from the database
+	info("Loading mixing nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeDashMixing, false); err != nil {
+		return nil, err
+	}
+	// load all destination transactions from the database
+	info("Loading destination nodes")
+	if err := loadTransactions(ctx, c, g, 10000, numTxToLoad,
+		constants.TypeDashDestination, false); err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
+// LoadBTCTransactionGraph loads and constructs the bitcoin privacy transaction graph from the database.
+// numTxToLoad == 0: load all transactions
+// numTxToLoad > 0: load numTxToLoad transactions of each privacy type
+func LoadBTCTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
+	wasabi2MixingCount, wasabi2OriginCount, wasabi2Destinationcount, whirlpoolMixingCount,
+		whirlpoolOriginCount, whirlpoolDestinationcount, getErr := analytics.GetBTCTransactionTypeCount(ctx, c)
+	if getErr != nil {
+		return nil, getErr
+	}
+
+	// nothing to do
+	if wasabi2MixingCount+whirlpoolMixingCount == 0 {
+		return nil, ErrDBContainsNoPrivacyTransactions
+	}
+
+	info("db stats", "wasabi 2.0 mixing count", wasabi2MixingCount, "wasabi 2.0 origin count", wasabi2OriginCount,
+		"wasabi 2.0 destination count", wasabi2Destinationcount, "whirlpool mixing count", whirlpoolMixingCount,
+		"whirlpool origin count", whirlpoolOriginCount, "whirlpool destination count", whirlpoolDestinationcount)
+
+	g := NewReversibleGraph(wasabi2MixingCount + wasabi2OriginCount + wasabi2Destinationcount)
+
+	// load all origin transactions from the database
+	info("Loading wasabi 2.0 origin nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWasabi2Origin, true); err != nil {
+		return nil, err
+	}
+
+	info("Loading whirlpool origin nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWhirlpoolOrigin, true); err != nil {
+		return nil, err
+	}
+
+	// load all mixing transactions from the database
+	info("Loading wasabi 2.0 mixing nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWasabi2Mixing, false); err != nil {
+		return nil, err
+	}
+
+	// load all mixing transactions from the database
+	info("Loading whirlpool mixing nodes")
+	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
+		constants.TypeWhirlpoolMixing, false); err != nil {
+		return nil, err
+	}
+	// load all destination transactions from the database
+	info("Loading wasabi 2.0 destination nodes")
+	if err := loadTransactions(ctx, c, g, 10000, numTxToLoad,
+		constants.TypeWasabi2Destination, false); err != nil {
+		return nil, err
+	}
+
+	info("Loading whirlpool destination nodes")
+	if err := loadTransactions(ctx, c, g, 10000, numTxToLoad,
+		constants.TypeWhirlpoolDestination, false); err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }

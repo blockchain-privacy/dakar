@@ -236,7 +236,7 @@ const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 const dakar = getDakarClient(getSettings.value.blockchainMode);
 
-const colorMap = getColorMap();
+const colorMap = getColorMap(getSettings.value.blockchainMode);
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
 // Non-privacy transaction
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607d8b');
@@ -381,7 +381,7 @@ watch(
 const transactionTypeLabels = computed(() => {
 	const labels = [];
 
-	getColorMap().forEach((v, k) => {
+	getColorMap(getSettings.value.blockchainMode).forEach((v, k) => {
 		labels.push({text: k, color: v});
 	});
 

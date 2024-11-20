@@ -169,7 +169,7 @@ func Test_pruneNodes(t *testing.T) {
 	g.AddNode(TransactionNode{
 		TS:   time.Time{},
 		id:   0,
-		Type: constants.TypeMixing,
+		Type: constants.TypeDashMixing,
 	})
 	require.Error(t, pruneNodes(g))
 
@@ -205,50 +205,38 @@ func Test_verifyTransactionGraph(t *testing.T) {
 	require.Error(t, verifyTransactionGraph(g))
 }
 
-func Test_loadOriginTransactions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	// testdata contains 1 origin transaction
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	g := NewReversibleGraph(1)
-	ctx, cancel := db.GetTaskContext()
-	defer cancel()
-	require.NoError(t, loadOriginTransactions(ctx, dbHandle, g, 0))
-	require.Equal(t, 1, g.Nodes().Len())
-}
-
-func Test_loadDestinationTransactions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	// testdata contains 1 destination transaction with 7 input transactions
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-
-	g := NewReversibleGraph(1)
-	ctx, cancel := db.GetTaskContext()
-	defer cancel()
-
-	require.NoError(t, loadDestinationTransactions(ctx, dbHandle, g, 0))
-	require.Equal(t, 8, g.Nodes().Len())
-}
-
-func Test_loadMixingTransactions(t *testing.T) {
+func Test_loadTransactions(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	// testdata contains 132 mixing transactions and 557 input transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	g := NewReversibleGraph(132)
+	g := NewReversibleGraph(2000)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	require.NoError(t, loadMixingTransactions(ctx, dbHandle, g, 0))
+	require.NoError(t, loadTransactions(ctx, dbHandle, g, 50000, 0, constants.TypeDashMixing, false))
 	require.Equal(t, 689, g.Nodes().Len())
+
+	g = NewReversibleGraph(1)
+	require.NoError(t, loadTransactions(ctx, dbHandle, g, 50000, 0, constants.TypeDashDestination, false))
+	require.Equal(t, 8, g.Nodes().Len())
+
+	g = NewReversibleGraph(1)
+	require.NoError(t, loadTransactions(ctx, dbHandle, g, 50000, 0, constants.TypeDashOrigin, true))
+	require.Equal(t, 1, g.Nodes().Len())
+
+	g = NewReversibleGraph(1)
+	require.NoError(t, loadTransactions(ctx, dbHandle, g, 50000, 0, constants.TypeDashCC, true))
+	require.Equal(t, 0, g.Nodes().Len())
 }
 
-func Test_loadCCTransactions(t *testing.T) {
+func TestLoadDashTransactionGraph(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
-	// testdata contains 0 cc transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	g := NewReversibleGraph(132)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	require.NoError(t, loadCCTransactions(ctx, dbHandle, g, 0))
-	require.Equal(t, 0, g.Nodes().Len())
+	graph, err := LoadDashTransactionGraph(ctx, dbHandle, 0)
+	require.NoError(t, err)
+	// not pruned yet
+	require.Equal(t, 696, graph.Nodes().Len())
 }
 
 func TestLoadTransactionGraph(t *testing.T) {
@@ -256,7 +244,8 @@ func TestLoadTransactionGraph(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	graph, err := LoadTransactionGraph(ctx, dbHandle, 0)
+
+	graph, err := LoadTransactionGraph(ctx, NewDashConfig(), dbHandle, 0)
 	require.NoError(t, err)
 	// mixing_count=132 origin_count=1 destination_count=1 cc_count=0
 	require.Equal(t, 134, graph.Nodes().Len())

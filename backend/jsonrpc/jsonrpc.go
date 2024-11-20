@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type Client struct {
@@ -215,7 +216,7 @@ type GetBlockVerboseResult struct {
 	NextHash     string        `json:"nextblockhash,omitempty"`
 }
 
-func (d BlockchainClient) GetBlockCount() (int64, error) {
+func (d *BlockchainClient) GetBlockCount() (int64, error) {
 	var r int64
 	err := d.rpc.Call("getblockcount", nil, &r)
 	if err != nil {
@@ -225,7 +226,12 @@ func (d BlockchainClient) GetBlockCount() (int64, error) {
 	return r, nil
 }
 
-func (d BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseResult, error) {
+// SetTimeout sets the request timeout of the rpc client
+func (d *BlockchainClient) SetTimeout(timeout time.Duration) {
+	d.rpc.httpClient.Timeout = timeout
+}
+
+func (d *BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseResult, error) {
 	var r GetBlockVerboseResult
 	err := d.rpc.Call("getblock", []any{blockHash, 1}, &r)
 	if err != nil {
@@ -235,7 +241,7 @@ func (d BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseRes
 	return &r, nil
 }
 
-func (d BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
+func (d *BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 	var r string
 	err := d.rpc.Call("getblockhash", []any{blockHeight}, &r)
 	if err != nil {
@@ -245,7 +251,7 @@ func (d BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 	return r, nil
 }
 
-func (d BlockchainClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error) {
+func (d *BlockchainClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error) {
 	var r TxRawResult
 	err := d.rpc.Call("getrawtransaction", []any{txHash, 1}, &r)
 	if err != nil {
@@ -255,7 +261,7 @@ func (d BlockchainClient) GetRawTransactionVerbose(txHash string) (*TxRawResult,
 	return &r, nil
 }
 
-func (d BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult, error) {
+func (d *BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawResult, error) {
 	requests := make([]Request, len(txs))
 	results := make([]Response, len(txs))
 	request := Request{
@@ -287,7 +293,7 @@ func (d BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRawR
 }
 
 // GenerateToAddress mines a new block and rewards the resulting coins to the given address
-func (d BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
+func (d *BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
 	var blockHashes []string
 	err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes)
 	if err != nil {
@@ -298,7 +304,7 @@ func (d BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]st
 }
 
 // GetNewAddress creates a new address in the current wallet. Fails if now wallet is loaded.
-func (d BlockchainClient) GetNewAddress() (string, error) {
+func (d *BlockchainClient) GetNewAddress() (string, error) {
 	var newAddress string
 	err := d.rpc.Call("getnewaddress", []any{}, &newAddress)
 	if err != nil {
@@ -309,7 +315,7 @@ func (d BlockchainClient) GetNewAddress() (string, error) {
 }
 
 // CreateWallet creates a wallet with the given file name. Fails if the wallet already exists
-func (d BlockchainClient) CreateWallet(name string) (string, error) {
+func (d *BlockchainClient) CreateWallet(name string) (string, error) {
 	var newName string
 	err := d.rpc.Call("createwallet", []any{name}, &newName)
 	if err != nil {
@@ -320,7 +326,7 @@ func (d BlockchainClient) CreateWallet(name string) (string, error) {
 }
 
 // LoadWallet loads a wallet with the given file name: Fails if the wallet is already loaded
-func (d BlockchainClient) LoadWallet(fileName string) (string, error) {
+func (d *BlockchainClient) LoadWallet(fileName string) (string, error) {
 	var newName string
 	err := d.rpc.Call("loadwallet", []any{fileName}, &newName)
 	if err != nil {

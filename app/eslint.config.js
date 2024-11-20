@@ -1,5 +1,4 @@
 import pluginVue from 'eslint-plugin-vue';
-import pluginVuetify from 'eslint-plugin-vuetify';
 import globals from 'globals';
 import eslintJsPlugin from '@eslint/js';
 import xo from 'eslint-config-xo';
@@ -14,9 +13,6 @@ export default [
 	{
 		files: ['**/*.js', '**/*.vue'],
 		ignores: ['**/*.gitignore'],
-		plugins: {
-			pluginVuetify,
-		},
 		rules: {
 			'vue/prefer-true-attribute-shorthand': ['error', 'always'],
 			'vue/multi-word-component-names': 'off',

@@ -1,7 +1,7 @@
 package heuristics
 
 import (
-	"backend/analytics"
+	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
 	"backend/db"
 	"backend/db/analytics/heuristics"
@@ -122,7 +122,7 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 
 // containsDenomination returns true if all denominations with at
 // least the same amount of denom1 are contained in denom2
-func containsDenomination(denom1 [analytics.NumDenominations]int, denom2 [analytics.NumDenominations]int) bool {
+func containsDenomination(denom1 [dash.NumDenominations]int, denom2 [dash.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] < d {
 			return false

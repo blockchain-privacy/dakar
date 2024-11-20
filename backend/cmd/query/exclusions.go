@@ -115,7 +115,7 @@ func getNodeNumbers(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime tim
 			}
 
 			// if it is not a mixing transaction save it and stop following that edge
-			if toNode.Type != constants.TypeMixing {
+			if toNode.Type != constants.TypeDashMixing {
 				globalEndpointMap[toNode.ID()] = true
 				return false
 			}
@@ -135,7 +135,7 @@ func getNodeNumbers(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime tim
 			globalEndpointMap[n.ID()] = true
 		}
 
-		if g.Node(n.ID()).(mgraph.TransactionNode).Type == constants.TypeMixing {
+		if g.Node(n.ID()).(mgraph.TransactionNode).Type == constants.TypeDashMixing {
 			globalMixingMap[n.ID()] = true
 		}
 

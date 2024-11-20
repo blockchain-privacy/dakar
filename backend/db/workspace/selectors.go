@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"backend/constants"
 	"backend/db"
 	"backend/external"
 	"context"
@@ -18,7 +17,7 @@ var ErrInvalidSelector = errors.New("invalid selector")
 
 // appendFilterArgs appends '<and> ge(filterSubject, number)' or '<and> le(filterSubject, number)' filter
 // to the given string and returns it
-func appendFilterArgs(filter string, fiterSubject string, number *int64, min bool) string {
+func appendFilterArgs(filter string, fiterSubject string, number *int64, greaterOrEqual bool) string {
 	if number == nil {
 		return filter
 	}
@@ -27,7 +26,7 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 		filter += " and "
 	}
 
-	if min {
+	if greaterOrEqual {
 		filter += "ge"
 	} else {
 		filter += "le"
@@ -37,6 +36,8 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, min boo
 }
 
 // DoSelection returns transactions specified by the options. It also returns the number of total results.
+//
+//nolint:gocyclo
 func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, parentUID string) ([]string, int, error) {
 	if !o.IsValid(parentUID != "") {
 		return nil, 0, serror.New(ErrInvalidOptions)
@@ -108,24 +109,12 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 	if o.TransactionTypes != nil {
 		for _, txType := range o.TransactionTypes {
 			if transactionTypeFilter != "" {
-				transactionTypeFilter += " or "
+				transactionTypeFilter += ","
 			}
-
-			switch txType {
-			case constants.TypeMixing:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeMixing + "\")"
-			case constants.TypeDestination:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeDestination + "\")"
-			case constants.TypeOrigin:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeOrigin + "\")"
-			case constants.TypeCC:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeCC + "\")"
-			case constants.TypeCP:
-				transactionTypeFilter += "eq(Transaction.type,\"" + constants.TypeCP + "\")"
-			default:
-				return nil, 0, serror.FromStrWithContext("invalid privacy type", "privacy type", txType)
-			}
+			transactionTypeFilter += "\"" + txType + "\""
 		}
+
+		transactionTypeFilter = "eq(Transaction.type," + transactionTypeFilter + ")"
 	}
 
 	// construct @filter(eq(Transaction.type, ..., ...) or eq(Transaction.type, ..., ....) ...)
