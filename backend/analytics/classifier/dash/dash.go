@@ -61,7 +61,7 @@ var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
 	// get the transaction of the current block range
-	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, false)
+	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, false, nil)
 	if err != nil {
 		return false, err
 	}

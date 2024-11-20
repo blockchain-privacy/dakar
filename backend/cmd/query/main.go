@@ -96,6 +96,14 @@ type ExportBlocksModule struct {
 	EndBlock   int    `yaml:"endBlock"`
 }
 
+type ExportTransactionsModule struct {
+	Active            bool     `yaml:"active"`
+	Filename          string   `yaml:"filename"`
+	StartBlock        int64    `yaml:"startBlock"`
+	EndBlock          int64    `yaml:"endBlock"`
+	TransactiontTypes []string `yaml:"transactiontTypes"`
+}
+
 type DestinationCountModule struct {
 	Active          bool   `yaml:"active"`
 	Filename        string `yaml:"filename"`
@@ -122,6 +130,7 @@ type Config struct {
 	ExclusionSimulations  ExclusionSimulationModule   `yaml:"exclusionSimulations"`
 	OriginGap             OriginGapModule             `yaml:"originGap"`
 	ExportBlocks          ExportBlocksModule          `yaml:"exportBlocks"`
+	ExportTransactions    ExportTransactionsModule    `yaml:"exportTransactions"`
 	ExportPrivacyGraph    ExportPrivacyGraphModule    `yaml:"exportPrivacyGraph"`
 	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
@@ -163,6 +172,13 @@ var defaultConfig = Config{
 		Filename:   "",
 		StartBlock: 0,
 		EndBlock:   0,
+	},
+	ExportTransactions: ExportTransactionsModule{
+		Active:            false,
+		Filename:          "",
+		StartBlock:        0,
+		EndBlock:          0,
+		TransactiontTypes: nil,
 	},
 	ExportPrivacyGraph: ExportPrivacyGraphModule{
 		Active:           false,
@@ -310,6 +326,12 @@ func main() {
 	if newConfig.ExportBlocks.Active {
 		doExportBlocks(ctx, dgraph, newConfig.ExportBlocks.Filename,
 			newConfig.ExportBlocks.StartBlock, newConfig.ExportBlocks.EndBlock)
+	}
+
+	if newConfig.ExportTransactions.Active {
+		doExportTransactions(ctx, dgraph, newConfig.ExportTransactions.Filename,
+			newConfig.ExportTransactions.StartBlock, newConfig.ExportTransactions.EndBlock,
+			newConfig.ExportTransactions.TransactiontTypes)
 	}
 
 	if newConfig.ExportPrivacyGraph.Active {

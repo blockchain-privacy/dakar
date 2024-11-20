@@ -187,17 +187,31 @@ func GetTransactionsOutputs(ctx context.Context, c external.Database, transactio
 	return r.Transactions, nil
 }
 
-// GetTransactionsByBlock returns the transaction contained in the requested block
+// GetTransactionsByBlock returns the transaction contained in the requested block.
+// If transactionTypeFilter is not nil, only transactions with the specified type are returned.
 func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockID int64,
-	toBlockID int64, withOutputScripts bool) (transactions []Transaction, err error) {
+	toBlockID int64, withOutputScripts bool, transactionTypeFilter []string) (transactions []Transaction, err error) {
 	var keyAsm string
 	if withOutputScripts {
 		keyAsm = "keyasm"
 	}
 
+	var typeFilter string
+	if len(transactionTypeFilter) > 0 {
+		for _, t := range transactionTypeFilter {
+			if typeFilter != "" {
+				typeFilter += ","
+			}
+
+			typeFilter += "\"" + t + "\""
+		}
+
+		typeFilter = "@filter(eq(Transaction.type," + typeFilter + "))"
+	}
+
 	query := `query Q($from:int,$to:int) {
 				var(func: between(id, $from, $to)){
-					txs as transactions
+					txs as transactions` + typeFilter + `
 				}
 
 				q(func: uid(txs)){

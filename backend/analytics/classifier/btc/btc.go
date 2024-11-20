@@ -30,7 +30,7 @@ var denominationTypesWhirlpool = [NumWhirlpoolDenominations]int64{100000, 100000
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
 	// get the transaction of the current block range
-	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, true)
+	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, true, nil)
 	if err != nil {
 		return false, err
 	}
