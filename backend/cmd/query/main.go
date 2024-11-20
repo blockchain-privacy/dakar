@@ -97,11 +97,11 @@ type ExportBlocksModule struct {
 }
 
 type ExportTransactionsModule struct {
-	Active            bool     `yaml:"active"`
-	Filename          string   `yaml:"filename"`
-	StartBlock        int64    `yaml:"startBlock"`
-	EndBlock          int64    `yaml:"endBlock"`
-	TransactiontTypes []string `yaml:"transactiontTypes"`
+	Active           bool     `yaml:"active"`
+	Filename         string   `yaml:"filename"`
+	StartBlock       int64    `yaml:"startBlock"`
+	EndBlock         int64    `yaml:"endBlock"`
+	TransactionTypes []string `yaml:"transactionTypes"`
 }
 
 type DestinationCountModule struct {
@@ -174,11 +174,11 @@ var defaultConfig = Config{
 		EndBlock:   0,
 	},
 	ExportTransactions: ExportTransactionsModule{
-		Active:            false,
-		Filename:          "",
-		StartBlock:        0,
-		EndBlock:          0,
-		TransactiontTypes: nil,
+		Active:           false,
+		Filename:         "",
+		StartBlock:       0,
+		EndBlock:         0,
+		TransactionTypes: nil,
 	},
 	ExportPrivacyGraph: ExportPrivacyGraphModule{
 		Active:           false,
@@ -331,7 +331,7 @@ func main() {
 	if newConfig.ExportTransactions.Active {
 		doExportTransactions(ctx, dgraph, newConfig.ExportTransactions.Filename,
 			newConfig.ExportTransactions.StartBlock, newConfig.ExportTransactions.EndBlock,
-			newConfig.ExportTransactions.TransactiontTypes)
+			newConfig.ExportTransactions.TransactionTypes)
 	}
 
 	if newConfig.ExportPrivacyGraph.Active {
