@@ -314,7 +314,7 @@ func doExportBlocks(ctx context.Context, dgraph external.Database, fileName stri
 	}
 }
 
-func doExportPrivacyTransactions(ctx context.Context, dgraph external.Database, fileName string, startTransaction string) {
+func doExportPrivacyGraph(ctx context.Context, dgraph external.Database, fileName string, startTransaction string) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		warn(err, "msg", "error creating file")

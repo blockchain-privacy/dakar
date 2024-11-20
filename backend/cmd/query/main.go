@@ -102,7 +102,7 @@ type DestinationCountModule struct {
 	TransactionType string `yaml:"transactionType"`
 }
 
-type ExportPrivacyTransactionsModule struct {
+type ExportPrivacyGraphModule struct {
 	Active           bool   `yaml:"active"`
 	Filename         string `yaml:"filename"`
 	StartTransaction string `yaml:"startTransaction"`
@@ -114,17 +114,17 @@ type ExportClusterActivityModule struct {
 }
 
 type Config struct {
-	Logfile                   string                          `yaml:"logfile"`
-	DBHost                    string                          `yaml:"host"`
-	PrivacyCharts             PrivacyChartModule              `yaml:"privacyCharts"`
-	UniqueAddresses           UniqueAddressesModule           `yaml:"uniqueAddresses"`
-	TimestampAnalytics        TimestampAnalyticsModule        `yaml:"timestampAnalytics"`
-	ExclusionSimulations      ExclusionSimulationModule       `yaml:"exclusionSimulations"`
-	OriginGap                 OriginGapModule                 `yaml:"originGap"`
-	ExportBlocks              ExportBlocksModule              `yaml:"exportBlocks"`
-	ExportPrivacyTransactions ExportPrivacyTransactionsModule `yaml:"exportPrivacyTransactions"`
-	DestinationCount          DestinationCountModule          `yaml:"destinationCount"`
-	ExportClusterActivity     ExportClusterActivityModule     `yaml:"exportClusterActivity"`
+	Logfile               string                      `yaml:"logfile"`
+	DBHost                string                      `yaml:"host"`
+	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
+	UniqueAddresses       UniqueAddressesModule       `yaml:"uniqueAddresses"`
+	TimestampAnalytics    TimestampAnalyticsModule    `yaml:"timestampAnalytics"`
+	ExclusionSimulations  ExclusionSimulationModule   `yaml:"exclusionSimulations"`
+	OriginGap             OriginGapModule             `yaml:"originGap"`
+	ExportBlocks          ExportBlocksModule          `yaml:"exportBlocks"`
+	ExportPrivacyGraph    ExportPrivacyGraphModule    `yaml:"exportPrivacyGraph"`
+	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
+	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
 }
 
 var defaultConfig = Config{
@@ -164,7 +164,7 @@ var defaultConfig = Config{
 		StartBlock: 0,
 		EndBlock:   0,
 	},
-	ExportPrivacyTransactions: ExportPrivacyTransactionsModule{
+	ExportPrivacyGraph: ExportPrivacyGraphModule{
 		Active:           false,
 		Filename:         "",
 		StartTransaction: "",
@@ -312,9 +312,9 @@ func main() {
 			newConfig.ExportBlocks.StartBlock, newConfig.ExportBlocks.EndBlock)
 	}
 
-	if newConfig.ExportPrivacyTransactions.Active {
-		doExportPrivacyTransactions(ctx, dgraph, newConfig.ExportPrivacyTransactions.Filename,
-			newConfig.ExportPrivacyTransactions.StartTransaction)
+	if newConfig.ExportPrivacyGraph.Active {
+		doExportPrivacyGraph(ctx, dgraph, newConfig.ExportPrivacyGraph.Filename,
+			newConfig.ExportPrivacyGraph.StartTransaction)
 	}
 
 	if newConfig.DestinationCount.Active {
