@@ -151,7 +151,7 @@ func isWasabi2Mixing(t db.Transaction) bool {
 		return false
 	}
 
-	// mininmum input output
+	// minimum input output
 	const vMin = int64(5000)
 	if slices.ContainsFunc(t.Inputs, func(output db.Output) bool {
 		return output.Amount == nil || *output.Amount < vMin
@@ -192,11 +192,7 @@ func isWasabi2Mixing(t db.Transaction) bool {
 		}
 	}
 
-	if !found {
-		return false
-	}
-
-	return true
+	return found
 }
 
 // isWhirlpoolMixing checks if the transaction is a whirlpool mixing transaction
@@ -223,12 +219,12 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 		}
 	}
 
-	// no denomation has the required number of occurrences
+	// no denomination has the required number of occurrences
 	if denomationIndex == -1 {
 		return false
 	}
 
-	// there must be at least one non-denomation input
+	// there must be at least one non-denomination input
 	denominationIn := countWhirlpoolDenominations(t.Inputs)
 	if denominationIn[denomationIndex] == numOutputs {
 		return false
@@ -282,7 +278,7 @@ func isWhirlpoolOrigin(t db.Transaction) bool {
 		}
 	}
 
-	// does not have zero amount or no amount close to a denomation
+	// does not have zero amount or no amount close to a denomination
 	if !hasOutputWithoutAmount || len(amountCounts) == 0 {
 		return false
 	}
