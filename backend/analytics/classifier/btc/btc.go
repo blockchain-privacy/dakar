@@ -174,24 +174,16 @@ func isWasabi2Mixing(t db.Transaction) bool {
 		return false
 	}
 
-	// todo: disabled for evaluation
-	// exclude high percentage of same denominations
-	//if slices.ContainsFunc(denominationOut[:], func(i int) bool {
-	//	return float64(i) >= float64(outputDenominationCount)*0.9
-	//}) {
-	//	return false
-	//}
-	//
-	//// exclude if transaction only contains common denominations (multiple of 5000)
-	//found := false
-	//for i, d := range denominationOut {
-	//	if d > 0 && denominationsTypesWasabi2[i]%5000 != 0 {
-	//		found = true
-	//		break
-	//	}
-	//}
+	// exclude if transaction only contains common denominations (multiple of 5000)
+	found := false
+	for i, d := range denominationOut {
+		if d > 0 && denominationsTypesWasabi2[i]%5000 != 0 {
+			found = true
+			break
+		}
+	}
 
-	return true
+	return found
 }
 
 // isWhirlpoolMixing checks if the transaction is a whirlpool mixing transaction
