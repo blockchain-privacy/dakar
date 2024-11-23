@@ -4,9 +4,7 @@
     class="my-2"
     :ripple="false"
   >
-    <v-card-text
-      style="min-height: 90px"
-    >
+    <v-card-text style="min-height: 90px">
       <v-row>
         <v-col>
           <div class="d-flex justify-space-between align-center">
@@ -22,7 +20,10 @@
             >
               No Address available
             </div>
-            <div class="text-no-wrap ms-1">
+            <div
+              :class="{'text-no-wrap':true, 'ms-1':true, 'pa-1':true, 'amount':true,
+                       'amountHighlighted':isWasabi2Amount}"
+            >
               {{ convertAmount(amount) }} {{ coinUnit }}
             </div>
           </div>
@@ -72,9 +73,9 @@
                   location="bottom"
                   text="Toggle ASCII encoding of key script"
                 >
-                  <template #activator="{props}">
+                  <template #activator="item">
                     <v-btn
-                      v-bind="props"
+                      v-bind="item.props"
                       variant="text"
                       icon
                       @click="showAscii = !showAscii"
@@ -122,7 +123,7 @@
 
 <script setup>
 import {mdiChevronUp, mdiChevronDown, mdiFormatColorText} from '@mdi/js';
-import {convertAmount, getCoinUnit} from '@/utilities';
+import {convertAmount, getCoinUnit, isWasabi2Denomination} from '@/utilities';
 import {
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
@@ -131,8 +132,9 @@ import {computed, ref} from 'vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import {useExplorerStore} from '@/pinia/explorer.js';
 
-defineProps({
+const props = defineProps({
 	isInput: {type: Boolean, required: true},
 	addressHash: {type: String, required: true},
 	amount: {type: Number, required: true},
@@ -147,12 +149,13 @@ defineProps({
 });
 
 const {getSettings} = storeToRefs(useLocalStore());
-
+const {getHighlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 const expanded = ref(false);
 const showAscii = ref(false);
 
 // Computed
 const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
+const isWasabi2Amount = computed(() => getHighlightWasabi2Denominations.value && isWasabi2Denomination(props.amount));
 
 // Functions
 const isHex = str => /^[A-F\d]+$/i.test(str);
@@ -180,5 +183,14 @@ function scriptToAscii(script) {
 </script>
 
 <style scoped>
+
+.amount {
+  /* hide border, for proper sizing */
+  border: 2px solid transparent;
+  border-radius: 10px;
+}
+.amountHighlighted {
+  border-color: #76C408;
+}
 
 </style>

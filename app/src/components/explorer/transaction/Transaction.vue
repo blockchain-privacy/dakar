@@ -17,6 +17,36 @@
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
+      <v-menu location="bottom">
+        <template #activator="item">
+          <v-btn
+            v-bind="item.props"
+            icon
+            variant="text"
+          >
+            <v-icon>{{ mdiDotsVertical }}</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item>
+            <template #prepend>
+              <v-icon>{{ mdiMarker }}</v-icon>
+            </template>
+            <div class="d-flex">
+              <v-list-item-title style="display:flex; align-items:center">
+                Highlight Wasabi 2.0 Denominations
+              </v-list-item-title>
+              <v-switch
+                v-model="highlightWasabi2Denominations"
+                class="ml-2"
+                inset
+                density="compact"
+                hide-details
+              />
+            </div>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </icon-title>
     <v-card-text>
       <v-expand-transition>
@@ -283,9 +313,8 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp,
-	mdiFormatHeaderPound,
-	mdiFormatListNumbered,
+	mdiChevronUp, mdiDotsVertical, mdiFormatHeaderPound,
+	mdiFormatListNumbered, mdiMarker,
 	mdiPickaxe, mdiSigma,
 	mdiTransfer,
 } from '@mdi/js';
@@ -304,6 +333,7 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 import BarChart from '@/d3Documents/barChart.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import {useExplorerStore} from '@/pinia/explorer.js';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -318,6 +348,7 @@ const props = defineProps({
 });
 
 const {getSettings} = storeToRefs(useLocalStore());
+const {highlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 
 const showTransactionDetails = toRef(props.showDetails);
 const showAllOutputs = ref(false);
