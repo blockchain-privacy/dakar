@@ -17,12 +17,16 @@
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
-      <v-menu location="bottom">
+      <v-menu
+        v-if="isBTC"
+        location="bottom"
+      >
         <template #activator="item">
           <v-btn
             v-bind="item.props"
             icon
             variant="text"
+            density="compact"
           >
             <v-icon>{{ mdiDotsVertical }}</v-icon>
           </v-btn>
@@ -320,7 +324,7 @@ import {
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {
-	convertAmount, getColorMap, isDestination, plural, shortenHash,
+	convertAmount, getColorMap, isDestination, isModeBTC, plural, shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
@@ -384,6 +388,7 @@ const areItemsLimited = computed(() => {
 });
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
+const isBTC = computed(() => isModeBTC(getSettings.value.blockchainMode));
 
 // Hooks
 onUpdated(() => {

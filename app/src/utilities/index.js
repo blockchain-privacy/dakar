@@ -196,6 +196,10 @@ function isRole(session, mode, roleName) {
 	}
 }
 
+export function isModeBTC(mode) {
+	return mode === BLOCKCHAIN_BTC;
+}
+
 export function isPrivilegedIdentity(session, mode) {
 	return isRole(session, mode, 'privileged');
 }
