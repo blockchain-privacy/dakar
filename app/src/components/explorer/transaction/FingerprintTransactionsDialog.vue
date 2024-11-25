@@ -85,12 +85,13 @@
                                  width: '20px', padding: '0px 0px 0px 0px'}"
                       />
                       <td class="transaction-hash">
-                        <router-link
+                        <workspace-link
+                          disable-select
                           :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                                  params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
                         >
                           {{ item.txhash }}
-                        </router-link>
+                        </workspace-link>
                       </td>
                     </tr>
                   </tbody>
@@ -129,6 +130,7 @@ import {ref, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 import {getDakarClient} from '@/utilities/index.js';
+import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 
 const {getSettings} = storeToRefs(useLocalStore());
 const props = defineProps({transactionHash: {type: String, required: true}});
@@ -138,12 +140,11 @@ const dakar = getDakarClient(getSettings.value.blockchainMode);
 const isLoading = ref(false);
 const fingerprintScores = ref([]);
 const sessionCount = ref(-1);
-// LoadedSuccessful controls if a data load request needs to be sent
-let loadedSuccessful = false;
 const errorMsg = ref('');
 
 // Watchers
 watch(() => props.modelValue, newVal => {
+	console.log(newVal);
 	if (!newVal) {
 		return;
 	}
@@ -169,11 +170,6 @@ function scoreToColor(scaleNum) {
 }
 
 async function searchForSimilarTransactions() {
-	// Check if data was already loaded
-	if (loadedSuccessful) {
-		return;
-	}
-
 	fingerprintScores.value = [];
 	sessionCount.value = -1;
 	errorMsg.value = '';
@@ -181,8 +177,6 @@ async function searchForSimilarTransactions() {
 
 	try {
 		const response = await dakar.tools.spendingFingerprintHashGet({hash: props.transactionHash});
-
-		loadedSuccessful = true;
 
 		if (response.fingerprint_scores) {
 			fingerprintScores.value = response.fingerprint_scores
