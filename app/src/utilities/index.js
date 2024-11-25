@@ -311,4 +311,3 @@ export function capitalize(str) {
 export function isWasabi2Denomination(amount) {
 	return DENOMINATIONS_WASABI2.has(amount);
 }
-

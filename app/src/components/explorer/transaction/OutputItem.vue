@@ -21,7 +21,7 @@
               No Address available
             </div>
             <div
-              :class="{'text-no-wrap':true, 'ms-1':true, 'pa-1':true, 'amount':true,
+              :class="{'text-no-wrap':true, 'ms-1':true, 'pt-1':true, 'amount':true, 'px-1':true,
                        'amountHighlighted':isWasabi2Amount}"
             >
               {{ convertAmount(amount) }} {{ coinUnit }}

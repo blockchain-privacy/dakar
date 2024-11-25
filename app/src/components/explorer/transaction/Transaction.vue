@@ -17,40 +17,6 @@
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
-      <v-menu
-        v-if="isBTC"
-        location="bottom"
-      >
-        <template #activator="item">
-          <v-btn
-            v-bind="item.props"
-            icon
-            variant="text"
-            density="compact"
-          >
-            <v-icon>{{ mdiDotsVertical }}</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item>
-            <template #prepend>
-              <v-icon>{{ mdiMarker }}</v-icon>
-            </template>
-            <div class="d-flex">
-              <v-list-item-title style="display:flex; align-items:center">
-                Highlight Wasabi 2.0 Denominations
-              </v-list-item-title>
-              <v-switch
-                v-model="highlightWasabi2Denominations"
-                class="ml-2"
-                inset
-                density="compact"
-                hide-details
-              />
-            </div>
-          </v-list-item>
-        </v-list>
-      </v-menu>
     </icon-title>
     <v-card-text>
       <v-expand-transition>
@@ -176,6 +142,25 @@
       >
         <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
+      <v-alert
+        v-if="hasWasabi2Denominations"
+        color="info"
+        variant="tonal"
+        density="compact"
+        class="mb-5"
+      >
+        <div class="d-flex align-center">
+          Wasabi 2.0 denominations detected. Highlight amounts?
+          <v-spacer />
+          <v-switch
+            v-model="highlightWasabi2Denominations"
+            class="ml-2"
+            inset
+            density="compact"
+            hide-details
+          />
+        </div>
+      </v-alert>
       <v-row class="outputContainer">
         <v-col v-if="tx.inputs && getInputs.length > 0">
           <p class="text-center">
@@ -317,14 +302,20 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp, mdiDotsVertical, mdiFormatHeaderPound,
-	mdiFormatListNumbered, mdiMarker,
+	mdiChevronUp, mdiFormatHeaderPound,
+	mdiFormatListNumbered,
 	mdiPickaxe, mdiSigma,
 	mdiTransfer,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {
-	convertAmount, getColorMap, isDestination, isModeBTC, plural, shortenHash,
+	convertAmount,
+	getColorMap,
+	isDestination,
+	isModeBTC,
+	isWasabi2Denomination,
+	plural,
+	shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
@@ -389,6 +380,9 @@ const areItemsLimited = computed(() => {
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const isBTC = computed(() => isModeBTC(getSettings.value.blockchainMode));
+const hasWasabi2Denominations = computed(() => isBTC.value
+	&& (props.tx.inputs?.some(i => isWasabi2Denomination(i.amount))
+	|| props.tx.outputs?.some(o => isWasabi2Denomination(o.amount))));
 
 // Hooks
 onUpdated(() => {
