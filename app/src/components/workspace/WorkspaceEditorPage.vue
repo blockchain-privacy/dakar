@@ -91,7 +91,7 @@
           :disable-adding-nodes="isModifyingWorkspace"
           :node-actions="nodeActions"
           @add-nodes="checkNodeCount"
-          @delete-entity="removeContextNode"
+          @fingerprint-transaction="openFingerprintSidebar"
         />
         <connection-side-bar
           v-model="isConnectionSideBarOpen"
@@ -131,6 +131,10 @@
           :maxlength="maxNoteLength"
           text-area
           @submit="changeNote"
+        />
+        <fingerprint-side-bar
+          v-model="isFingerprintSideBarOpen"
+          :transaction-hash="fingerprintTransaction"
         />
         <confirm-dialog
           v-if="showWarningDialogModel"
@@ -228,6 +232,7 @@ import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
 
 const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
@@ -269,6 +274,7 @@ const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
 const selectorCreationType = ref('');
 const isShortestPathSideBarOpen = ref(false);
+const isFingerprintSideBarOpen = ref(false);
 const entityIdentifier = ref('');
 const entityAuxiliaryData = ref(null);
 const entityType = ref('');
@@ -284,6 +290,7 @@ const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
 const lassoSelectedNodes = ref([]);
+const fingerprintTransaction = ref('');
 const shortestPathTransactions = ref(['', '']);
 const contextMenuModel = ref({display: false, x: 0, y: 0});
 const nodeActions = ref([
@@ -858,6 +865,7 @@ function openConnectionSheet(d) {
 	isCreateSelectorSheetOpen.value = false;
 	isConnectionSideBarOpen.value = true;
 	isShortestPathSideBarOpen.value = false;
+	isFingerprintSideBarOpen.value = false;
 
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
@@ -876,6 +884,8 @@ function openCreateSelectorSheet(selectorType, parentNode) {
 	isConnectionSideBarOpen.value = false;
 	isCreateSelectorSheetOpen.value = true;
 	isShortestPathSideBarOpen.value = false;
+	isFingerprintSideBarOpen.value = false;
+
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
@@ -925,6 +935,7 @@ function openEntitySideBar(nodeData) {
 	isCreateSelectorSheetOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isShortestPathSideBarOpen.value = false;
+	isFingerprintSideBarOpen.value = false;
 	isEntitySideBarOpen.value = true;
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
@@ -937,6 +948,17 @@ function openShortestPathSidebar() {
 	isCreateSelectorSheetOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isShortestPathSideBarOpen.value = true;
+	isFingerprintSideBarOpen.value = false;
+}
+
+function openFingerprintSidebar(txhash) {
+	fingerprintTransaction.value = txhash;
+
+	isEntitySideBarOpen.value = false;
+	isCreateSelectorSheetOpen.value = false;
+	isConnectionSideBarOpen.value = false;
+	isShortestPathSideBarOpen.value = false;
+	isFingerprintSideBarOpen.value = true;
 }
 
 function closeSideBars() {
@@ -944,6 +966,7 @@ function closeSideBars() {
 	isEntitySideBarOpen.value = false;
 	isConnectionSideBarOpen.value = false;
 	isShortestPathSideBarOpen.value = false;
+	isFingerprintSideBarOpen.value = false;
 }
 
 function showContextMenu(e) {
