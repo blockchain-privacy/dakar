@@ -22,6 +22,7 @@
       :style="$attrs.style"
     >
       <a
+        class="shorten"
         v-bind="$attrs"
         :href="href"
         @click="onLinkClick($event, navigate)"
@@ -63,7 +64,6 @@ const isWorkspaceMode = computed(() => workspaceStore.getIsWorkspaceActive
 
 // Watchers
 // keep state of checkbox in sync with store
-
 watch(
 	() => workspaceStore.workspaceNodes,
 	_ => {
@@ -75,7 +75,6 @@ watch(
 );
 
 // Hooks
-
 onMounted(() => {
 	checkBoxModel.value = workspaceStore.workspaceNodes.has(props.to.params.id);
 });

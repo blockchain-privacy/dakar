@@ -262,7 +262,7 @@ onUpdated(() => {
 });
 
 // Functions
-function setResponse(data) {
+function dataToRef(data) {
 	addressHash.value = data.addresshash;
 	outputItems.value = data.addr_outputs;
 	inputSum.value = data.input_sum;
@@ -275,7 +275,7 @@ function setResponse(data) {
 
 function init() {
 	if (props.addressData) {
-		setResponse(props.addressData);
+		dataToRef(props.addressData);
 		resetSorting();
 		table.value.page = 1;
 	}
@@ -315,7 +315,7 @@ async function getTableData() {
 		});
 
 		if (response.payload?.addr_outputs?.length > 0) {
-			setResponse(response.payload);
+			dataToRef(response.payload);
 			emptyResponse.value = false;
 		} else {
 			emptyResponse.value = true;
