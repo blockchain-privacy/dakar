@@ -1,12 +1,12 @@
 <template>
-  <div v-if="data">
+  <div v-if="addressHash">
     <v-card variant="text">
       <icon-title
         v-if="showTitleBar"
-        :title="`Address ${data.addresshash}`"
+        :title="`Address ${addressHash}`"
         :icon="mdiCardBulletedOutline"
       >
-        <exclusion-chip :address-hash="data.addresshash" />
+        <exclusion-chip :address-hash="addressHash" />
       </icon-title>
       <v-card-text>
         <v-container>
@@ -19,7 +19,7 @@
                 :icon="mdiScaleBalance"
                 title="Balance"
               >
-                {{ convertAmount(data.output_sum - data.input_sum) }}
+                {{ convertAmount(outputSum - inputSum) }}
                 {{ coinUnit }}
               </icon-item>
             </v-col>
@@ -31,7 +31,7 @@
                 :icon="mdiBankTransferIn"
                 title="Total amount received"
               >
-                {{ convertAmount(data.output_sum) }}
+                {{ convertAmount(outputSum) }}
                 {{ coinUnit }}
               </icon-item>
             </v-col>
@@ -40,7 +40,7 @@
                 :icon="mdiBankTransferOut"
                 title="Total amount spent"
               >
-                {{ convertAmount(data.input_sum) }}
+                {{ convertAmount(inputSum) }}
                 {{ coinUnit }}
               </icon-item>
             </v-col>
@@ -54,7 +54,7 @@
                 :icon="mdiPound"
                 title="Outputs"
               >
-                {{ data.output_count }}
+                {{ inputCount }}
               </icon-item>
             </v-col>
             <v-col
@@ -65,7 +65,7 @@
                 :icon="mdiPound"
                 title="Unspent outputs"
               >
-                {{ data.output_count - data.input_count }}
+                {{ outputCount - inputCount }}
               </icon-item>
             </v-col>
             <v-col>
@@ -73,7 +73,7 @@
                 :icon="mdiPound"
                 title="Coinbase outputs"
               >
-                {{ data.coinbase_count }}
+                {{ coinbaseCount }}
               </icon-item>
             </v-col>
           </v-row>
@@ -103,12 +103,12 @@
         <v-card variant="text">
           <v-card-text>
             <sort-and-filter
-              v-if="data?.output_count > 1"
+              v-if="outputCount > 1"
               v-model="sortAndFilterModel"
               :loading="isLoading"
-              :output-count="data.output_count"
-              :input-count="data.input_count"
-              :coinbase-count="data.coinbase_count"
+              :output-count="outputCount"
+              :input-count="inputCount"
+              :coinbase-count="coinbaseCount"
               data-available
               @change="handleFilterOrSortChange"
             />
@@ -121,8 +121,8 @@
               <v-data-table-server
                 v-model:page="table.page"
                 :headers="table.headers"
-                :items="data.addr_outputs"
-                :items-length="data.query_max_count"
+                :items="outputItems"
+                :items-length="queryMaxCount"
                 :items-per-page="itemsPerPage"
                 :footer-props="{itemsPerPageOptions:[itemsPerPage]}"
                 :loading="isLoading"
@@ -171,10 +171,10 @@
         </v-card>
       </v-window-item>
       <v-window-item>
-        <cluster-lookup :address-hash="data.addresshash" />
+        <cluster-lookup :address-hash="addressHash" />
       </v-window-item>
       <v-window-item>
-        <mixing-activity :address-hash="data.addresshash" />
+        <mixing-activity :address-hash="addressHash" />
       </v-window-item>
     </v-window>
   </div>
@@ -219,7 +219,15 @@ const dakar = getDakarClient(getSettings.value.blockchainMode);
 const isLoading = ref(false);
 const tab = ref(null);
 
-const data = ref();
+const addressHash = ref('');
+const inputSum = ref(-1);
+const outputSum = ref(-1);
+const inputCount = ref(-1);
+const outputCount = ref(-1);
+const coinbaseCount = ref(-1);
+const queryMaxCount = ref(-1);
+const outputItems = ref([]);
+
 const itemsPerPage = 20;
 // EmptyResponse is only used for data loaded after the initial data load
 const emptyResponse = ref(false);
@@ -254,9 +262,20 @@ onUpdated(() => {
 });
 
 // Functions
+function setResponse(data) {
+	addressHash.value = data.addresshash;
+	outputItems.value = data.addr_outputs;
+	inputSum.value = data.input_sum;
+	outputSum.value = data.output_sum;
+	inputCount.value = data.input_count;
+	outputCount.value = data.output_count;
+	coinbaseCount.value = data.coinbase_count;
+	queryMaxCount.value = data.query_max_count;
+}
+
 function init() {
 	if (props.addressData) {
-		data.value = props.addressData;
+		setResponse(props.addressData);
 		resetSorting();
 		table.value.page = 1;
 	}
@@ -287,7 +306,7 @@ async function getTableData() {
 
 	try {
 		const response = await dakar.data.blockchainOutputsHashPost({
-			hash: data.value.addresshash,
+			hash: addressHash.value,
 			options: {
 				offset: offset.value,
 				filter: sortAndFilterModel.value.filter,
@@ -296,7 +315,7 @@ async function getTableData() {
 		});
 
 		if (response.payload?.addr_outputs?.length > 0) {
-			data.value = response.payload;
+			setResponse(response.payload);
 			emptyResponse.value = false;
 		} else {
 			emptyResponse.value = true;
