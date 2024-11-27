@@ -1,7 +1,5 @@
 # Dakar
 
-[![pipeline status](https://git.gvk.idi.ntnu.no/research/blockchain/dakar/badges/master/pipeline.svg)](https://git.gvk.idi.ntnu.no/research/blockchain/dakar/-/commits/master)
-
 Dash analytics and transaction tracking. Research and development.
 
 # Repository structure

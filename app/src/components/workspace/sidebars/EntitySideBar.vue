@@ -26,11 +26,19 @@
           {{ item.title }}
         </v-chip>
       </template>
-      <fingerprint-chip
+      <v-chip
         v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && isDestination(entityData[0]?.txtype)"
-        :transaction-hash="identifier"
+        rounded
+        color="primary"
         class="me-2"
-      />
+        @click="emitFingerprint"
+      >
+        <v-icon
+          :icon="mdiFingerprint"
+          class="me-2"
+        />
+        Fingerprint
+      </v-chip>
       <privacy-chip
         v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.txtype"
         :transaction-type="entityData[0].txtype"
@@ -113,7 +121,7 @@ import {
 	mdiBlender,
 	mdiCardBulletedOutline,
 	mdiFileDownloadOutline,
-	mdiFilter,
+	mdiFilter, mdiFingerprint,
 	mdiGraph,
 	mdiShapeCirclePlus,
 	mdiTransfer,
@@ -136,7 +144,6 @@ import {
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
 } from '@/constants/index.js';
-import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
@@ -151,7 +158,7 @@ const props = defineProps({
 	disableAddingNodes: {type: Boolean, required: true},
 	nodeActions: {type: Array, required: true},
 });
-const emit = defineEmits(['addNodes']);
+const emit = defineEmits(['addNodes', 'fingerprint-transaction']);
 const model = defineModel({type: Boolean});
 
 const route = useRoute();
@@ -479,6 +486,11 @@ async function downloadReport() {
 
 function emitAddNodes(nodes) {
 	emit('addNodes', nodes);
+	model.value = false;
+}
+
+function emitFingerprint() {
+	emit('fingerprint-transaction', props.identifier);
 	model.value = false;
 }
 

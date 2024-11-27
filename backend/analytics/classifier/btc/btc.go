@@ -30,7 +30,7 @@ var denominationTypesWhirlpool = [NumWhirlpoolDenominations]int64{100000, 100000
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
 	// get the transaction of the current block range
-	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, true)
+	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, true, nil)
 	if err != nil {
 		return false, err
 	}
@@ -42,9 +42,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 	}
 
 	// step 1.2: update transactions classified as wasabi 2.0 mixing transactions.
-	// Only allow wasabi 2.0 classification after block 740000 to limit the number of false positives.
-	// Block 740000 is shortly before the release of wasabi 2.0.
-	if len(wasabiMixing) > 0 && (to > 740000 || from > 740000) {
+	if len(wasabiMixing) > 0 {
 		if err = db.UpdateTransactions(ctx, c, wasabiMixing); err != nil {
 			return false, err
 		}
@@ -86,7 +84,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 }
 
 // classifyWhirlpoolOriginTransactions classifies the given origin transactions
-// and retursn them with their connected mixing transactions
+// and return them with their connected mixing transactions
 func classifyWhirlpoolOriginTransactions(origins []db.Transaction, originToMixingMap map[string][]string) []db.Transaction {
 	var classfiedTransactions []db.Transaction //nolint:prealloc
 	confirmedMixingTransactions := map[string]bool{}
@@ -173,13 +171,6 @@ func isWasabi2Mixing(t db.Transaction) bool {
 
 	// number of output denominations must be at least half of the number of outputs
 	if float64(outputDenominationCount) < float64(len(t.Outputs)-1)/2 {
-		return false
-	}
-
-	// exclude high percentage of same denominations
-	if slices.ContainsFunc(denominationOut[:], func(i int) bool {
-		return float64(i) >= float64(outputDenominationCount)*0.9
-	}) {
 		return false
 	}
 

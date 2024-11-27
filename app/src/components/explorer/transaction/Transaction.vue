@@ -142,6 +142,25 @@
       >
         <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
+      <v-alert
+        v-if="hasWasabi2Denominations"
+        color="info"
+        variant="tonal"
+        density="compact"
+        class="mb-5"
+      >
+        <div class="d-flex align-center">
+          Wasabi 2.0 denominations detected. Highlight amounts?
+          <v-spacer />
+          <v-switch
+            v-model="highlightWasabi2Denominations"
+            class="ml-2"
+            inset
+            density="compact"
+            hide-details
+          />
+        </div>
+      </v-alert>
       <v-row class="outputContainer">
         <v-col v-if="tx.inputs && getInputs.length > 0">
           <p class="text-center">
@@ -283,15 +302,20 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp,
-	mdiFormatHeaderPound,
+	mdiChevronUp, mdiFormatHeaderPound,
 	mdiFormatListNumbered,
 	mdiPickaxe, mdiSigma,
 	mdiTransfer,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {
-	convertAmount, getColorMap, isDestination, plural, shortenHash,
+	convertAmount,
+	getColorMap,
+	isDestination,
+	isModeBTC,
+	isWasabi2Denomination,
+	plural,
+	shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
@@ -304,6 +328,7 @@ import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.v
 import BarChart from '@/d3Documents/barChart.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import {useExplorerStore} from '@/pinia/explorer.js';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -318,6 +343,7 @@ const props = defineProps({
 });
 
 const {getSettings} = storeToRefs(useLocalStore());
+const {highlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 
 const showTransactionDetails = toRef(props.showDetails);
 const showAllOutputs = ref(false);
@@ -353,6 +379,10 @@ const areItemsLimited = computed(() => {
 });
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
+const isBTC = computed(() => isModeBTC(getSettings.value.blockchainMode));
+const hasWasabi2Denominations = computed(() => isBTC.value
+	&& (props.tx.inputs?.some(i => isWasabi2Denomination(i.amount))
+	|| props.tx.outputs?.some(o => isWasabi2Denomination(o.amount))));
 
 // Hooks
 onUpdated(() => {

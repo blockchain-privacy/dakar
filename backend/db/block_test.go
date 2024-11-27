@@ -131,7 +131,7 @@ func TestUpsertBlock(t *testing.T) {
 	defer cancel()
 
 	transactions, err := GetTransactionsByBlock(ctx, dbHandle,
-		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock, false)
+		testhelper.BlockFileFirstBlock, testhelper.BlockFileFirstBlock, false, nil)
 	require.NoError(t, err)
 
 	tests := []struct {

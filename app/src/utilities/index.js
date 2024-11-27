@@ -11,6 +11,7 @@ import {
 	PRIVACY_TYPE_MIXING,
 	PRIVACY_TYPE_ORIGIN, PRIVACY_TYPE_WASABI_2_DESTINATION, PRIVACY_TYPE_WASABI_2_MIXING, PRIVACY_TYPE_WASABI_2_ORIGIN,
 	ROUTE_NAME_LOGIN_PAGE,
+	DENOMINATIONS_WASABI2,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -195,6 +196,10 @@ function isRole(session, mode, roleName) {
 	}
 }
 
+export function isModeBTC(mode) {
+	return mode === BLOCKCHAIN_BTC;
+}
+
 export function isPrivilegedIdentity(session, mode) {
 	return isRole(session, mode, 'privileged');
 }
@@ -300,4 +305,9 @@ export function getColorMap(mode) {
 // Capitalize returns the first letter of each word (separated by a space) in str capitalized
 export function capitalize(str) {
 	return str.split(' ').map(d => d[0].toUpperCase() + d.slice(1)).join(' ');
+}
+
+// IsWasabi2Denomination returns true if the given amount is a wasabi 2.0 denomination
+export function isWasabi2Denomination(amount) {
+	return DENOMINATIONS_WASABI2.has(amount);
 }

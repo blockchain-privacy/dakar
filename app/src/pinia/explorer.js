@@ -7,12 +7,14 @@ export const useExplorerStore = defineStore('explorer', {
 		searchResultType: null,
 		address: null,
 		block: null,
+		highlightWasabi2Denominations: false,
 	}),
 	getters: {
 		getTransaction: state => state.transaction,
 		getAddress: state => state.address,
 		getBlock: state => state.block,
 		getSearchResultType: state => state.searchResultType,
+		getHighlightWasabi2Denominations: state => state.highlightWasabi2Denominations,
 	},
 	actions: {
 		setTransaction(payload) {
@@ -23,6 +25,9 @@ export const useExplorerStore = defineStore('explorer', {
 		},
 		setBlock(payload) {
 			this.block = payload;
+		},
+		setHighlightWasabi2Denominations(payload) {
+			this.highlightWasabi2Denominations = payload;
 		},
 		updateBlock(payload) {
 			this.searchResultType = RESPONSE_TYPE_BLOCK;

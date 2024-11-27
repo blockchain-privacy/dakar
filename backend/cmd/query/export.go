@@ -3,6 +3,7 @@ package main
 import (
 	mgraph "backend/analytics/graph"
 	"backend/constants"
+	"backend/db"
 	"backend/db/analytics"
 	"backend/external"
 	"context"
@@ -307,14 +308,13 @@ func doExportBlocks(ctx context.Context, dgraph external.Database, fileName stri
 		toEncode[i+len(blockRange)+len(addressRange)] = c
 	}
 
-	err = json.NewEncoder(file).Encode(toEncode)
-	if err != nil {
+	if err = json.NewEncoder(file).Encode(toEncode); err != nil {
 		warn(err, "msg", "error encoding data")
 		return
 	}
 }
 
-func doExportPrivacyTransactions(ctx context.Context, dgraph external.Database, fileName string, startTransaction string) {
+func doExportPrivacyGraph(ctx context.Context, dgraph external.Database, fileName string, startTransaction string) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		warn(err, "msg", "error creating file")
@@ -358,8 +358,30 @@ func doExportPrivacyTransactions(ctx context.Context, dgraph external.Database, 
 		toEncode = append(toEncode, t)
 	}
 
-	err = json.NewEncoder(file).Encode(toEncode)
+	if err = json.NewEncoder(file).Encode(toEncode); err != nil {
+		warn(err, "msg", "error encoding data")
+		return
+	}
+}
+
+func doExportTransactions(ctx context.Context, dgraph external.Database,
+	fileName string, startBlock int64, endBlock int64, transactionTypes []string) {
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
+		warn(err, "msg", "error creating file")
+		return
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+
+	transactions, err := db.GetTransactionsByBlock(ctx, dgraph, startBlock, endBlock, false, transactionTypes)
+	if err != nil {
+		warn(err)
+		return
+	}
+
+	if err = json.NewEncoder(file).Encode(transactions); err != nil {
 		warn(err, "msg", "error encoding data")
 		return
 	}
