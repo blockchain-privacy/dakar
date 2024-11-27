@@ -143,14 +143,19 @@
         <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
       <v-alert
-        v-if="hasWasabi2Denominations"
+        v-if="hasUncommonWasabi2Denomination"
         color="info"
         variant="tonal"
         density="compact"
         class="mb-5"
       >
         <div class="d-flex align-center">
-          Wasabi 2.0 denominations detected. Highlight amounts?
+          <wiki-tooltip
+            class="me-1"
+            description-url="wasabi/wasabiDenominations.md"
+          >
+            Uncommon Wasabi 2.0 denomination
+          </wiki-tooltip> detected. Highlight amounts?
           <v-spacer />
           <v-switch
             v-model="highlightWasabi2Denominations"
@@ -312,8 +317,7 @@ import {
 	convertAmount,
 	getColorMap,
 	isDestination,
-	isModeBTC,
-	isWasabi2Denomination,
+	isModeBTC, isUncommonWasabi2Denomination,
 	plural,
 	shortenHash,
 } from '@/utilities';
@@ -329,6 +333,7 @@ import BarChart from '@/d3Documents/barChart.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 import {useExplorerStore} from '@/pinia/explorer.js';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -380,9 +385,9 @@ const areItemsLimited = computed(() => {
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const isBTC = computed(() => isModeBTC(getSettings.value.blockchainMode));
-const hasWasabi2Denominations = computed(() => isBTC.value
-	&& (props.tx.inputs?.some(i => isWasabi2Denomination(i.amount))
-	|| props.tx.outputs?.some(o => isWasabi2Denomination(o.amount))));
+const hasUncommonWasabi2Denomination = computed(() => isBTC.value
+	&& (props.tx.inputs?.some(i => isUncommonWasabi2Denomination(i.amount))
+	|| props.tx.outputs?.some(o => isUncommonWasabi2Denomination(o.amount))));
 
 // Hooks
 onUpdated(() => {
