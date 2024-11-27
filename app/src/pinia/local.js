@@ -1,8 +1,8 @@
 import {defineStore} from 'pinia';
 import {
-	getLocalSession, getLocalSettings, setLocalSession, setLocalSettings,
+	getLocalSession, getLocalSettings, isAdminIdentity, isPrivilegedIdentity, setLocalSession, setLocalSettings,
 } from '@/utilities';
-import {BLOCKCHAIN_DASH} from '@/constants/index.js';
+import {BLOCKCHAIN_BTC, BLOCKCHAIN_DASH} from '@/constants/index.js';
 
 // InsertLocalData inserts session and settings data, which is
 // stored in LocalStorage, into the store. This is not done
@@ -48,6 +48,16 @@ export const useLocalStore = defineStore('local', {
 	actions: {
 		setSession(payload) {
 			setLocalSession(payload);
+
+			// When session is set, also set the current blockchain mode
+			if (isPrivilegedIdentity(payload, BLOCKCHAIN_DASH)
+				|| isAdminIdentity(payload, BLOCKCHAIN_DASH)) {
+				this.settings.blockchainMode = BLOCKCHAIN_DASH;
+			} else if (isPrivilegedIdentity(payload, BLOCKCHAIN_BTC)
+			|| isAdminIdentity(payload, BLOCKCHAIN_BTC)) {
+				this.settings.blockchainMode = BLOCKCHAIN_BTC;
+			}
+
 			this.session = payload;
 		},
 		setSettings(payload) {
