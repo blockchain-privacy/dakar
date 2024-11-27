@@ -41,40 +41,7 @@
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
     </v-btn>
-    <v-menu v-if="isAdmin">
-      <template #activator="{ props }">
-        <v-btn
-          v-bind="props"
-          id="blockchain-mode"
-          icon
-        >
-          <v-icon>{{ blockchainModeIcon }}</v-icon>
-        </v-btn>
-      </template>
-      <v-list
-        nav
-        density="compact"
-      >
-        <v-list-item
-          :active="settings.blockchainMode === BLOCKCHAIN_DASH"
-          :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_DASH}}"
-        >
-          <template #prepend>
-            <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_DASH)" />
-          </template>
-          <v-list-item-title>Dash</v-list-item-title>
-        </v-list-item>
-        <v-list-item
-          :active="settings.blockchainMode === BLOCKCHAIN_BTC"
-          :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: BLOCKCHAIN_BTC}}"
-        >
-          <template #prepend>
-            <v-icon :icon="getBlockchainModeIcon(BLOCKCHAIN_BTC)" />
-          </template>
-          <v-list-item-title>Bitcoin</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
+    <blockchain-mode-select :modes="activeBlockchainModes" />
     <v-menu v-if="session">
       <template #activator="{ props }">
         <v-btn
@@ -163,7 +130,7 @@ import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import DakarImg from '@/assets/dakar.svg?url';
-import {bitcoinLogo, dashLogo} from '@/customIcons/index.js';
+import BlockchainModeSelect from '@/components/appbar/BlockchainModeSelect.vue';
 
 const ory = inject('ory');
 const localStore = useLocalStore();
@@ -194,19 +161,25 @@ const settings = computed({
 	},
 });
 
-const isAdmin = computed(() => isAdminIdentity(session.value, settings.value.blockchainMode));
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode) || isAdmin.value);
-const blockchainModeIcon = computed(() => getBlockchainModeIcon(settings.value.blockchainMode));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode)
+	|| isAdminIdentity(session.value, settings.value.blockchainMode));
+const activeBlockchainModes = computed(() => {
+	const modes = [];
+
+	if (isPrivilegedIdentity(session.value, BLOCKCHAIN_DASH)
+		|| isAdminIdentity(session.value, BLOCKCHAIN_DASH)) {
+		modes.push(BLOCKCHAIN_DASH);
+	}
+
+	if (isPrivilegedIdentity(session.value, BLOCKCHAIN_BTC)
+		|| isAdminIdentity(session.value, BLOCKCHAIN_BTC)) {
+		modes.push(BLOCKCHAIN_BTC);
+	}
+
+	return modes;
+});
 
 // Functions
-function getBlockchainModeIcon(mode) {
-	switch (mode) {
-		case BLOCKCHAIN_DASH: return dashLogo;
-		case BLOCKCHAIN_BTC: return bitcoinLogo;
-		default: return mdiCog;
-	}
-}
-
 // GoToPage should receive a page name from ./constants
 function goToPage(pageName, params) {
 	// Only change route if not already on page
