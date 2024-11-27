@@ -36,7 +36,7 @@
             </div>
             <div v-else-if="transactionList !== null">
               <v-card-text>
-                The following transactions transfer value between the two clusters.
+                The following transactions connect the two nodes.
               </v-card-text>
               <v-data-table
                 v-model:sort-by="identitiesSortBy"
@@ -223,8 +223,11 @@ onUpdated(async () => {
 });
 
 // Computed
-
 const title = computed(() => {
+	if (showEmptyText.value) {
+		return 'Connections';
+	}
+
 	if (transactionList.value !== null) {
 		return 'Connection List';
 	}
