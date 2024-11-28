@@ -172,7 +172,7 @@ func getWorkspaceConnectionsRaw(ctx context.Context, c external.Database,
 	// json struct
 	var r connectionRequest
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -213,7 +213,7 @@ func CheckDuplicateAddress(ctx context.Context, c external.Database, uids []stri
 			Cluster []db.UIDNode `json:"cluster,omitempty"`
 		} `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return "", serror.New(err)
 	}
 
@@ -592,7 +592,7 @@ func GetConnectionClusterToCluster(ctx context.Context, c external.Database, fir
 		} `json:"cluster_clusters,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -680,7 +680,7 @@ func GetConnectionClusterToSelector(ctx context.Context, c external.Database, cl
 		} `json:"heuristic_transaction,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -762,7 +762,7 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 		} `json:"address,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -843,7 +843,7 @@ func GetConnectionClusterToTransaction(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

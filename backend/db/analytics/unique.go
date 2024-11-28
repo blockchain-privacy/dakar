@@ -115,7 +115,7 @@ func GetUniqueAddressCountsPerBlock(ctx context.Context, c external.Database,
 		} `json:"addresses_with_clusters,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -151,7 +151,7 @@ func BlockHeightToTimestamp(ctx context.Context, c external.Database, blockHeigh
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

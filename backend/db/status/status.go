@@ -30,7 +30,7 @@ func GetCrawlerStatus(ctx context.Context, c external.Database) (status CrawlerS
 
 	var r crawlerStatusQuery
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -55,7 +55,7 @@ func GetClassifierStatus(ctx context.Context, c external.Database) (status Class
 
 	var r classifierStatusQuery
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -80,7 +80,7 @@ func GetClusteringHMIStatus(ctx context.Context, c external.Database) (status Cl
 
 	var r clusteringHMIStatusQuery
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -105,7 +105,7 @@ func GetClusteringFMIStatus(ctx context.Context, c external.Database) (status Cl
 
 	var r clusteringFMIStatusQuery
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -134,7 +134,7 @@ func GetHighestBlockID(ctx context.Context, c external.Database) (int64, error) 
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return 0, serror.New(err)
 	}
 
@@ -184,7 +184,7 @@ func GetFrontendStatus(ctx context.Context, c external.Database) (status Fronten
 		FMI        []ClusteringFlatMultiInputStatus         `json:"fmi,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -230,7 +230,7 @@ func GetMeta(ctx context.Context, c external.Database) (meta Meta, err error) {
 
 	var r metaQuery
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

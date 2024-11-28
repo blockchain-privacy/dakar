@@ -113,7 +113,7 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 		Origins     []db.Transaction `json:"o,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -163,7 +163,7 @@ func SetCollateralCreation(ctx context.Context, c external.Database, txUids []st
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -217,7 +217,7 @@ func SetCollateralPayment(ctx context.Context, c external.Database, txUids []str
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -275,7 +275,7 @@ func GetCollateralInputTransactions(ctx context.Context, c external.Database, tx
 		Q []db.Transaction `json:"q"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

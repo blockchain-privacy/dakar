@@ -4,10 +4,10 @@ go 1.23.0
 
 require (
 	github.com/btcsuite/btcd v0.24.2
-	github.com/dgraph-io/dgo/v240 v240.0.1
+	github.com/dgraph-io/dgo/v240 v240.1.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/qrest/gomisc v0.0.15
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	gonum.org/v1/gonum v0.15.1
 	google.golang.org/grpc v1.68.0
 )
@@ -24,7 +24,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -38,7 +37,7 @@ require (
 	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241104194629-dd2ea8efbc28 // indirect
-	google.golang.org/protobuf v1.35.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

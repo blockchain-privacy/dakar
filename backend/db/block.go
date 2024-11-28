@@ -123,7 +123,7 @@ func GetBlock(ctx context.Context, c external.Database, blockHash string) (blk B
 	}
 
 	var r blockQuery
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -179,7 +179,7 @@ func GetFullBlock(ctx context.Context, c external.Database, id int, convertUIDs 
 	}
 	var r blockQuery
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -280,7 +280,7 @@ func GetFrontendBlock(ctx context.Context, c external.Database, blockHash string
 		} `json:"x,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return
 	}
 

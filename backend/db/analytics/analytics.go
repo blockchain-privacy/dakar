@@ -74,7 +74,7 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 		Q []ConnectedNodeRequest `json:"q"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -115,7 +115,7 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 		Q []Node `json:"q"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -174,7 +174,7 @@ func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixi
 		} `json:"cp,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -249,7 +249,7 @@ func GetBTCTransactionTypeCount(ctx context.Context, c external.Database) (wasab
 		} `json:"whirlpoolDestination,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -328,7 +328,7 @@ func GetPrivacyTransactionsByBlock(ctx context.Context, c external.Database,
 		Single    []Node                 `json:"single"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, nil, serror.New(err)
 	}
 
@@ -373,7 +373,7 @@ func GetTransactionTypeData(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -478,7 +478,7 @@ func GetForwardLookupTransactions(ctx context.Context, c external.Database, star
 		Addresses           []db.Address     `json:"addresses,omitempty"`
 		ShallowTransactions []db.Transaction `json:"shallow_txs,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -585,7 +585,7 @@ func GetDestinationTransactionSpenders(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -679,7 +679,7 @@ func GetTransactionCountPerCluster(ctx context.Context, c external.Database, clu
 		} `json:"x,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return 0, 0, serror.New(err)
 	}
 
@@ -706,7 +706,7 @@ func GetAllFMIClusters(ctx context.Context, c external.Database) (uids []string,
 		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -786,7 +786,7 @@ func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Data
 		Transactions []db.FrontendTransaction `json:"path,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 

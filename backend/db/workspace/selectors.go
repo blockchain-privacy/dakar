@@ -182,7 +182,7 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 		Q []db.UIDNode `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, 0, serror.New(err)
 	}
 
@@ -328,7 +328,7 @@ func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions
 		Q []db.UIDNode `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, 0, serror.New(err)
 	}
 
@@ -428,7 +428,7 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 	// json struct
 	var r FrontendSelectorResults
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -514,7 +514,7 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems int)
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -569,7 +569,7 @@ func GetSelectorStatus(ctx context.Context, c external.Database, selectorUID str
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return "", serror.New(err)
 	}
 

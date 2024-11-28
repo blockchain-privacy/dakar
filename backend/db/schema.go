@@ -231,7 +231,7 @@ func IsSchemaSet(c external.Database) (exists bool, err error) {
 		} `json:"types,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

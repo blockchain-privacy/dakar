@@ -146,7 +146,7 @@ func GetFrontendWorkspaces(ctx context.Context, c external.Database, userUID str
 		Workspaces []Workspace `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -188,7 +188,7 @@ func GetFrontendWorkspace(ctx context.Context, c external.Database, uid string, 
 		Workspaces []Workspace `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -282,7 +282,7 @@ func IsWorkspaceStateOutdated(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

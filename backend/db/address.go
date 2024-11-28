@@ -253,7 +253,7 @@ func GetFrontendAddress(ctx context.Context, c external.Database, addrHash strin
 		} `json:"output_sum"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return addr, err
 	}
@@ -362,7 +362,7 @@ func GetAddressUIDs(ctx context.Context, c external.Database, addressHashes []st
 		Addresses []Address `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -404,7 +404,7 @@ func GetAddressesByBlockRange(ctx context.Context, c external.Database, blockHei
 		Addresses []Address `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
