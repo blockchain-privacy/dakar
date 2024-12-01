@@ -213,6 +213,7 @@ import {
 	PRIVACY_TYPE_MIXING,
 } from '@/constants';
 import {
+	capitalize,
 	getColorMap, getDakarClient, handleError,
 } from '@/utilities';
 import {
@@ -628,10 +629,17 @@ async function addMultipleNodes(nodes) {
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
 		} else if (response.duplicateNodeUID) {
-			setInfoMessage('Address already in workspace');
+			let defaultText = 'Node already in workspace';
 			const n = nodeGraph.getNode(response.duplicateNodeUID);
-			n.showMarker = true;
-			nodeGraph.addNode(n);
+			if (n !== undefined) {
+				n.showMarker = true;
+				nodeGraph.addNode(n);
+				if (n.nodeDisplayTitle && n.type) {
+					defaultText = `${capitalize(n.type)} ${n.nodeDisplayTitle} already in workspace`;
+				}
+			}
+
+			setInfoMessage(defaultText);
 		}
 	} catch (e) {
 		setErrorMessage(e);
