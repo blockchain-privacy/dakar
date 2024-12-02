@@ -58,7 +58,7 @@ func GetInputAddressesByBlock(ctx context.Context, c external.Database,
 		TransactionToAddresses []TransactionWithAddresses `json:"q,omitempty"`
 		AddressToClusters      []AddressWithClusters      `json:"x,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -137,7 +137,7 @@ func GetAddressesByBlock(ctx context.Context, c external.Database, fromBlockID i
 		TransactionToAddresses []TransactionWithInputOutputAddresses `json:"q,omitempty"`
 		AddressToClusters      []AddressWithClusters                 `json:"x,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -359,7 +359,7 @@ func GetHierarchicalClusterRoot(ctx context.Context, c external.Database,
 	var r struct {
 		Root []ClusterWithParent `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -467,7 +467,7 @@ func GetClusters(ctx context.Context, c external.Database, addressHash string,
 		Clusters    []FrontendClusterRequest `json:"q,omitempty"`
 		ClusterTags []ClusterTags            `json:"tags,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -525,7 +525,7 @@ func GetHMIClusters(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 		AddressCluster []db.UIDNode `json:"x,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -602,7 +602,7 @@ func GetUserClusters(ctx context.Context, c external.Database, userID string) (c
 			} `json:"Cluster.addresses,omitempty"`
 		} `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -657,7 +657,7 @@ func GetUserClustersUIDs(ctx context.Context, c external.Database, userID string
 	var r struct {
 		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -750,7 +750,7 @@ func GetRelatedClusters(ctx context.Context, c external.Database, clusterUID str
 	var r struct {
 		Clusters []db.UIDNode `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -783,7 +783,7 @@ func GetClusterAddressCount(ctx context.Context, c external.Database,
 			Count int64 `json:"count,omitempty"`
 		} `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -820,7 +820,7 @@ func DeleteAllFMIClusters(ctx context.Context, c external.Database) error {
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return err
 	}
@@ -894,7 +894,7 @@ func GetClustersByBlockRange(ctx context.Context, c external.Database,
 		Clusters []Cluster `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

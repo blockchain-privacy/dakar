@@ -51,7 +51,7 @@ func GetAddressExclusionUIDs(ctx context.Context, c external.Database, userID st
 	var r struct {
 		Exclusions []db.UIDNode `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -92,7 +92,7 @@ func GetAddressExclusions(ctx context.Context, c external.Database,
 			Count int64 `json:"count,omitempty"`
 		} `json:"x,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -168,7 +168,7 @@ func GetAddressExclusionStatus(ctx context.Context, c external.Database,
 	var r struct {
 		Address []db.UIDNode `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

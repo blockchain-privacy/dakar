@@ -174,7 +174,7 @@ func GetTransactionsOutputs(ctx context.Context, c external.Database, transactio
 		Transactions []OutputTransactionMapping `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -244,7 +244,7 @@ func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockI
 	}
 
 	var r transactionQuery
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -293,7 +293,7 @@ func GetTransaction(ctx context.Context, c external.Database, txHash string) (tr
 	}
 
 	var r transactionQuery
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -353,7 +353,7 @@ func GetOutputAddressCounts(ctx context.Context, c external.Database,
 		} `json:"output,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -428,7 +428,7 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -496,7 +496,7 @@ func GetFrontendTransactionsByUID(ctx context.Context, c external.Database, txUi
 		Transactions []FrontendTransaction `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -568,7 +568,7 @@ func GetFrontendTransactionAmounts(ctx context.Context, c external.Database, txU
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -617,7 +617,7 @@ func GetTransactionUIDMapping(ctx context.Context, c external.Database, txUids [
 		Transactions []Transaction `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -656,7 +656,7 @@ func GetTransactionBlockID(ctx context.Context, c external.Database, txHash stri
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -716,7 +716,7 @@ func GetTransactionUID(ctx context.Context, c external.Database, txHash string) 
 			UID string `json:"uid"`
 		} `json:"q"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -762,7 +762,7 @@ func GetOutputs(ctx context.Context, c external.Database,
 		Transactions []Transaction `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

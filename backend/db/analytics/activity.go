@@ -80,7 +80,7 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 		Q []MixingActivity `json:"q"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 

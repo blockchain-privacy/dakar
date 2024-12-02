@@ -67,7 +67,7 @@ func GetUserAttributions(ctx context.Context, c external.Database, userID string
 	var r struct {
 		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -184,7 +184,7 @@ func SearchAttributions(ctx context.Context, c external.Database, userID string,
 		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -248,7 +248,7 @@ func GetAttributionsPerCluster(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

@@ -114,7 +114,7 @@ func GetPotentialWhirlpoolMixingTransactions(ctx context.Context, c external.Dat
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, nil, serror.New(err)
 	}
 

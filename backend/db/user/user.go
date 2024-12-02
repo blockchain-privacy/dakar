@@ -37,8 +37,8 @@ func CreateNewUser(ctx context.Context, c external.Database) (string, error) {
 	}
 
 	// check if insert was successful
-	if len(resp.Uids) != 1 {
-		return "", serror.FromFormat("invalid number of uids returned: %s", resp.Uids)
+	if len(resp.GetUids()) != 1 {
+		return "", serror.FromFormat("invalid number of uids returned: %s", resp.GetUids())
 	}
 
 	var userUID string
@@ -63,7 +63,7 @@ func existsUser(ctx context.Context, c external.Database, uid string) (found boo
 		Q []db.UIDNode `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}

@@ -275,7 +275,7 @@ func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return "", serror.New(err)
 	}
 
@@ -289,6 +289,6 @@ func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string,
 // HasMutationCost returns true if the response has a mutation cost attached.
 // This happens if a request mutated data in the database.
 func HasMutationCost(resp *api.Response) bool {
-	v, ok := resp.Metrics.NumUids["mutation_cost"]
+	v, ok := resp.GetMetrics().GetNumUids()["mutation_cost"]
 	return ok && v > 0
 }

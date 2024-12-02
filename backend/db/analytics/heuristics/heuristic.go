@@ -95,7 +95,7 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -166,7 +166,7 @@ func GetInputTransactions(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -223,7 +223,7 @@ func GetInputTransaction(ctx context.Context, c external.Database, txhash string
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
@@ -300,7 +300,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -463,7 +463,7 @@ func GetTransactionsWithInputAmount(ctx context.Context, c external.Database,
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
@@ -502,7 +502,7 @@ func GetInputAmounts(ctx context.Context, c external.Database, tx string) (trans
 		} `json:"q,omitempty"`
 	}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
 		return
 	}
