@@ -17,7 +17,7 @@
       />
       <a
         v-else
-        v-bind="item.props"
+        v-bind="{...$attrs, ...item.props}"
         :class="{'anchor': true,'d-inline-block':true, 'underline': !hideLink}"
         :style="$attrs.style"
         @click="requestBlurb"
