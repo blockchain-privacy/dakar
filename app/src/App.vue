@@ -4,7 +4,7 @@
     <v-main>
       <fade-transition>
         <v-alert
-          v-if="isBitcoinAlertPage && !settings.hideBitcoinAlert"
+          v-if="isPrivilegedOrHigher && isBitcoinAlertPage && !settings.hideBitcoinAlert"
           closable
           :icon="mdiTestTube"
           type="info"
@@ -41,6 +41,7 @@ import {useRoute} from 'vue-router';
 import {useTheme} from 'vuetify';
 import {useLocalStore} from '@/pinia/local';
 import {mdiTestTube} from '@mdi/js';
+import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities/index.js';
 
 const route = useRoute();
 const theme = useTheme();
@@ -55,6 +56,9 @@ const settings = computed({
 		localStore.setSettings(value);
 	},
 });
+
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(localStore.getSession, settings.value.blockchainMode)
+	|| isAdminIdentity(localStore.getSession, settings.value.blockchainMode));
 const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
 const isBitcoinAlertPage = computed(() => !isEntryPage.value && route.params.blockchainMode === BLOCKCHAIN_BTC
 	&& route.name !== ROUTE_NAME_WORKSPACE_PAGE);
