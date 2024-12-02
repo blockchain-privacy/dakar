@@ -43,12 +43,12 @@
                 </p>
               </v-col>
               <v-col>
-                <div class="d-flex align-center">
-                  <div class="ml-auto text-caption">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="text-caption text-center">
                     More similar
                   </div>
                   <div class="gradient" />
-                  <div class="text-caption">
+                  <div class="text-caption text-center">
                     Less similar
                   </div>
                 </div>
@@ -75,7 +75,6 @@
                     />
                     <td class="transaction-hash">
                       <workspace-link
-                        disable-select
                         :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                                params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
                       >
@@ -112,6 +111,7 @@ const {getSettings} = storeToRefs(useLocalStore());
 const props = defineProps({
 	transactionHash: {type: String, required: true},
 });
+const emit = defineEmits(['receivedTransactions']);
 
 const dakar = getDakarClient(getSettings.value.blockchainMode);
 
@@ -164,6 +164,8 @@ async function searchForSimilarTransactions() {
 			fingerprintScores.value = response.fingerprint_scores
 				.sort((item1, item2) => item2.score - item1.score);
 		}
+
+		emit('receivedTransactions', fingerprintScores.value.map(d => d.txhash));
 
 		if (response.session_count) {
 			sessionCount.value = response.session_count;

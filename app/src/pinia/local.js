@@ -19,6 +19,10 @@ function insertLocalData(state) {
 		if (localSettings.blockchainMode !== undefined) {
 			state.settings.blockchainMode = localSettings.blockchainMode;
 		}
+
+		if (localSettings.hideBitcoinAlert !== undefined) {
+			state.settings.hideBitcoinAlert = localSettings.hideBitcoinAlert;
+		}
 	}
 
 	const localSession = getLocalSession();
@@ -36,6 +40,7 @@ const initialState = {
 		// Set dark to be not initialized, so initial value can be set from media query
 		dark: null,
 		blockchainMode: BLOCKCHAIN_DASH,
+		hideBitcoinAlert: false,
 	},
 };
 

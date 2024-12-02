@@ -135,6 +135,8 @@
         <fingerprint-side-bar
           v-model="isFingerprintSideBarOpen"
           :transaction-hash="fingerprintTransaction"
+          :disable-adding-nodes="isModifyingWorkspace"
+          @add-nodes="checkNodeCount"
         />
         <confirm-dialog
           v-if="showWarningDialogModel"

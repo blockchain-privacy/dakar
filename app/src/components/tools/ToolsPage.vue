@@ -1,6 +1,6 @@
 <template>
-  <v-layout class="fill-height">
-    <v-navigation-drawer>
+  <div>
+    <v-navigation-drawer absolute>
       <v-list-item
         :prepend-icon="mdiToolbox"
         title="Tools"
@@ -29,21 +29,14 @@
         />
       </v-list>
     </v-navigation-drawer>
-    <v-main>
-      <div
-        class="mx-2 mx-lg-16"
-        style="padding: 12px 10px 50px 10px"
-      >
-        <router-view v-slot="{ Component }">
-          <fade-transition>
-            <component
-              :is="Component"
-            />
-          </fade-transition>
-        </router-view>
-      </div>
-    </v-main>
-  </v-layout>
+    <div class="mx-2 mx-lg-16 pb-10">
+      <router-view v-slot="{ Component }">
+        <fade-transition>
+          <component :is="Component" />
+        </fade-transition>
+      </router-view>
+    </div>
+  </div>
 </template>
 
 <script setup>
