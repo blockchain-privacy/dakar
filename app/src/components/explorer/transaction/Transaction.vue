@@ -155,7 +155,7 @@
             description-url="wasabi/wasabiDenominations.md"
           >
             Uncommon Wasabi 2.0 denomination
-          </wiki-tooltip> detected. Highlight amounts?
+          </wiki-tooltip> detected. Highlight all Wasabi 2.0 denominations?
           <v-spacer />
           <v-switch
             v-model="highlightWasabi2Denominations"

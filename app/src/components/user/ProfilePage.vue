@@ -148,7 +148,7 @@ const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore,
+	$route: route, $router: router, navStore, localStore, msgStore, addMessage: msgStore.addMessage,
 };
 
 const settingsFlow = ref(null);
@@ -245,7 +245,7 @@ async function deleteIdentity() {
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
-		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
+		await router.push({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}});
 	} catch (e) {
 		handleError(context, e);
 	}
