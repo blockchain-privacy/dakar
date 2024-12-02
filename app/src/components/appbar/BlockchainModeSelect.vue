@@ -4,9 +4,14 @@
       <v-btn
         v-bind="props"
         id="blockchain-mode"
+        :class="$attrs.class"
+        :color="blockchainModeIconColor"
         icon
       >
-        <v-icon>{{ blockchainModeIcon }}</v-icon>
+        <v-icon
+          :icon="blockchainModeIcon"
+          size="large"
+        />
       </v-btn>
     </template>
     <v-list
@@ -20,7 +25,10 @@
         :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: m}}"
       >
         <template #prepend>
-          <v-icon :icon="getBlockchainModeIcon(m)" />
+          <v-icon
+            :icon="getBlockchainModeIcon(m)"
+            :color="getBlockchainModeColor(m)"
+          />
         </template>
         <v-list-item-title>{{ getBlockchainModeName(m) }}</v-list-item-title>
       </v-list-item>
@@ -35,7 +43,8 @@ import {bitcoinLogo, dashLogo} from '@/customIcons/index.js';
 import {mdiCog} from '@mdi/js';
 import {useLocalStore} from '@/pinia/local.js';
 const localStore = useLocalStore();
-defineProps({modes: {type: Array, required: true}});
+
+const modes = [BLOCKCHAIN_DASH, BLOCKCHAIN_BTC];
 
 const settings = computed({
 	get() {
@@ -47,6 +56,7 @@ const settings = computed({
 });
 
 const blockchainModeIcon = computed(() => getBlockchainModeIcon(settings.value.blockchainMode));
+const blockchainModeIconColor = computed(() => getBlockchainModeColor(settings.value.blockchainMode));
 
 // Functions
 function getBlockchainModeIcon(mode) {
@@ -62,6 +72,14 @@ function getBlockchainModeName(mode) {
 		case BLOCKCHAIN_DASH: return 'Dash';
 		case BLOCKCHAIN_BTC: return 'Bitcoin';
 		default: return 'Unknown';
+	}
+}
+
+function getBlockchainModeColor(mode) {
+	switch (mode) {
+		case BLOCKCHAIN_DASH: return '#008CE4';
+		case BLOCKCHAIN_BTC: return '#FF9315';
+		default: return 'black';
 	}
 }
 
