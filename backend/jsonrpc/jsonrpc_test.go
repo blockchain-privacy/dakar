@@ -6,10 +6,8 @@ import (
 
 func BenchmarkGetBlockCount(b *testing.B) {
 	rpc := NewBlockchainClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
-
 	for range b.N {
-		_, err := rpc.GetBlockCount()
-		if err != nil {
+		if _, err := rpc.GetBlockCount(); err != nil {
 			b.Error(err)
 			return
 		}
@@ -18,10 +16,8 @@ func BenchmarkGetBlockCount(b *testing.B) {
 
 func BenchmarkGetBlockHash(b *testing.B) {
 	rpc := NewBlockchainClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
-
 	for i := range b.N {
-		_, err := rpc.GetBlockHash(int64(100000 + i))
-		if err != nil {
+		if _, err := rpc.GetBlockHash(int64(100000 + i)); err != nil {
 			b.Error(err)
 			return
 		}
@@ -211,11 +207,9 @@ func BenchmarkGetRawTransactionVerbose(b *testing.B) {
 }
 func BenchmarkGetRawTransactionVerboseSimulatedBatch(b *testing.B) {
 	rpc := NewBlockchainClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
-
 	for range b.N {
 		for i := range testTransactions40 {
-			_, err := rpc.GetRawTransactionVerbose(testTransactions40[i])
-			if err != nil {
+			if _, err := rpc.GetRawTransactionVerbose(testTransactions40[i]); err != nil {
 				b.Error(err)
 				return
 			}
@@ -225,10 +219,8 @@ func BenchmarkGetRawTransactionVerboseSimulatedBatch(b *testing.B) {
 
 func BenchmarkGetRawTransactionVerboseBatch(b *testing.B) {
 	rpc := NewBlockchainClient("0.0.0.0:9998", "rpc1user", "1234pass", nil)
-
 	for range b.N {
-		_, err := rpc.GetRawTransactionVerboseBatch(testTransactions40)
-		if err != nil {
+		if _, err := rpc.GetRawTransactionVerboseBatch(testTransactions40); err != nil {
 			b.Error(err)
 			return
 		}
