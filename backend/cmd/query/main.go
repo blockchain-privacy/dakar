@@ -71,6 +71,11 @@ type ExclusionSimulationModule struct {
 	NodeID            string `yaml:"nodeID"`
 }
 
+type StatsModule struct {
+	Active         bool `yaml:"active"`
+	MinOutputCount int  `yaml:"minOutputCount"`
+}
+
 type ExportReverseLookupModule struct {
 	Active            bool   `yaml:"active"`
 	LookBackTimeHours int    `yaml:"lookBackTimeHours"`
@@ -134,6 +139,7 @@ type Config struct {
 	ExportPrivacyGraph    ExportPrivacyGraphModule    `yaml:"exportPrivacyGraph"`
 	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
+	Stats                 StatsModule                 `yaml:"stats"`
 }
 
 var defaultConfig = Config{
@@ -345,6 +351,10 @@ func main() {
 
 	if newConfig.ExportClusterActivity.Active {
 		doExportClusterActivity(ctx, dgraph, newConfig.ExportClusterActivity.Filename)
+	}
+
+	if newConfig.Stats.Active {
+		doStats(ctx, dgraph, newConfig.Stats.MinOutputCount)
 	}
 }
 
