@@ -77,7 +77,7 @@
                         </icon-item>
                       </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row v-if="block.txcount">
                       <v-col>
                         <icon-item
                           :icon="mdiPound"
