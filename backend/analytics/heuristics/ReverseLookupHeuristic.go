@@ -2,6 +2,7 @@ package heuristics
 
 import (
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
@@ -76,7 +77,7 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look back time in hours",
 			Type:         "int",
 		},
-		AllowedParents: []string{parentTypeTransaction},
+		AllowedParents: []string{constants.TypeDashOrigin, constants.TypeDashMixing, constants.TypeDashDestination},
 	}
 }
 

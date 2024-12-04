@@ -46,8 +46,6 @@ const (
 	heuristicTypeForwardLookup    = "forward_lookup"
 )
 
-const parentTypeTransaction = "transaction"
-
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
@@ -90,7 +88,7 @@ type Descriptor struct {
 	Category    string `json:"category,omitempty"`
 	// pointer so Parameter does not appear in JSON if not set
 	Parameter *DescriptorParameter `json:"parameter,omitempty"`
-	// controls which types of parent are allowed for a heuristic. Possible types are transactions and heuristic types.
+	// controls which types of parent are allowed for a heuristic. Possible types are transaction types and heuristic types.
 	// currently not enforced in the backend.
 	AllowedParents []string `json:"allowedParents,omitempty"`
 }
