@@ -1,13 +1,11 @@
 package upgrades
 
 import (
+	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/clustering"
-	"backend/db/analytics/heuristics"
 	"backend/db/status"
 	"backend/external"
 	"context"
-	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"reflect"
@@ -18,34 +16,7 @@ import (
 // The key is the schema version to which the database should
 // be set after its updates haven been applied.
 var availableUpgrades = map[int]UpgradePackage{
-	4: {upgrades: []schemaUpgrade{AlterSchemaAddWorkspaces}},
-	5: {
-		upgrades: []schemaUpgrade{
-			func() schemaUpgrade {
-				return func(c external.Database) error { return clustering.DeleteAllFMIClusters(context.Background(), c) }
-			}(),
-			func() schemaUpgrade {
-				return func(c external.Database) error {
-					zero := int64(0)
-					return status.SetClusteringFMIStatus(context.Background(), c, status.ClusteringFlatMultiInputStatus{
-						LastClusteredBlockID: &zero,
-					})
-				}
-			}(),
-			DropPredicateHex,
-			AlterSchemaRemoveHex},
-	},
-	6: {upgrades: []schemaUpgrade{DropPredicateWorkspaceHeuristics, AlterSchemaAddSelectors}},
-	7: {upgrades: []schemaUpgrade{DropPredicateUserHeuristics, AlterSchemaRemoveUserHeuristics,
-		func() schemaUpgrade {
-			return func(c external.Database) error { return heuristics.DeleteAllHeuristics(context.Background(), c) }
-		}()}},
-	8: {upgrades: []schemaUpgrade{DropTypeHeuristic, DropTypeHeuristicResult}},
-	9: {upgrades: []schemaUpgrade{AlterSchemaAddSelectorTotalResultCount}},
-	10: {upgrades: []schemaUpgrade{DropPrivacyType, AlterSchemaAddTransactionType, func() schemaUpgrade {
-		return func(c external.Database) error { return status.SetLastClassifiedBlockID(context.Background(), c, 0) }
-	}()}},
-	11: {upgrades: []schemaUpgrade{AlterSchemaRemoveClusterTypeIndex}},
+	12: {upgrades: []schemaUpgrade{RefactorBlockchainModeStrings}},
 }
 
 var thisLogger *slog.Logger
@@ -161,208 +132,24 @@ func applyUpgrades(ctx context.Context, c external.Database, upgrades map[int]Up
 	return nil
 }
 
-// AlterSchemaAddWorkspaces adds the workspace type
-func AlterSchemaAddWorkspaces(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			User.heuristics: [uid] @reverse .
-			User.addressExclusions: [uid] @count @reverse .
-			User.workspaces: [uid] @reverse .
-
-			type User {
-				User.heuristics
-				User.addressExclusions
-				User.workspaces
-			}
-			
-			Workspace.name: string . # the workspace name
-			Workspace.ts: dateTime @index(day) . # modification date of the workspace
-			Workspace.state: string . # JSON encoded state of the workspace
-			Workspace.clusterHeight: int . # last clustered block at which this workspace was updated
-			Workspace.heuristics: [uid] @reverse . # heuristics which are managed by this workspace
-
-			type Workspace {
-				Workspace.name
-				Workspace.ts
-				Workspace.state
-				Workspace.clusterHeight
-				Workspace.heuristics
-			}`,
-	})
-}
-
-// DropPredicateHex drops the sighex and keyhex predicate
-func DropPredicateHex(c external.Database) error {
-	err := c.Alter(context.Background(), &api.Operation{DropAttr: "sighex"})
+func RefactorBlockchainModeStrings(c external.Database) error {
+	ctx := context.Background()
+	meta, err := status.GetMeta(ctx, c)
 	if err != nil {
 		return err
 	}
 
-	return c.Alter(context.Background(), &api.Operation{DropAttr: "keyhex"})
-}
-
-// AlterSchemaRemoveHex removes hex signature and script from Output type
-func AlterSchemaRemoveHex(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			outputindex: int .
-			inputindex: int .
-			txtype: string .
-			amount: int .
-			iscoinbase: bool .
-			keyasm: string .
-			sigasm: string .
-
-			type Output {
-				outputindex
-				inputindex
-				txtype
-				amount
-				iscoinbase
-				keyasm
-				sigasm
-				<~tx_inputs>
-				<~tx_outputs>
-				<~addr_outputs>
-			}`,
-	})
-}
-
-func DropPredicateWorkspaceHeuristics(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{DropAttr: "Workspace.heuristics"})
-}
-
-func AlterSchemaAddSelectors(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			Workspace.selectors: [uid] @reverse . # selectors which are managed by this workspace
-			type Workspace {
-				Workspace.name
-				Workspace.ts
-				Workspace.state
-				Workspace.clusterHeight
-				Workspace.selectors
-			}
-			
-			Selector.created: dateTime @index(day) .  # creation date of the selector
-			Selector.modified: dateTime @index(day) .  # modification date of the selector
-			Selector.type: string @index(hash) . # type of the selector
-			Selector.status: string @index(hash) . # status of the selector (waiting, error, success)
-			Selector.parent: uid @reverse . # parent node from which a selector can use data
-			Selector.options: string . # JSON encoded options of the selector
-			Selector.results: [uid] @reverse . # results of the selector
-
-			type Selector {
-				Selector.created
-				Selector.modified
-				Selector.type
-				Selector.status
-				Selector.parent
-				Selector.options
-				Selector.results
-			}`,
-	})
-}
-
-func DropPredicateUserHeuristics(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{DropAttr: "User.heuristics"})
-}
-
-func AlterSchemaRemoveUserHeuristics(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			User.addressExclusions: [uid] @count @reverse .
-			User.workspaces: [uid] @reverse .
-
-			type User {
-				User.addressExclusions
-				User.workspaces
-			}`,
-	})
-}
-
-func DropTypeHeuristic(c external.Database) error {
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.type"}); err != nil {
-		return err
+	switch meta.BlockchainMode {
+	case "Bitcoin":
+		if err := status.SetMeta(ctx, c, status.Meta{BlockchainMode: constants.BlockchainModeBTC}); err != nil {
+			return err
+		}
+	case "Dash":
+		if err := status.SetMeta(ctx, c, status.Meta{BlockchainMode: constants.BlockchainModeDash}); err != nil {
+			return err
+		}
+	default:
+		return serror.FromStrWithContext("invalid blockchain mode", "mode", meta.BlockchainMode)
 	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.parameter"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.transaction"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.clusters"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.parent"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.ts"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.clusterTypes"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.excludeAddresses"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "Heuristic.excludeSpendingGaps"}); err != nil {
-		return err
-	}
-
-	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "Heuristic"})
-}
-
-func DropTypeHeuristicResult(c external.Database) error {
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "HeuristicResult.origin"}); err != nil {
-		return err
-	}
-	if err := c.Alter(context.Background(), &api.Operation{DropAttr: "HeuristicResult.destinations"}); err != nil {
-		return err
-	}
-
-	return c.Alter(context.Background(), &api.Operation{DropOp: api.Operation_TYPE, DropValue: "HeuristicResult"})
-}
-
-func AlterSchemaAddSelectorTotalResultCount(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			Selector.totalResultCount: int . # number of results found by the selector (can be higher than number of stored results)
-
-			type Selector {
-				Selector.created
-				Selector.modified
-				Selector.type
-				Selector.status
-				Selector.parent
-				Selector.options
-				Selector.results
-				Selector.totalResultCount
-			}`,
-	})
-}
-
-func DropPrivacyType(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{DropAttr: "privacytype"})
-}
-
-func AlterSchemaAddTransactionType(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			Transaction.type: string @index(hash) .
-
-			type Transaction {
-				txhash
-				Transaction.type
-				fee
-				tx_outputs
-				tx_inputs
-			}`,
-	})
-}
-
-func AlterSchemaRemoveClusterTypeIndex(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: "Cluster.type: string . # the cluster type",
-	})
+	return nil
 }
