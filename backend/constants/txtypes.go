@@ -5,6 +5,10 @@ var validTransactionTypes = map[string]bool{TypeDashOrigin: true, TypeDashMixing
 	TypeWasabi2Destination: true, TypeWhirlpoolOrigin: true, TypeWhirlpoolMixing: true,
 	TypeWhirlpoolDestination: true}
 
+var TransactionTypesDash = []string{TypeDashOrigin, TypeDashMixing, TypeDashDestination}
+var TransactionTypesWasabi2 = []string{TypeWasabi2Origin, TypeWasabi2Mixing, TypeWasabi2Destination}
+var TransactionTypesWhirlpool = []string{TypeWhirlpoolOrigin, TypeWhirlpoolMixing, TypeWhirlpoolDestination}
+
 const (
 	TypeDashOrigin      = "origin"
 	TypeDashMixing      = "mixing"

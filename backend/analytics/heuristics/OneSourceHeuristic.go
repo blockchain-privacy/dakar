@@ -74,7 +74,7 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look back time in hours",
 			Type:         "int",
 		},
-		AllowedParents: []string{constants.TypeDashOrigin, constants.TypeDashMixing, constants.TypeDashDestination},
+		AllowedParents: constants.TransactionTypesDash,
 	}
 }
 

@@ -74,7 +74,7 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look forward time in hours",
 			Type:         "int",
 		},
-		AllowedParents: []string{constants.TypeDashOrigin, constants.TypeDashMixing, constants.TypeDashDestination},
+		AllowedParents: constants.TransactionTypesDash,
 	}
 }
 
