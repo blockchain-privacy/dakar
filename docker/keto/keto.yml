@@ -1,7 +1,7 @@
 version: v0.12.0
 
 log:
-  level: info
+  level: warn
 
 namespaces:
   location: file:///home/ory/namespaces.ts
