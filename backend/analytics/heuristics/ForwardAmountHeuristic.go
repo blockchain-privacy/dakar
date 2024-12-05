@@ -128,7 +128,7 @@ func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		}
 	}
 
-	destinationUIDsMap, err := g.ForwardLookupByTime(uid, h.lookForwardTime, exclusions, h.c.ExcludeSpendingGaps)
+	destinationUIDsMap, err := g.ForwardLookup(uid, h.lookForwardTime, 0, exclusions, h.c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, err
 	}

@@ -89,7 +89,7 @@ func (w *Wrapper) IsTransactionGraphLoaded() bool {
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
-func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
+func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration, maxDepth int,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
@@ -97,11 +97,11 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime, addressExclusions, excludeSpendingGaps)
+	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime, maxDepth, addressExclusions, excludeSpendingGaps)
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
-func (w *Wrapper) ForwardLookup(uid string, targetUID string,
+func (w *Wrapper) ForwardLookup(uid string, maxLookForwardTime time.Duration, maxDepth int,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
@@ -109,19 +109,7 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string,
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	return ForwardLookup(w.transactionGraph, uid, targetUID, addressExclusions, excludeSpendingGaps)
-}
-
-// ForwardLookupByTime performs a forward lookup of the given uid.
-func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration,
-	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
-	if !w.IsTransactionGraphLoaded() {
-		return nil, serror.FromStr("transaction graph is not loaded yet")
-	}
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
-
-	return ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime,
+	return ForwardLookup(w.transactionGraph, uid, maxLookForwardTime, maxDepth,
 		addressExclusions, excludeSpendingGaps)
 }
 

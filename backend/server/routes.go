@@ -10,7 +10,6 @@ const (
 	routeAddressOutputRange       string = "blockchain/outputs"
 	routeMeta                     string = "meta"
 	routeShortestTxPath           string = "shortestTransactionPath"
-	routeConnectionLookup         string = "connectionLookup"
 	routeMixingActivity           string = "mixingActivity"
 	routeSpendingFingerprint      string = "spendingFingerprint"
 	routeExclusions               string = "exclusions"

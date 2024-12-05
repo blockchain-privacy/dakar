@@ -532,27 +532,6 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 	})
 }
 
-// Connection Lookup Path godoc
-//
-//	@Summary	Connection lookup
-//	@Tags		tools
-//	@Produce	json
-//	@Param		hash	path		string	true	"Transaction hash"
-//	@Param		forward	query		bool	true	"search direction"
-//	@Param		t		query		int		true	"time range in number of days"	maximum(90)	minimum(1)
-//	@Success	200		{object}	server.connectionLookupReply
-//	@Failure	400		{object}	server.connectionLookupReply
-//	@Failure	404		{object}	server.connectionLookupReply
-//	@Failure	500		{object}	server.connectionLookupReply
-//	@Router		/connectionLookup/{hash} [get]
-func (s *Server) handlerConnectionLookup() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getConnectionLookupReply(s.db, s.graphWrapper, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
 // Cluster Lookup Path godoc
 //
 //	@Summary	Get all clusters of the given address
@@ -856,8 +835,6 @@ func (s *Server) setupHandlers() {
 	// Analytics
 	s.handler.Handle(BuildPattern(http.MethodPost, routeShortestTxPath, ""),
 		s.adapt(s.handlerShortestTransactionPath(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
-	s.handler.Handle(BuildPattern(http.MethodGet, routeConnectionLookup, "hash"),
-		s.adapt(s.handlerConnectionLookup(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeMixingActivity, ""),
 		s.adapt(s.handlerMixingActivity(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeSpendingFingerprint, "hash"),

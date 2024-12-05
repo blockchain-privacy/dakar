@@ -245,12 +245,6 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	return
 }
 
-type connectionLookupReply struct {
-	Msg              string                   `json:"msg,omitempty"`
-	Transactions     []db.FrontendTransaction `json:"transactions"`
-	TransactionCount *int                     `json:"count,omitempty"`
-}
-
 type clusterLookupReply struct {
 	Clusters []clustering.FrontendCluster `json:"clusters"`
 }
