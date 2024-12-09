@@ -18,19 +18,12 @@
     <div>
       <v-list-item-title>
         {{ title }}
-        <v-tooltip
+        <v-icon
           v-if="tooltip"
-          :text="tooltip"
-          location="right"
-        >
-          <template #activator="{ props }">
-            <v-icon
-              v-bind="props"
-              size="x-small"
-              :icon="mdiHelpCircleOutline"
-            />
-          </template>
-        </v-tooltip>
+          v-tooltip="{'text':tooltip, 'location':'right'}"
+          size="x-small"
+          :icon="mdiHelpCircleOutline"
+        />
       </v-list-item-title>
       <v-list-item-title class="text-subtitle-2">
         <slot />

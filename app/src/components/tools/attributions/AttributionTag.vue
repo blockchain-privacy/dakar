@@ -1,31 +1,22 @@
 <template>
-  <span>
-    <v-tooltip
-      location="bottom"
-      :text="tooltipText"
-    >
-      <template #activator="item">
-        <v-chip
-          v-bind="item.props"
-          label
-          class="overflow-x-auto"
-          :color="attribution.isPublic?'primary':null"
-          rounded
-        >
-          {{ attribution.tag }}
-        </v-chip>
-      </template>
-    </v-tooltip>
-  </span>
+  <v-chip
+    v-tooltip="{'text': tooltipText, 'location':'bottom'}"
+    label
+    class="overflow-x-auto"
+    :color="color"
+    rounded
+  >
+    {{ attribution.tag }}
+  </v-chip>
 </template>
 
 <script setup>
+import {computed} from 'vue';
 const props = defineProps({attribution: {type: Object, required: true}});
-
-const privateTooltip = 'This is a private attribution. It is only visible to you.';
-const publicTooltip = 'This is a public attribution';
-const tooltipText = props.attribution.isPublic ? publicTooltip : privateTooltip;
-
+const tooltipText = computed(() => props.attribution.isPublic
+	? 'This is a public attribution'
+	: 'This is a private attribution. It is only visible to you.');
+const color = computed(() => props.attribution.isPublic ? 'primary' : null);
 </script>
 
 <style scoped>
