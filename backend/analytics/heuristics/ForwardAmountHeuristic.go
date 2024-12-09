@@ -66,14 +66,10 @@ func (h *forwardAmountHeuristic) String() string {
 
 func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Forward Amount",
-		Type:     h.heuristicType,
-		Category: heuristicCategoryForward,
-		Description: "Returns all destination transactions " +
-			"which can be fully funded by the origins of their source. " +
-			"If this heuristic " +
-			"is placed at the root level a reverse lookup with the same " +
-			"time as the forward lookup will be performed.",
+		Title:       "Forward Amount",
+		Type:        h.heuristicType,
+		Category:    heuristicCategoryForward,
+		Description: "Returns all destination transactions which can be fully funded by the origins of their source.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look forward time in hours",
