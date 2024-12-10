@@ -1,6 +1,6 @@
 # Mixing Activity
 
-The mixing activity view shows visualizations of [privacy transactions](transactionTypes/privacyTransactions.md),
+The mixing activity view shows visualizations of [privacy transactions](dash/privacyTransactions.md),
 which can be attributed to one address or cluster. This allows to (partially) observe 
 the mixing activity of a user. Only directly connected transaction are shown. 
 

@@ -22,7 +22,7 @@ Via this side bar CoinJoin heuristics can be created. Certain heuristic types ar
 ![coinjoin heuristic creation](img/workspace_example_coinjoin_heuristic_creation.webp)
 
 ### 7. Extract CoinJoin heuristic results
-After the newly created heuristic is finished executing, clicking on it displays the heuristic details and its results. As its type is *Reverse Lookup* it will include [origin transactions](transactionTypes/originTransaction.md) which are potentially responsible for funding the [destination transaction](transactionTypes/destinationTransaction.md) `858...` .
+After the newly created heuristic is finished executing, clicking on it displays the heuristic details and its results. As its type is *Reverse Lookup* it will include [origin transactions](dash/originTransaction.md) which are potentially responsible for funding the [destination transaction](dash/destinationTransaction.md) `858...` .
 
 Select transaction `2f9c31e2a987086fc9fdc3a175769c09e0e6fe38c0dad29c5351d71f5d3ee2b1` and `4a4a3af8dc0d6955ca9ec34c0f8a3c3d33ed2b598a6b8604ae1e3f902d073a57` in the side bar and click *Add entities*. The selected transactions will appear in the workspace afterwards.
 ![coinjoin heuristic details](img/workspace_example_coinjoin_heuristic_details.webp)
