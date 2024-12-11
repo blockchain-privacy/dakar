@@ -162,4 +162,10 @@ function evalScript(event, script) {
 
 <style scoped>
 
+/* set opacity because some password managers (keepassxc) can not find inputs */
+/* it seems vuetify sets the opacity of inputs to zero when they are not focused */
+:deep(.v-field__input) {
+  opacity: 1;
+}
+
 </style>
