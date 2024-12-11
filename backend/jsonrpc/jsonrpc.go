@@ -218,9 +218,8 @@ type GetBlockVerboseResult struct {
 
 func (d *BlockchainClient) GetBlockCount() (int64, error) {
 	var r int64
-	err := d.rpc.Call("getblockcount", nil, &r)
-	if err != nil {
-		return 0, serror.New(err)
+	if err := d.rpc.Call("getblockcount", nil, &r); err != nil {
+		return 0, err
 	}
 
 	return r, nil
@@ -233,9 +232,8 @@ func (d *BlockchainClient) SetTimeout(timeout time.Duration) {
 
 func (d *BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseResult, error) {
 	var r GetBlockVerboseResult
-	err := d.rpc.Call("getblock", []any{blockHash, 1}, &r)
-	if err != nil {
-		return nil, serror.New(err)
+	if err := d.rpc.Call("getblock", []any{blockHash, 1}, &r); err != nil {
+		return nil, err
 	}
 
 	return &r, nil
@@ -243,9 +241,8 @@ func (d *BlockchainClient) GetBlockVerbose(blockHash string) (*GetBlockVerboseRe
 
 func (d *BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 	var r string
-	err := d.rpc.Call("getblockhash", []any{blockHeight}, &r)
-	if err != nil {
-		return "", serror.New(err)
+	if err := d.rpc.Call("getblockhash", []any{blockHeight}, &r); err != nil {
+		return "", err
 	}
 
 	return r, nil
@@ -253,9 +250,8 @@ func (d *BlockchainClient) GetBlockHash(blockHeight int64) (string, error) {
 
 func (d *BlockchainClient) GetRawTransactionVerbose(txHash string) (*TxRawResult, error) {
 	var r TxRawResult
-	err := d.rpc.Call("getrawtransaction", []any{txHash, 1}, &r)
-	if err != nil {
-		return nil, serror.New(err)
+	if err := d.rpc.Call("getrawtransaction", []any{txHash, 1}, &r); err != nil {
+		return nil, err
 	}
 
 	return &r, nil
@@ -275,9 +271,8 @@ func (d *BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRaw
 		results[i] = Response{Result: &TxRawResult{}}
 	}
 
-	err := d.rpc.Batch(requests, results)
-	if err != nil {
-		return nil, serror.New(err)
+	if err := d.rpc.Batch(requests, results); err != nil {
+		return nil, err
 	}
 
 	txResults := make([]*TxRawResult, len(results))
@@ -295,9 +290,8 @@ func (d *BlockchainClient) GetRawTransactionVerboseBatch(txs []string) ([]*TxRaw
 // GenerateToAddress mines a new block and rewards the resulting coins to the given address
 func (d *BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]string, error) {
 	var blockHashes []string
-	err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes)
-	if err != nil {
-		return nil, serror.New(err)
+	if err := d.rpc.Call("generatetoaddress", []any{numBlocks, address}, &blockHashes); err != nil {
+		return nil, err
 	}
 
 	return blockHashes, nil
@@ -306,9 +300,8 @@ func (d *BlockchainClient) GenerateToAddress(numBlocks int, address string) ([]s
 // GetNewAddress creates a new address in the current wallet. Fails if now wallet is loaded.
 func (d *BlockchainClient) GetNewAddress() (string, error) {
 	var newAddress string
-	err := d.rpc.Call("getnewaddress", []any{}, &newAddress)
-	if err != nil {
-		return "", serror.New(err)
+	if err := d.rpc.Call("getnewaddress", []any{}, &newAddress); err != nil {
+		return "", err
 	}
 
 	return newAddress, nil
@@ -317,9 +310,8 @@ func (d *BlockchainClient) GetNewAddress() (string, error) {
 // CreateWallet creates a wallet with the given file name. Fails if the wallet already exists
 func (d *BlockchainClient) CreateWallet(name string) (string, error) {
 	var newName string
-	err := d.rpc.Call("createwallet", []any{name}, &newName)
-	if err != nil {
-		return "", serror.New(err)
+	if err := d.rpc.Call("createwallet", []any{name}, &newName); err != nil {
+		return "", err
 	}
 
 	return newName, nil
@@ -328,9 +320,8 @@ func (d *BlockchainClient) CreateWallet(name string) (string, error) {
 // LoadWallet loads a wallet with the given file name: Fails if the wallet is already loaded
 func (d *BlockchainClient) LoadWallet(fileName string) (string, error) {
 	var newName string
-	err := d.rpc.Call("loadwallet", []any{fileName}, &newName)
-	if err != nil {
-		return "", serror.New(err)
+	if err := d.rpc.Call("loadwallet", []any{fileName}, &newName); err != nil {
+		return "", err
 	}
 
 	return newName, nil
