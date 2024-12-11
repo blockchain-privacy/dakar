@@ -14,7 +14,7 @@ import (
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version.
-const SchemaVersion = 11
+const SchemaVersion = 12
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {

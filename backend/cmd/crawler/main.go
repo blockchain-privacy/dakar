@@ -240,14 +240,6 @@ func main() {
 
 	initAllLoggers(f)
 
-	iterConfigs, err := selectConfig(newConfig.BlockchainMode)
-	if err != nil {
-		fmt.Printf("invalid blockchain mode: '%s', valid values are 'Dash' and 'Bitcoin'\n", newConfig.BlockchainMode)
-		return
-	}
-
-	info("Blockchain mode: " + newConfig.BlockchainMode)
-
 	////// CONNECT TO DATABASE //////
 
 	graphDB, c, err := external.CreateClient(newConfig.Database.Host)
@@ -330,6 +322,15 @@ func main() {
 	}
 
 	////// START MODULES //////
+
+	iterConfigs, err := selectConfig(newConfig.BlockchainMode)
+	if err != nil {
+		fmt.Printf("invalid blockchain mode: '%s', valid values are '%s' and '%s'\n",
+			newConfig.BlockchainMode, constants.BlockchainModeDash, constants.BlockchainModeBTC)
+		return
+	}
+
+	info("Blockchain mode: " + newConfig.BlockchainMode)
 
 	// handle shutdown signals
 	chSignal := make(chan os.Signal, 1)

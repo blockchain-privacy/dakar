@@ -229,7 +229,7 @@ func checkMeta(c external.Database, blockchainMode string) bool {
 	if meta.BlockchainMode != blockchainMode {
 		info("Database is using a different blockchain mode than the "+executableName+" configuration. You likely are connecting to the wrong database.",
 			"database blockchain mode", meta.BlockchainMode,
-			"crawler "+executableName+" blockchain mode", blockchainMode)
+			executableName+" blockchain mode", blockchainMode)
 		return false
 	}
 

@@ -1,6 +1,6 @@
 package constants
 
 const (
-	BlockchainModeBTC  = "Bitcoin"
-	BlockchainModeDash = "Dash"
+	BlockchainModeBTC  = "btc"
+	BlockchainModeDash = "dash"
 )
