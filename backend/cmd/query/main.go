@@ -72,8 +72,8 @@ type ExclusionSimulationModule struct {
 }
 
 type StatsModule struct {
-	Active         bool `yaml:"active"`
-	MinOutputCount int  `yaml:"minOutputCount"`
+	Active   bool   `yaml:"active"`
+	Filename string `yaml:"filename"`
 }
 
 type ExportReverseLookupModule struct {
@@ -354,7 +354,7 @@ func main() {
 	}
 
 	if newConfig.Stats.Active {
-		doStats(ctx, dgraph, newConfig.Stats.MinOutputCount)
+		doStats(ctx, dgraph, newConfig.Stats.Filename)
 	}
 }
 

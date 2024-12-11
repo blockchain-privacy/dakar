@@ -5,10 +5,18 @@ import (
 	"backend/db/status"
 	"backend/external"
 	"context"
+	"encoding/csv"
 	"github.com/qrest/gomisc/serror"
+	"os"
+	"strconv"
 )
 
-func doStats(ctx context.Context, dgraph external.Database, minInputCount int) {
+func doStats(ctx context.Context, dgraph external.Database, fileName string) {
+	if fileName == "" {
+		warn(serror.FromStr("file name is empty"))
+		return
+	}
+
 	crawlerStatus, err := status.GetCrawlerStatus(ctx, dgraph)
 	if err != nil {
 		warn(err)
@@ -19,9 +27,24 @@ func doStats(ctx context.Context, dgraph external.Database, minInputCount int) {
 		warn(serror.FromStr("last block is nil "))
 	}
 
+	f, err := os.Create(fileName)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			warn(err)
+		}
+	}(f)
+
+	if err != nil {
+		warn(err)
+		return
+	}
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
 	// load blocks in batches from db
-	const steps = 1000
-	var count int
+	const steps = 100
 	stop := false
 	for i := int64(0); !stop; i += steps {
 		to := i + steps - 1
@@ -30,13 +53,27 @@ func doStats(ctx context.Context, dgraph external.Database, minInputCount int) {
 			stop = true
 		}
 
-		c, err := db.GetTransactionCount(ctx, dgraph, i, to, minInputCount)
+		counts, err := db.GetTransactionOutputCounts(ctx, dgraph, i, to)
 		if err != nil {
 			warn(err)
 			return
 		}
 
-		count += c
-		info("count", "block start", i, "block end", to, "current count", count)
+		for _, txCount := range counts {
+			// column 1: transaction hash
+			// column 2: number of inputs
+			// column 3: number of outputs
+			line := []string{txCount.Hash, strconv.Itoa(txCount.InputCount), strconv.Itoa(txCount.OutputCount)}
+			if err := w.Write(line); err != nil {
+				warn(err, "msg", "error writing record to file")
+				return
+			}
+		}
+
+		w.Flush()
+
+		if i%10000 == 0 {
+			info("stats processed for block", "count", to)
+		}
 	}
 }
