@@ -1,6 +1,6 @@
 <template>
   <v-chip
-    :id="`btn_find_similar_transactions_${transactionHash}`"
+    v-tooltip="{'text':tooltipText,'location':'bottom'}"
     v-bind="$attrs"
     rounded
     color="primary"
@@ -18,12 +18,6 @@
     v-model="showFingerprintDialog"
     :transaction-hash="transactionHash"
   />
-  <v-tooltip
-    location="bottom"
-    :activator="`#btn_find_similar_transactions_${transactionHash}`"
-  >
-    <span>Search for similar destination transactions</span>
-  </v-tooltip>
 </template>
 
 <script setup>
@@ -37,6 +31,7 @@ defineProps({
 });
 
 const showFingerprintDialog = ref(false);
+const tooltipText = 'Search for similar destination transactions';
 
 </script>
 

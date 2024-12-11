@@ -1,6 +1,7 @@
 <template>
   <template v-if="showExclusionChip">
     <v-chip
+      v-tooltip="{'text': tooltipText, 'location':'bottom'}"
       rounded
       color="primary"
     >
@@ -11,16 +12,7 @@
           @click="deleteExclusionDialog = true"
         />
       </template>
-      <span id="address_excluded">
-        Excluded
-      </span>
-      <v-tooltip
-        activator="#address_excluded"
-        location="bottom"
-      >
-        This address is part of your address exclusion list.
-        Click on the X to remove it from the list.
-      </v-tooltip>
+      Excluded
     </v-chip>
     <delete-address-exclusion-dialog
       v-model="deleteExclusionDialog"
@@ -52,6 +44,8 @@ const dakar = getDakarClient(localStore.getSettings.blockchainMode);
 
 const deleteExclusionDialog = ref(false);
 const showExclusionChip = ref(false);
+
+const tooltipText = 'This address is part of your address exclusion list. Click on the X to remove it from the list.';
 
 // Computed
 const session = computed({

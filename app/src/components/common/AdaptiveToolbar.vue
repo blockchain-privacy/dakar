@@ -6,7 +6,10 @@
         icon="$graphIcon"
         size="32"
       />
-      <p class="me-3 text-h6 workspace-name">
+      <p
+        v-tooltip="{'text': 'Name of the Workspace', 'location':'top', 'open-delay': 400}"
+        class="me-3 text-h6 workspace-name"
+      >
         {{ name }}
       </p>
     </template>
@@ -27,6 +30,7 @@
     />
     <v-btn
       v-if="!disableFilter"
+      v-tooltip="{'text': 'Node Filter', 'location':'top', 'open-delay': 400}"
       variant="text"
       :icon="mdiCog"
       :active="showFilter"
@@ -41,8 +45,14 @@
       mandatory
       @update:model-value="onSelectionModeChanged"
     >
-      <v-btn :icon="mdiSelect" />
-      <v-btn :icon="mdiCursorPointer" />
+      <v-btn
+        v-tooltip="{'text': 'Select', 'location':'top', 'open-delay': 400}"
+        :icon="mdiSelect"
+      />
+      <v-btn
+        v-tooltip="{'text': 'Drag', 'location':'top', 'open-delay': 400}"
+        :icon="mdiCursorPointer"
+      />
     </v-btn-toggle>
   </div>
   <div class="d-flex justify-center flex-wrap">

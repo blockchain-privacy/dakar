@@ -32,11 +32,22 @@
       <v-row>
         <v-col v-if="txHash !== '' && (isInput || inputIndex >= 0)">
           <div class="d-flex justify-space-between align-center">
-            <div class="text-caption d-flex align-center text-no-wrap me-2">
-              <workspace-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}">
-                {{ isInput ? 'created' : 'spent' }}
-              </workspace-link>
-              on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
+            <div
+              class="text-caption d-flex align-center text-no-wrap me-2 shorten"
+              style="width: 100%"
+            >
+              <div class="flex-shrink-0">
+                <workspace-link
+                  v-tooltip="{'text': txHash, 'open-delay': 400,'location':'top'}"
+                  :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
+                >
+                  {{ isInput ? 'created' : 'spent' }}
+                </workspace-link>
+              </div>
+              <span
+                v-tooltip="{'text': new Date(timestamp).toLocaleString(), 'open-delay': 400, 'location': 'top'}"
+                class="shorten"
+              >on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}</span>
             </div>
             <privacy-chip
               v-if="transactionType"
@@ -68,22 +79,15 @@
               :model-value="keyAsm"
             >
               <template #append>
-                <v-tooltip
+                <v-btn
                   v-if="keyAsm"
-                  location="bottom"
-                  text="Toggle ASCII encoding of key script"
+                  v-tooltip="{'text': 'Toggle ASCII encoding of key script', 'location':'bottom'}"
+                  variant="text"
+                  icon
+                  @click="showAscii = !showAscii"
                 >
-                  <template #activator="item">
-                    <v-btn
-                      v-bind="item.props"
-                      variant="text"
-                      icon
-                      @click="showAscii = !showAscii"
-                    >
-                      <v-icon>{{ mdiFormatColorText }}</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
+                  <v-icon>{{ mdiFormatColorText }}</v-icon>
+                </v-btn>
               </template>
             </v-text-field>
             <v-text-field
