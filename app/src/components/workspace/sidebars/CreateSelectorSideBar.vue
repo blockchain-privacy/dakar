@@ -43,9 +43,7 @@
                 />
                 <v-list-item
                   v-else
-                  :disabled="i.item.raw.disabled"
                   v-bind="i.props"
-                  :subtitle="i.item.raw.disabled?'parent incompatible':''"
                 />
               </template>
             </v-select>
@@ -394,23 +392,23 @@ function getHeuristicTypes() {
 	const selectorItems = [];
 	let lastCategory = '';
 	props.descriptors
-		.map(d => {
-			d.category ||= 'Other';
-
+		.filter(d => {
 			let parentType;
 			switch (props.parentNode.type) {
 				case WORKSPACE_NODE_TYPE_SELECTOR:
 					parentType = props.parentNode.heuristicOptions.type;
 					break;
 				case WORKSPACE_NODE_TYPE_TRANSACTION:
-					parentType = WORKSPACE_NODE_TYPE_TRANSACTION;
+					parentType = props.parentNode.txtype;
 					break;
 				default:
 					throw new Error('invalid node type');
 			}
 
-			d.disabled = !d.allowedParents.includes(parentType);
-
+			return d.allowedParents.includes(parentType);
+		})
+		.map(d => {
+			d.category ||= 'Other';
 			return d;
 		})
 		.sort((a, b) => {

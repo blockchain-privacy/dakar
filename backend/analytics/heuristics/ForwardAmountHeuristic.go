@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
@@ -78,7 +79,7 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look forward time in hours",
 			Type:         "int",
 		},
-		AllowedParents: []string{parentTypeTransaction},
+		AllowedParents: constants.TransactionTypesDash,
 	}
 }
 
