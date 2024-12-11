@@ -5,11 +5,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"github.com/qrest/gomisc/serror"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+)
+
+const (
+	retryDuration = time.Second * 5
+	maxRetries    = 5
 )
 
 type Client struct {
@@ -71,6 +77,29 @@ func (j *Client) NewRequestID() *int {
 	return &newID
 }
 
+// doRequestWithRetry calls the given function. If the function returns io.EOF, the function
+// is called a few more times. Between each call retryDuration is waited.
+func doRequestWithRetry(f func() (*http.Response, error)) (*http.Response, error) {
+	var err error
+	var resp *http.Response
+	var encounteredError bool
+	for range maxRetries {
+		if encounteredError {
+			// Retry the transaction if it was aborted
+			time.Sleep(retryDuration)
+		}
+
+		if resp, err = f(); errors.Is(err, io.EOF) {
+			encounteredError = true
+			continue
+		}
+
+		break
+	}
+
+	return resp, err
+}
+
 // Call makes a call to the provided method with the given parameters and stores the returned values into result
 func (j *Client) Call(method string, params []any, result any) error {
 	replyBuffer, err := json.Marshal(Request{
@@ -83,14 +112,25 @@ func (j *Client) Call(method string, params []any, result any) error {
 		return serror.New(err)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, j.URI, bytes.NewBuffer(replyBuffer))
-	if err != nil {
-		return serror.New(err)
+	call := func() (*http.Response, error) {
+		request, err := http.NewRequest(http.MethodPost, j.URI, bytes.NewBuffer(replyBuffer))
+		if err != nil {
+			return nil, serror.New(err)
+		}
+
+		request.SetBasicAuth(j.User, j.Password)
+
+		r, err := j.httpClient.Do(request) //nolint:bodyclose
+		if err != nil {
+			return nil, serror.New(err)
+		}
+
+		return r, nil
 	}
 
-	request.SetBasicAuth(j.User, j.Password)
-
-	r, err := j.httpClient.Do(request) //nolint:bodyclose
+	// sometimes the connection is reset (error EOF) by the RPC server for no apparent reason,
+	// in this case we just retry the request
+	r, err := doRequestWithRetry(call) //nolint:bodyclose
 	if err != nil {
 		return serror.New(err)
 	}
@@ -125,14 +165,24 @@ func (j *Client) Batch(requests []Request, results []Response) error {
 		return serror.New(err)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, j.URI, bytes.NewBuffer(replyBuffer))
-	if err != nil {
-		return serror.New(err)
+	call := func() (*http.Response, error) {
+		request, err := http.NewRequest(http.MethodPost, j.URI, bytes.NewBuffer(replyBuffer))
+		if err != nil {
+			return nil, serror.New(err)
+		}
+
+		request.SetBasicAuth(j.User, j.Password)
+
+		r, err := j.httpClient.Do(request) //nolint:bodyclose
+		if err != nil {
+			return nil, serror.New(err)
+		}
+		return r, err
 	}
 
-	request.SetBasicAuth(j.User, j.Password)
-
-	r, err := j.httpClient.Do(request) //nolint:bodyclose
+	// sometimes the connection is reset (error EOF) by the RPC server for no apparent reason,
+	// in this case we just retry the request
+	r, err := doRequestWithRetry(call) //nolint:bodyclose
 	if err != nil {
 		return serror.New(err)
 	}
