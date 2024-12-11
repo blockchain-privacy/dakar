@@ -5,11 +5,8 @@ import {
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
-	PRIVACY_TYPE_CC,
-	PRIVACY_TYPE_CP,
 	PRIVACY_TYPE_DESTINATION,
-	PRIVACY_TYPE_MIXING,
-	PRIVACY_TYPE_ORIGIN, PRIVACY_TYPE_WASABI_2_DESTINATION, PRIVACY_TYPE_WASABI_2_MIXING, PRIVACY_TYPE_WASABI_2_ORIGIN,
+	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
 	DENOMINATIONS_WASABI2,
 } from '@/constants';
@@ -206,23 +203,6 @@ export function isPrivilegedIdentity(session, mode) {
 
 export function isAdminIdentity(session, mode) {
 	return isRole(session, mode, 'admin');
-}
-
-// Returns the corresponding tooltip path
-export function getTransactionTypeTooltip(privacyType) {
-	const folder = 'transactionTypes';
-
-	switch (privacyType) {
-		case PRIVACY_TYPE_ORIGIN: return `${folder}/originTransaction.md`;
-		case PRIVACY_TYPE_MIXING: return `${folder}/mixingTransaction.md`;
-		case PRIVACY_TYPE_DESTINATION: return `${folder}/destinationTransaction.md`;
-		case PRIVACY_TYPE_CC: return `${folder}/collateralCreationTransaction.md`;
-		case PRIVACY_TYPE_CP: return `${folder}/collateralPaymentTransaction.md`;
-		case PRIVACY_TYPE_WASABI_2_ORIGIN: return `${folder}/wasabi2.0OriginTransaction.md`;
-		case PRIVACY_TYPE_WASABI_2_MIXING: return `${folder}/wasabi2.0MixingTransaction.md`;
-		case PRIVACY_TYPE_WASABI_2_DESTINATION: return `${folder}/wasabi2.0DestinationTransaction.md`;
-		default: return '';
-	}
 }
 
 // GetClusterTypeLabel translates the cluster shorthand of cluster types to a readable string

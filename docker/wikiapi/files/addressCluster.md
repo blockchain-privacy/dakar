@@ -12,7 +12,7 @@ transaction are signed by the same entity. Thus, all input addresses belong to t
 Addresses of transaction outputs are not considered. By applying this method to all transactions of
 a blockchain, links between transactions can be revealed.
 
-In Dakar all transactions, which are not [privacy transactions](transactionTypes/privacyTransactions.md), are clustered via this method.
+In Dakar all transactions, which are not classified as CoinJoin transactions, are clustered via this method.
 
 ### Example
 

@@ -177,18 +177,18 @@ let searchTimer = null;
 //     "path": "index.md"
 //   },
 //   {
-//     "name": "TransactionTypes",
+//     "name": "Dash",
 //     "items": [
 //       {
 //         "name": "Destination",
-//         "path": "transactionTypes/destination.md"
+//         "path": "dash/destination.md"
 //       },
 //       {
 //         "name": "Mixing",
-//         "path": "transactionTypes/mixing.md"
+//         "path": "dash/mixing.md"
 //       },
 //     ],
-//     "path": "transactionTypes/destination.md"
+//     "path": "dash/destination.md"
 //   }
 // ]
 const fileHierarchy = computed(() => {

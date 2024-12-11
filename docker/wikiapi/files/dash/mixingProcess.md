@@ -9,10 +9,10 @@ The mixing service is provided by the Dash master nodes as part of the Dash bloc
 ## Main Process Steps
 
 - Funds are first split into predefined [denominations](denominations.md) via
-[origin transactions](transactionTypes/originTransaction.md)
-- The prepared denominations are afterwards spent by [mixing transactions](transactionTypes/mixingTransaction.md)
+[origin transactions](originTransaction.md)
+- The prepared denominations are afterwards spent by [mixing transactions](mixingTransaction.md)
 - The resulting outputs of mixing transactions are either used as inputs for the next mixing transaction in the mixing graph, or
-they are spent via a [destination transaction](transactionTypes/destinationTransaction.md)
+they are spent via a [destination transaction](destinationTransaction.md)
 
 In the Dash network users are continuously mixing coins, resulting in a large interconnected mixing graph.
 

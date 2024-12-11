@@ -152,7 +152,7 @@
         <div class="d-flex align-center">
           <wiki-tooltip
             class="me-1"
-            description-url="wasabi/wasabiDenominations.md"
+            description-url="wasabi/denominations.md"
           >
             Uncommon Wasabi 2.0 denomination
           </wiki-tooltip> detected. Highlight all Wasabi 2.0 denominations?
