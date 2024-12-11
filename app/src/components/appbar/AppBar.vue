@@ -41,7 +41,7 @@
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
     </v-btn>
-    <blockchain-mode-select :modes="activeBlockchainModes" />
+    <blockchain-mode-select />
     <v-menu v-if="session">
       <template #activator="{ props }">
         <v-btn
@@ -117,7 +117,7 @@ import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
-	APPLICATION_NAME, BLOCKCHAIN_BTC, BLOCKCHAIN_DASH,
+	APPLICATION_NAME,
 	ROUTE_NAME_ENTRY_PAGE,
 	ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
@@ -163,21 +163,6 @@ const settings = computed({
 
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode)
 	|| isAdminIdentity(session.value, settings.value.blockchainMode));
-const activeBlockchainModes = computed(() => {
-	const modes = [];
-
-	if (isPrivilegedIdentity(session.value, BLOCKCHAIN_DASH)
-		|| isAdminIdentity(session.value, BLOCKCHAIN_DASH)) {
-		modes.push(BLOCKCHAIN_DASH);
-	}
-
-	if (isPrivilegedIdentity(session.value, BLOCKCHAIN_BTC)
-		|| isAdminIdentity(session.value, BLOCKCHAIN_BTC)) {
-		modes.push(BLOCKCHAIN_BTC);
-	}
-
-	return modes;
-});
 
 // Functions
 // GoToPage should receive a page name from ./constants
