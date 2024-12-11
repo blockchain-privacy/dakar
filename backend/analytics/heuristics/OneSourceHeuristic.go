@@ -132,7 +132,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, exclusions, h.c)
+			h.lookBackTime, 0, exclusions, h.c)
 		if err != nil {
 			return nil, err
 		}

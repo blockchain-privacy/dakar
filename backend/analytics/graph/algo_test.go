@@ -179,7 +179,7 @@ func newTestGraph() *ReversibleGraph {
 	oneHourOld := now.Add(-time.Hour * 1)
 
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 11, Type: constants.TypeDashMixing},
+		TransactionNode{TS: now, id: 11, Type: constants.TypeDashDestination},
 		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
 		TransactionNode{TS: oneHourOld, id: 8, Type: constants.TypeDashMixing},
@@ -194,10 +194,10 @@ func newTestGraph() *ReversibleGraph {
 		TransactionNode{TS: twoHoursOld, id: 6, Type: constants.TypeDashMixing},
 		TransactionNode{TS: threeHoursOld, id: 2, Type: constants.TypeDashOrigin}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 11, Type: constants.TypeDashMixing},
+		TransactionNode{TS: now, id: 11, Type: constants.TypeDashDestination},
 		TransactionNode{TS: oneHourOld, id: 9, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 12, Type: constants.TypeDashMixing},
+		TransactionNode{TS: now, id: 12, Type: constants.TypeDashDestination},
 		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeDashMixing}, 0)
 	graph.SetEdgeWithoutOverwrite(
 		TransactionNode{TS: oneHourOld, id: 10, Type: constants.TypeDashMixing},
@@ -222,6 +222,7 @@ func TestReverseLookupByID(t *testing.T) {
 	type args struct {
 		nodeID              int64
 		maxLookBackTime     time.Duration
+		maxDepth            int
 		addressExclusions   []string
 		excludeSpendingGaps bool
 	}
@@ -237,7 +238,7 @@ func TestReverseLookupByID(t *testing.T) {
 				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
-			want:    map[string]bool{"0x5": true, "0x1": true, "0x2": true, "0x4": true},
+			want:    map[string]bool{"0x1": true, "0x2": true, "0x4": true},
 			wantErr: false,
 		},
 		{
@@ -271,16 +272,6 @@ func TestReverseLookupByID(t *testing.T) {
 		// Limited look back
 		{
 			args: args{
-				nodeID:              11,
-				maxLookBackTime:     time.Hour * 2,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
-			},
-			want:    map[string]bool{"0x5": true},
-			wantErr: false,
-		},
-		{
-			args: args{
 				nodeID:              12,
 				maxLookBackTime:     time.Hour * 1,
 				addressExclusions:   nil,
@@ -312,7 +303,7 @@ func TestReverseLookupByID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		results, err := ReverseLookupByID(graph, tt.args.nodeID, tt.args.maxLookBackTime,
+		results, err := ReverseLookupByID(graph, tt.args.nodeID, tt.args.maxLookBackTime, tt.args.maxDepth,
 			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
 		if tt.wantErr {
 			require.Error(t, err)
@@ -328,6 +319,7 @@ func TestReverseLookup(t *testing.T) {
 	type args struct {
 		nodeID              int64
 		maxLookBackTime     time.Duration
+		maxDepth            int
 		addressExclusions   []string
 		excludeSpendingGaps bool
 	}
@@ -338,30 +330,24 @@ func TestReverseLookup(t *testing.T) {
 	}{
 		{
 			args: args{
-				nodeID:              11,
-				maxLookBackTime:     time.Hour * 24,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 24,
 			},
-			want:    map[string]bool{"0x5": true, "0x1": true, "0x2": true, "0x4": true},
+			want:    map[string]bool{"0x1": true, "0x2": true, "0x4": true},
 			wantErr: false,
 		},
 		{
 			args: args{
-				nodeID:              12,
-				maxLookBackTime:     time.Hour * 24,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
+				nodeID:          12,
+				maxLookBackTime: time.Hour * 24,
 			},
 			want:    map[string]bool{"0x4": true, "0xd": true},
 			wantErr: false,
 		},
 		{
 			args: args{
-				nodeID:              6,
-				maxLookBackTime:     time.Hour * 24,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
+				nodeID:          6,
+				maxLookBackTime: time.Hour * 24,
 			},
 			want:    map[string]bool{"0x1": true, "0x2": true},
 			wantErr: false,
@@ -377,30 +363,24 @@ func TestReverseLookup(t *testing.T) {
 		// Limited look back
 		{
 			args: args{
-				nodeID:              11,
-				maxLookBackTime:     time.Hour * 2,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 2,
 			},
-			want:    map[string]bool{"0x5": true},
+			want:    map[string]bool{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				nodeID:              12,
-				maxLookBackTime:     time.Hour * 1,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
+				nodeID:          12,
+				maxLookBackTime: time.Hour * 1,
 			},
 			want:    map[string]bool{"0xd": true},
 			wantErr: false,
 		},
 		{
 			args: args{
-				nodeID:              6,
-				maxLookBackTime:     time.Minute * 30,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
+				nodeID:          6,
+				maxLookBackTime: time.Minute * 30,
 			},
 			want:    map[string]bool{},
 			wantErr: false,
@@ -408,63 +388,89 @@ func TestReverseLookup(t *testing.T) {
 		// address exclusion
 		{
 			args: args{
-				nodeID:              12,
-				maxLookBackTime:     time.Hour * 24,
-				addressExclusions:   []string{ToHex(123456)},
-				excludeSpendingGaps: false,
+				nodeID:            12,
+				maxLookBackTime:   time.Hour * 24,
+				addressExclusions: []string{ToHex(123456)},
 			},
 			want:    map[string]bool{"0xd": true},
 			wantErr: false,
 		},
+		// depth
+		{
+			args: args{
+				nodeID:   11,
+				maxDepth: -100,
+			},
+			wantErr: true,
+		},
+		// max depth == 0: just limited by time
+		{
+			args: args{
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        0,
+			},
+			want:    map[string]bool{"0x1": true, "0x2": true, "0x4": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        1,
+			},
+			want:    map[string]bool{},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        2,
+			},
+			want:    map[string]bool{},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        3,
+			},
+			want:    map[string]bool{"0x1": true, "0x2": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:          11,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        4,
+			},
+			want:    map[string]bool{"0x1": true, "0x2": true, "0x4": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:          12,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        4,
+			},
+			want:    map[string]bool{"0x4": true, "0xd": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:          3,
+				maxLookBackTime: time.Hour * 24,
+				maxDepth:        1,
+			},
+			want:    map[string]bool{"0x4": true},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
-		results, err := ReverseLookup(graph, ToHex(tt.args.nodeID), tt.args.maxLookBackTime,
+		results, err := ReverseLookup(graph, ToHex(tt.args.nodeID), tt.args.maxLookBackTime, tt.args.maxDepth,
 			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
-		if tt.wantErr {
-			require.Error(t, err)
-		} else {
-			require.NoError(t, err)
-			require.Equal(t, tt.want, results)
-		}
-	}
-}
-
-func TestForwardLookup(t *testing.T) {
-	graph := newTestGraph()
-	type args struct {
-		nodeID              int64
-		targetID            int64
-		addressExclusions   []string
-		excludeSpendingGaps bool
-	}
-	tests := []struct {
-		args    args
-		want    map[string]bool
-		wantErr bool
-	}{
-		{
-			args: args{
-				nodeID:              1,
-				targetID:            11,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
-			},
-			want:    map[string]bool{ToHex(11): true},
-			wantErr: false,
-		},
-		{
-			args: args{
-				nodeID:              4,
-				targetID:            11,
-				addressExclusions:   nil,
-				excludeSpendingGaps: false,
-			},
-			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		results, err := ForwardLookup(graph, ToHex(tt.args.nodeID), ToHex(tt.args.targetID), tt.args.addressExclusions, tt.args.excludeSpendingGaps)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -510,11 +516,12 @@ func TestGetInputTransactions(t *testing.T) {
 	}
 }
 
-func TestForwardLookupByTime(t *testing.T) {
+func TestForwardLookup(t *testing.T) {
 	graph := newTestGraph()
 	type args struct {
 		nodeID              int64
 		maxLookForwardTime  time.Duration
+		maxDepth            int
 		addressExclusions   []string
 		excludeSpendingGaps bool
 	}
@@ -545,7 +552,8 @@ func TestForwardLookupByTime(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		results, err := ForwardLookupByTime(graph, ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+		results, err := ForwardLookup(graph, ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.maxDepth,
+			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

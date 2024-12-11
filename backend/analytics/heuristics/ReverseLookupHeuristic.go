@@ -121,7 +121,7 @@ func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Datab
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, exclusions, h.c)
+			h.lookBackTime, 0, exclusions, h.c)
 		if err != nil {
 			return nil, err
 		}

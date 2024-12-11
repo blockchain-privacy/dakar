@@ -465,47 +465,6 @@ func GetFrontendTransaction(ctx context.Context, c external.Database, txHash str
 	return
 }
 
-// GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
-func GetFrontendTransactionsByUID(ctx context.Context, c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
-	if len(txUids) == 0 {
-		err = serror.New(ErrEmptyRequestArgument)
-		return
-	}
-
-	const query = `query Q($uids:string){
-				txs as var(func: uid($uids))
-				q(func: uid(txs))@normalize{
-					txhash:txhash
-					txtype:Transaction.type
-					~transactions{
-						bid:id
-						bts:ts
-						bhash:blockhash
-					}
-				}
-			  }`
-
-	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
-	if err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Transactions []FrontendTransaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	txs = r.Transactions
-
-	return
-}
-
 type AmountTransaction struct {
 	Hash         string `json:"txhash,omitempty"`
 	Fee          *int64 `json:"fee,omitempty"`

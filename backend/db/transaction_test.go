@@ -228,27 +228,6 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, "", transaction[0].Type)
 }
 
-func TestGetFrontendTransactionsByUID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
-
-	ctx, cancel := GetTaskContext()
-	defer cancel()
-
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005, false, nil)
-	require.NoError(t, err)
-	require.Len(t, transactions, 7)
-
-	var uids [7]string
-	for i, tx := range transactions {
-		uids[i] = tx.UID
-	}
-
-	frontendTransactions, err := GetFrontendTransactionsByUID(context.Background(), dbHandle, uids[:])
-	require.NoError(t, err)
-	require.Equal(t, len(transactions), len(frontendTransactions))
-}
-
 func TestGetTransactionBlockID(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
