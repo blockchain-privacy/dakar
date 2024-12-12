@@ -263,8 +263,7 @@ func main() {
 		}
 	}()
 
-	ctx, cancel := db.GetLongTaskContext()
-	defer cancel()
+	ctx := context.Background()
 
 	if newConfig.PrivacyCharts.Active {
 		exportTransactionData(ctx, dgraph, newConfig.PrivacyCharts.Directory)
