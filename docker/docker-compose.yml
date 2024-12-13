@@ -145,8 +145,6 @@ services:
       - "4455:4455"
       - "4456:4456"
     command: serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml" --sqa-opt-out
-    environment:
-      - LOG_LEVEL=debug
     restart: on-failure
     networks:
       - dgraph_default
@@ -214,19 +212,6 @@ services:
 #    networks:
 #      - dgraph_default
 #    logging: *default-logging
-
-#  bitcoind:
-#    image: ruimarinho/bitcoin-core:23.0-alpine
-#    container_name: bitcoind
-#    volumes:
-#      - ${BITCOIN_PATH}:/home/bitcoin/.bitcoin
-#    ports:
-#      - "${CONTAINER_IP}:8332:8332"
-#      - "${CONTAINER_IP}:8333:8333"
-#    expose:
-#      - 8332
-#      - 8333
-#    restart: unless-stopped
 
 networks:
   dgraph_default:
