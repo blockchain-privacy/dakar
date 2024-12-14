@@ -274,7 +274,7 @@ func Test_calculateMetrics(t *testing.T) {
 }
 
 func TestNewFlatMultiInput(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
 
 	require.NotNil(t, fm)
 }
@@ -285,7 +285,7 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	fm := NewFlatMultiInput(ctx, nil)
+	fm := NewFlatMultiInput(ctx, nil, NewDashConfig())
 	fm.RegisterMetrics(prometheus.NewRegistry())
 	// panics because db is not set
 	require.Panics(t, func() {
@@ -313,7 +313,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	fm := NewFlatMultiInput(ctx, dbHandle)
+	fm := NewFlatMultiInput(ctx, dbHandle, NewDashConfig())
 	fm.RegisterMetrics(prometheus.NewRegistry())
 	require.NoError(t, dbstat.SetClassifying(ctx, dbHandle, true))
 	require.NoError(t, fm.CalculateInitialState(ctx))
@@ -341,7 +341,7 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	fm := NewFlatMultiInput(ctx, dbHandle)
+	fm := NewFlatMultiInput(ctx, dbHandle, NewDashConfig())
 
 	// error because no status is set
 	_, err := fm.Next(ctx)
@@ -365,13 +365,13 @@ func TestFlatMultiInput_PostExecution(t *testing.T) {
 	db.SetupDBWithoutData(t, dbHandle)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	fm := NewFlatMultiInput(ctx, dbHandle)
+	fm := NewFlatMultiInput(ctx, dbHandle, NewDashConfig())
 
 	require.NoError(t, fm.PostExecution(ctx))
 }
 
 func TestFlatMultiInput_IncrementState(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
 
 	require.EqualValues(t, 0, fm.state.ID)
 	// need to simulate a block being processed
@@ -381,7 +381,7 @@ func TestFlatMultiInput_IncrementState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Empty(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
 
 	// initially top and id are 0, so not empty
 	require.False(t, fm.Empty())
@@ -392,7 +392,7 @@ func TestFlatMultiInput_Empty(t *testing.T) {
 }
 
 func TestFlatMultiInput_Props(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil)
+	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
 
 	require.NotEmpty(t, fm.Props())
 }
@@ -407,4 +407,97 @@ func Test_setInitialFMIClusteringID(t *testing.T) {
 	require.Error(t, setInitialFMIClusteringID(ctx, dbHandle))
 	require.NoError(t, dbstat.SetClusteringFMI(ctx, dbHandle, true))
 	require.NoError(t, setInitialFMIClusteringID(ctx, dbHandle))
+}
+
+func Test_isGenericCoinJoin(t *testing.T) {
+
+	tests := []struct {
+		t    clustering.TransactionWithInputOutputAddressCluster
+		c    Config
+		want bool
+	}{
+		{
+			c: Config{excludeInputCountThreshold: 5, excludeOutputCountThreshold: 5},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 5),
+				OutputAddresses: make([]clustering.AddressWithCluster, 5),
+			},
+			want: true,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 5, excludeOutputCountThreshold: 5},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 4),
+				OutputAddresses: make([]clustering.AddressWithCluster, 5),
+			},
+			want: false,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 5, excludeOutputCountThreshold: 5},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 5),
+				OutputAddresses: make([]clustering.AddressWithCluster, 4),
+			},
+			want: false,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 5, excludeOutputCountThreshold: 5},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 100),
+				OutputAddresses: make([]clustering.AddressWithCluster, 100),
+			},
+			want: true,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 0, excludeOutputCountThreshold: 5},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 1),
+				OutputAddresses: make([]clustering.AddressWithCluster, 6),
+			},
+			want: true,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 5, excludeOutputCountThreshold: 0},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 0),
+				OutputAddresses: make([]clustering.AddressWithCluster, 100),
+			},
+			want: false,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 50, excludeOutputCountThreshold: 0},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 50),
+				OutputAddresses: make([]clustering.AddressWithCluster, 44),
+			},
+			want: true,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 0, excludeOutputCountThreshold: 0},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 50),
+				OutputAddresses: make([]clustering.AddressWithCluster, 44),
+			},
+			want: false,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 0, excludeOutputCountThreshold: 0},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 1),
+				OutputAddresses: make([]clustering.AddressWithCluster, 2),
+			},
+			want: false,
+		},
+		{
+			c: Config{excludeInputCountThreshold: 0, excludeOutputCountThreshold: 0},
+			t: clustering.TransactionWithInputOutputAddressCluster{
+				InputAddresses:  make([]clustering.AddressWithCluster, 0),
+				OutputAddresses: make([]clustering.AddressWithCluster, 0),
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.want, isGenericCoinJoin(tt.t, tt.c))
+	}
 }

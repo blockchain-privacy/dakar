@@ -84,6 +84,7 @@ func setCommandFlags(c *Commands) {
 type iteratorConfigurations struct {
 	processor  processor.Config
 	classifier classifier.Config
+	clustering clustering.Config
 	graph      graph.Config
 }
 
@@ -95,12 +96,14 @@ func selectConfig(blockchainMode string) (*iteratorConfigurations, error) {
 			processor:  processor.NewDashConfig(),
 			classifier: classifier.NewDashConfig(),
 			graph:      graph.NewDashConfig(),
+			clustering: clustering.NewDashConfig(),
 		}, nil
 	case constants.BlockchainModeBTC:
 		return &iteratorConfigurations{
 			processor:  processor.NewBitcoinConfig(),
 			classifier: classifier.NewBTCConfig(),
 			graph:      graph.NewBTCConfig(),
+			clustering: clustering.NewBTCConfig(),
 		}, nil
 	default:
 		return nil, serror.FromStr("invalid blockchain mode")
@@ -459,7 +462,7 @@ func main() {
 			defer func() {
 				chFMIClusteringStopped <- true
 			}()
-			fmi := clustering.NewFlatMultiInput(appContext, graphDB)
+			fmi := clustering.NewFlatMultiInput(appContext, graphDB, iterConfigs.clustering)
 			fmi.RegisterMetrics(prometheus.DefaultRegisterer)
 			if clusteringErr := blockiterator.StartIteration(fmi,
 				time.Second*time.Duration(newConfig.Modules.FMI.TargetDuration),

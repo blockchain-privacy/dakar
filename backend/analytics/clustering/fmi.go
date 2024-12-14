@@ -15,9 +15,10 @@ import (
 
 // FlatMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
 type FlatMultiInput struct {
-	db    external.Database
-	ctx   context.Context
-	state blockiterator.State
+	config Config
+	db     external.Database
+	ctx    context.Context
+	state  blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
 	maxBlocks int64
@@ -31,9 +32,27 @@ type FlatMultiInput struct {
 	blockHeight    prometheus.Gauge
 }
 
+type Config struct {
+	// if a transaction has more than the specified number of inputs,
+	// it will be considered a CoinJoin transaction. If set to zero, this filter will be ignored.
+	excludeInputCountThreshold int
+	// if a transaction has more than the specified number of outputs,
+	// it will be considered a CoinJoin transaction. If set to zero, this filter will be ignored.
+	excludeOutputCountThreshold int
+}
+
+func NewDashConfig() Config {
+	return Config{excludeInputCountThreshold: 0, excludeOutputCountThreshold: 0}
+}
+
+func NewBTCConfig() Config {
+	return Config{excludeInputCountThreshold: 40, excludeOutputCountThreshold: 40}
+}
+
 // NewFlatMultiInput creates a new flat multi-input clustering object
-func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
+func NewFlatMultiInput(ctx context.Context, dgraph external.Database, cfg Config) *FlatMultiInput {
 	return &FlatMultiInput{
+		config:    cfg,
 		db:        dgraph,
 		ctx:       ctx,
 		maxBlocks: 1,
@@ -168,6 +187,22 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 		txUID, existingClusters, addressesWithoutCluster)
 }
 
+// isGenericCoinJoin returns true if the given transaction is considered a CoinJoin transaction based on the provided configuration
+func isGenericCoinJoin(t clustering.TransactionWithInputOutputAddressCluster, c Config) bool {
+	if c.excludeInputCountThreshold > 0 || c.excludeOutputCountThreshold > 0 {
+		if c.excludeInputCountThreshold > 0 && len(t.InputAddresses) < c.excludeInputCountThreshold {
+			return false
+		}
+
+		if c.excludeOutputCountThreshold > 0 && len(t.OutputAddresses) < c.excludeOutputCountThreshold {
+			return false
+		}
+		return true
+	}
+
+	return false
+}
+
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 	if m.maxBlocks == 0 {
@@ -197,7 +232,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 		for _, tx := range transactions {
 			// tx inputs
 			if len(tx.InputAddresses) > 0 {
-				if constants.IsMixingTransaction(tx.Type) {
+				if constants.IsMixingTransaction(tx.Type) || isGenericCoinJoin(tx, m.config) {
 					// treat inputs of mixing transations not with the multi-input heuristic
 					processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				} else {
