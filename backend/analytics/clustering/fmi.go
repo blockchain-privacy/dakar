@@ -256,9 +256,9 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 		// increase index
 		clusterIndex += len(operations)
 
-		clusters, clusterErr := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
+		clusters, err := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
 		if err != nil {
-			return false, clusterErr
+			return false, err
 		}
 		operations = append(operations, clusters...)
 
@@ -282,8 +282,8 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 	}
 
 	// set the last clustered block
-	if statusErr := dbstat.SetLastClusteredFMIBlockID(ctx, m.db, toBlockID); statusErr != nil {
-		return false, statusErr
+	if err := dbstat.SetLastClusteredFMIBlockID(ctx, m.db, toBlockID); err != nil {
+		return false, err
 	}
 
 	m.blocksProcessed = toBlockID - m.state.ID + 1
