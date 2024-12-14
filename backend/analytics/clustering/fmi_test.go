@@ -410,7 +410,6 @@ func Test_setInitialFMIClusteringID(t *testing.T) {
 }
 
 func Test_isGenericCoinJoin(t *testing.T) {
-
 	tests := []struct {
 		t    clustering.TransactionWithInputOutputAddressCluster
 		c    Config
