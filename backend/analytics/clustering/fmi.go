@@ -172,6 +172,11 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 		if addr.Cluster != nil {
 			transactionCluster := addr.Cluster
 
+			// don't add addresses to clusters with a size of 500 000 addresses
+			if transactionCluster.AddressCount >= 500000 {
+				continue
+			}
+
 			existingClusters[transactionCluster.UID] = true
 
 			clusterStore[transactionCluster.UID] = clustering.Cluster{
