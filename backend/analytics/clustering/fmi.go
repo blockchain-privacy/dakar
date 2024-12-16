@@ -173,7 +173,7 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 			transactionCluster := addr.Cluster
 
 			// don't add addresses to clusters with a size of 500 000 addresses
-			if transactionCluster.AddressCount >= 500000 {
+			if transactionCluster.AddressCount >= 50000 {
 				continue
 			}
 
