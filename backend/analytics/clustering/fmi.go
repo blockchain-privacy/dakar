@@ -13,6 +13,11 @@ import (
 	"github.com/qrest/gomisc/serror"
 )
 
+// maximum number of addresses per cluster. Cluster with a size of maxClusterSize
+// won't be added addresses. Also,transactions will be ignored if they would merge
+// multiple clusters with an accumulated number of over maxClusterSize.
+const maxClusterSize = 50_000
+
 // FlatMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
 type FlatMultiInput struct {
 	config Config
@@ -172,8 +177,8 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 		if addr.Cluster != nil {
 			transactionCluster := addr.Cluster
 
-			// don't add addresses to clusters with a size of 500 000 addresses
-			if transactionCluster.AddressCount >= 50000 {
+			// don't add addresses to clusters with a size of over 50 000 addresses
+			if transactionCluster.AddressCount > maxClusterSize {
 				continue
 			}
 
@@ -506,7 +511,8 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 				}
 			}
 
-			if addressCount > 50000 {
+			// check if accumulated cluster size is too large
+			if addressCount > maxClusterSize {
 				continue
 			}
 
