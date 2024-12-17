@@ -495,7 +495,6 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 			// find the largest cluster, so we have to move the least amount of addresses
 			var largestClusterUID string
 			var largestAddressesCount int
-			var addressCountSum int
 			for _, c := range i.mergeList {
 				if c.AddressCount == nil {
 					return nil, serror.FromFormat("address count is not set for cluster %s", c.UID)
@@ -504,11 +503,10 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 				if *c.AddressCount > largestAddressesCount {
 					largestClusterUID = c.UID
 					largestAddressesCount = *c.AddressCount
-					addressCountSum += *c.AddressCount
 				}
 			}
 
-			if addressCountSum > 50000 {
+			if addressCount > 50000 {
 				continue
 			}
 
