@@ -346,6 +346,7 @@ func main() {
 
 	if newConfig.DestinationCount.Active {
 		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename, newConfig.DestinationCount.TransactionType)
+		doDestinationCountAnalysis2(ctx, dgraph, g, newConfig.DestinationCount.Filename, newConfig.DestinationCount.TransactionType)
 	}
 
 	if newConfig.ExportClusterActivity.Active {
