@@ -13,11 +13,17 @@ import (
 	"github.com/qrest/gomisc/serror"
 )
 
+// maximum number of addresses per cluster. Cluster with a size of maxClusterSize
+// won't be added addresses. Also,transactions will be ignored if they would merge
+// multiple clusters with an accumulated number of over maxClusterSize.
+const maxClusterSize = 50_000
+
 // FlatMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
 type FlatMultiInput struct {
-	db    external.Database
-	ctx   context.Context
-	state blockiterator.State
+	config Config
+	db     external.Database
+	ctx    context.Context
+	state  blockiterator.State
 
 	// how many blocks are processed in one interation at maximum
 	maxBlocks int64
@@ -31,9 +37,27 @@ type FlatMultiInput struct {
 	blockHeight    prometheus.Gauge
 }
 
+type Config struct {
+	// if a transaction has more than the specified number of inputs,
+	// it will be considered a CoinJoin transaction. If set to zero, this filter will be ignored.
+	excludeInputCountThreshold int
+	// if a transaction has more than the specified number of outputs,
+	// it will be considered a CoinJoin transaction. If set to zero, this filter will be ignored.
+	excludeOutputCountThreshold int
+}
+
+func NewDashConfig() Config {
+	return Config{excludeInputCountThreshold: 0, excludeOutputCountThreshold: 0}
+}
+
+func NewBTCConfig() Config {
+	return Config{excludeInputCountThreshold: 30, excludeOutputCountThreshold: 30}
+}
+
 // NewFlatMultiInput creates a new flat multi-input clustering object
-func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
+func NewFlatMultiInput(ctx context.Context, dgraph external.Database, cfg Config) *FlatMultiInput {
 	return &FlatMultiInput{
+		config:    cfg,
 		db:        dgraph,
 		ctx:       ctx,
 		maxBlocks: 1,
@@ -153,6 +177,11 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 		if addr.Cluster != nil {
 			transactionCluster := addr.Cluster
 
+			// don't add addresses to clusters with a size of over 50 000 addresses
+			if transactionCluster.AddressCount > maxClusterSize {
+				continue
+			}
+
 			existingClusters[transactionCluster.UID] = true
 
 			clusterStore[transactionCluster.UID] = clustering.Cluster{
@@ -166,6 +195,22 @@ func processAsMultiInput(clusterMergeMap map[string]*newCluster, addressMergeMap
 
 	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore,
 		txUID, existingClusters, addressesWithoutCluster)
+}
+
+// isGenericCoinJoin returns true if the given transaction is considered a CoinJoin transaction based on the provided configuration
+func isGenericCoinJoin(t clustering.TransactionWithInputOutputAddressCluster, c Config) bool {
+	if c.excludeInputCountThreshold > 0 || c.excludeOutputCountThreshold > 0 {
+		if c.excludeInputCountThreshold > 0 && len(t.InputAddresses) < c.excludeInputCountThreshold {
+			return false
+		}
+
+		if c.excludeOutputCountThreshold > 0 && len(t.OutputAddresses) < c.excludeOutputCountThreshold {
+			return false
+		}
+		return true
+	}
+
+	return false
 }
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
@@ -197,7 +242,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 		for _, tx := range transactions {
 			// tx inputs
 			if len(tx.InputAddresses) > 0 {
-				if constants.IsMixingTransaction(tx.Type) {
+				if constants.IsMixingTransaction(tx.Type) || isGenericCoinJoin(tx, m.config) {
 					// treat inputs of mixing transations not with the multi-input heuristic
 					processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				} else {
@@ -221,9 +266,9 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 		// increase index
 		clusterIndex += len(operations)
 
-		clusters, clusterErr := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
+		clusters, err := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
 		if err != nil {
-			return false, clusterErr
+			return false, err
 		}
 		operations = append(operations, clusters...)
 
@@ -247,8 +292,8 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 	}
 
 	// set the last clustered block
-	if statusErr := dbstat.SetLastClusteredFMIBlockID(ctx, m.db, toBlockID); statusErr != nil {
-		return false, statusErr
+	if err := dbstat.SetLastClusteredFMIBlockID(ctx, m.db, toBlockID); err != nil {
+		return false, err
 	}
 
 	m.blocksProcessed = toBlockID - m.state.ID + 1
@@ -464,6 +509,11 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 					largestClusterUID = c.UID
 					largestAddressesCount = *c.AddressCount
 				}
+			}
+
+			// check if accumulated cluster size is too large
+			if addressCount > maxClusterSize {
+				continue
 			}
 
 			for _, c := range i.mergeList {
