@@ -51,7 +51,7 @@ func NewDashConfig() Config {
 }
 
 func NewBTCConfig() Config {
-	return Config{excludeInputCountThreshold: 30, excludeOutputCountThreshold: 30}
+	return Config{excludeInputCountThreshold: 10, excludeOutputCountThreshold: 10}
 }
 
 // NewFlatMultiInput creates a new flat multi-input clustering object

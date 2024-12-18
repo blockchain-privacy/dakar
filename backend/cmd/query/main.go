@@ -115,6 +115,12 @@ type DestinationCountModule struct {
 	TransactionType string `yaml:"transactionType"`
 }
 
+type DestinationCount2Module struct {
+	Active          bool   `yaml:"active"`
+	Filename        string `yaml:"filename"`
+	TransactionType string `yaml:"transactionType"`
+}
+
 type ExportPrivacyGraphModule struct {
 	Active           bool   `yaml:"active"`
 	Filename         string `yaml:"filename"`
@@ -138,6 +144,7 @@ type Config struct {
 	ExportTransactions    ExportTransactionsModule    `yaml:"exportTransactions"`
 	ExportPrivacyGraph    ExportPrivacyGraphModule    `yaml:"exportPrivacyGraph"`
 	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
+	DestinationCount2     DestinationCount2Module     `yaml:"destinationCount2"`
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
 	Stats                 StatsModule                 `yaml:"stats"`
 }
@@ -192,6 +199,10 @@ var defaultConfig = Config{
 		StartTransaction: "",
 	},
 	DestinationCount: DestinationCountModule{
+		Active:   false,
+		Filename: "",
+	},
+	DestinationCount2: DestinationCount2Module{
 		Active:   false,
 		Filename: "",
 	},
@@ -280,7 +291,8 @@ func main() {
 		newConfig.TimestampAnalytics.ExportReverseLookup.Active ||
 		newConfig.ExclusionSimulations.Active ||
 		newConfig.OriginGap.Active ||
-		newConfig.DestinationCount.Active {
+		newConfig.DestinationCount.Active ||
+		newConfig.DestinationCount2.Active {
 		meta, err := status.GetMeta(ctx, dgraph)
 		if err != nil {
 			warn(err)
@@ -346,6 +358,10 @@ func main() {
 
 	if newConfig.DestinationCount.Active {
 		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename, newConfig.DestinationCount.TransactionType)
+	}
+
+	if newConfig.DestinationCount2.Active {
+		doDestinationCountAnalysis2(ctx, dgraph, g, newConfig.DestinationCount2.Filename, newConfig.DestinationCount2.TransactionType)
 	}
 
 	if newConfig.ExportClusterActivity.Active {

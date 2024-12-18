@@ -524,7 +524,9 @@ func GetForwardLookupTransactions(ctx context.Context, c external.Database, star
 }
 
 type SpenderTransaction struct {
+	// Either Transaction or ClusterUID is set
 	Transaction  db.Transaction
+	ClusterUID   string
 	ClusterSize  int
 	Destinations []db.Transaction
 }
@@ -642,6 +644,95 @@ func GetDestinationTransactionSpenders(ctx context.Context, c external.Database,
 	globalDestinationCount = r.DestinationCount[0].Count
 	spentDestinationTransactionCount = len(spentDestinationTransactions)
 
+	return
+}
+
+// GetDestinationTransactionClusterSpenders returns all destination transactions which send funds to the same cluser
+func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Database, transactionType string) (
+	transactions []SpenderTransaction, globalDestinationCount int, includedDestinationCount int,
+	excludedBecauseOfClusterSizeCount int, err error) {
+	query := `{
+		destinations as var(func: eq(Transaction.type,"` + transactionType + `"))@cascade{
+			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
+		}
+
+		c(func: uid(destinations)){
+			count:count(uid)
+		}
+		
+		q(func: uid(destinations)){
+			uid
+			txhash
+			tx_outputs@normalize{
+				~addr_outputs {
+					~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+						clusterUID:uid
+						clusterCount:Cluster.addressCount
+					}
+				}
+			}
+		}
+	}`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	if err != nil {
+		return
+	}
+	var r struct {
+		DestinationCount []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"c,omitempty"`
+		Transactions []struct {
+			UID             string `json:"uid,omitempty"`
+			TransactionHash string `json:"txhash,omitempty"`
+			Clusters        []struct {
+				UID          string `json:"clusterUID,omitempty"`
+				ClusterCount int    `json:"clusterCount,omitempty"`
+			} `json:"tx_outputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	clusterToDestinationTransactions := map[string][]string{}
+	uidToTx := make(map[string]db.Transaction, len(r.Transactions))
+	includedTransactions := map[string]bool{}
+	for _, tx := range r.Transactions {
+		uidToTx[tx.UID] = db.Transaction{
+			UID:  tx.UID,
+			Hash: tx.TransactionHash,
+		}
+		for _, cluster := range tx.Clusters {
+			if cluster.ClusterCount > 1000 {
+				excludedBecauseOfClusterSizeCount++
+				continue
+			}
+			clusterToDestinationTransactions[cluster.UID] = append(clusterToDestinationTransactions[cluster.UID], tx.UID)
+		}
+	}
+
+	for clusterUID, txUIDs := range clusterToDestinationTransactions {
+		if len(txUIDs) < 2 {
+			continue
+		}
+
+		destinations := make([]db.Transaction, len(txUIDs))
+		for i, txUID := range txUIDs {
+			includedTransactions[txUID] = true
+			destinations[i] = uidToTx[txUID]
+		}
+
+		transactions = append(transactions, SpenderTransaction{
+			ClusterUID:   clusterUID,
+			Destinations: destinations,
+		})
+	}
+
+	globalDestinationCount = r.DestinationCount[0].Count
+	includedDestinationCount = len(includedTransactions)
 	return
 }
 
