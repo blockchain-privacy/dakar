@@ -72,8 +72,9 @@ type ExclusionSimulationModule struct {
 }
 
 type StatsModule struct {
-	Active   bool   `yaml:"active"`
-	Filename string `yaml:"filename"`
+	Active                 bool   `yaml:"active"`
+	Filename               string `yaml:"filename"`
+	ExcludeTransactionType string `yaml:"excludeTransactionType"`
 }
 
 type ExportReverseLookupModule struct {
@@ -369,7 +370,7 @@ func main() {
 	}
 
 	if newConfig.Stats.Active {
-		doStats(ctx, dgraph, newConfig.Stats.Filename)
+		doStats(ctx, dgraph, newConfig.Stats.Filename, newConfig.Stats.ExcludeTransactionType)
 	}
 }
 

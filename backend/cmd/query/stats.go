@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func doStats(ctx context.Context, dgraph external.Database, fileName string) {
+func doStats(ctx context.Context, dgraph external.Database, fileName string, excludeTransactionType string) {
 	if fileName == "" {
 		warn(serror.FromStr("file name is empty"))
 		return
@@ -53,7 +53,7 @@ func doStats(ctx context.Context, dgraph external.Database, fileName string) {
 			stop = true
 		}
 
-		counts, err := db.GetTransactionOutputCounts(ctx, dgraph, i, to)
+		counts, err := db.GetTransactionOutputCounts(ctx, dgraph, i, to, excludeTransactionType)
 		if err != nil {
 			warn(err)
 			return
