@@ -731,40 +731,42 @@ func GetOutputs(ctx context.Context, c external.Database,
 	return
 }
 
-// GetTransactionCount returns the number of transactions which have at least the specified number of inputs and ouputs
-func GetTransactionCount(ctx context.Context, c external.Database,
-	fromBlockID int64, toBlockID int64, minInputCount int) (int, error) {
-	const query = `query Q($id1:int,$id2:int,$count:int){
-					var(func: between(id,$id1, $id2)){
-						t as transactions@filter(ge(count(tx_inputs),$count) and ge(count(tx_outputs),$count))
-					}
+type OutputCount struct {
+	Hash        string `json:"txhash,omitempty"`
+	InputCount  int    `json:"inputCount,omitempty"`
+	OutputCount int    `json:"outputCount,omitempty"`
+}
+
+// GetTransactionOutputCounts returns every transaction in the specified block range with its input and output counts
+func GetTransactionOutputCounts(ctx context.Context, c external.Database,
+	fromBlockID int64, toBlockID int64) ([]OutputCount, error) {
+	query := `query Q($id1:int,$id2:int){
+				var(func: between(id,$id1, $id2)){
+					t as transactions
+				}
+
+				q(func:uid(t)){
+					txhash
+					inputCount:count(tx_inputs)
+					outputCount:count(tx_outputs)
 					
-					q(func: uid(t)){
-						count(uid)
-					}
-				}`
+			  	}
+			  }`
 
 	resp, err := QueryVarWithRetry(ctx, c, query,
-		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
-			"$id2": strconv.FormatInt(toBlockID, 10), "$count": strconv.Itoa(minInputCount)})
+		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10), "$id2": strconv.FormatInt(toBlockID, 10)})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// json struct
 	var r struct {
-		TransactionCount []struct {
-			Count int `json:"count"`
-		} `json:"q,omitempty"`
+		Query []OutputCount `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return 0, serror.New(err)
+		return nil, serror.New(err)
 	}
 
-	if len(r.TransactionCount) == 0 {
-		return 0, serror.New(errInvalidResult)
-	}
-
-	return r.TransactionCount[0].Count, nil
+	return r.Query, nil
 }
