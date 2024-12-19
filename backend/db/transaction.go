@@ -741,7 +741,6 @@ type OutputCount struct {
 // If excludeTransactionType is not empty, transactions matching the given type will excluded.
 func GetTransactionOutputCounts(ctx context.Context, c external.Database,
 	fromBlockID int64, toBlockID int64, excludeTransactionType string) ([]OutputCount, error) {
-
 	var filter string
 	if excludeTransactionType != "" {
 		filter = "@filter(not eq(Transaction.type,\"" + excludeTransactionType + "\"))"
