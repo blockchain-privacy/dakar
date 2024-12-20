@@ -66,7 +66,6 @@ type ModulesConfig struct {
 }
 
 type Config struct {
-	Logfile string `yaml:"logfile"`
 	// BlockchainMode controls various config parameters (see config.go).
 	// Allowed values: "Dash" and "Bitcoin"
 	BlockchainMode string         `yaml:"blockchainMode"`
@@ -76,7 +75,6 @@ type Config struct {
 }
 
 var defaultConfig = Config{
-	Logfile:        "dakar.log",
 	BlockchainMode: "",
 	RPC: RPCConfig{
 		Host:     "0.0.0.0:9998",
