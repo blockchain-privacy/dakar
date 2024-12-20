@@ -234,7 +234,7 @@ export function isFunction(functionToCheck) {
 
 // Appends an 's' at the end of subject if count is higher than one
 export function plural(subject, count) {
-	return count > 1 ? `${subject}s` : subject;
+	return count === 0 || count > 1 ? `${subject}s` : subject;
 }
 
 // Returns a mapping between transaction types and their colors.
