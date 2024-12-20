@@ -7,8 +7,11 @@
       <v-icon class="me-2">
         {{ icon }}
       </v-icon>
+      <template v-if="slots.title">
+        <slot name="title" />
+      </template>
       <router-link
-        v-if="to"
+        v-else-if="to"
         class="shorten"
         style="color: inherit;"
         :to="to"
@@ -37,12 +40,16 @@
 
 <script setup>
 
+import {useSlots} from 'vue';
+
 defineProps({
-	title: {type: String, required: true},
+	title: {type: String, required: false, default: ''},
 	icon: {type: String, required: true},
 	to: {type: Object, required: false, default: null},
 	oneLine: {type: Boolean, required: false},
 });
+
+const slots = useSlots();
 
 </script>
 
