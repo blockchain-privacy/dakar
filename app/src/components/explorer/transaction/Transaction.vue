@@ -5,7 +5,6 @@
       class="ma-2"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
-      :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}:null"
     >
       <privacy-chip
         v-if="tx.txtype"
@@ -17,6 +16,20 @@
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
+      <template
+        v-if="showTitleLink"
+        #title
+      >
+        <!-- use slot so link does not span the word 'Transaction' and the actual transaction hash -->
+        Transaction
+        <router-link
+          class="shorten ms-1"
+          style="color: inherit;"
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}"
+        >
+          {{ tx.txhash }}
+        </router-link>
+      </template>
     </icon-title>
     <v-card-text>
       <v-expand-transition>
