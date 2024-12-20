@@ -168,11 +168,32 @@
           />
         </div>
       </v-alert>
-      <v-row v-if="!isTabMode">
-        <v-col v-if="tx.inputs && allInputs.length > 0">
-          <p class="text-center">
-            {{ `${tx.inputs.length} ${plural('Input',tx.inputs.length)}` }}
-          </p>
+      <v-tabs
+        v-model="tabs"
+        grow
+        :disabled="!isTabMode"
+        :hide-slider="!isTabMode"
+        mandatory
+      >
+        <v-tab
+          :disabled="!allInputs?.length"
+          :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
+          value="inputs"
+        />
+        <v-tab
+          :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
+          value="outputs"
+        />
+      </v-tabs>
+      <component
+        :is="outputFrameComponent"
+        v-model="tabs"
+      >
+        <component
+          :is="outputFrameComponentColumn"
+          v-if="tx.inputs && allInputs.length > 0"
+          value="inputs"
+        >
           <v-infinite-scroll
             margin="100"
             @load="showMoreInputs"
@@ -204,16 +225,16 @@
               <p style="height: 3px" />
             </template>
           </v-infinite-scroll>
-        </v-col>
+        </component>
         <!-- empty col if no inputs exist -->
         <v-col
           v-else
           class="emptyCol"
         />
-        <v-col v-if="tx.outputs && allOutputs.length > 0">
-          <p class="text-center">
-            {{ `${tx.outputs.length} ${plural('Output',tx.outputs.length)}` }}
-          </p>
+        <component
+          :is="outputFrameComponentColumn"
+          value="outputs"
+        >
           <v-infinite-scroll
             margin="100"
             @load="showMoreOutputs"
@@ -245,97 +266,8 @@
               <p style="height: 3px" />
             </template>
           </v-infinite-scroll>
-        </v-col>
-        <!-- empty col if no outputs exist -->
-        <v-col
-          v-else
-          class="emptyCol"
-        />
-      </v-row>
-      <template v-else>
-        <v-tabs
-          v-model="tabs"
-          grow
-        >
-          <v-tab
-            :disabled="!allInputs?.length"
-            :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
-            value="inputs"
-          />
-          <v-tab
-            :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
-            value="outputs"
-          />
-        </v-tabs>
-        <v-tabs-window v-model="tabs">
-          <v-tabs-window-item value="inputs">
-            <v-infinite-scroll
-              margin="100"
-              @load="showMoreInputs"
-            >
-              <template
-                v-for="(i,y) in displayedInputs"
-                :key="i.addresshash + i.inputindex"
-              >
-                <output-item
-                  is-input
-                  :amount="i.amount"
-                  :address-hash="i.addresshash"
-                  :tx-hash="i.txhash"
-                  :sig-asm="i.sigasm"
-                  :key-asm="i.keyasm"
-                  :output-index="i.outputindex"
-                  :input-index="i.inputindex"
-                  :timestamp="i.ts"
-                  :transaction-type="i.txtype"
-                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
-                />
-                <v-divider
-                  v-if="y+1 < displayedInputs.length"
-                  :thickness="2"
-                />
-              </template>
-              <template #empty>
-                <!-- needed so no scrollbars appear -->
-                <p style="height: 3px" />
-              </template>
-            </v-infinite-scroll>
-          </v-tabs-window-item>
-          <v-tabs-window-item value="outputs">
-            <v-infinite-scroll
-              margin="100"
-              @load="showMoreOutputs"
-            >
-              <template
-                v-for="(i,y) in displayedOutputs"
-                :key="i.addresshash + i.outputindex"
-              >
-                <output-item
-                  :is-input="false"
-                  :amount="i.amount"
-                  :address-hash="i.addresshash"
-                  :tx-hash="i.txhash"
-                  :sig-asm="i.sigasm"
-                  :key-asm="i.keyasm"
-                  :output-index="i.outputindex"
-                  :input-index="i.inputindex"
-                  :timestamp="i.ts"
-                  :transaction-type="i.txtype"
-                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
-                />
-                <v-divider
-                  v-if="y+1<displayedOutputs.length"
-                  :thickness="2"
-                />
-              </template>
-              <template #empty>
-                <!-- needed so no scrollbars appear -->
-                <p style="height: 3px" />
-              </template>
-            </v-infinite-scroll>
-          </v-tabs-window-item>
-        </v-tabs-window>
-      </template>
+        </component>
+      </component>
     </v-card-text>
   </v-card>
 </template>
@@ -372,6 +304,9 @@ import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 import {useExplorerStore} from '@/pinia/explorer.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import {
+	VRow, VCol, VTabsWindowItem, VTabsWindow,
+} from 'vuetify/components';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -404,7 +339,7 @@ const showMaxOutputs = ref(3);
 const outputContainerRef = useTemplateRef('outputContainer');
 
 const isTabMode = ref(false);
-const tabs = ref(null);
+const tabs = ref('inputs');
 let resizeObserver;
 // Computed
 const filteredInputs = computed(() => props.tx.inputs
@@ -425,6 +360,8 @@ const hasUncommonWasabi2Denomination = computed(() => isBTC.value
 	&& (props.tx.inputs?.some(i => isUncommonWasabi2Denomination(i.amount))
 	|| props.tx.outputs?.some(o => isUncommonWasabi2Denomination(o.amount))));
 
+const outputFrameComponent = computed(() => isTabMode.value ? VTabsWindow : VRow);
+const outputFrameComponentColumn = computed(() => isTabMode.value ? VTabsWindowItem : VCol);
 // Hooks
 onUpdated(() => {
 	init();
@@ -433,7 +370,19 @@ onUpdated(() => {
 onMounted(() => {
 	resizeObserver = new ResizeObserver(entries => {
 		const {width} = entries[0].contentRect;
-		isTabMode.value = width < 1000;
+
+		if (width < 1000) {
+			isTabMode.value = true;
+
+			if (allInputs.value?.length > 0) {
+				tabs.value = 'inputs';
+			} else {
+				tabs.value = 'outputs';
+			}
+		} else {
+			isTabMode.value = false;
+			tabs.value = null;
+		}
 	});
 
 	resizeObserver.observe(outputContainerRef.value.$el);
@@ -552,6 +501,10 @@ function showMoreOutputs({done}) {
 :deep(.hide) {
   display: none;
   height: 0;
+}
+
+:deep(.v-tab) {
+  opacity: 1 !important;
 }
 
 </style>
