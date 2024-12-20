@@ -22,7 +22,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/config"
 	"github.com/qrest/gomisc/serror"
-	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -43,15 +42,8 @@ const executableName = "crawler"
 
 var thisLogger *slog.Logger
 
-func initAllLoggers(fileHandle *os.File) {
-	var outputWriter io.Writer
-	if fileHandle != nil {
-		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
-	} else {
-		outputWriter = os.Stdout
-	}
-
-	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
+func initAllLoggers() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
 	thisLogger = slog.With(slog.String("module", "crawler"))
@@ -226,22 +218,9 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	////// SETUP //////
+	////// LOGGING //////
 
-	// setup Logging
-	f, err := config.GetLogfile(newConfig.Logfile)
-	if err == nil {
-		defer func() {
-			if err = f.Close(); err != nil {
-				fmt.Println(err)
-			}
-		}()
-	} else if len(newConfig.Logfile) > 0 {
-		fmt.Println("Could not create logfile", newConfig.Logfile)
-		return
-	}
-
-	initAllLoggers(f)
+	initAllLoggers()
 
 	////// CONNECT TO DATABASE //////
 
