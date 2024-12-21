@@ -1,4 +1,3 @@
-logfile: ""
 port: 4567
 path: "/data"
 cacheSize: 256
