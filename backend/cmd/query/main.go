@@ -1,16 +1,12 @@
 package main
 
 import (
-	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/status"
 	"backend/external"
-	"backend/processor"
-	"backend/server"
-	"backend/workspace"
 	"context"
 	"errors"
 	"flag"
@@ -22,27 +18,12 @@ import (
 	"time"
 )
 
-var thisLogger *slog.Logger
-
-func initAllLoggers() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
-	thisLogger = slog.With(slog.String("module", "query"))
-
-	analytics.InitLogger()
-	db.InitLogger()
-	processor.InitLogger()
-	server.InitLogger()
-	workspace.InitLogger()
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "main"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 type UniqueAddressesModule struct {
@@ -233,7 +214,7 @@ func main() {
 		return
 	}
 
-	initAllLoggers()
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
 	// create dgraph client
 	dgraph, c, err := external.CreateClient(newConfig.DBHost)

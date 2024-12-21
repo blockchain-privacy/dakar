@@ -307,7 +307,6 @@ func (m *FlatMultiInput) Props() blockiterator.Properties {
 	return blockiterator.Properties{
 		Name:                        "flat multi-input clustering",
 		Context:                     m.ctx,
-		Logger:                      clusteringLogger,
 		CurrentBlock:                m.state.ID,
 		ProcessedBlockCount:         m.blocksProcessed,
 		SupportsMultiBlockIteration: true,

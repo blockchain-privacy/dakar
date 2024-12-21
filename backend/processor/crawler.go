@@ -62,7 +62,6 @@ func (c *Crawler) Props() blockiterator.Properties {
 	return blockiterator.Properties{
 		Name:                        "processor",
 		Context:                     c.ctx,
-		Logger:                      thisLogger,
 		CurrentBlock:                c.state.id,
 		ProcessedBlockCount:         1,
 		SupportsMultiBlockIteration: false,

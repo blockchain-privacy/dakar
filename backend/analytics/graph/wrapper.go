@@ -20,15 +20,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var graphLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	graphLogger = slog.With(slog.String("module", "graph"))
-}
-
 func info(msg string, v ...any) {
-	graphLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "graph"}, v...)...)
 }
 
 // Wrapper is wrapper for in-memory graphs
@@ -211,7 +204,6 @@ func (w *Wrapper) Props() blockiterator.Properties {
 	return blockiterator.Properties{
 		Name:                        "graph wrapper",
 		Context:                     w.context,
-		Logger:                      graphLogger,
 		CurrentBlock:                w.state.ID,
 		ProcessedBlockCount:         1,
 		SupportsMultiBlockIteration: false,

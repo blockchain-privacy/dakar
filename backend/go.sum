@@ -114,6 +114,8 @@ github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0leargg
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 github.com/qrest/gomisc v0.0.17 h1:ccXIZP4BHr09EwqCN71kcsUMptxP+bcG7/8nFM1dK0Y=
 github.com/qrest/gomisc v0.0.17/go.mod h1:I4ThjPto1j50xZQqMzHl6iigbpoDS/lj/Yyz/LXRVrk=
+github.com/qrest/gomisc v0.0.18 h1:eqlU3CrXGKTFnpspeFPtKt/GWq8YJCgMGkvS8f6UoOg=
+github.com/qrest/gomisc v0.0.18/go.mod h1:I4ThjPto1j50xZQqMzHl6iigbpoDS/lj/Yyz/LXRVrk=
 github.com/rogpeppe/go-internal v1.11.0 h1:cWPaGQEPrBb5/AsnsZesgZZ9yb1OQ+GOISoDNXVBh4M=
 github.com/rogpeppe/go-internal v1.11.0/go.mod h1:ddIwULY96R17DhadqLgMfk9H9tvdUzkipdSkR5nkCZA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

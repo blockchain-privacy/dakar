@@ -19,15 +19,8 @@ var availableUpgrades = map[int]UpgradePackage{
 	12: {upgrades: []schemaUpgrade{RefactorBlockchainModeStrings}},
 }
 
-var thisLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "database upgrade"))
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "database upgrade"}, v...)...)
 }
 
 func getFunctionName(i interface{}) string {

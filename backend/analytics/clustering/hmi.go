@@ -286,7 +286,6 @@ func (m *HierarchicalMultiInput) Props() blockiterator.Properties {
 	return blockiterator.Properties{
 		Name:                        "hierarchical multi-input clustering",
 		Context:                     m.ctx,
-		Logger:                      clusteringLogger,
 		CurrentBlock:                m.state.ID,
 		ProcessedBlockCount:         1,
 		SupportsMultiBlockIteration: false,

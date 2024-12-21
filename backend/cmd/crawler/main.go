@@ -1,7 +1,6 @@
 package main
 
 import (
-	"backend/analytics"
 	"backend/analytics/classifier"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
@@ -40,29 +39,12 @@ const versionString = "v1.0.0"
 // name of the executable
 const executableName = "crawler"
 
-var thisLogger *slog.Logger
-
-func initAllLoggers() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
-	thisLogger = slog.With(slog.String("module", "crawler"))
-
-	analytics.InitLogger()
-	db.InitLogger()
-	processor.InitLogger()
-	server.InitLogger()
-	userserver.InitLogger()
-	workspace.InitLogger()
-	upgrades.InitLogger()
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "main"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -220,7 +202,7 @@ func main() {
 
 	////// LOGGING //////
 
-	initAllLoggers()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
 	////// CONNECT TO DATABASE //////
 

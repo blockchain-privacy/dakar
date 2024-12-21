@@ -26,8 +26,6 @@ const (
 	retrySleepDuration = time.Second * 5
 )
 
-var thisLogger *slog.Logger
-
 var (
 	// ErrBlockNotFound is returned if no block was found
 	ErrBlockNotFound = errors.New("no block found")
@@ -47,17 +45,12 @@ type UIDNode struct {
 	UID string `json:"uid,omitempty"`
 }
 
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "database"))
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "database"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 // GetLongTaskContext returns a context with a timeout of 2 hours
