@@ -17,6 +17,8 @@ import (
 
 const MaxWorkspaceNameLength = 50
 
+var errNodeNotFound = errors.New("node not found")
+
 // GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.
 // This becomes necessary if connections become outdated, when new blocks are added to the blockchain.
 func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database,
@@ -63,6 +65,10 @@ func GetAndRefreshWorkspace(ctx context.Context, dgraph external.Database,
 // UpdateNodeCoordinates replaces the coordinates of the given workspace with the coordinates from state
 func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, state []workspace.Node) error {
+	if len(state) == 0 {
+		return serror.FromStr("empty state")
+	}
+
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -80,11 +86,21 @@ func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, worksp
 		frontendState[n.UID] = n
 	}
 
+	modifiedAtLeasteOne := false
+
+	// don't blindly set the new state from user input,
+	// instead update the coordinates of nodes stored already in the db
 	for i, backendNode := range w.Nodes {
 		if frontendNode, ok := frontendState[backendNode.UID]; ok {
 			w.Nodes[i].X = frontendNode.X
 			w.Nodes[i].Y = frontendNode.Y
+			modifiedAtLeasteOne = true
 		}
+	}
+
+	if !modifiedAtLeasteOne {
+		// state was not updated, so nothing to do
+		return nil
 	}
 
 	return encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
@@ -171,8 +187,7 @@ func DeleteNodes(ctx context.Context, dgraph external.Database, workspaceMutex *
 		}
 
 		if !found {
-			return nil, serror.FromFormat(
-				"node does not exist in workspace. workspace: %s, node: %s", workspaceUID, clientNode)
+			return nil, serror.AddContext(serror.New(errNodeNotFound), "workspace", workspaceUID, "node", clientNode)
 		}
 	}
 

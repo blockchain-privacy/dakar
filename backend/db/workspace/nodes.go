@@ -720,8 +720,8 @@ func GetConnectionClusterToSelector(ctx context.Context, c external.Database, cl
 
 // SearchForNode returns the uid which matches to the given query. In case the query is an address
 // which is connected to clusters, they are returned instead.
-func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, userUID string) (node *Node, err error) {
-	if nodeQuery == "" || userUID == "" {
+func SearchForNode(ctx context.Context, c external.Database, nodeQuery string) (node *Node, err error) {
+	if nodeQuery == "" {
 		err = serror.New(db.ErrEmptyRequestArgument)
 		return
 	}
@@ -740,7 +740,7 @@ func SearchForNode(ctx context.Context, c external.Database, nodeQuery string, u
 						}
 					}`
 
-	resp, err := c.Query(ctx, query, map[string]string{"$query": nodeQuery, "$user": userUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$query": nodeQuery})
 	if err != nil {
 		err = serror.New(err)
 		return

@@ -9,10 +9,10 @@ import (
 	"testing"
 )
 
-var dbHandle = &testhelper.TestDB{IsDirty: true}
+var dbHandle = &testhelper.TestDB{}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB)
+	testhelper.RunDgraphTests(m, dbHandle)
 }
 
 func TestAddWorkspace(t *testing.T) {
@@ -43,6 +43,10 @@ func TestAddWorkspace(t *testing.T) {
 			name:    "test",
 			userUID: userUID,
 			wantErr: false,
+		},
+		{
+			name:    "TTTT TTTT TTTT TTTT TTTT TTTT TTTT TTTT TTTT TTTT T",
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

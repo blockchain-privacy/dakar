@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-var dbHandle = &testhelper.TestDB{IsDirty: true}
+var dbHandle = &testhelper.TestDB{}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB)
+	testhelper.RunDgraphTests(m, dbHandle)
 }
 
 func TestCreateNewUser(t *testing.T) {
