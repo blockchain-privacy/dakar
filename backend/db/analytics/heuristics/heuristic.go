@@ -58,10 +58,11 @@ func DeleteAllHeuristics(ctx context.Context, c external.Database) error {
 	return nil
 }
 
-// GetHeuristicTransactions returns the connected transactions of heuristic
-func GetHeuristicTransactions(ctx context.Context, c external.Database,
-	heuristicUID string) (results []HeuristicTransaction, attributionMap map[ClusterUID][]string, err error) {
-	const query = `query Q($uid:string) {
+// GetHeuristicTransactions returns the connected transactions of heuristic.
+// Only outputs connected to transactions with the given transaction types are included.
+func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristicUID string,
+	allowedTransactionTypes []string) (results []HeuristicTransaction, attributionMap map[ClusterUID][]string, err error) {
+	query := `query Q($uid:string) {
 				var (func: uid($uid)){ x as Selector.results }
 				
 				q(func: uid(x)){
@@ -70,6 +71,7 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database,
 						uid
 						tx_outputs{
 							amount
+							~tx_inputs@filter(eq(Transaction.type,"` + db.CreateCommaList(allowedTransactionTypes) + `")){uid}
 						}
 					}
 					HeuristicCluster.attributions{
@@ -478,13 +480,16 @@ func GetTransactionsWithInputAmount(ctx context.Context, c external.Database,
 	return
 }
 
-// GetInputAmounts gets the amounts of the inputs
-func GetInputAmounts(ctx context.Context, c external.Database, tx string) (transaction HeuristicTransaction, err error) {
+// GetInputAmounts gets the amounts of the inputs.
+// Only inputs produced by transactions with the given transaction types are included.
+func GetInputAmounts(ctx context.Context, c external.Database, tx string,
+	allowedTransactionTypes []string) (transaction HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				q(func: eq(txhash,$txhash)){
 					uid
-					tx_inputs{
+					tx_inputs@cascade{
 						amount
+						~tx_outputs@filter(eq(Transaction.type,"` + db.CreateCommaList(allowedTransactionTypes) + `")){uid}
 					}
 				}
 			  }`

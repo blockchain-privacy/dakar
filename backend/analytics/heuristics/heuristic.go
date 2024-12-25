@@ -48,6 +48,7 @@ const (
 	// Wasabi 2.0
 	heuristicTypeWasabi2ReverseLookupByTime  = "wasabi2_reverse_lookup_by_time"
 	heuristicTypeWasabi2ReverseLookupByDepth = "wasabi2_reverse_lookup_by_depth"
+	heuristicTypeWasabi2ReverseAmount        = "wasabi2_reverse_amount"
 )
 
 func init() {
@@ -65,6 +66,7 @@ func init() {
 		// Wasabi 2.0
 		newWasabi2ReverseLookupByTimeHeuristic,
 		newWasabi2ReverseLookupByDepthHeuristic,
+		newWasabi2ReverseAmountHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {

@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -76,7 +77,8 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID)
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+		constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +97,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}
