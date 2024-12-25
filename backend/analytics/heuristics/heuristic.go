@@ -37,6 +37,7 @@ const (
 )
 
 const (
+	// Dash
 	heuristicTypeReverseLookup    = "reverse_lookup"
 	heuristicTypeOneSource        = "one_source"
 	heuristicTypeReverseAmount    = "reverse_amount"
@@ -44,12 +45,16 @@ const (
 	heuristicTypeDenominationType = "denomination_type"
 	heuristicTypeForwardAmount    = "forward_amount"
 	heuristicTypeForwardLookup    = "forward_lookup"
+	// Wasabi 2.0
+	heuristicTypeWasabi2ReverseLookupByTime  = "wasabi2_reverse_lookup_by_time"
+	heuristicTypeWasabi2ReverseLookupByDepth = "wasabi2_reverse_lookup_by_depth"
 )
 
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
 	var validHeuristicTypes = []heuristicConstructor{
+		// Dash
 		newOneSourceHeuristic,
 		newReverseAmountHeuristic,
 		newPerfectMatchHeuristic,
@@ -57,6 +62,9 @@ func init() {
 		newReverseLookupHeuristic,
 		newForwardAmountHeuristic,
 		newForwardLookupHeuristic,
+		// Wasabi 2.0
+		newWasabi2ReverseLookupByTimeHeuristic,
+		newWasabi2ReverseLookupByDepthHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
@@ -100,9 +108,6 @@ type heuristic interface {
 		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
-	// getParameterString should return the parameter in string (e.g. '10h' for a 10 hour duration).
-	// This string is saved in the database.
-	getParameterString() string
 	// setConfig applies the provided configuration values
 	setConfig(heuristics.Options) error
 	// getConfig returns the configuration of the heuristic

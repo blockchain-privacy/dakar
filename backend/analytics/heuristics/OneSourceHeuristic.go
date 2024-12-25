@@ -16,10 +16,9 @@ import (
 
 // oneSourceHeuristic - see exec for description
 type oneSourceHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	lookBackTime         time.Duration
-	c                    heuristics.Options
+	heuristicType string
+	lookBackTime  time.Duration
+	c             heuristics.Options
 }
 
 func newOneSourceHeuristic() heuristic {
@@ -28,10 +27,6 @@ func newOneSourceHeuristic() heuristic {
 
 func (h *oneSourceHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *oneSourceHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
@@ -49,7 +44,6 @@ func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
 	}
 
 	h.lookBackTime = time.Duration(duration) * time.Hour
-	h.parameterDescription = strconv.FormatInt(duration, 10)
 	h.c = c
 
 	return nil
@@ -65,10 +59,11 @@ func (h *oneSourceHeuristic) String() string {
 
 func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:       "One Source",
-		Type:        h.heuristicType,
-		Category:    heuristicCategoryReverse,
-		Description: "Filters by time, direct input transaction amount filter and omni sources",
+		Title:    "One source",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
+		Description: "Destination transactions spend outputs of their connected input mixing transactions. Each input mixing transaction is connected to a mixing sub graph." +
+			"This heuristic excludes all clusters which can't fund every mixing sub graph (due to lack of funds or du to having not connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",

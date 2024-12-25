@@ -17,10 +17,9 @@ import (
 
 // forwardAmountHeuristic - see exec for description
 type forwardAmountHeuristic struct {
-	c                    heuristics.Options
-	heuristicType        string
-	parameterDescription string
-	lookForwardTime      time.Duration
+	c               heuristics.Options
+	heuristicType   string
+	lookForwardTime time.Duration
 }
 
 func newForwardAmountHeuristic() heuristic {
@@ -29,10 +28,6 @@ func newForwardAmountHeuristic() heuristic {
 
 func (h *forwardAmountHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *forwardAmountHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
@@ -50,7 +45,6 @@ func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
 	}
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
-	h.parameterDescription = strconv.FormatInt(hoursToLookForward, 10)
 	h.c = c
 
 	return nil
@@ -66,7 +60,7 @@ func (h *forwardAmountHeuristic) String() string {
 
 func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:       "Forward Amount",
+		Title:       "Forward amount",
 		Type:        h.heuristicType,
 		Category:    heuristicCategoryForward,
 		Description: "Returns all destination transactions which can be fully funded by the origins of their source.",

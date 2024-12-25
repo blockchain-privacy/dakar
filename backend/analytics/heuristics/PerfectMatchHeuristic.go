@@ -13,9 +13,8 @@ import (
 
 // perfectMatchHeuristic - see exec for description
 type perfectMatchHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
+	heuristicType string
+	c             heuristics.Options
 }
 
 func newPerfectMatchHeuristic() heuristic {
@@ -24,10 +23,6 @@ func newPerfectMatchHeuristic() heuristic {
 
 func (h *perfectMatchHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *perfectMatchHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *perfectMatchHeuristic) setConfig(c heuristics.Options) error {
@@ -50,7 +45,7 @@ func (h *perfectMatchHeuristic) getConfig() heuristics.Options {
 
 func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Perfect Match",
+		Title:    "Perfect match",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "The perfect match heuristic filters all " +

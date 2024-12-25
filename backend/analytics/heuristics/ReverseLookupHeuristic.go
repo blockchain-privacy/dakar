@@ -17,10 +17,9 @@ import (
 
 // reverseLookupHeuristic - see exec for description
 type reverseLookupHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
-	lookBackTime         time.Duration
+	heuristicType string
+	c             heuristics.Options
+	lookBackTime  time.Duration
 }
 
 func newReverseLookupHeuristic() heuristic {
@@ -29,10 +28,6 @@ func newReverseLookupHeuristic() heuristic {
 
 func (h *reverseLookupHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *reverseLookupHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *reverseLookupHeuristic) setConfig(c heuristics.Options) error {
@@ -50,7 +45,6 @@ func (h *reverseLookupHeuristic) setConfig(c heuristics.Options) error {
 	}
 
 	h.lookBackTime = time.Duration(duration) * time.Hour
-	h.parameterDescription = strconv.FormatInt(duration, 10)
 	h.c = c
 
 	return nil
@@ -66,12 +60,10 @@ func (h *reverseLookupHeuristic) String() string {
 
 func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Reverse Lookup",
-		Type:     h.heuristicType,
-		Category: heuristicCategoryReverse,
-		Description: "Performs a reverse lookup for the given duration and returns " +
-			"all found origins. If this heuristic has a parent heuristic, only origins " +
-			"which also occur in the parent heuristic will be returned. ",
+		Title:       "Reverse lookup",
+		Type:        h.heuristicType,
+		Category:    heuristicCategoryReverse,
+		Description: "Traverses the transaction graph backwards for the given duration and returns all found origins.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",
@@ -85,8 +77,17 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	if h.lookBackTime == 0 {
+	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+}
+
+func reverseLookupByTime(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentHeuristicUID string, lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
+	}
+
+	if lookBackTime != 0 && depth != 0 {
+		return nil, serror.FromStr("both depth and look back time are set")
 	}
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
@@ -98,7 +99,7 @@ func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	inputTransactions, err := getInputTransactions(ctx, dgraph, h.c.TransactionHash)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +110,8 @@ func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Datab
 	}
 
 	var exclusions []string
-	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
+	if options.ExcludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +122,7 @@ func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Datab
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, 0, exclusions, h.c)
+			lookBackTime, depth, exclusions, options)
 		if err != nil {
 			return nil, err
 		}

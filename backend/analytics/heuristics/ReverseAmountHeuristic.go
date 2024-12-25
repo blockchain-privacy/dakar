@@ -13,9 +13,8 @@ import (
 
 // reverseAmountHeuristic - see exec for description
 type reverseAmountHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
+	heuristicType string
+	c             heuristics.Options
 }
 
 func newReverseAmountHeuristic() heuristic {
@@ -24,10 +23,6 @@ func newReverseAmountHeuristic() heuristic {
 
 func (h *reverseAmountHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *reverseAmountHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *reverseAmountHeuristic) setConfig(c heuristics.Options) error {
@@ -54,7 +49,7 @@ func (h *reverseAmountHeuristic) String() string {
 
 func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Reverse Amount",
+		Title:    "Reverse amount",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "Returns all origins of sources, which " +

@@ -13,9 +13,8 @@ import (
 
 // denominationTypeHeuristic - see exec for description
 type denominationTypeHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
+	heuristicType string
+	c             heuristics.Options
 }
 
 func newDenominationTypeHeuristic() heuristic {
@@ -24,10 +23,6 @@ func newDenominationTypeHeuristic() heuristic {
 
 func (h *denominationTypeHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *denominationTypeHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *denominationTypeHeuristic) setConfig(c heuristics.Options) error {
@@ -54,11 +49,10 @@ func (h *denominationTypeHeuristic) String() string {
 
 func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Denomination Type",
+		Title:    "Denomination type",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "The denomination type heuristic filters " +
-			"all origins of clusters, which have denominations of " +
+		Description: "Filters all origins of clusters, which have denominations of " +
 			"types which do not occur in the denominations of the " +
 			"destination transaction. For example a destination " +
 			"transaction spends 5 × 10.0001 and 10 × 1.00001. Now " +
