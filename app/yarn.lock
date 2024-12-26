@@ -365,17 +365,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@neondark/kratosadmin@npm:^0.0.23":
-  version: 0.0.23
-  resolution: "@neondark/kratosadmin@npm:0.0.23::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F59526555%2Fpackages%2Fnpm%2F%40neondark%2Fkratosadmin%2F-%2F%40neondark%2Fkratosadmin-0.0.23.tgz"
-  checksum: 10c0/7cb345f8437933d246edb38fbcdcc29785b9f8851d000785900a05edc53d5aae4fce3e90b34d2b2cf3726c1cc134c0ba21598c044aea31b56dce7ecf3be4c45e
+"@neondark/kratosadmin@npm:^0.0.26":
+  version: 0.0.26
+  resolution: "@neondark/kratosadmin@npm:0.0.26::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F59526555%2Fpackages%2Fnpm%2F%40neondark%2Fkratosadmin%2F-%2F%40neondark%2Fkratosadmin-0.0.26.tgz"
+  checksum: 10c0/139607f0671f94bb7b4a690db7f37c39ef1c8175458a15abb00011b7937bb0b600804f5de791de3bb173d136fd1bd5796246241379815b36248a5917acc237b8
   languageName: node
   linkType: hard
 
-"@neondark/wikiapi@npm:^1.2.44":
-  version: 1.2.44
-  resolution: "@neondark/wikiapi@npm:1.2.44::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F39181089%2Fpackages%2Fnpm%2F%40neondark%2Fwikiapi%2F-%2F%40neondark%2Fwikiapi-1.2.44.tgz"
-  checksum: 10c0/57d8eb8828e4a3fdc2d755a7052afbdb6414e3817032e4c2f542d24cab2ab5595111847d61cd39739618a2b5fe677fe0850625ae076a1fcb8601c92fd986c751
+"@neondark/wikiapi@npm:^1.2.47":
+  version: 1.2.47
+  resolution: "@neondark/wikiapi@npm:1.2.47::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F39181089%2Fpackages%2Fnpm%2F%40neondark%2Fwikiapi%2F-%2F%40neondark%2Fwikiapi-1.2.47.tgz"
+  checksum: 10c0/76bafeaca3a04b8fc7280a8906fe2ed718f3f030b0725449b5b24796fcf35f13f138576ad15cd6d1d9cbf1e9ccac70bffc133b099cec79e06a78b62823d22556
   languageName: node
   linkType: hard
 
@@ -428,10 +428,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.15.15":
-  version: 1.15.15
-  resolution: "@ory/client-fetch@npm:1.15.15"
-  checksum: 10c0/1ddae0c130670bcd2a5be56942318cfa34f2704528c14008509ef7acdec15e0e02d18a18f22f96a8eb9f7a08434dae0d4610d654dd99d74a4471e805f9b8c29f
+"@ory/client-fetch@npm:^1.15.16":
+  version: 1.15.16
+  resolution: "@ory/client-fetch@npm:1.15.16"
+  checksum: 10c0/4ac845a2b555de5860f743fac15cfd52998aebdfafd1f38b5b31e6a79a87211a150322905a5b308c64cefb5c3a055451b0c8b59d4a4e931bdd9643517ccb18f0
   languageName: node
   linkType: hard
 
@@ -1509,9 +1509,9 @@ __metadata:
     "@blockchain/dakar": "npm:^1.1.53"
     "@fontsource/roboto": "npm:^5.1.0"
     "@mdi/js": "npm:^7.4.47"
-    "@neondark/kratosadmin": "npm:^0.0.23"
-    "@neondark/wikiapi": "npm:^1.2.44"
-    "@ory/client-fetch": "npm:^1.15.15"
+    "@neondark/kratosadmin": "npm:^0.0.26"
+    "@neondark/wikiapi": "npm:^1.2.47"
+    "@ory/client-fetch": "npm:^1.15.16"
     "@vitejs/plugin-vue": "npm:^5.2.1"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1529,7 +1529,7 @@ __metadata:
     eslint-plugin-vue: "npm:^9.32.0"
     pinia: "npm:^2.3.0"
     sass: "npm:^1.83.0"
-    vite: "npm:^6.0.3"
+    vite: "npm:^6.0.5"
     vite-plugin-vuetify: "npm:^2.0.4"
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.5.13"
@@ -1664,7 +1664,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild@npm:^0.24.0":
+"esbuild@npm:0.24.0":
   version: 0.24.0
   resolution: "esbuild@npm:0.24.0"
   dependencies:
@@ -3306,11 +3306,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^6.0.3":
-  version: 6.0.3
-  resolution: "vite@npm:6.0.3"
+"vite@npm:^6.0.5":
+  version: 6.0.5
+  resolution: "vite@npm:6.0.5"
   dependencies:
-    esbuild: "npm:^0.24.0"
+    esbuild: "npm:0.24.0"
     fsevents: "npm:~2.3.3"
     postcss: "npm:^8.4.49"
     rollup: "npm:^4.23.0"
@@ -3354,7 +3354,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/764ebed14770426a638575b23a51127c630ace873999ab896b0184484d8107e7255cdf64cfb36c65c1ef1d583e44b70a1d14c0f05b89612e834a5806e3964475
+  checksum: 10c0/d6927e1795abf0bffbf9183c3c3338c7cc1060bcfbfcd951aa4464c1e5478216f26c95077a2bbd29edbaebc079c1f08a37c7daac8f07c0a6bb53e79d502c70ef
   languageName: node
   linkType: hard
 
