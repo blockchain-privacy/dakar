@@ -2,7 +2,7 @@
   <v-card :variant="embed?undefined:'text'">
     <icon-title
       v-if="showTitleBar"
-      class="ma-2"
+      class="pa-2"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
     >
