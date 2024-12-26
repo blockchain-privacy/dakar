@@ -73,23 +73,26 @@
               </v-data-table>
             </div>
             <div v-else-if="transactions !== null">
-              <v-card-text class="d-flex align-center flex-wrap py-0">
-                <div class="text-subtitle-1">
-                  Outputs which connect the two nodes are <span class="textBorder">outlined</span>.
+              <v-alert
+                color="info"
+                variant="tonal"
+                density="compact"
+                class="mb-5"
+              >
+                <div class="d-flex align-center">
+                  <div>
+                    Outputs which connect the two nodes are <span class="textBorder">outlined</span>. Only show outlined outputs?
+                  </div>
+                  <v-spacer />
+                  <v-switch
+                    v-model="showOnlyHiglightedOutputs"
+                    class="ml-2"
+                    inset
+                    density="compact"
+                    hide-details
+                  />
                 </div>
-                <v-chip-group
-                  class="ms-auto"
-                  color="primary"
-                >
-                  <v-chip
-                    rounded
-                    filter
-                    @click="showOnlyHiglightedOutputs = !showOnlyHiglightedOutputs"
-                  >
-                    Filter connected outputs
-                  </v-chip>
-                </v-chip-group>
-              </v-card-text>
+              </v-alert>
               <!-- duplicate transaction hashes can exist -> loop through all results
                (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
               <template
