@@ -62,8 +62,10 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 		Title:    "One source",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "Destination transactions spend outputs of their connected input mixing transactions. Each input mixing transaction is connected to a mixing sub graph." +
-			"This heuristic excludes all clusters which can't fund every mixing sub graph (due to lack of funds or du to having not connection to them).",
+		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
+			"Each input mixing transaction is connected to a mixing sub graph. " +
+			"This heuristic excludes all clusters which can't fund every mixing sub " +
+			"graph (due to lack of funds or du to having not connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",

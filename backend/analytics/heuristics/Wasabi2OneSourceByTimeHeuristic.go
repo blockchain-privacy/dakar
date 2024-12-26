@@ -22,7 +22,7 @@ type wasabi2OneSourceByTimeHeuristic struct {
 }
 
 func newWasabi2OneSourceByTimeHeuristic() heuristic {
-	return &wasabi2OneSourceByTimeHeuristic{heuristicType: heuristicTypeOneSource}
+	return &wasabi2OneSourceByTimeHeuristic{heuristicType: heuristicTypeWasabi2OneSourceByTime}
 }
 
 func (h *wasabi2OneSourceByTimeHeuristic) getType() string {
@@ -59,11 +59,13 @@ func (h *wasabi2OneSourceByTimeHeuristic) String() string {
 
 func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "One source",
+		Title:    "One source by time",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "Destination transactions spend outputs of their connected input mixing transactions. Each input mixing transaction is connected to a mixing sub graph." +
-			"This heuristic excludes all clusters which can't fund every mixing sub graph (due to lack of funds or du to having not connection to them).",
+		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
+			"Each input mixing transaction is connected to a mixing sub graph. " +
+			"This heuristic excludes all clusters which can't fund every mixing sub " +
+			"graph (due to lack of funds or du to having not connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look back time in hours",
@@ -80,8 +82,17 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
 func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	if h.lookBackTime == 0 {
+	return oneSourceByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+}
+
+func oneSourceByTime(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
+	}
+
+	if lookBackTime != 0 && depth != 0 {
+		return nil, serror.FromStr("both depth and look back time are set")
 	}
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
@@ -95,7 +106,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph exter
 
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash.
-	inputTransactions, err := getInputTransactions(ctx, dgraph, h.c.TransactionHash, constants.TypeWasabi2Mixing)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeWasabi2Mixing)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +117,8 @@ func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph exter
 	}
 
 	var exclusions []string
-	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
+	if options.ExcludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +132,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph exter
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, 0, exclusions, h.c)
+			lookBackTime, depth, exclusions, options)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +164,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph exter
 		var inputTxOutputSum int64 //nolint:prealloc
 		for _, output := range t.inputTransaction.Outputs {
 			// skip if output of was not used by destination transaction
-			if output.InputTransaction != h.c.TransactionHash {
+			if output.InputTransaction != options.TransactionHash {
 				continue
 			}
 			inputTxOutputSum += output.Amount

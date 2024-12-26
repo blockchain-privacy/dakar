@@ -69,6 +69,7 @@ func init() {
 		newWasabi2ReverseLookupByTimeHeuristic,
 		newWasabi2ReverseLookupByDepthHeuristic,
 		newWasabi2OneSourceByTimeHeuristic,
+		newWasabi2OneSourceByDepthHeuristic,
 		newWasabi2ReverseAmountHeuristic,
 	}
 
