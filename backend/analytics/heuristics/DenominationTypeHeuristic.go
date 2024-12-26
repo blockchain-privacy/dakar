@@ -86,7 +86,7 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 	}
 
 	// maps an address to its origin transactions
-	sourceTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+	sourceTransactionMap := mapClusterToTransactions(results)
 
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash

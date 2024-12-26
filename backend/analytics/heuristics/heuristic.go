@@ -201,9 +201,9 @@ type clusterDenominations struct {
 	clusters map[heuristics.ClusterUID]int
 }
 
-// addTransactionToCluster adds the given transactions to its cluster
-func addTransactionToCluster(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
-	origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
+// mapClusterToTransactions maps clusters to their transactions
+func mapClusterToTransactions(origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
+	sourceTransactionMap := map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}
 	for _, o := range origins {
 		// add transaction to sourceTransactionMap
 		transactions := sourceTransactionMap[o.Cluster]

@@ -161,7 +161,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph exter
 
 		// per input transaction, map clusters to their origins and
 		// mark them for removal if they don't have enough funds for the input transaction
-		clusterTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, t.origins)
+		clusterTransactionMap := mapClusterToTransactions(t.origins)
 		for clusterUID, clusterOrigins := range clusterTransactionMap {
 			var clusterOutputAmount int64
 			for _, origin := range clusterOrigins {
@@ -190,7 +190,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph exter
 	}
 
 	// create cluster->origin map
-	clusterTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, allTimeLimitedOrigins)
+	clusterTransactionMap := mapClusterToTransactions(allTimeLimitedOrigins)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k := range clusters {
 		doesClusterOccurInAllMixingSubgraphs := true

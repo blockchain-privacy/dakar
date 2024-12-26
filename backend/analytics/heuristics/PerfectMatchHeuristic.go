@@ -83,8 +83,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 		return nil, err
 	}
 
-	// maps an address to its origin transactions
-	sourceTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+	clusterTransactionMap := mapClusterToTransactions(results)
 
 	// origins hold all origins found by the parent heuristic
 	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
@@ -107,7 +106,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k, o := range originAmounts {
 		if isEqualDenomination(inputDenominationCounts, o) {
-			for _, tx := range sourceTransactionMap[k] {
+			for _, tx := range clusterTransactionMap[k] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], db.UIDNode{UID: tx.UID})
 			}
 		}

@@ -184,8 +184,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 		delete(clusters, k)
 	}
 
-	// create cluster->origin map
-	clusterTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, allTimeLimitedOrigins)
+	clusterTransactionMap := mapClusterToTransactions(allTimeLimitedOrigins)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k := range clusters {
 		doesClusterOccurInAllMixingSubgraphs := true

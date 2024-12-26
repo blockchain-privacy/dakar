@@ -98,9 +98,7 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 
 	inputDenominationCounts := getDenominationCounts(transaction)
 	originAmounts := buildSourceAmounts(origins)
-	// maps a cluster to its origin transactions
-	clusterTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
-
+	clusterTransactionMap := mapClusterToTransactions(results)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {

@@ -100,8 +100,7 @@ func (h *wasabi2ReverseAmountHeuristic) exec(ctx context.Context, dgraph externa
 			"transaction", h.c.TransactionHash)
 	}
 
-	// maps a cluster to its origin transactions
-	clusterTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+	clusterTransactionMap := mapClusterToTransactions(results)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for _, clusterOrigins := range clusterTransactionMap {
 		var clusterOutputAmount int64
