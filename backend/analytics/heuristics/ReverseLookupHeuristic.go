@@ -99,7 +99,7 @@ func reverseLookupByTime(ctx context.Context, dgraph external.Database, g *graph
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}

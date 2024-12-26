@@ -2,7 +2,6 @@ package heuristics
 
 import (
 	"backend/cmd/cliutil"
-	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
@@ -126,11 +125,11 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 
 // GetInputTransactions returns the input mixing transactions of the given transaction.
 func GetInputTransactions(ctx context.Context, c external.Database,
-	tx string) (inputTransactions []HeuristicTransaction, err error) {
+	tx string, allowedTransactionType string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
-						v as ~tx_outputs@filter(eq(Transaction.type,"` + constants.TypeDashMixing + `"))
+						v as ~tx_outputs@filter(eq(Transaction.type,"` + allowedTransactionType + `"))
 					}
 				}
 				

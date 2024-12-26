@@ -49,11 +49,12 @@ func (h *wasabi2ReverseAmountHeuristic) String() string {
 
 func (h *wasabi2ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:          "Reverse amount",
-		Type:           h.heuristicType,
-		Category:       heuristicCategoryReverse,
-		Description:    "Returns all clusters which can fully fund the destination transaction via their origins.",
-		AllowedParents: []string{heuristicTypeWasabi2ReverseLookupByDepth, heuristicTypeWasabi2ReverseLookupByTime},
+		Title:       "Reverse amount",
+		Type:        h.heuristicType,
+		Category:    heuristicCategoryReverse,
+		Description: "Returns all clusters which can fully fund the destination transaction via their origins.",
+		AllowedParents: []string{heuristicTypeWasabi2ReverseLookupByDepth, heuristicTypeWasabi2ReverseLookupByTime,
+			heuristicTypeWasabi2OneSourceByTime, heuristicTypeWasabi2OneSourceByDepth},
 	}
 }
 
