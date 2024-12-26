@@ -16,22 +16,18 @@
     autocomplete="current-password"
     @click:append-inner="password.show = !password.show"
   />
-  <div
+  <!--    Use a random number for 'key', so the content always gets-->
+  <!--    cleared when it is replaced by the result of a call to Kratos.-->
+  <!--    Otherwise the finish event gets called on each field update if the input is full -->
+  <v-text-field
     v-else-if="attributes?.type === 'text' && attributes?.name === 'totp_code'"
-    class="d-flex flex-column align-center"
-  >
-    <v-label :text="metaLabel" />
-    <!-- Use a random number for 'key', so the content always gets
-    cleared when it is replaced by the result of a call to Kratos.
-    Otherwise the finish event gets called on each field update if the input is full -->
-    <v-otp-input
-      :key="Math.random()"
-      :model-value="attributes.value?attributes.value:''"
-      autofocus
-      :name="attributes.name"
-      @finish="emitSubmitEvent(null, 'otp-input')"
-    />
-  </div>
+    :key="Math.random()"
+    :label="metaLabel"
+    :model-value="attributes.value?attributes.value:''"
+    :name="attributes.name"
+    :prepend-inner-icon="inputIcon"
+    autocomplete="one-time-code"
+  />
   <v-text-field
     v-else-if="attributes.type === 'text' || (attributes.type === 'text'&& metaLabel === 'E-Mail')"
     :key="meta?.label?.id"
