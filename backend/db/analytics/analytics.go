@@ -705,22 +705,19 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 			UID:  tx.UID,
 			Hash: tx.TransactionHash,
 		}
-		if len(tx.Clusters) != 1 {
-			err = serror.FromStrWithContext("invalid cluster size",
-				"cluster size", len(tx.Clusters), "transaction", tx.TransactionHash)
-			return
-		}
 
-		if tx.Clusters[0].ClusterCount > 1000 {
-			excludedBecauseOfClusterSizeCount++
-			continue
-		}
+		for _, cluster := range tx.Clusters {
+			if cluster.ClusterCount > 1000 {
+				excludedBecauseOfClusterSizeCount++
+				continue
+			}
 
-		if len(clusterToDestinationTransactions[tx.Clusters[0].UID]) == 0 {
-			clusterToDestinationTransactions[tx.Clusters[0].UID] = make(map[string]bool)
-		}
+			if len(clusterToDestinationTransactions[cluster.UID]) == 0 {
+				clusterToDestinationTransactions[cluster.UID] = make(map[string]bool)
+			}
 
-		clusterToDestinationTransactions[tx.Clusters[0].UID][tx.UID] = true
+			clusterToDestinationTransactions[cluster.UID][tx.UID] = true
+		}
 	}
 
 	for clusterUID, txUIDs := range clusterToDestinationTransactions {
