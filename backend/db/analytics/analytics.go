@@ -715,6 +715,11 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 			excludedBecauseOfClusterSizeCount++
 			continue
 		}
+
+		if len(clusterToDestinationTransactions[tx.Clusters[0].UID]) == 0 {
+			clusterToDestinationTransactions[tx.Clusters[0].UID] = make(map[string]bool)
+		}
+
 		clusterToDestinationTransactions[tx.Clusters[0].UID][tx.UID] = true
 	}
 
