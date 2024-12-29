@@ -330,7 +330,6 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	require.NoError(t, err)
 	// 0 (cluster) + 2 (addresses)
 	require.Equal(t, 2, *operation[0].NewCluster.AddressCount)
-
 }
 
 func Test_calculateMetrics(t *testing.T) {
