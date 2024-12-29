@@ -10,6 +10,7 @@
           <div class="d-flex justify-space-between align-center">
             <workspace-link
               v-if="addressHash"
+              style="max-width: 350px"
               :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash, blockchainMode: getSettings.blockchainMode }}"
             >
               {{ addressHash }}
