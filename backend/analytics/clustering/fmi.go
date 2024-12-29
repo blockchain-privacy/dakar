@@ -11,6 +11,7 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/serror"
+	"slices"
 )
 
 // maximum number of addresses per cluster. Cluster with a size of maxClusterSize
@@ -491,38 +492,53 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 		}
 
 		clusterIndex++
-		var cluster clustering.Cluster
+		var cluster *clustering.Cluster
 		var addressCount int
 		var oldClusters []string
 
 		if len(i.mergeList) > 0 {
-			// find the largest cluster, so we have to move the least amount of addresses
-			var largestClusterUID string
-			var largestAddressesCount int
 			for _, c := range i.mergeList {
 				if c.AddressCount == nil {
 					return nil, serror.FromFormat("address count is not set for cluster %s", c.UID)
 				}
-				addressCount += *c.AddressCount
-				if *c.AddressCount > largestAddressesCount {
-					largestClusterUID = c.UID
-					largestAddressesCount = *c.AddressCount
+			}
+
+			slices.SortFunc(i.mergeList, func(a, b clustering.Cluster) int {
+				return *a.AddressCount - *b.AddressCount
+			})
+
+			// find the largest cluster, so we have to move the least amount of addresses
+			var largestClusterUID string
+			var clusterAddressCount int
+			// at which point to exclude clusters from the mergelist, because otherwise the cluster size gets to high
+			var stopIndex int
+			for y, c := range i.mergeList {
+				if clusterAddressCount+*c.AddressCount > maxClusterSize {
+					stopIndex = y - 1
+					break
 				}
+
+				clusterAddressCount += *c.AddressCount
 			}
 
-			// check if accumulated cluster size is too large
-			if addressCount > maxClusterSize {
-				continue
-			}
+			if stopIndex >= 0 {
+				largestClusterUID = i.mergeList[stopIndex].UID
+				addressCount += clusterAddressCount
+				for y, c := range i.mergeList {
+					if y == stopIndex {
+						// reached end of cluster which should be merged
+						break
+					}
 
-			for _, c := range i.mergeList {
-				if c.UID != largestClusterUID {
 					oldClusters = append(oldClusters, c.UID)
 				}
-			}
 
-			cluster = clustering.NewFMIClusterByUID(largestClusterUID)
-		} else {
+				cluster = clustering.NewFMIClusterByUID(largestClusterUID)
+			}
+		}
+
+		// if no clusters have been merged, create a new cluster
+		if cluster == nil {
 			cluster = clustering.NewFMICluster(clusterIndex)
 		}
 
@@ -535,7 +551,7 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 			cluster.Addresses = append(cluster.Addresses, db.UIDNode{UID: address})
 		}
 		operations = append(operations, clustering.DBOperation{
-			NewCluster:  cluster,
+			NewCluster:  *cluster,
 			OldClusters: oldClusters,
 		})
 	}

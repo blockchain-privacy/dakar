@@ -234,6 +234,20 @@ func Test_buildDBOperation(t *testing.T) {
 			wantNumOperations: 0,
 			wantErr:           true,
 		},
+		{
+			args: args{
+				processedClusters: map[*newCluster]bool{&otherCluster: true},
+				items: map[string]*newCluster{
+					"a": &someCluster,
+					"b": {
+						changeTransaction: "0x2",
+						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: testhelper.GetPointer(50000)}, {UID: "0x200", AddressCount: &ten}},
+						addresses:         map[string]bool{"0x30": true, "0x40": true},
+					}},
+				clusterIndex: 0},
+			wantNumOperations: 2,
+			wantErr:           false,
+		},
 	}
 	for _, tt := range tests {
 		operation, err := buildDBOperation(tt.args.processedClusters, tt.args.items, tt.args.clusterIndex)
@@ -244,6 +258,79 @@ func Test_buildDBOperation(t *testing.T) {
 			require.Len(t, operation, tt.wantNumOperations)
 		}
 	}
+}
+
+func Test_buildDBOperationLimitClusterSize(t *testing.T) {
+	operation, err := buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
+		"a": {
+			changeTransaction: "0x2",
+			mergeList: []clustering.Cluster{
+				{UID: "0x100", AddressCount: testhelper.GetPointer(30000)},
+				{UID: "0x200", AddressCount: testhelper.GetPointer(8000)},
+				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
+				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
+				{UID: "0x300", AddressCount: testhelper.GetPointer(9000)},
+				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
+			},
+
+			addresses: map[string]bool{"0x30": true, "0x40": true},
+		}}, 0)
+	require.NoError(t, err)
+	// 34000 (cluster) + 2 (addresses)
+	require.Equal(t, 34002, *operation[0].NewCluster.AddressCount)
+
+	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
+		"a": {
+			changeTransaction: "0x2",
+			mergeList: []clustering.Cluster{
+				{UID: "0x200", AddressCount: testhelper.GetPointer(8000)},
+				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
+				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
+				{UID: "0x300", AddressCount: testhelper.GetPointer(9000)},
+				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
+			},
+
+			addresses: map[string]bool{"0x30": true, "0x40": true},
+		}}, 0)
+	require.NoError(t, err)
+	// 34000 (cluster) + 2 (addresses)
+	require.Equal(t, 34002, *operation[0].NewCluster.AddressCount)
+
+	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
+		"a": {
+			changeTransaction: "0x2",
+			mergeList: []clustering.Cluster{
+				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
+				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
+				{UID: "0x300", AddressCount: testhelper.GetPointer(9000)},
+				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
+			},
+
+			addresses: map[string]bool{"0x30": true, "0x40": true},
+		}}, 0)
+	require.NoError(t, err)
+	// 26000 (cluster) + 2 (addresses)
+	require.Equal(t, 26002, *operation[0].NewCluster.AddressCount)
+
+	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
+		"a": {
+			changeTransaction: "0x2",
+			mergeList: []clustering.Cluster{
+				{UID: "0x300", AddressCount: testhelper.GetPointer(60000)},
+			},
+
+			addresses: map[string]bool{"0x30": true, "0x40": true},
+		}}, 0)
+	require.NoError(t, err)
+	// 0 (cluster) + 2 (addresses)
+	require.Equal(t, 2, *operation[0].NewCluster.AddressCount)
+
 }
 
 func Test_calculateMetrics(t *testing.T) {

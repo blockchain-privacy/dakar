@@ -54,16 +54,16 @@ func NewHMICluster(index int, txUID string) Cluster {
 	}
 }
 
-func NewFMICluster(index int) Cluster {
-	return Cluster{
+func NewFMICluster(index int) *Cluster {
+	return &Cluster{
 		UID:   "_:c" + strconv.Itoa(index),
 		Type:  TypeFMI,
 		DType: []string{DType},
 	}
 }
 
-func NewFMIClusterByUID(uid string) Cluster {
-	return Cluster{
+func NewFMIClusterByUID(uid string) *Cluster {
+	return &Cluster{
 		UID:   uid,
 		Type:  TypeFMI,
 		DType: []string{DType},
