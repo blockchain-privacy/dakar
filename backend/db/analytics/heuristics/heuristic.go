@@ -70,7 +70,7 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 						uid
 						tx_outputs{
 							amount
-							~tx_inputs@filter(eq(Transaction.type,"` + db.CreateCommaList(allowedTransactionTypes) + `")){uid}
+							~tx_inputs@filter(eq(Transaction.type,` + db.CreateCommaListQuotationMarks(allowedTransactionTypes) + `)){uid}
 						}
 					}
 					HeuristicCluster.attributions{
@@ -488,7 +488,7 @@ func GetInputAmounts(ctx context.Context, c external.Database, tx string,
 					uid
 					tx_inputs@cascade{
 						amount
-						~tx_outputs@filter(eq(Transaction.type,"` + db.CreateCommaList(allowedTransactionTypes) + `")){uid}
+						~tx_outputs@filter(eq(Transaction.type,` + db.CreateCommaListQuotationMarks(allowedTransactionTypes) + `)){uid}
 					}
 				}
 			  }`

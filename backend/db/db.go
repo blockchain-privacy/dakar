@@ -168,12 +168,26 @@ func DropAll(db external.Database) error {
 	return nil
 }
 
-// CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph
-// Example: 0x123,0x1a1d
+// CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph.
+// // Example: 0x123,0x1a1d
 func CreateCommaList(uids []string) string {
 	var uidEnum string
 	for i, uid := range uids {
 		uidEnum += uid
+		if i+1 < len(uids) {
+			uidEnum += ","
+		}
+	}
+	return uidEnum
+}
+
+// CreateCommaListQuotationMarks returns a formatted string which contains all given uids for usage with Dgraph.
+// // Each given string is put in quotation marks
+// // Example: "0x123","0x1a1d"
+func CreateCommaListQuotationMarks(uids []string) string {
+	var uidEnum string
+	for i, uid := range uids {
+		uidEnum += "\"" + uid + "\""
 		if i+1 < len(uids) {
 			uidEnum += ","
 		}
