@@ -1,5 +1,6 @@
 import {defineStore} from 'pinia';
 import {
+	deleteLocalSession,
 	getLocalSession, getLocalSettings, isAdminIdentity, isPrivilegedIdentity, setLocalSession, setLocalSettings,
 } from '@/utilities';
 import {BLOCKCHAIN_BTC, BLOCKCHAIN_DASH} from '@/constants/index.js';
@@ -64,6 +65,10 @@ export const useLocalStore = defineStore('local', {
 			}
 
 			this.session = payload;
+		},
+		deleteSession() {
+			deleteLocalSession();
+			this.session = null;
 		},
 		setSettings(payload) {
 			setLocalSettings(payload);

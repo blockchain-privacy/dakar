@@ -16,6 +16,10 @@ export function setLocalSession(sessionData) {
 	localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
 }
 
+export function deleteLocalSession() {
+	localStorage.removeItem(LOCALSTORAGE_FIELD_SESSION);
+}
+
 export function getLocalSession() {
 	let localStorageSessionData = localStorage.getItem(LOCALSTORAGE_FIELD_SESSION);
 	if (localStorageSessionData !== null) {

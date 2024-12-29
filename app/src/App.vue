@@ -91,8 +91,25 @@ function setDarkTheme() {
 	theme.global.name.value = settings.value.dark ? 'dark' : 'light';
 }
 
+// CheckSessionExpiration removes the stored session if it expired
+function checkSessionExpiration() {
+	if (!localStore.getSession?.expires_at) {
+		return;
+	}
+
+	const expiryDate = new Date(localStore.getSession.expires_at);
+	if (isNaN(expiryDate)) {
+		return;
+	}
+
+	if (new Date() > expiryDate) {
+		localStore.deleteSession();
+	}
+}
+
 // Hooks
 onBeforeMount(() => {
+	checkSessionExpiration();
 	setDarkTheme();
 
 	const mode = route.params.blockchainMode;
