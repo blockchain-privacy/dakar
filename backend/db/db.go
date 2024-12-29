@@ -63,13 +63,13 @@ func GetTaskContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), time.Minute*20)
 }
 
-// GetShortTaskContext returns a context with a timeout of 10 seconds
+// GetShortTaskContext returns a context with a timeout of 1 minute
 func GetShortTaskContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), time.Second*10)
+	return context.WithTimeout(context.Background(), time.Minute)
 }
 
 func AddShortTaskContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, time.Second*10)
+	return context.WithTimeout(ctx, time.Minute)
 }
 
 // WithRetry calls the given function. If dgo.ErrAborted is returned, the function
