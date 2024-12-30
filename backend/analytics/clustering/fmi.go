@@ -511,13 +511,13 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 			var largestClusterUID string
 			var clusterAddressCount int
 			// at which point to exclude clusters from the mergelist, because otherwise the cluster size gets to high
-			var stopIndex int
+			stopIndex := -1
 			for y, c := range i.mergeList {
 				if clusterAddressCount+*c.AddressCount > maxClusterSize {
-					stopIndex = y - 1
 					break
 				}
 
+				stopIndex = y
 				clusterAddressCount += *c.AddressCount
 			}
 
