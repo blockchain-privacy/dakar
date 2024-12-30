@@ -4,6 +4,9 @@
     max-width="700px"
   >
     <v-card>
+      <v-card-title class="text-h5 text-wrap">
+        Similar Destination Transactions
+      </v-card-title>
       <v-card-text>
         <fingerprint-transactions :transaction-hash="transactionHash" />
       </v-card-text>
