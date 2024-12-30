@@ -337,7 +337,7 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	// 0 (cluster) + 2 (addresses)
 	require.Equal(t, 2, *operation[0].NewCluster.AddressCount)
 	require.Equal(t, "_:c1", operation[0].NewCluster.UID)
-	require.Len(t, operation[0].OldClusters, 0)
+	require.Empty(t, operation[0].OldClusters)
 
 	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
 		"a": {
@@ -348,7 +348,7 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	// 0 (cluster) + 2 (addresses)
 	require.Equal(t, 2, *operation[0].NewCluster.AddressCount)
 	require.Equal(t, "_:c1", operation[0].NewCluster.UID)
-	require.Len(t, operation[0].OldClusters, 0)
+	require.Empty(t, operation[0].OldClusters)
 }
 
 func Test_calculateMetrics(t *testing.T) {
