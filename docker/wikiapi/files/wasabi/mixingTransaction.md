@@ -11,3 +11,5 @@ To qualify as a Wasabi 2.0 mixing transaction
 - at least half of the output amounts must be part of the defined [denominations](wasabi/denominations.md)
 - the number of outputs must be at least the number of minimum participants (number of inputs divided by 10)
 - transactions must contain at least one uncommon denomination
+
+Example transaction: `244ce74b5581727721adfbda0f36298e4f36bbff6fa7555f37215e698a35c204`
