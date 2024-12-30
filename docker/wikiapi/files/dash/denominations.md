@@ -1,4 +1,4 @@
-# Denominations
+# Dash Denominations
 
 Denominations are predefined amounts of currency. To increase privacy,
 funds which are to be mixed will get split into a set of denominations

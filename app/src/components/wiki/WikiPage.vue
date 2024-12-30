@@ -423,12 +423,10 @@ onUnmounted(() => {
 }
 
  :deep(h2){
-   margin-top: 15px;
    margin-bottom: 15px;
  }
 
 :deep(h3){
-  margin-top: 10px;
   margin-bottom: 10px;
 }
 
@@ -441,6 +439,19 @@ onUnmounted(() => {
 .wikiFileContent{
   margin-bottom: 50px;
   max-width:900px
+}
+
+:deep(p) {
+  margin-bottom: 10px;
+}
+
+:deep(ul) {
+  margin-bottom: 10px;
+  margin-left: 20px;
+}
+
+:deep(li) {
+  margin-bottom: 5px;
 }
 
 .wikiFileContentFullSize{

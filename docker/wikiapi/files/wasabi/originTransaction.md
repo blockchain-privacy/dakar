@@ -4,4 +4,6 @@ Wasabi 2.0 origin transactions create outputs which are used by Wasabi 2.0 mixin
 
 Compared to other CoinJoin implementations, Wasabi 2.0 does not require to split the funds in predefined denominations before mixing. Instead [denominated](wasabi/denominations.md) outputs are only created via mixing transactions.
 
-Example transaction: `bbe3acbed2b3727781ddc16007d22a1962b5bbfd51f84e4233a29f2f460f17d2`
+## Example Transaction
+
+`bbe3acbed2b3727781ddc16007d22a1962b5bbfd51f84e4233a29f2f460f17d2`

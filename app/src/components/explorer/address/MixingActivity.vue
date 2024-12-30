@@ -2,10 +2,7 @@
   <div>
     <v-card variant="text">
       <v-card-text>
-        <wiki-tooltip description-url="dash/privacyTransactions.md">
-          Privacy transactions
-        </wiki-tooltip>
-        which are directly connected to this address show partially the
+        Classified transactions which are directly connected to this address show partially the
         <wiki-tooltip description-url="mixingActivity.md">
           mixing activity
         </wiki-tooltip>.
