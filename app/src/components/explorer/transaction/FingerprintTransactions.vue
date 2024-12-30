@@ -29,7 +29,7 @@
       >
         {{ errorMsg }}
       </v-alert>
-      <v-row>
+      <v-row class="mt-2">
         <v-col>
           <p
             v-if="sessionCount !== -1"
@@ -50,16 +50,8 @@
           </div>
         </v-col>
       </v-row>
-      <v-table>
+      <v-table class="mt-2">
         <template #default>
-          <thead>
-            <tr>
-              <th />
-              <th class="text-left">
-                Transaction
-              </th>
-            </tr>
-          </thead>
           <tbody>
             <tr
               v-for="item in fingerprintScores"
