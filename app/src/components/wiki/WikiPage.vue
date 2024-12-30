@@ -27,12 +27,13 @@
           <v-list-group
             v-if="fileItem.items"
             v-model="fileItem.active"
+            fluid
           >
             <template #activator="{props}">
               <v-list-item
                 v-bind="props"
                 :title="fileItem.name"
-                :prepend-icon="mdiFileDocument"
+                :prepend-icon="mdiFolder"
               />
             </template>
             <v-list-item
@@ -40,6 +41,7 @@
               :key="child.title"
               :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
               :title="child.name"
+              :prepend-icon="mdiFileDocument"
             />
           </v-list-group>
           <v-list-item
@@ -136,7 +138,9 @@
 </template>
 
 <script setup>
-import {mdiFileDocument, mdiMagnify, mdiMenu} from '@mdi/js';
+import {
+	mdiFileDocument, mdiFolder, mdiMagnify, mdiMenu,
+} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
