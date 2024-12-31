@@ -616,6 +616,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 //	@Param		query	body		server.getAddWorkspaceNodesReply.request	true	"Search query"
 //	@Success	200		{object}	server.addWorkspaceNodesReply
 //	@Failure	400		{object}	server.addWorkspaceNodesReply
+//	@Failure	404		{object}	server.addWorkspaceNodesReply
 //	@Failure	500		{object}	server.addWorkspaceNodesReply
 //	@Router		/workspaces/nodes/ [post]
 func (s *Server) handlerAddWorkspaceNodes() http.Handler {
