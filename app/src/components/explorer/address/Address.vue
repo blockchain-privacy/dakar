@@ -109,7 +109,6 @@
               :output-count="outputCount"
               :input-count="inputCount"
               :coinbase-count="coinbaseCount"
-              data-available
               @change="handleFilterOrSortChange"
             />
             <v-sheet
@@ -274,9 +273,10 @@ function dataToRef(data) {
 }
 
 function init() {
-	if (props.addressData) {
+	if (props.addressData && addressHash.value !== props.addressData.addresshash) {
 		dataToRef(props.addressData);
 		resetSorting();
+		emptyResponse.value = false;
 		table.value.page = 1;
 	}
 }
