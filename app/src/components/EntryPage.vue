@@ -85,7 +85,7 @@ import {
 } from '@/constants';
 import {onMounted} from 'vue';
 import DakarAnimatedImg from '@/assets/dakar_animated.svg?url';
-import QueryInput from '@/components/appbar/QueryInput.vue';
+import QueryInput from '@/components/common/QueryInput.vue';
 
 // Hooks
 onMounted(() => {

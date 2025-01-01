@@ -217,7 +217,7 @@ export const router = createRouter({
 			props: {
 				default: true,
 				title: '404 - Page not found!',
-				description: 'The requested page does not exist. Either navigate back or click below to get back to the entry page.',
+				description: 'The requested page does not exist.',
 				imageSource: BugsImg,
 			},
 		},

@@ -276,30 +276,29 @@ export function isUncommonWasabi2Denomination(amount) {
 	return amount % 5000 !== 0 && DENOMINATIONS_WASABI2.has(amount);
 }
 
-async function storeResult(promise, piniaAction) {
+async function storeResult(promise, piniaAction, explorerStore) {
 	try {
 		const response = await promise;
+		explorerStore.setAddress(null);
+		explorerStore.setBlock(null);
+		explorerStore.setTransaction(null);
 		piniaAction(response);
 	} catch (e) {
 		return e;
 	}
 
-	return true;
+	return undefined;
 }
 
 export async function handleQuery(q, explorerStore, client, type) {
-	explorerStore.setAddress(null);
-	explorerStore.setBlock(null);
-	explorerStore.setTransaction(null);
-
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			return await storeResult(client.data.blockchainTransactionsHashGet({hash: q}), explorerStore.updateTransaction);
+			return await storeResult(client.data.blockchainTransactionsHashGet({hash: q}), explorerStore.updateTransaction, explorerStore);
 		case RESPONSE_TYPE_BLOCK:
-			return await storeResult(client.data.blockchainBlocksHashGet({hash: q}), explorerStore.updateBlock);
+			return await storeResult(client.data.blockchainBlocksHashGet({hash: q}), explorerStore.updateBlock, explorerStore);
 		case RESPONSE_TYPE_ADDRESS:
-			return await storeResult(client.data.blockchainAddressesHashGet({hash: q}), explorerStore.updateAddress);
+			return await storeResult(client.data.blockchainAddressesHashGet({hash: q}), explorerStore.updateAddress, explorerStore);
 		default:
-			return await storeResult(client.data.blockchainSearchQueryGet({query: q}), explorerStore.updateSearchResult);
+			return await storeResult(client.data.blockchainSearchQueryGet({query: q}), explorerStore.updateSearchResult, explorerStore);
 	}
 }

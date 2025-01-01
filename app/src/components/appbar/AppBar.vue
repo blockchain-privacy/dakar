@@ -116,7 +116,7 @@ import {
 	mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiThemeLightDark,
 } from '@mdi/js';
 import PageMenu from './PageMenu.vue';
-import QueryInput from './QueryInput.vue';
+import QueryInput from '../common/QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
 	APPLICATION_NAME,

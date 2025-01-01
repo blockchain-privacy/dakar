@@ -10,6 +10,8 @@
     single-line
     :label="label"
     :rules="[isValidQuery]"
+    :loading="isLoading"
+    :disabled="isLoading"
     @click:append-inner="handleInput(query)"
     @keydown.enter="handleInput(query)"
   />
@@ -20,15 +22,15 @@ import {mdiMagnify} from '@mdi/js';
 import {
 	RESPONSE_EMPTY, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION,
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
-} from '@/constants';
+} from '@/constants/index.js';
 import {
 	getDakarClients, handleError, handleQuery,
-} from '@/utilities';
+} from '@/utilities/index.js';
 import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useExplorerStore} from '@/pinia/explorer';
-import {useMsgStore} from '@/pinia/msg';
-import {useNavStore} from '@/pinia/nav';
+import {useExplorerStore} from '@/pinia/explorer.js';
+import {useMsgStore} from '@/pinia/msg.js';
+import {useNavStore} from '@/pinia/nav.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 
@@ -49,8 +51,8 @@ defineProps({
 // the dakar client is in the wrong state. As a workaround, get all available dakar
 // clients and select the right one when doing a request.
 const dakarClients = getDakarClients();
-
 const query = ref('');
+const isLoading = ref(false);
 const label = 'Search for blocks, transactions and addresses';
 
 // Computed
@@ -90,12 +92,19 @@ async function handleInput(q) {
 		return;
 	}
 
-	query.value = '';
 	msgStore.resetMessages();
 
-	const e = await handleQuery(trimmed, explorerStore, dakarClients[getSettings.value.blockchainMode]);
-	if (!e) {
-		handleError(context, e);
+	isLoading.value = true;
+	const err = await handleQuery(trimmed, explorerStore, dakarClients[getSettings.value.blockchainMode]);
+	isLoading.value = false;
+	query.value = '';
+	if (err) {
+		if (err.cause?.status === 404) {
+			await router.push({name: ROUTE_NAME_NO_RESULTS});
+		} else {
+			handleError(context, err);
+		}
+
 		return;
 	}
 

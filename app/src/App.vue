@@ -32,7 +32,7 @@
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
 import {
-	BLOCKCHAIN_BTC, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION,
+	BLOCKCHAIN_BTC, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_404_PAGE,
 	ROUTE_NAME_ADDRESS_PAGE,
 	ROUTE_NAME_BLOCK_PAGE,
 	ROUTE_NAME_ENTRY_PAGE,
@@ -42,7 +42,7 @@ import {
 import AppBar from './components/appbar/AppBar.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {computed, onBeforeMount, watch} from 'vue';
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import {useTheme} from 'vuetify';
 import {useLocalStore} from '@/pinia/local';
 import {mdiTestTube} from '@mdi/js';
@@ -56,6 +56,7 @@ import {useNavStore} from '@/pinia/nav.js';
 import {useMsgStore} from '@/pinia/msg.js';
 
 const route = useRoute();
+const router = useRouter();
 const theme = useTheme();
 const msgStore = useMsgStore();
 const localStore = useLocalStore();
@@ -121,23 +122,27 @@ async function newRouting() {
 		return;
 	}
 
-	let e;
+	let err;
 	switch (route.name) {
 		case ROUTE_NAME_TRANSACTION_PAGE:
-			e = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_TRANSACTION);
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_TRANSACTION);
 			break;
 		case ROUTE_NAME_BLOCK_PAGE:
-			e = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_BLOCK);
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_BLOCK);
 			break;
 		case ROUTE_NAME_ADDRESS_PAGE:
-			e = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_ADDRESS);
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_ADDRESS);
 			break;
 		default:
-			e = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode]);
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode]);
 	}
 
-	if (!e) {
-		handleError(context, e);
+	if (err) {
+		if (err.cause?.status === 404) {
+			await router.push({name: ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}});
+		} else {
+			handleError(context, err);
+		}
 	}
 }
 
