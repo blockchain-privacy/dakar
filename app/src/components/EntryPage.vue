@@ -3,17 +3,8 @@
     fluid
     class="content"
   >
-    <v-row
-      align="center"
-      justify="center"
-    >
-      <v-col
-        cols="12"
-        sm="12"
-        md="10"
-        lg="9"
-        xl="8"
-      >
+    <v-row align="center">
+      <v-col>
         <!-- set width and height so transition looks better -->
         <div
           class="d-flex justify-center mb-2 mx-auto"
@@ -25,34 +16,19 @@
             transition="fade-transition"
           />
         </div>
+        <p class="text-h2 text-center">
+          {{ APPLICATION_NAME }}
+        </p>
         <div class="d-flex justify-center">
-          <p
-            class="text-h2"
-            style="position:relative"
-          >
-            {{ APPLICATION_NAME }}
-          </p>
+          <query-input
+            big
+            class="my-6"
+            style="max-width: 600px"
+          />
         </div>
-        <v-text-field
-          id="entry-page-search"
-          v-model="query"
-          class="mt-3"
-          :append-inner-icon="mdiMagnify"
-          variant="outlined"
-          label="Search for blocks, transactions and addresses"
-          :rules="[isValidQuery]"
-          single-line
-          @click:append-inner="handleQuery(query)"
-          @keydown.enter="handleQuery(query)"
-        />
-        <div class="d-flex justify-center ">
-          <p
-            class="text-h6"
-            style="position:relative"
-          >
-            Blockchain Analytics
-          </p>
-        </div>
+        <p class="text-h6 text-center">
+          Blockchain Analytics
+        </p>
       </v-col>
     </v-row>
     <!-- footer -->
@@ -103,103 +79,18 @@
 </template>
 
 <script setup>
-import {mdiMagnify} from '@mdi/js';
 import {
-	RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS, RESPONSE_TYPE_ADDRESS,
-	ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE, RESPONSE_TYPE_TRANSACTION,
-	ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, ROUTE_NAME_ABOUT,
+	APPLICATION_NAME, ROUTE_NAME_ABOUT,
 	ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
 } from '@/constants';
-import {
-	getDakarClients, handleError, isValidQuery, isValidQueryInput,
-} from '@/utilities';
-import {computed, onMounted, ref} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
-import {useExplorerStore} from '@/pinia/explorer';
-import {storeToRefs} from 'pinia';
-import {useNavStore} from '@/pinia/nav';
+import {onMounted} from 'vue';
 import DakarAnimatedImg from '@/assets/dakar_animated.svg?url';
-import {useLocalStore} from '@/pinia/local.js';
-
-const router = useRouter();
-const route = useRoute();
-const msgStore = useMsgStore();
-const explorerStore = useExplorerStore();
-const {getSettings} = storeToRefs(useLocalStore());
-const {pushFromUserInput} = storeToRefs(useNavStore());
-const context = {$route: route, addMessage: msgStore.addMessage};
-
-// When the blockchain mode is switched and the current component is not reloaded,
-// the dakar client is in the wrong state. As a workaround, get all available dakar
-// clients and select the right one when doing a request.
-const dakarClients = getDakarClients();
-
-const query = ref('');
-
-// Computed
-const searchResultType = computed(() => explorerStore.getSearchResultType);
+import QueryInput from '@/components/appbar/QueryInput.vue';
 
 // Hooks
 onMounted(() => {
 	document.title = APPLICATION_NAME;
 });
-
-// Functions
-function setWarningMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'warning', temporary: true, category: route.name,
-	});
-}
-
-async function executeQuery(query) {
-	let ok = false;
-
-	try {
-		const response = await dakarClients[getSettings.value.blockchainMode].data.blockchainSearchQueryGet({query});
-
-		explorerStore.updateSearchResult(response);
-		ok = response?.type !== RESPONSE_EMPTY;
-		if (!ok) {
-			setWarningMessage('server error');
-		}
-	} catch (e) {
-		handleError(context, e);
-	}
-
-	return ok;
-}
-
-async function handleQuery(q) {
-	// Template string in case it is a number
-	const query = `${q}`.trim();
-
-	// ignore whitespace and empty queries
-	if (query.length === 0 || !isValidQueryInput(query) || !await executeQuery(query)) {
-		return;
-	}
-
-	switch (searchResultType.value) {
-		case RESPONSE_EMPTY:
-			await router.push({name: ROUTE_NAME_NO_RESULTS});
-			break;
-		case RESPONSE_TYPE_ADDRESS:
-			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: query, blockchainMode: getSettings.value.blockchainMode}});
-			break;
-		case RESPONSE_TYPE_BLOCK:
-			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: query, blockchainMode: getSettings.value.blockchainMode}});
-			break;
-		case RESPONSE_TYPE_TRANSACTION:
-			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: query, blockchainMode: getSettings.value.blockchainMode}});
-			break;
-		default:
-			await router.push({name: ROUTE_NAME_NO_RESULTS});
-			break;
-	}
-}
 
 </script>
 
@@ -209,23 +100,6 @@ async function handleQuery(q) {
   display: flex;
   flex-direction: column;
   height: 100%
-}
-
-:deep(.v-field__outline) {
-  border-width: 3px 3px 3px 3px;
-  color: rgb(var(--v-theme-primary)) !important;
-  opacity: 1;
-}
-
-:deep(.v-field__outline__start) {
-  border-width: 3px 0 3px 3px;
-  color: rgb(var(--v-theme-primary)) !important;
-  opacity: 1;
-}
-:deep(.v-field__outline__end) {
-  border-width: 3px 3px 3px 0;
-  color: rgb(var(--v-theme-primary)) !important;
-  opacity: 1;
 }
 
 </style>

@@ -32,7 +32,9 @@
     <query-input
       v-if="!minimize"
       class="mx-auto px-2"
-      style="max-width: 600px"
+      style="min-width:100px; max-width: 600px"
+      density="compact"
+      variant="outlined"
     />
     <v-btn
       v-if="isPrivilegedOrHigher"

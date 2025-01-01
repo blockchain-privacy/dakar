@@ -3,13 +3,12 @@
     id="query-input"
     v-model="query"
     hide-details
-    style="min-width:100px"
-    variant="outlined"
-    density="compact"
+    :append-inner-icon="mdiMagnify"
+    :variant="variant"
+    :density="density"
     color="primary"
     single-line
-    label="Search for blocks, transactions and addresses"
-    :append-inner-icon="mdiMagnify"
+    :label="label"
     :rules="[isValidQuery]"
     @click:append-inner="handleInput(query)"
     @keydown.enter="handleInput(query)"
@@ -23,11 +22,9 @@ import {
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
 import {
-	getDakarClients, handleError, isValidQuery, isValidQueryInput,
+	getDakarClients, handleError, handleQuery,
 } from '@/utilities';
-import {
-	computed, ref, watch,
-} from 'vue';
+import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {useMsgStore} from '@/pinia/msg';
@@ -43,61 +40,62 @@ const explorerStore = useExplorerStore();
 const {pushFromUserInput} = storeToRefs(useNavStore());
 const context = {addMessage: msgStore.addMessage, $route: useRoute()};
 
+defineProps({
+	density: {type: String, required: false, default: undefined},
+	variant: {type: String, required: false, default: 'solo'},
+});
+
 // When the blockchain mode is switched and the current component is not reloaded,
 // the dakar client is in the wrong state. As a workaround, get all available dakar
 // clients and select the right one when doing a request.
 const dakarClients = getDakarClients();
 
 const query = ref('');
-let lastQuery = '';
-
-watch(route, () => {
-	lastQuery = '';
-	newRouting();
-});
+const label = 'Search for blocks, transactions and addresses';
 
 // Computed
 const searchResultType = computed(() => explorerStore.getSearchResultType);
 
 // Functions
-function newRouting() {
-	const {id} = route.params;
-	const isPushFromUserInput = pushFromUserInput.value;
-
-	if (isPushFromUserInput) {
-		pushFromUserInput.value = false;
+function isValidQueryInput(str) {
+	const inputLen = str.length;
+	// 64 -> length of transaction hash and block hash
+	if (inputLen === 0 || inputLen > 64) {
+		return false;
 	}
 
-	if (isPushFromUserInput || !id
-		|| !(route.name === ROUTE_NAME_BLOCK_PAGE
-		|| route.name === ROUTE_NAME_ADDRESS_PAGE
-		|| route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
-		return;
+	// 33,34 -> address length; if smaller than it must be a block id
+	if (inputLen < 33) {
+		return Number.isInteger(Number(str));
 	}
 
-	switch (route.name) {
-		case ROUTE_NAME_TRANSACTION_PAGE:
-			handleQuery(id, RESPONSE_TYPE_TRANSACTION);
-			break;
-		case ROUTE_NAME_BLOCK_PAGE:
-			handleQuery(id, RESPONSE_TYPE_BLOCK);
-			break;
-		case ROUTE_NAME_ADDRESS_PAGE:
-			handleQuery(id, RESPONSE_TYPE_ADDRESS);
-			break;
-		default:
-			handleQuery(id);
-	}
+	return str.match(/^[\da-zA-Z]+$/) !== null;
+}
+
+function isValidQuery(q) {
+	// Template string in case it is a number
+	const trimmed = `${q}`.trim();
+	return trimmed.length === 0 ? true : isValidQueryInput(trimmed);
 }
 
 async function handleInput(q) {
 	// Template string in case it is a number
-	const trimmedQuery = `${q}`.trim();
-	// Update route only when input is from user and query is different
-	// ignore whitespace and empty queries
-	// Get data for route
-	if (trimmedQuery.length === 0 || trimmedQuery === lastQuery || !isValidQueryInput(trimmedQuery) || !await handleQuery(trimmedQuery)) {
-		setWarningMessage('Input was not valid');
+	const trimmed = `${q}`.trim();
+	if (!trimmed) {
+		return;
+	}
+
+	if (!isValidQueryInput(trimmed)) {
+		setWarningMessage('Query is not valid');
+		return;
+	}
+
+	query.value = '';
+	msgStore.resetMessages();
+
+	const e = await handleQuery(trimmed, explorerStore, dakarClients[getSettings.value.blockchainMode]);
+	if (!e) {
+		handleError(context, e);
 		return;
 	}
 
@@ -108,15 +106,15 @@ async function handleInput(q) {
 			break;
 		case RESPONSE_TYPE_ADDRESS:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
+			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmed, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		case RESPONSE_TYPE_BLOCK:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
+			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmed, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		case RESPONSE_TYPE_TRANSACTION:
 			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery, blockchainMode: getSettings.value.blockchainMode}});
+			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmed, blockchainMode: getSettings.value.blockchainMode}});
 			break;
 		default:
 			await router.push({name: ROUTE_NAME_NO_RESULTS});
@@ -124,67 +122,11 @@ async function handleInput(q) {
 	}
 }
 
-async function storeResult(promise, piniaAction) {
-	try {
-		const response = await promise;
-		piniaAction(response);
-	} catch (e) {
-		handleError(context, e);
-	}
-}
-
-async function handleQuery(q, type) {
-	query.value = '';
-	// Template string in case it is a number
-	const trimmedQuery = `${q}`.trim();
-
-	if (lastQuery !== '' && lastQuery === trimmedQuery) {
-		return false;
-	}
-
-	lastQuery = trimmedQuery;
-
-	if (!isValidQueryInput(trimmedQuery)) {
-		setWarningMessage('Input was not valid');
-		return false;
-	}
-
-	// Reset messages here
-	msgStore.resetMessages();
-	explorerStore.setAddress(null);
-	explorerStore.setBlock(null);
-	explorerStore.setTransaction(null);
-
-	switch (type) {
-		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakarClients[getSettings.value.blockchainMode]
-				.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
-			break;
-		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakarClients[getSettings.value.blockchainMode]
-				.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
-			break;
-		case RESPONSE_TYPE_ADDRESS:
-
-			await storeResult(dakarClients[getSettings.value.blockchainMode]
-				.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
-			break;
-		default:
-			await storeResult(dakarClients[getSettings.value.blockchainMode]
-				.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
-	}
-
-	return true;
-}
-
 function setWarningMessage(msg) {
 	msgStore.addMessage({
 		text: msg, type: 'warning', temporary: true, category: route.name,
 	});
 }
-
-// Initial routing
-newRouting();
 
 </script>
 
