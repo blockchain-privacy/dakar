@@ -242,7 +242,7 @@ const fileHierarchy = computed(() => {
 	return hierarchyArray;
 });
 
-const filepathToFilename = computed(() => {
+const filepathToFile = computed(() => {
 	const fileMap = new Map();
 
 	if (fileSet.value === null) {
@@ -260,10 +260,10 @@ const filepathToFilename = computed(() => {
 		const [directory, fileName] = pathParts;
 
 		if (fileName) {
-			fileMap.set(d, cleanName(fileName));
+			fileMap.set(d, {name: cleanName(fileName), directory: capitalize(directory)});
 		} else {
 			// First split is the actual file path
-			fileMap.set(d, cleanName(directory));
+			fileMap.set(d, {name: cleanName(directory), directory: ''});
 		}
 	});
 
@@ -332,8 +332,8 @@ function queueSearch(q) {
 }
 
 async function search(query) {
-	// Only search if files where loaded
-	if (filepathToFilename.value.size === 0) {
+	// Only search if files were loaded
+	if (filepathToFile.value.size === 0) {
 		return;
 	}
 
@@ -355,7 +355,18 @@ async function search(query) {
 
 		if (response.searchResults && response.searchResults.length > 0) {
 			ret = response.searchResults
-				.map(f => ({title: filepathToFilename.value.get(f.filename), path: f.filename, fragment: f.fragment}))
+				.map(f => {
+					const file = filepathToFile.value.get(f.filename);
+					let title;
+					if (file) {
+						title = file.name;
+						if (file.directory) {
+							title = file.directory + ' - ' + title;
+						}
+					}
+
+					return {title, path: f.filename, fragment: f.fragment};
+				})
 				.filter(d => Boolean(d.title));
 		}
 	} catch (e) {
