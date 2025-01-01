@@ -80,6 +80,7 @@
               v-model="query"
               label="Search wiki pages"
               hide-details
+              variant="solo"
               @update:model-value="queueSearch"
             />
             <v-expand-transition>

@@ -1,17 +1,18 @@
 <template>
   <div class="my-2 mx-1">
-    <v-card variant="text">
-      <v-card-text>
-        <v-text-field
-          v-model="query"
-          label="Search for attributions"
-          :append-inner-icon="mdiMagnify"
-          @click:append="handleQuery"
-          @keydown.enter="handleQuery"
-        />
-        <v-progress-linear v-if="loading" />
-      </v-card-text>
-    </v-card>
+    <div class="d-flex justify-center">
+      <v-text-field
+        v-model="query"
+        label="Search for attributions"
+        :append-inner-icon="mdiMagnify"
+        variant="solo"
+        max-width="700px"
+        @click:append="handleQuery"
+        @keydown.enter="handleQuery"
+      />
+    </div>
+
+    <v-progress-linear v-if="loading" />
     <v-row
       v-if="!loading && attributions.length > 0"
       class="mt-3 mx-auto mb-2"
