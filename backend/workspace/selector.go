@@ -216,6 +216,11 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		}
 	}
 
+	optionStr, err := json.Marshal(options)
+	if err != nil {
+		return "", nil, serror.NewWithContext(err, "options", options)
+	}
+
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -227,11 +232,6 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	parentIndex, parentNode, err := getSelectorParent(selectorParent, w.Nodes)
 	if err != nil {
 		return "", nil, serror.AddContext(err, "options", options)
-	}
-
-	optionStr, err := json.Marshal(options)
-	if err != nil {
-		return "", nil, serror.NewWithContext(err, "options", options)
 	}
 
 	newNode.UID, err = workspace.InsertSelector(ctx, dgraph, &workspace.Selector{
