@@ -54,7 +54,7 @@
               <v-text-field
                 v-if="heuristicTypeModel.parameter !== undefined"
                 v-model="heuristicOptions.parameter"
-                :rules="parameterRules.get(heuristicTypeModel.parameter.type)"
+                :rules="heuristicRules"
                 :label="heuristicTypeModel.parameter.description"
                 required
                 :placeholder="heuristicTypeModel.parameter.value"
@@ -381,6 +381,25 @@ const icon = computed(() => {
 		case SELECTOR_TYPE_TX_GRAPH: return graphPlus;
 		default: return mdiShapeCirclePlus;
 	}
+});
+
+const heuristicRules = computed(() => {
+	if (!heuristicTypeModel.value?.parameter?.type) {
+		return [];
+	}
+
+	const rules = parameterRules.get(heuristicTypeModel.value.parameter.type);
+	if (heuristicTypeModel.value.parameter.type === 'int') {
+		if (heuristicTypeModel.value.parameter.minimum) {
+			rules.push(v => parseInt(v, 10) >= heuristicTypeModel.value.parameter.minimum);
+		}
+
+		if (heuristicTypeModel.value.parameter.maximum) {
+			rules.push(v => parseInt(v, 10) <= heuristicTypeModel.value.parameter.maximum);
+		}
+	}
+
+	return rules;
 });
 
 // Functions
