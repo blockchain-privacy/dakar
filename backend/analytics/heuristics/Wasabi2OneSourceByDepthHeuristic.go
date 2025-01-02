@@ -64,9 +64,11 @@ func (h *wasabi2OneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 			"This heuristic excludes all clusters which can't fund every mixing sub " +
 			"graph (due to lack of funds or du to having not connection to them).",
 		Parameter: &DescriptorParameter{
-			DefaultValue: "48",
-			Description:  "Depth",
-			Type:         "int",
+			DefaultValue: "2",
+			MinimumValue: parameterMinDepth,
+			MaximumValue: parameterMaxDepth,
+			Description:  parameterDescriptionDepth,
+			Type:         parameterTypeInt,
 		},
 		AllowedParents: constants.TransactionTypesWasabi2,
 	}

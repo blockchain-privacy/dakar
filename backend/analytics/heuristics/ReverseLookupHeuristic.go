@@ -66,8 +66,10 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 		Description: "Traverses the transaction graph backwards for the given duration and returns all found origins.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
-			Description:  "Look back time in hours",
-			Type:         "int",
+			MinimumValue: parameterMinDuration,
+			MaximumValue: parameterMaxDuration,
+			Description:  parameterDescriptionLookBack,
+			Type:         parameterTypeInt,
 		},
 		AllowedParents: constants.TransactionTypesDash,
 	}

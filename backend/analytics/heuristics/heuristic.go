@@ -37,6 +37,21 @@ const (
 )
 
 const (
+	// maximum duration in hours
+	parameterMaxDuration = 90
+	// minimum duration in hours
+	parameterMinDuration = 1
+	// maximum depth
+	parameterMaxDepth = 5
+	parameterMinDepth = 1
+
+	parameterDescriptionLookForward = "Look forward time in hours"
+	parameterDescriptionLookBack    = "Look back time in hours"
+	parameterDescriptionDepth       = "Maximum traversal depth"
+	parameterTypeInt                = "int"
+)
+
+const (
 	// Dash
 	heuristicTypeReverseLookup    = "reverse_lookup"
 	heuristicTypeOneSource        = "one_source"
@@ -90,6 +105,10 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 
 type DescriptorParameter struct {
 	DefaultValue string `json:"value,omitempty"`
+	// MaximumValue in case it is an integer
+	MaximumValue int `json:"maximum,omitempty"`
+	// MinimumValue in case it is an integer
+	MinimumValue int    `json:"minimum,omitempty"`
 	Description  string `json:"description,omitempty"`
 	// Type must be one of the following values: 'int', 'string'
 	Type string `json:"type,omitempty"`

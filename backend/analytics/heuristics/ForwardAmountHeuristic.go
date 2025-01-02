@@ -66,8 +66,10 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 		Description: "Returns all destination transactions which can be fully funded by the origins of their source.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
-			Description:  "Look forward time in hours",
-			Type:         "int",
+			MinimumValue: parameterMinDuration,
+			MaximumValue: parameterMaxDuration,
+			Description:  parameterDescriptionLookForward,
+			Type:         parameterTypeInt,
 		},
 		AllowedParents: constants.TransactionTypesDash,
 	}
