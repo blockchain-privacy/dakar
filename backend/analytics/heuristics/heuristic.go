@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
+	"strconv"
 	"time"
 )
 
@@ -115,13 +116,12 @@ type DescriptorParameter struct {
 }
 
 type Descriptor struct {
-	Title       string `json:"title,omitempty"`
-	Type        string `json:"type,omitempty"`
-	Description string `json:"description,omitempty"`
-	Category    string `json:"category,omitempty"`
-	// pointer so Parameter does not appear in JSON if not set
-	Parameter *DescriptorParameter `json:"parameter,omitempty"`
-	// controls which types of parent are allowed for a heuristic. Possible types are transaction types and heuristic types.
+	Title       string               `json:"title,omitempty"`
+	Type        string               `json:"type,omitempty"`
+	Description string               `json:"description,omitempty"`
+	Category    string               `json:"category,omitempty"`
+	Parameter   *DescriptorParameter `json:"parameter,omitempty"`
+	// controls which types of parent are allowed for a heuristic. Possible values are transaction types and heuristic types.
 	// currently not enforced in the backend.
 	AllowedParents []string `json:"allowedParents,omitempty"`
 }
@@ -310,6 +310,7 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 	clonedHeuristic := constructor()
 	c := config
 	c.UserUID = userUID
+
 	if err = clonedHeuristic.setConfig(c); err != nil {
 		return
 	}
@@ -320,6 +321,31 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 	}
 
 	return
+}
+
+// IsConfigValid checks if the given config can be applied to its heuristic type and if the heuristic parameter is valid
+func IsConfigValid(config heuristics.Options) error {
+	constructor, ok := ConstructorMap[config.Type]
+	if !ok {
+		return serror.FromStrWithContext("invalid heuristic type", "type", config.Type)
+	}
+
+	clonedHeuristic := constructor()
+	c := config
+
+	descriptorParameter := clonedHeuristic.GetDescriptor().Parameter
+	if descriptorParameter != nil && descriptorParameter.Type == parameterTypeInt {
+		p, err := strconv.Atoi(config.Parameter)
+		if err != nil {
+			return serror.New(err)
+		}
+
+		if p < descriptorParameter.MinimumValue || p > descriptorParameter.MaximumValue {
+			return serror.FromStrWithContext("invalid parameter value", "value", p)
+		}
+	}
+
+	return clonedHeuristic.setConfig(c)
 }
 
 // Run starts the execution of the given heuristic executor.
