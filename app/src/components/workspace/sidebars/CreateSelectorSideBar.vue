@@ -58,7 +58,6 @@
                 :label="heuristicTypeModel.parameter.description"
                 required
                 :placeholder="heuristicTypeModel.parameter.value"
-                hide-details
               />
               <v-checkbox
                 v-model="heuristicOptions.clusterTypes"
@@ -321,11 +320,15 @@ const maxResultsError = ref(false);
 const parameterRules = new Map([
 	['int', [v => {
 		if (!/^\d+$/.test(v)) {
-			return false;
+			return 'must be a number';
 		}
 
 		const num = parseInt(v, 10);
-		return !isNaN(num) && Number.isInteger(num) && num > 0;
+		if (isNaN(num) || !Number.isInteger(num)) {
+			return 'must be a number';
+		}
+
+		return num > 0 || 'must be at least 1';
 	}]],
 	['float', [v => {
 		if (v === undefined || v === '') {
@@ -333,7 +336,11 @@ const parameterRules = new Map([
 		}
 
 		const num = parseFloat(v, 10);
-		return !isNaN(num) && num > 0;
+		if (isNaN(num)) {
+			return 'must be a number';
+		}
+
+		return num > 0 || 'must be higher than 0';
 	}]],
 	// String rule is not implemented yet
 	['string', null],
@@ -391,11 +398,13 @@ const heuristicRules = computed(() => {
 	const rules = parameterRules.get(heuristicTypeModel.value.parameter.type);
 	if (heuristicTypeModel.value.parameter.type === 'int') {
 		if (heuristicTypeModel.value.parameter.minimum) {
-			rules.push(v => parseInt(v, 10) >= heuristicTypeModel.value.parameter.minimum);
+			rules.push(v => parseInt(v, 10) >= heuristicTypeModel.value.parameter.minimum
+			|| `Minimum: ${heuristicTypeModel.value.parameter.minimum}`);
 		}
 
 		if (heuristicTypeModel.value.parameter.maximum) {
-			rules.push(v => parseInt(v, 10) <= heuristicTypeModel.value.parameter.maximum);
+			rules.push(v => parseInt(v, 10) <= heuristicTypeModel.value.parameter.maximum
+			|| `Maximum: ${heuristicTypeModel.value.parameter.maximum}`);
 		}
 	}
 
