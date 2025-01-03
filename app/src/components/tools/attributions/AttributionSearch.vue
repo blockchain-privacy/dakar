@@ -7,7 +7,7 @@
         :append-inner-icon="mdiMagnify"
         variant="solo"
         max-width="700px"
-        @click:append="handleQuery"
+        @click:append-inner="handleQuery"
         @keydown.enter="handleQuery"
       />
     </div>
