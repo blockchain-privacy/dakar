@@ -1,27 +1,23 @@
 <template>
   <div class="my-2 mx-1">
-    <v-form
-      ref="attributionSearchForm"
-      validate-on="submit"
-      @submit.prevent="handleQuery"
-    >
-      <div class="d-flex justify-center">
+    <div class="d-flex justify-center">
+      <v-form
+        ref="attributionSearchForm"
+        validate-on="submit"
+        style="max-width: 700px; width: 100%;"
+        @submit.prevent="handleQuery"
+      >
         <v-text-field
           v-model="query"
           label="Search for attributions"
           :append-inner-icon="mdiMagnify"
           variant="solo"
-          max-width="700px"
           :rules="rule"
+          :loading="loading"
           @click:append-inner="handleQuery"
         />
-      </div>
-    </v-form>
-
-    <v-progress-linear
-      v-if="loading"
-      indeterminate
-    />
+      </v-form>
+    </div>
     <template v-if="!loading && attributions.length > 0">
       <v-row
         v-for="(attribution, i) in attributions"
