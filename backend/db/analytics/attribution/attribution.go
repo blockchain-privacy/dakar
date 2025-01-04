@@ -155,13 +155,12 @@ func SearchAttributions(ctx context.Context, c external.Database, userID string,
 	regex := "/" + regexp.QuoteMeta(searchQuery) + "/i"
 
 	const query = `query Q($user:string,$regex:string) {
-				var(func:uid($user))@filter(type(User)){
-					a as ~Attribution.user
-				}
+				tag as var(func: regexp(Attribution.tag,$regex)) 
+				dsc as var(func: regexp(Attribution.description,$regex)) 
+				source as var(func: regexp(Attribution.source,$regex)) 
+				category as var(func: regexp(Attribution.category,$regex)) 
 
-				pa as var(func:type(` + DType + `))@filter(eq(Attribution.isPublic,true))
-
-				q(func: uid(a, pa), first: 30)@filter(regexp(Attribution.tag,$regex)){
+				q(func: uid(tag, dsc, source, category), first: 30)@filter(eq(Attribution.isPublic,true) or uid_in(Attribution.user, $user)){
 					uid
 					Attribution.ts
 					Attribution.tag
