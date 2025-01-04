@@ -128,8 +128,6 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 // either of the type origin, mixing or collateral creation. Returns the number of newly
 // classified transactions.
 func SetCollateralCreation(ctx context.Context, c external.Database, txUids []string) (insertCount int, err error) {
-	uidList := db.CreateCommaArray(txUids)
-
 	const query = `query Q($uids: string) {
 				cc as var(func: uid($uids))@filter(not has(Transaction.type) or eq(Transaction.type,"` + constants.TypeDashDestination + `"))@cascade{	
 					tx_inputs{
@@ -143,7 +141,7 @@ func SetCollateralCreation(ctx context.Context, c external.Database, txUids []st
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$uids": uidList},
+		Vars:  map[string]string{"$uids": db.CreateCommaArray(txUids)},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cc), 0))",
 			SetNquads: []byte(nQuad),
@@ -182,8 +180,6 @@ func SetCollateralCreation(ctx context.Context, c external.Database, txUids []st
 // either of the type origin, collateral creation or collateral payment. Returns the number
 // of newly classified transactions.
 func SetCollateralPayment(ctx context.Context, c external.Database, txUids []string) (insertCount int, err error) {
-	uidList := db.CreateCommaArray(txUids)
-
 	// collateral payments + collateral creations + origins
 	const filter = "@filter(eq(Transaction.type,\"" + constants.TypeDashOrigin + "\") or eq(Transaction.type,\"" + constants.TypeDashCC + "\")or eq(Transaction.type,\"" + constants.TypeDashCP + "\"))"
 
@@ -197,7 +193,7 @@ func SetCollateralPayment(ctx context.Context, c external.Database, txUids []str
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$uids": uidList},
+		Vars:  map[string]string{"$uids": db.CreateCommaArray(txUids)},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cp), 0))",
 			SetNquads: []byte("uid(cp) <Transaction.type> \"" + constants.TypeDashCP + "\" ."),
