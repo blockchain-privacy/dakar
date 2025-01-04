@@ -18,6 +18,31 @@ type Attribution struct {
 	Category    string
 }
 
+// PublicAttributionImport writes the given attributions into the database and returns the number of insertions.
+// Attributions for addresses which do not exist are ignored.
+// Attributions for addresses which already have a public attribution are ignored.
+func PublicAttributionImport(ctx context.Context, dgraph external.Database, attributions []Attribution) (int, error) {
+	if len(attributions) == 0 {
+		return 0, serror.FromStr("attribution list is empty")
+	}
+
+	addrToUID, err := validateAddresses(ctx, dgraph, attributions, true)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(addrToUID) == 0 {
+		return 0, nil
+	}
+
+	dbAttributions := buildDatabaseAttributionsIfTheyExist(attributions, addrToUID)
+	if len(dbAttributions) == 0 {
+		return 0, nil
+	}
+
+	return len(dbAttributions), attribution.AddAttributions(ctx, dgraph, dbAttributions)
+}
+
 // ImportAttribution writes the given address relations into the database
 func ImportAttribution(ctx context.Context, dgraph external.Database,
 	attributions []Attribution, userID string, isPublic bool) error {
@@ -29,7 +54,7 @@ func ImportAttribution(ctx context.Context, dgraph external.Database,
 		return serror.FromStr("attribution list is empty")
 	}
 
-	addrToUID, err := validateAddresses(ctx, dgraph, attributions)
+	addrToUID, err := validateAddresses(ctx, dgraph, attributions, false)
 	if err != nil {
 		return err
 	}
@@ -68,12 +93,41 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 	return dbAttributions
 }
 
-// validateAddresses returns an error, if the given attribution items are not valid.
-// Returns ErrTooManyAddresses if there are more than 1000 items.
-// If an address does not exist on the db, an error containing the address hash is returned.
-// Returns a mapping from address hash to db UID.
+func buildDatabaseAttributionsIfTheyExist(attributions []Attribution,
+	hashToUID map[string]string) []attribution.Attribution {
+	attributionTimestamp := time.Now().UTC().Format(time.RFC3339)
+
+	var dbAttributions []attribution.Attribution //nolint:prealloc
+	for _, a := range attributions {
+		uid, ok := hashToUID[a.AddressHash]
+		if !ok {
+			continue
+		}
+		attr := attribution.Attribution{
+			Address:     &db.UIDNode{UID: uid},
+			Tag:         a.Tag,
+			Description: a.Description,
+			Source:      a.Source,
+			Category:    a.Category,
+			Timestamp:   attributionTimestamp,
+			IsPublic:    true,
+		}
+
+		attr.SetDType()
+		dbAttributions = append(dbAttributions, attr)
+	}
+
+	return dbAttributions
+}
+
+// validateAddresses returns a mapping from address hash to db UID. An error is returned if
+// - the given attribution items are not valid
+// - there are more than 1000 items (ErrTooManyAddresses)
+// - an address does not exist, an error containing the address hash is returned
+// If isPublicAttributionImport is set to true, addresses which do not exist
+// or already have a public attribution are ignored.
 func validateAddresses(ctx context.Context, dgraph external.Database,
-	attributions []Attribution) (map[string]string, error) {
+	attributions []Attribution, isPublicAttributionImport bool) (map[string]string, error) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
 		return nil, serror.New(ErrTooManyAddresses)
@@ -88,14 +142,19 @@ func validateAddresses(ctx context.Context, dgraph external.Database,
 		addresses[c.AddressHash] = true
 	}
 
-	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(ctx, dgraph, cliutil.GetMapKeys(addresses))
+	var dbAddresses []db.Address
+	var err error
+	if isPublicAttributionImport {
+		dbAddresses, err = db.GetAddressUIDsFilterPublicAttribution(ctx, dgraph, cliutil.GetMapKeys(addresses))
+	} else {
+		dbAddresses, err = db.GetAddressUIDs(ctx, dgraph, cliutil.GetMapKeys(addresses))
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	// check if there is some mismatch
-	if len(addresses) != len(dbAddresses) {
+	if !isPublicAttributionImport && len(addresses) != len(dbAddresses) {
 		for _, a := range dbAddresses {
 			delete(addresses, a.Hash)
 		}
