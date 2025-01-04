@@ -18,23 +18,25 @@
       </div>
     </v-form>
 
-    <v-progress-linear v-if="loading" />
-    <v-row
-      v-if="!loading && attributions.length > 0"
-      class="mt-3 mx-auto mb-2"
-    >
-      <div
-        class="d-flex flex-wrap align-baseline"
-        style="gap: 20px 20px"
+    <v-progress-linear
+      v-if="loading"
+      indeterminate
+    />
+    <template v-if="!loading && attributions.length > 0">
+      <v-row
+        v-for="(attribution, i) in attributions"
+        :key="i"
       >
-        <attribution-details
-          v-for="(attribution, i) in attributions"
-          :key="i"
-          :attribution="attribution"
-          @deleted="handleAttributionDeletion"
-        />
-      </div>
-    </v-row>
+        <v-col>
+          <div class="d-flex justify-center">
+            <attribution-details
+              :attribution="attribution"
+              @deleted="handleAttributionDeletion"
+            />
+          </div>
+        </v-col>
+      </v-row>
+    </template>
   </div>
 </template>
 
