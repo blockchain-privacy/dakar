@@ -49,10 +49,8 @@ func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 		Title:    "Perfect match",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "The perfect match heuristic filters all " +
-			"origins of sources, which have denominations " +
-			"without a perfect match for the denominations of " +
-			"the destination transaction.",
+		Description: "Excludes all origins of clusters, which have denominations without " +
+			"a perfect match for the denominations of the destination transaction.",
 		AllowedParents: []string{heuristicTypeReverseLookup, heuristicTypeOneSource, heuristicTypeReverseAmount, heuristicTypeDenominationType},
 	}
 }

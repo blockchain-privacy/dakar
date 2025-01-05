@@ -60,9 +60,10 @@ func (h *wasabi2OneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
-			"Each input mixing transaction is connected to a mixing sub graph. " +
-			"This heuristic excludes all clusters which can't fund every mixing sub " +
-			"graph (due to lack of funds or du to having not connection to them).",
+			"Each input mixing transaction is connected to a mixing sub graph. Starting from each connected " +
+			"mixing transacion, this heuristic traverses the transaction graph backwards for the given " +
+			"duration and excludes all clusters which can't fund every mixing sub graph (due to lack of funds " +
+			"or due to having no connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "2",
 			MinimumValue: parameterMinDepth,

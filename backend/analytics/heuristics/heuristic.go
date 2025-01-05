@@ -46,8 +46,8 @@ const (
 	parameterMaxDepth = 5
 	parameterMinDepth = 1
 
-	parameterDescriptionLookForward = "Look forward time in hours"
-	parameterDescriptionLookBack    = "Look back time in hours"
+	parameterDescriptionLookForward = "Maximum duration (hours)"
+	parameterDescriptionLookBack    = "Maximum duration (hours)"
 	parameterDescriptionDepth       = "Maximum traversal depth"
 	parameterTypeInt                = "int"
 )
