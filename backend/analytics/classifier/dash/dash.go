@@ -350,8 +350,8 @@ func newOriginTransaction(uid string) db.Transaction {
 	return db.Transaction{UID: uid, Type: constants.TypeDashOrigin}
 }
 
-// classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
-// The returned slice contains all classified transactions or nil if no privacy transactions have been found.
+// classifyTransactions detects mixing and collateral creation transactions and sets the transaction type appropriately.
+// The returned slice contains all classified transactions or nil if no classified transactions have been found.
 func classifyTransactions(ctx context.Context, dgraph external.Database,
 	transactions []db.Transaction) (mixing []db.Transaction,
 	cc []db.Transaction, cp []db.Transaction, err error) {

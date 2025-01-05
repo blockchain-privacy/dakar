@@ -249,7 +249,7 @@ const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const colorMap = getColorMap(getSettings.value.blockchainMode);
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
-// Non-privacy transaction
+// Transactions without type
 colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607d8b');
 
 colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');

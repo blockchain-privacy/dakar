@@ -108,8 +108,8 @@ func classifyWhirlpoolOriginTransactions(origins []db.Transaction, originToMixin
 	return classfiedTransactions
 }
 
-// classifyTransactions detects mixing transactions and sets the privacy type appropriately
-// The returned slice contains all classified transactions or nil if no privacy transactions have been found.
+// classifyTransactions detects mixing transactions and sets the transaction type appropriately
+// The returned slice contains all classified transactions or nil if no classified transactions have been found.
 func classifyTransactions(transactions []db.Transaction) (wasabi2Mixing []db.Transaction, whirlpoolMixingUIDs []string, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions

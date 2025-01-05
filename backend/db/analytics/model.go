@@ -85,7 +85,7 @@ type AddressNode struct {
 	} `json:"i"`
 }
 
-// MixingActivity contains the timestamp and type of a privacy transaction
+// MixingActivity contains the timestamp and type of a classified transaction
 type MixingActivity struct {
 	TransactionHash string `json:"txhash"`
 	TransactionType string `json:"txtype,omitempty"`

@@ -275,7 +275,7 @@ func main() {
 		}
 
 		g, err = graph.LoadTransactionGraph(ctx, graphConfig, dgraph, 0)
-		if err != nil && !errors.Is(err, graph.ErrDBContainsNoPrivacyTransactions) {
+		if err != nil && !errors.Is(err, graph.ErrDBContainsNoClassifiedTransactions) {
 			warn(err)
 			return
 		}

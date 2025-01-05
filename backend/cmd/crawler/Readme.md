@@ -4,8 +4,8 @@ This is the blockchain crawler.
 
 Modules 
  - Crawler: Loads data from `dashd` via JSON-RPC and stores it in a Dgraph database.
- - Classifier: Classifies transaction stored in Dgraph regarding their privacy type (mixing, origin, destination, ...).
- - Clustering: Clusters addresses of non-privacy transactions via the multi-input clustering heuristic.
+ - Classifier: Classifies transaction stored in Dgraph regarding their classification type (mixing, origin, destination, ...).
+ - Clustering: Clusters addresses of non-mixing transactions via the multi-input clustering heuristic.
  - Heuristics: Allows to apply heuristics on classified transactions in conjunction with clustered addresses.
  - API: HTTP-REST server. 
 
@@ -29,9 +29,9 @@ Start the crawler and confirm the reset dialog.
 
 ## Environment Variables
 
-| Variable        | Default Value | Description                                                                                                                           |
-|-----------------|:-------------:|---------------------------------------------------------------------------------------------------------------------------------------|
-| DEV_GRAPH_LIMIT |     unset     | Limits the number of privacy transactions loaded for the in-memory graph. Useful for fast startup of the crawler. Must be an integer. |
+| Variable        | Default Value | Description                                                                                                                              |
+|-----------------|:-------------:|------------------------------------------------------------------------------------------------------------------------------------------|
+| DEV_GRAPH_LIMIT |     unset     | Limits the number of classified transactions loaded for the in-memory graph. Useful for fast startup of the crawler. Must be an integer. |
 
 
 ## Metrics

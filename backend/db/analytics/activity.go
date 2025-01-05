@@ -12,7 +12,7 @@ import (
 
 // Functions for detecting mixing activity
 
-// GetMixingActivity returns all privacy transactions directly connected
+// GetMixingActivity returns all classified transactions directly connected
 // to the cluster (of the given address) and directly connected to all collateral
 // transactions of the cluster.
 // If isClusterLookup is false, only the given address and its connected transactions will be considered.

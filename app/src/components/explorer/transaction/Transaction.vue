@@ -350,7 +350,7 @@ const showTransactionDetails = toRef(props.showDetails);
 let svgInputGraph = null;
 let svgOutputGraph = null;
 const colorMap = getColorMap(getSettings.value.blockchainMode);
-// Set color for non-privacy transaction
+// Set color for transaction without type
 colorMap.set(undefined, '#607D8B');
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);

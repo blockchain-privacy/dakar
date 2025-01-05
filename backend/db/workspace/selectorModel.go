@@ -130,7 +130,7 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 		return false
 	}
 
-	// can not exclude all privacy transactions and at the same time filter for privacy transactions
+	// can not exclude all classified transactions and at the same time filter for classified transactions
 	if o.TransactionTypes != nil && o.ExcludePrivacyTransactions != nil && *o.ExcludePrivacyTransactions {
 		return false
 	}
@@ -151,7 +151,7 @@ type TxGraphOptions struct {
 	IsForward bool `json:"isForward,omitempty"`
 	// Depth determines how many levels the transaction graph will be traversed
 	Depth *int `json:"depth,omitempty"`
-	// ExcludePrivacyTransactions determines if privacy transactions should be traversed
+	// ExcludePrivacyTransactions determines if classified transactions should be traversed
 	ExcludePrivacyTransactions bool `json:"excludePrivacyTransactions,omitempty"`
 }
 

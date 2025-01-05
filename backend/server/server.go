@@ -34,7 +34,7 @@ type Server struct {
 	client external.RPCClient
 	// worker which sequentially processes work packages (currently only used for heuristics)
 	worker *workspace.Worker
-	// in-memory transaction and address graph of all privacy transactions
+	// in-memory transaction and address graph of all classified transactions
 	graphWrapper *graph.Wrapper
 	// cache factory
 	cacheFactory func(duration time.Duration) mw.Adapter

@@ -42,7 +42,7 @@ import (
 // │Origin├────┤Mixing├────┤Mixing├─┘
 // └──────┘    └──────┘    └──────┘
 
-// GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
+// GetConnectedPrivacyTransactions gets the first numNodes classified transactions including their input transaction
 // from the database.
 func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int,
 	transactionType string) ([]ConnectedNode, error) {
@@ -92,7 +92,7 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 	return connectedNodes, nil
 }
 
-// GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
+// GetPrivacyTransactions gets the numNodes maxTx classified transactions from the database.
 func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
 	const query = `query Q($type:string,$first:int,$offset:int){
@@ -820,7 +820,7 @@ func GetAllFMIClusters(ctx context.Context, c external.Database) (uids []string,
 // anyDirection determines the search direction of the shortest transaction path query. Maximum depth is set to 20.
 // True: Both inputs and outputs are traversed
 // False: Only inputs are traversed
-// withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
+// withTransactionTypes determines if classified transactions should be considered when doing the shortest path lookup
 func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Database, txFrom string, txTo string,
 	withTransactionTypes bool, anyDirection bool) ([]db.FrontendTransaction, error) {
 	/* Full query

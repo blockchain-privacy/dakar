@@ -435,7 +435,7 @@ func getShortestTransactionPathReply(dgraph external.Database, r *http.Request) 
 		From string `json:"from"`
 		// To is the end point of the shortest path lookup
 		To string `json:"to"`
-		// IncludePrivacyTransactions determines if privacy transactions
+		// IncludePrivacyTransactions determines if classified transactions
 		// should be considered when doing the shortest path lookup
 		IncludePrivacyTransactions bool `json:"includePrivacyTransactions"`
 		// AnyDirection determines the search direction of the shortest transaction path query
