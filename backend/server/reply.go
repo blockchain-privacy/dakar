@@ -508,8 +508,11 @@ func getShortestTransactionPathReply(dgraph external.Database, r *http.Request) 
 		}
 	}
 
-	// do 'shortest transaction path' lookup
-	txs, err := dbAnalytics.GetShortestTransactionPathAnyDirection(r.Context(), dgraph,
+	// limit shortest task query duration
+	ctx, cancelFunc := context.WithTimeout(r.Context(), time.Second*30)
+	defer cancelFunc()
+
+	txs, err := dbAnalytics.GetShortestTransactionPathAnyDirection(ctx, dgraph,
 		oldTx, youngTx, req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
 		status = http.StatusInternalServerError
