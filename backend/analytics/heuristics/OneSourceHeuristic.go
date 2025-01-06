@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -123,6 +124,11 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 		}
 	}
 
+	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, h.c.UserUID, h.c.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
@@ -131,7 +137,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, 0, exclusions, h.c)
+			h.lookBackTime, 0, exclusions, attributions, h.c)
 		if err != nil {
 			return nil, err
 		}

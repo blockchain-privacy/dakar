@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -121,12 +122,17 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		}
 	}
 
+	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
 	allTimeLimitedOrigins := make(map[string]heuristics.HeuristicTransaction)
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			lookBackTime, depth, exclusions, options)
+			lookBackTime, depth, exclusions, attributions, options)
 		if err != nil {
 			return nil, err
 		}

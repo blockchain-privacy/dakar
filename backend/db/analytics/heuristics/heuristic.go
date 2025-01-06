@@ -3,7 +3,6 @@ package heuristics
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
-	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/external"
 	"context"
@@ -246,7 +245,7 @@ func GetInputTransaction(ctx context.Context, c external.Database, txhash string
 // Each transaction contains its output amounts and the clusters of all inputs.
 // If no attributions were used or found the returned map is nil.
 func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.Database, uids []string, userUID string,
-	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction,
+	requestedClusterTypes []clustering.ClusterType, attributions map[string][]string) (origins []HeuristicTransaction,
 	attributionMapping map[ClusterUID][]string, err error) {
 	isSimpleClustering := len(requestedClusterTypes) == 0 // true -> only multi-input clusters will be used
 
@@ -331,12 +330,6 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 
 			superClusters = append(superClusters, mergedClusterItem{clusterUIDs: mergedCluster})
 		}
-	}
-
-	attributions, attributionErr := attribution.GetAttributionsPerCluster(ctx, c, userUID, requestedClusterTypes)
-	if attributionErr != nil {
-		err = attributionErr
-		return
 	}
 
 	type usedCluster struct{ superCluster map[string]bool }

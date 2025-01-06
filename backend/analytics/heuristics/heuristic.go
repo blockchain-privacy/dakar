@@ -270,8 +270,9 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	tx heuristics.HeuristicTransaction, lookBackTime time.Duration, maxDepth int, exclusions []string, c heuristics.Options) (
-	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
+	tx heuristics.HeuristicTransaction, lookBackTime time.Duration, maxDepth int, exclusions []string,
+	attributions map[string][]string, c heuristics.Options) (origins []heuristics.HeuristicTransaction,
+	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
 	if err != nil {
@@ -280,7 +281,7 @@ func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *gra
 
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes)
+		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions)
 }
 
 func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {
