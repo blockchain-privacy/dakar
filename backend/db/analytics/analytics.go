@@ -894,9 +894,9 @@ func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Data
 
 // check if deadline was execeded natively or via grpc
 func isDeadlineExceeded(err error) bool {
-	if !errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, context.DeadlineExceeded) {
 		return true
 	}
-	code := status.Code(err)
-	return code == codes.DeadlineExceeded
+
+	return status.Code(err) == codes.DeadlineExceeded
 }
