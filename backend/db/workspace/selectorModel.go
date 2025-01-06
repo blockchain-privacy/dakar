@@ -71,9 +71,9 @@ type TxPropOptions struct {
 	EndDate *time.Time `json:"endDate,omitempty"`
 	// MaxItems is the maximum number of items the selector stores. Can not be higher than selectorMaxItems
 	MaxItems *int `json:"maxItems,omitempty"`
-	// TransactionTypes contains the privacy types which are included in the selection
+	// TransactionTypes contains the transaction types which are included in the selection
 	TransactionTypes []string `json:"txTypes,omitempty"`
-	// ExcludePrivacyTransactions determines if all transactions with a privacy type should be excluded
+	// ExcludePrivacyTransactions determines if all transactions with a transaction type should be excluded
 	ExcludePrivacyTransactions *bool `json:"excludePrivacyTransactions,omitempty"`
 	// InputSum is an amount range of the summed up inputs each transaction has to fullfil
 	InputSum *AmountRange `json:"inputSum,omitempty"`

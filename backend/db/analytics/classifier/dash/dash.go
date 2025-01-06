@@ -14,7 +14,7 @@ import (
 // ClassifyDestinationAndOriginsByBlock sets the transaction type for destination transactions in the given block range and
 // the origin transaction type for all transactions which are connected to mixing
 // transactions in this block. Additionally, it returns all transactions connected to newly
-// classified origin transaction which have no privacy type set yet.
+// classified origin transaction which have no transaction type set yet.
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themselves.
@@ -124,7 +124,7 @@ func ClassifyDestinationAndOriginsByBlock(ctx context.Context, c external.Databa
 	return
 }
 
-// SetCollateralCreation sets the collateral creation privacy type, if its input transaction are
+// SetCollateralCreation sets the collateral creation transaction type, if its input transaction are
 // either of the type origin, mixing or collateral creation. Returns the number of newly
 // classified transactions.
 func SetCollateralCreation(ctx context.Context, c external.Database, txUids []string) (insertCount int, err error) {
@@ -176,7 +176,7 @@ func SetCollateralCreation(ctx context.Context, c external.Database, txUids []st
 	return
 }
 
-// SetCollateralPayment sets the collateral payment privacy type, if its input transaction are
+// SetCollateralPayment sets the collateral payment transaction type, if its input transaction are
 // either of the type origin, collateral creation or collateral payment. Returns the number
 // of newly classified transactions.
 func SetCollateralPayment(ctx context.Context, c external.Database, txUids []string) (insertCount int, err error) {

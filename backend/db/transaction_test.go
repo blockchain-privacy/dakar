@@ -272,7 +272,7 @@ func TestUpdateTransactions(t *testing.T) {
 	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false, nil)
 	require.NoError(t, err)
 
-	// all transactions should now have the privacy type set to 'mixing'
+	// all transactions should now have the transaction type set to 'mixing'
 	for _, tx := range transactions {
 		require.Equal(t, constants.TypeDashMixing, tx.Type)
 	}

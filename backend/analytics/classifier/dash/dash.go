@@ -76,14 +76,14 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 	// step 2: either insert the classified directly into the db or only if they are connected
 	// to a certain type of transactions
 
-	// step 2.1: store the privacy type of mixing transactions.
+	// step 2.1: store the transaction type of mixing transactions.
 	if len(mixingTransactions) > 0 {
 		if updateErr := db.UpdateTransactions(ctx, c, mixingTransactions); updateErr != nil {
 			return false, updateErr
 		}
 	}
 
-	// step 2.2.1: set the privacy type of destination transactions by analyzing the connected transactions.
+	// step 2.2.1: set the transaction type of destination transactions by analyzing the connected transactions.
 	// Origins are only returned in this step and not set directly, if the number of potentialCollateralTransactions
 	// is bigger than zero. This is so the classification is resilient against sudden shutdowns. If the origins were
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the

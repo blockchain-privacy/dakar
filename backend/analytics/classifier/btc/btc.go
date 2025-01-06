@@ -72,7 +72,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 		}
 	}
 
-	// step 3: set the privacy type of
+	// step 3: set the transaction type of
 	// - wasabi 2.0 origin transactions
 	// - wasabi 2.0 destination transactions
 	// - whirlpool destination transactions

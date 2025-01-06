@@ -96,7 +96,7 @@
         </v-col>
         <v-col v-else-if="selectorData.txTypes">
           <icon-item
-            title=" Privacy Type Filter"
+            title=" Transaction Type Filter"
             :icon="incognitoFilter"
           >
             <div class="d-flex flex-wrap">
