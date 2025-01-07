@@ -2,7 +2,7 @@
 
 Via the Dash mixing process, the ownership of funds can be obscured.
 This is done by using funds as inputs for transactions which have shared ownership. The ownership of the resulting
-outputs is therefore only clear to the respective mixing participant.
+outputs is therefore only known to the respective mixing participant.
 
 The mixing service is provided by the Dash master nodes as part of the Dash blockchain protocol.
 

@@ -3,17 +3,25 @@
 CoinJoin heuristics are analytical tools used to identify potential senders and receivers involved in CoinJoin transactions, employing distinct methodologies to narrow down the pool of possible candidates and enhancing the accuracy of transaction analysis. By applying these heuristics, users can gain insights into the relationships and interactions within CoinJoin transactions, ultimately improving their understanding of privacy-enhancing techniques in blockchain networks.
 
 ## Types
+
+Depending on the transaction type, some of the following heuristic types are available.
+
 ### Lookup Direction: Reverse
-- Denomination Type
-- One Source
-- Perfect Match
-- Reverse Amount
-- Reverse Lookup
+
+#### Wasabi 2.0
+
+- Denomination type
+- One source by time
+- One source by depth
+- Perfect match
+- Reverse amount
+- Reverse lookup by time
+- Reverse lookup by depth
 
 ### Lookup Direction: Forward
-- Forward Amount
-- Forward Lookup
 
+- Forward amount
+- Forward lookup
 
 ## Modifiers
 

@@ -16,11 +16,13 @@
       />
     </template>
     <template #body>
-      <fingerprint-transactions
-        v-if="transactionHash"
-        :transaction-hash="transactionHash"
-        @received-transactions="receivedTransactions"
-      />
+      <v-card-text>
+        <fingerprint-transactions
+          v-if="transactionHash"
+          :transaction-hash="transactionHash"
+          @received-transactions="receivedTransactions"
+        />
+      </v-card-text>
     </template>
   </side-bar>
 </template>

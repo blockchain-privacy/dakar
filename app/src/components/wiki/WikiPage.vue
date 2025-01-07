@@ -27,12 +27,13 @@
           <v-list-group
             v-if="fileItem.items"
             v-model="fileItem.active"
+            fluid
           >
             <template #activator="{props}">
               <v-list-item
                 v-bind="props"
                 :title="fileItem.name"
-                :prepend-icon="mdiFileDocument"
+                :prepend-icon="mdiFolder"
               />
             </template>
             <v-list-item
@@ -40,6 +41,7 @@
               :key="child.title"
               :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
               :title="child.name"
+              :prepend-icon="mdiFileDocument"
             />
           </v-list-group>
           <v-list-item
@@ -136,7 +138,9 @@
 </template>
 
 <script setup>
-import {mdiFileDocument, mdiMagnify, mdiMenu} from '@mdi/js';
+import {
+	mdiFileDocument, mdiFolder, mdiMagnify, mdiMenu,
+} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
@@ -423,12 +427,10 @@ onUnmounted(() => {
 }
 
  :deep(h2){
-   margin-top: 15px;
    margin-bottom: 15px;
  }
 
 :deep(h3){
-  margin-top: 10px;
   margin-bottom: 10px;
 }
 
@@ -441,6 +443,19 @@ onUnmounted(() => {
 .wikiFileContent{
   margin-bottom: 50px;
   max-width:900px
+}
+
+:deep(p) {
+  margin-bottom: 10px;
+}
+
+:deep(ul) {
+  margin-bottom: 10px;
+  margin-left: 20px;
+}
+
+:deep(li) {
+  margin-bottom: 5px;
 }
 
 .wikiFileContentFullSize{
