@@ -105,6 +105,11 @@ type ExportClusterActivityModule struct {
 	Filename string `yaml:"filename"`
 }
 
+type TagPackInserterModule struct {
+	Active    bool   `yaml:"active"`
+	Directory string `yaml:"directory"`
+}
+
 type Config struct {
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
@@ -118,6 +123,7 @@ type Config struct {
 	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
 	DestinationCount2     DestinationCount2Module     `yaml:"destinationCount2"`
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
+	TagPackInserter       TagPackInserterModule       `yaml:"tagPackInserter"`
 	Stats                 StatsModule                 `yaml:"stats"`
 }
 
@@ -180,6 +186,10 @@ var defaultConfig = Config{
 	ExportClusterActivity: ExportClusterActivityModule{
 		Active:   false,
 		Filename: "",
+	},
+	TagPackInserter: TagPackInserterModule{
+		Active:    false,
+		Directory: "",
 	},
 }
 
@@ -324,6 +334,10 @@ func main() {
 
 	if newConfig.Stats.Active {
 		doStats(ctx, dgraph, newConfig.Stats.Filename, newConfig.Stats.ExcludeTransactionType)
+	}
+
+	if newConfig.TagPackInserter.Active {
+		doInsertTagPacks(ctx, dgraph, newConfig.TagPackInserter.Directory)
 	}
 }
 

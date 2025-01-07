@@ -1,34 +1,38 @@
 <template>
   <div class="my-2 mx-1">
     <div class="d-flex justify-center">
-      <v-text-field
-        v-model="query"
-        label="Search for attributions"
-        :append-inner-icon="mdiMagnify"
-        variant="solo"
-        max-width="700px"
-        @click:append="handleQuery"
-        @keydown.enter="handleQuery"
-      />
-    </div>
-
-    <v-progress-linear v-if="loading" />
-    <v-row
-      v-if="!loading && attributions.length > 0"
-      class="mt-3 mx-auto mb-2"
-    >
-      <div
-        class="d-flex flex-wrap align-baseline"
-        style="gap: 20px 20px"
+      <v-form
+        ref="attributionSearchForm"
+        validate-on="submit"
+        style="max-width: 700px; width: 100%;"
+        @submit.prevent="handleQuery"
       >
-        <attribution-details
-          v-for="(attribution, i) in attributions"
-          :key="i"
-          :attribution="attribution"
-          @deleted="handleAttributionDeletion"
+        <v-text-field
+          v-model="query"
+          label="Search for attributions"
+          :append-inner-icon="mdiMagnify"
+          variant="solo"
+          :rules="rule"
+          :loading="loading"
+          @click:append-inner="handleQuery"
         />
-      </div>
-    </v-row>
+      </v-form>
+    </div>
+    <template v-if="!loading && attributions.length > 0">
+      <v-row
+        v-for="(attribution, i) in attributions"
+        :key="i"
+      >
+        <v-col>
+          <div class="d-flex justify-center">
+            <attribution-details
+              :attribution="attribution"
+              @deleted="handleAttributionDeletion"
+            />
+          </div>
+        </v-col>
+      </v-row>
+    </template>
   </div>
 </template>
 
@@ -36,7 +40,7 @@
 import {mdiMagnify} from '@mdi/js';
 import AttributionDetails from './AttributionDetails.vue';
 import {getDakarClient, handleError} from '@/utilities';
-import {ref} from 'vue';
+import {ref, useTemplateRef} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {storeToRefs} from 'pinia';
@@ -52,23 +56,18 @@ const loading = ref(false);
 const query = ref('');
 const attributions = ref([]);
 
+const rule = [v => (Boolean(v) && v.trim().length >= 3) || 'query must be at least 3 characters long'];
+
+const attributionForm = useTemplateRef('attributionSearchForm');
+
 // Functions
-function isValidQuery(query) {
-	return query.trim().length > 0;
-}
-
-function setWarningMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'warning', temporary: true, category: route.name,
-	});
-}
-
 async function handleQuery() {
-	const q = query.value;
-	if (!isValidQuery(q)) {
-		setWarningMessage('search query is not valid');
+	const {valid} = await attributionForm.value.validate();
+	if (!valid) {
 		return;
 	}
+
+	const q = query.value.trim();
 
 	await loadSearchData(q);
 }

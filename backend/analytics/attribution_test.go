@@ -186,7 +186,7 @@ func Test_validateAddresses(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		got, err := validateAddresses(context.Background(), tt.args.dgraph, tt.args.attributions)
+		got, err := validateAddresses(context.Background(), tt.args.dgraph, tt.args.attributions, false)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
