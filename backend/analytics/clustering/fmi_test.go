@@ -280,15 +280,17 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	require.NoError(t, err)
 	// 34000 (cluster) + 2 (addresses)
 	require.Equal(t, 34002, *operation[0].NewCluster.AddressCount)
+	require.Equal(t, "0x300", operation[0].NewCluster.UID)
+	require.Len(t, operation[0].OldClusters, 6)
 
 	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x200", AddressCount: testhelper.GetPointer(8000)},
-				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
-				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
-				{UID: "0x300", AddressCount: testhelper.GetPointer(9000)},
+				{UID: "0x100", AddressCount: testhelper.GetPointer(8000)},
+				{UID: "0x200", AddressCount: testhelper.GetPointer(5000)},
+				{UID: "0x300", AddressCount: testhelper.GetPointer(4000)},
+				{UID: "0x400", AddressCount: testhelper.GetPointer(9000)},
 				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
 				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
 				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
@@ -299,6 +301,8 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	require.NoError(t, err)
 	// 34000 (cluster) + 2 (addresses)
 	require.Equal(t, 34002, *operation[0].NewCluster.AddressCount)
+	require.Equal(t, "0x400", operation[0].NewCluster.UID)
+	require.Len(t, operation[0].OldClusters, 6)
 
 	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
 		"a": {
@@ -306,10 +310,10 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 			mergeList: []clustering.Cluster{
 				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
 				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
-				{UID: "0x300", AddressCount: testhelper.GetPointer(9000)},
-				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x500", AddressCount: testhelper.GetPointer(9000)},
 				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
+				{UID: "0x700", AddressCount: testhelper.GetPointer(1000)},
+				{UID: "0x800", AddressCount: testhelper.GetPointer(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -317,6 +321,8 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	require.NoError(t, err)
 	// 26000 (cluster) + 2 (addresses)
 	require.Equal(t, 26002, *operation[0].NewCluster.AddressCount)
+	require.Equal(t, "0x500", operation[0].NewCluster.UID)
+	require.Len(t, operation[0].OldClusters, 5)
 
 	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
 		"a": {
@@ -330,6 +336,19 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 	require.NoError(t, err)
 	// 0 (cluster) + 2 (addresses)
 	require.Equal(t, 2, *operation[0].NewCluster.AddressCount)
+	require.Equal(t, "_:c1", operation[0].NewCluster.UID)
+	require.Empty(t, operation[0].OldClusters)
+
+	operation, err = buildDBOperation(map[*newCluster]bool{}, map[string]*newCluster{
+		"a": {
+			changeTransaction: "0x2",
+			addresses:         map[string]bool{"0x30": true, "0x40": true},
+		}}, 0)
+	require.NoError(t, err)
+	// 0 (cluster) + 2 (addresses)
+	require.Equal(t, 2, *operation[0].NewCluster.AddressCount)
+	require.Equal(t, "_:c1", operation[0].NewCluster.UID)
+	require.Empty(t, operation[0].OldClusters)
 }
 
 func Test_calculateMetrics(t *testing.T) {
