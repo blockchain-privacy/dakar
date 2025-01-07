@@ -3,83 +3,21 @@ package processor
 import (
 	"backend/db"
 	"backend/db/status"
-	"backend/external"
 	"backend/jsonrpc"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"log"
 	"sync"
 	"testing"
 	"time"
 )
 
 var (
-	dbHandle          = &testhelper.TestDB{IsDirty: true}
-	client            *jsonrpc.BlockchainClient
-	generateToAddress string
+	dbHandle = &testhelper.TestDB{}
+	client   = &jsonrpc.BlockchainClient{}
 )
 
-func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
-	// wallet might already exist -> ignore error
-	_, _ = client.CreateWallet("testwallet")
-	// wallet might already be loaded -> ignore error
-	_, _ = client.LoadWallet("testwallet")
-
-	var err error
-	generateToAddress, err = client.GetNewAddress()
-	if err != nil {
-		return err
-	}
-
-	_, err = client.GenerateToAddress(numBlocks, generateToAddress)
-	return err
-}
-
-//nolint:staticcheck // statichceck somehow complains about SA3000, despite being only relevant for go versions <1.15
 func TestMain(m *testing.M) {
-	if testhelper.DoDBTests() {
-		dbName, ok := testhelper.GetDBName()
-		if !ok {
-			log.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
-		}
-		// create dgraph client
-		graphDB, c, err := external.CreateClient(dbName + ":9080")
-		if err != nil {
-			log.Panic(err)
-			return
-		}
-		defer func(c *grpc.ClientConn) {
-			err := c.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(c)
-
-		if !external.WaitForDatabase(graphDB) {
-			log.Panic("Could not connect to database", err)
-			return
-		}
-
-		dbHandle.DB = graphDB
-	}
-
-	if testhelper.DoRPCTests() {
-		rpcHostname, ok := testhelper.GetRPCName()
-		if !ok {
-			log.Panic("environment variable " + testhelper.EnvRPCHostname + " is not set")
-			return
-		}
-
-		client = jsonrpc.NewBlockchainClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
-
-		if err := setupRPCTest(client, 5); err != nil {
-			log.Panic("Could not setup RPC test", err)
-			return
-		}
-	}
-
-	m.Run()
+	testhelper.RunDgraphAndRPCTests(m, dbHandle, client)
 }
 
 func TestIncrementProcessingState(t *testing.T) {
@@ -273,6 +211,10 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 
 	blkCount, err := client.GetBlockCount()
 	require.NoError(t, err)
+
+	generateToAddress, err := client.GetNewAddress()
+	require.NoError(t, err)
+
 	// add two blocks, so the first block has a reference to the next block
 	hashes, err := client.GenerateToAddress(2, generateToAddress)
 	require.NoError(t, err)
@@ -416,6 +358,9 @@ func Test_buildAddresses(t *testing.T) {
 func Test_buildTransactionMapping(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
+
+	generateToAddress, err := client.GetNewAddress()
+	require.NoError(t, err)
 
 	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
@@ -733,6 +678,9 @@ func Test_processRound(t *testing.T) {
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
+
+	generateToAddress, err := client.GetNewAddress()
+	require.NoError(t, err)
 
 	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)

@@ -155,6 +155,10 @@ func TestCrawler_Iterate(t *testing.T) {
 func Test_createTransactionMap(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	testhelper.SkipIfNoRPC(t)
+
+	generateToAddress, err := client.GetNewAddress()
+	require.NoError(t, err)
+
 	blockHashes, err := client.GenerateToAddress(1, generateToAddress)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)

@@ -196,7 +196,7 @@ func CreateCommaArray(uids []string) string {
 // sets up the schema and inserts data from the provided file
 func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 	// check if database state has been modified. In case it has not, just return
-	if !database.IsDirty && database.FileNameKey == fileKey {
+	if !database.IsDirty.Load() && database.FileNameKey == fileKey {
 		return
 	}
 
@@ -229,7 +229,7 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 		return
 	}
 
-	database.IsDirty = false
+	database.IsDirty.Store(false)
 	database.FileNameKey = fileKey
 }
 
@@ -242,7 +242,7 @@ func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
 	// set up schema
 	require.NoError(t, SetupSchema(database))
 
-	database.IsDirty = true
+	database.IsDirty.Store(true)
 }
 
 func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string, error) {
