@@ -29,16 +29,16 @@
           item-value="key"
         />
         <v-btn-toggle
-          v-model="sortDesc"
+          v-model="sortDirection"
           class="mb-3"
           mandatory
           variant="outlined"
           density="default"
         >
-          <v-btn :value="false">
+          <v-btn value="asc">
             <v-icon>{{ mdiArrowUp }}</v-icon>
           </v-btn>
-          <v-btn value>
+          <v-btn value="dsc">
             <v-icon>{{ mdiArrowDown }}</v-icon>
           </v-btn>
         </v-btn-toggle>
@@ -122,7 +122,7 @@ const keys = [
 
 const results = ref([]);
 const sortKey = ref('transactionCount');
-const sortDesc = ref(true);
+const sortDirection = ref('dsc');
 const search = ref('');
 const page = ref(1);
 
@@ -144,7 +144,7 @@ const clusters = computed(() => {
 			valB = b.attributionCount;
 		}
 
-		if (sortDesc.value) {
+		if (sortDirection.value === 'dsc') {
 			return valB - valA;
 		}
 
