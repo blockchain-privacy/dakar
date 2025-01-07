@@ -5,7 +5,6 @@
       class="ma-2"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
-      :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}:null"
     >
       <privacy-chip
         v-if="tx.txtype"
@@ -17,6 +16,20 @@
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
+      <template
+        v-if="showTitleLink"
+        #title
+      >
+        <!-- use slot so link does not span the word 'Transaction' and the actual transaction hash -->
+        Transaction
+        <router-link
+          class="shorten ms-1"
+          style="color: inherit;"
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}"
+        >
+          {{ tx.txhash }}
+        </router-link>
+      </template>
     </icon-title>
     <v-card-text>
       <v-expand-transition>
@@ -133,7 +146,9 @@
           <div style="height: 10px" />
         </div>
       </v-expand-transition>
+      <!-- use btn as width reference because it always exists -->
       <v-btn
+        ref="outputContainer"
         variant="text"
         block
         size="small"
@@ -166,139 +181,107 @@
           />
         </div>
       </v-alert>
-      <v-row class="outputContainer">
-        <v-col v-if="tx.inputs && getInputs.length > 0">
-          <p class="text-center">
-            {{ `${tx.inputs.length} ${plural('Input',tx.inputs.length)}` }}
-          </p>
-          <template
-            v-for="(i,y) in getInputs"
-            :key="i.addresshash + i.inputindex"
+      <v-tabs
+        v-model="tabs"
+        grow
+        :disabled="!isTabMode"
+        :hide-slider="!isTabMode"
+        mandatory
+      >
+        <v-tab
+          :disabled="!allInputs?.length"
+          :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
+          value="inputs"
+        />
+        <v-tab
+          :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
+          value="outputs"
+        />
+      </v-tabs>
+      <component
+        :is="outputFrameComponent"
+        v-model="tabs"
+      >
+        <component
+          :is="outputFrameComponentColumn"
+          v-if="tx.inputs && allInputs.length > 0"
+          value="inputs"
+        >
+          <v-infinite-scroll
+            margin="100"
+            @load="showMoreInputs"
           >
-            <output-item
-              is-input
-              :amount="i.amount"
-              :address-hash="i.addresshash"
-              :tx-hash="i.txhash"
-              :sig-asm="i.sigasm"
-              :key-asm="i.keyasm"
-              :output-index="i.outputindex"
-              :input-index="i.inputindex"
-              :timestamp="i.ts"
-              :transaction-type="i.txtype"
-              :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
-            />
-            <v-divider
-              v-if="y+1 < getInputs.length"
-              :thickness="2"
-            />
-          </template>
-          <!-- split in two for nicer transition -->
-          <v-expand-transition>
-            <div v-if="showAllOutputs">
-              <v-divider :thickness="2" />
-              <template
-                v-for="(i,y) in getResidualInputs"
-                :key="i.addresshash + i.inputindex"
-              >
-                <output-item
-                  is-input
-                  :amount="i.amount"
-                  :address-hash="i.addresshash"
-                  :tx-hash="i.txhash"
-                  :sig-asm="i.sigasm"
-                  :key-asm="i.keyasm"
-                  :output-index="i.outputindex"
-                  :input-index="i.inputindex"
-                  :timestamp="i.ts"
-                  :transaction-type="i.txtype"
-                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
-                />
-                <v-divider
-                  v-if="y+1 < getResidualInputs.length"
-                  :thickness="2"
-                />
-              </template>
-            </div>
-          </v-expand-transition>
-        </v-col>
+            <template
+              v-for="(i,y) in displayedInputs"
+              :key="i.addresshash + i.inputindex"
+            >
+              <output-item
+                is-input
+                :amount="i.amount"
+                :address-hash="i.addresshash"
+                :tx-hash="i.txhash"
+                :sig-asm="i.sigasm"
+                :key-asm="i.keyasm"
+                :output-index="i.outputindex"
+                :input-index="i.inputindex"
+                :timestamp="i.ts"
+                :transaction-type="i.txtype"
+                :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
+              />
+              <v-divider
+                v-if="y+1 < displayedInputs.length"
+                :thickness="2"
+              />
+            </template>
+            <template #empty>
+              <!-- needed so no scrollbars appear -->
+              <p style="height: 3px" />
+            </template>
+          </v-infinite-scroll>
+        </component>
         <!-- empty col if no inputs exist -->
         <v-col
           v-else
           class="emptyCol"
         />
-        <v-col v-if="tx.outputs && getOutputs.length > 0">
-          <p class="text-center">
-            {{ `${tx.outputs.length} ${plural('Output',tx.outputs.length)}` }}
-          </p>
-          <template
-            v-for="(i,y) in getOutputs"
-            :key="i.addresshash + i.outputindex"
+        <component
+          :is="outputFrameComponentColumn"
+          value="outputs"
+        >
+          <v-infinite-scroll
+            margin="100"
+            @load="showMoreOutputs"
           >
-            <output-item
-              :is-input="false"
-              :amount="i.amount"
-              :address-hash="i.addresshash"
-              :tx-hash="i.txhash"
-              :sig-asm="i.sigasm"
-              :key-asm="i.keyasm"
-              :output-index="i.outputindex"
-              :input-index="i.inputindex"
-              :timestamp="i.ts"
-              :transaction-type="i.txtype"
-              :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
-            />
-            <v-divider
-              v-if="y+1<getOutputs.length"
-              :thickness="2"
-            />
-          </template>
-
-          <!-- split in two for nicer transition -->
-          <v-expand-transition>
-            <div v-if="showAllOutputs">
-              <v-divider :thickness="2" />
-              <template
-                v-for="(i,y) in getResidualOutputs"
-                :key="i.addresshash + i.outputindex"
-              >
-                <output-item
-                  :is-input="false"
-                  :amount="i.amount"
-                  :address-hash="i.addresshash"
-                  :tx-hash="i.txhash"
-                  :sig-asm="i.sigasm"
-                  :key-asm="i.keyasm"
-                  :output-index="i.outputindex"
-                  :input-index="i.inputindex"
-                  :timestamp="i.ts"
-                  :transaction-type="i.txtype"
-                  :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
-                />
-                <v-divider
-                  v-if="y+1<getResidualOutputs.length"
-                  :thickness="2"
-                />
-              </template>
-            </div>
-          </v-expand-transition>
-        </v-col>
-        <!-- empty col if no outputs exist -->
-        <v-col
-          v-else
-          class="emptyCol"
-        />
-      </v-row>
+            <template
+              v-for="(i,y) in displayedOutputs"
+              :key="i.addresshash + i.outputindex"
+            >
+              <output-item
+                :is-input="false"
+                :amount="i.amount"
+                :address-hash="i.addresshash"
+                :tx-hash="i.txhash"
+                :sig-asm="i.sigasm"
+                :key-asm="i.keyasm"
+                :output-index="i.outputindex"
+                :input-index="i.inputindex"
+                :timestamp="i.ts"
+                :transaction-type="i.txtype"
+                :highlight="Boolean(i.highlight) || (Boolean(highlightTransaction) && highlightTransaction === i.txhash)"
+              />
+              <v-divider
+                v-if="y+1<displayedOutputs.length"
+                :thickness="2"
+              />
+            </template>
+            <template #empty>
+              <!-- needed so no scrollbars appear -->
+              <p style="height: 3px" />
+            </template>
+          </v-infinite-scroll>
+        </component>
+      </component>
     </v-card-text>
-    <v-btn
-      v-if="areItemsLimited"
-      variant="text"
-      block
-      size="x-small"
-      @click="showAllOutputs = !showAllOutputs"
-    >
-      <v-icon>{{ showAllOutputs ? mdiChevronUp : mdiChevronDown }}</v-icon>
-    </v-btn>
   </v-card>
 </template>
 
@@ -324,7 +307,7 @@ import {
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef, isRef, onUpdated, onMounted, watch, nextTick,
+	computed, isProxy, ref, toRaw, toRef, isRef, onUpdated, onMounted, watch, nextTick, useTemplateRef, onUnmounted,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
@@ -334,6 +317,9 @@ import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 import {useExplorerStore} from '@/pinia/explorer.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import {
+	VRow, VCol, VTabsWindowItem, VTabsWindow,
+} from 'vuetify/components';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -351,8 +337,6 @@ const {getSettings} = storeToRefs(useLocalStore());
 const {highlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 
 const showTransactionDetails = toRef(props.showDetails);
-const showAllOutputs = ref(false);
-const maxOutputs = ref(3);
 
 let svgInputGraph = null;
 let svgOutputGraph = null;
@@ -362,26 +346,26 @@ colorMap.set(undefined, '#607D8B');
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
 
+const showMaxInputs = ref(3);
+const showMaxOutputs = ref(3);
+
+const outputContainerRef = useTemplateRef('outputContainer');
+
+const isTabMode = ref(false);
+const tabs = ref('inputs');
+let resizeObserver;
 // Computed
 const filteredInputs = computed(() => props.tx.inputs
 	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
 const filteredOutputs = computed(() => props.tx.outputs
 	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
-const getInputs = computed(() => getLimitedItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredInputs : props.tx.inputs)));
-const getResidualInputs = computed(() => getResidualItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredInputs : props.tx.inputs)));
-const getOutputs = computed(() => getLimitedItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredOutputs : props.tx.outputs)));
-const getResidualOutputs = computed(() => getResidualItems(sortByTimestamp(props.filterHighlightedOutputs ? filteredOutputs : props.tx.outputs)));
-const areItemsLimited = computed(() => {
-	if (!props.tx) {
-		return false;
-	}
 
-	if (props.tx.inputs && props.tx.inputs.length > maxOutputs.value) {
-		return true;
-	}
+const allInputs = computed(() => props.filterHighlightedOutputs ? filteredInputs.value : props.tx.inputs);
+const allOutputs = computed(() => props.filterHighlightedOutputs ? filteredOutputs.value : props.tx.outputs);
 
-	return Boolean(props.tx.outputs && props.tx.outputs.length > maxOutputs.value);
-});
+const displayedInputs = computed(() => sortByTimestamp(allInputs).slice(0, showMaxInputs.value));
+const displayedOutputs = computed(() => sortByTimestamp(allOutputs).slice(0, showMaxOutputs.value));
+
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const isBTC = computed(() => isModeBTC(getSettings.value.blockchainMode));
@@ -389,19 +373,49 @@ const hasUncommonWasabi2Denomination = computed(() => isBTC.value
 	&& (props.tx.inputs?.some(i => isUncommonWasabi2Denomination(i.amount))
 	|| props.tx.outputs?.some(o => isUncommonWasabi2Denomination(o.amount))));
 
+const outputFrameComponent = computed(() => isTabMode.value ? VTabsWindow : VRow);
+const outputFrameComponentColumn = computed(() => isTabMode.value ? VTabsWindowItem : VCol);
 // Hooks
 onUpdated(() => {
 	init();
 });
 
 onMounted(() => {
+	resizeObserver = new ResizeObserver(entries => {
+		const {width} = entries[0].contentRect;
+
+		if (width < 1000) {
+			isTabMode.value = true;
+
+			if (allInputs.value?.length > 0) {
+				tabs.value = 'inputs';
+			} else {
+				tabs.value = 'outputs';
+			}
+		} else {
+			isTabMode.value = false;
+			tabs.value = null;
+		}
+	});
+
+	resizeObserver.observe(outputContainerRef.value.$el);
 	init();
+});
+
+onUnmounted(() => {
+	resizeObserver.disconnect();
 });
 
 watch(showTransactionDetails, newVal => {
 	if (newVal) {
 		// Wait until DOM is updated
 		nextTick(() => init());
+	}
+});
+
+watch(allInputs, newVal => {
+	if (newVal?.length === 0) {
+		tabs.value = 'outputs';
 	}
 });
 
@@ -466,45 +480,31 @@ function isCoinBaseTx(tx) {
 	return !tx.inputs || tx.inputs.length === 0;
 }
 
-function getLimitedItems(items) {
-	if (!items) {
-		return [];
+function showMoreInputs({done}) {
+	if (allInputs.value.length === 0 || showMaxInputs.value >= allInputs.value.length || props.embed) {
+		done('empty');
+		return;
 	}
 
-	return items.slice(0, maxOutputs.value);
+	showMaxInputs.value += 15;
+
+	done('ok');
 }
 
-function getResidualItems(items) {
-	if (!items) {
-		return [];
+function showMoreOutputs({done}) {
+	if (allOutputs.value.length === 0 || showMaxOutputs.value >= allOutputs.value.length || props.embed) {
+		done('empty');
+		return;
 	}
 
-	if (items.length <= maxOutputs.value) {
-		return [];
-	}
+	showMaxOutputs.value += 15;
 
-	if (showAllOutputs.value) {
-		return items.slice(maxOutputs.value);
-	}
-
-	return [];
+	done('ok');
 }
 
 </script>
 
 <style scoped>
-
-.outputContainer {
-  container-type: inline-size;
-  container-name: outputContainer;
-}
-
-/* don't show col if parent is sm or smaller */
-@container outputContainer (width < 960px) {
-  .emptyCol {
-    display: none;
-  }
-}
 
 /* css for d3 graph  */
 :deep(.bar) {
@@ -514,6 +514,10 @@ function getResidualItems(items) {
 :deep(.hide) {
   display: none;
   height: 0;
+}
+
+:deep(.v-tab) {
+  opacity: 1 !important;
 }
 
 </style>
