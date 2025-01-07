@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -63,9 +64,10 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
-			"Each input mixing transaction is connected to a mixing sub graph. " +
-			"This heuristic excludes all clusters which can't fund every mixing sub " +
-			"graph (due to lack of funds or du to having not connection to them).",
+			"Each input mixing transaction is connected to a mixing sub graph. Starting from each connected " +
+			"mixing transacion, this heuristic traverses the transaction graph backwards for the given " +
+			"duration and excludes all clusters which can't fund every mixing sub graph (due to lack of funds " +
+			"or due to having no connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			MinimumValue: parameterMinDuration,
@@ -122,6 +124,11 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 		}
 	}
 
+	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, h.c.UserUID, h.c.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
@@ -130,7 +137,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, 0, exclusions, h.c)
+			h.lookBackTime, 0, exclusions, attributions, h.c)
 		if err != nil {
 			return nil, err
 		}

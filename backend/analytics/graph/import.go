@@ -14,7 +14,7 @@ import (
 	"gonum.org/v1/gonum/graph/simple"
 )
 
-var ErrDBContainsNoPrivacyTransactions = errors.New("db contains no privacy transactions")
+var ErrDBContainsNoClassifiedTransactions = errors.New("db contains no classified transactions")
 
 type Config struct {
 	loadFunc func(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error)
@@ -221,9 +221,9 @@ func LoadTransactionGraph(ctx context.Context, config Config, c external.Databas
 	return g, nil
 }
 
-// LoadDashTransactionGraph loads and constructs the dash privacy transaction graph from the database.
+// LoadDashTransactionGraph loads and constructs the dash CoinJoin transaction graph from the database.
 // numTxToLoad == 0: load all transactions
-// numTxToLoad > 0: load numTxToLoad transactions of each privacy type
+// numTxToLoad > 0: load numTxToLoad transactions of each transaction type
 func LoadDashTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
 	mixingCount, originCount, ccCount, cpCount, destinationCount, getErr :=
 		analytics.GetDashTransactionTypeCount(ctx, c)
@@ -233,7 +233,7 @@ func LoadDashTransactionGraph(ctx context.Context, c external.Database, numTxToL
 
 	// nothing to do
 	if mixingCount == 0 {
-		return nil, ErrDBContainsNoPrivacyTransactions
+		return nil, ErrDBContainsNoClassifiedTransactions
 	}
 
 	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
@@ -271,9 +271,9 @@ func LoadDashTransactionGraph(ctx context.Context, c external.Database, numTxToL
 	return g, nil
 }
 
-// LoadBTCTransactionGraph loads and constructs the bitcoin privacy transaction graph from the database.
+// LoadBTCTransactionGraph loads and constructs the Bitcoin CoinJoin transaction graph from the database.
 // numTxToLoad == 0: load all transactions
-// numTxToLoad > 0: load numTxToLoad transactions of each privacy type
+// numTxToLoad > 0: load numTxToLoad transactions of each transaction type
 func LoadBTCTransactionGraph(ctx context.Context, c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
 	wasabi2MixingCount, wasabi2OriginCount, wasabi2Destinationcount, whirlpoolMixingCount,
 		whirlpoolOriginCount, whirlpoolDestinationcount, getErr := analytics.GetBTCTransactionTypeCount(ctx, c)
@@ -283,7 +283,7 @@ func LoadBTCTransactionGraph(ctx context.Context, c external.Database, numTxToLo
 
 	// nothing to do
 	if wasabi2MixingCount+whirlpoolMixingCount == 0 {
-		return nil, ErrDBContainsNoPrivacyTransactions
+		return nil, ErrDBContainsNoClassifiedTransactions
 	}
 
 	info("db stats", "wasabi 2.0 mixing count", wasabi2MixingCount, "wasabi 2.0 origin count", wasabi2OriginCount,

@@ -6,7 +6,7 @@
     <v-card class="pb-2">
       <v-card-title>
         <div class="text-h5 text-wrap">
-          Privacy Transactions from {{ startDate }} to {{ endDate }}
+          Transactions from {{ startDate }} to {{ endDate }}
         </div>
       </v-card-title>
       <v-card-text>

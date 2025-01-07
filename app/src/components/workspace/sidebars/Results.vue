@@ -29,16 +29,16 @@
           item-value="key"
         />
         <v-btn-toggle
-          v-model="sortDesc"
+          v-model="sortDirection"
           class="mb-3"
           mandatory
           variant="outlined"
           density="default"
         >
-          <v-btn :value="false">
+          <v-btn value="asc">
             <v-icon>{{ mdiArrowUp }}</v-icon>
           </v-btn>
-          <v-btn value>
+          <v-btn value="dsc">
             <v-icon>{{ mdiArrowDown }}</v-icon>
           </v-btn>
         </v-btn-toggle>
@@ -60,12 +60,15 @@
             class="my-2"
             variant="flat"
           >
-            <attribution-tag
-              v-for="(attribution, y) in cluster.raw.attributions"
-              :key="y"
-              :attribution="attribution"
-              class="ms-2"
-            />
+            <template v-if="cluster.raw.attributions">
+              <attribution-tag
+                v-for="(attribution, y) in cluster.raw.attributions.slice(0,3)"
+                :key="y"
+                :attribution="attribution"
+                class="ms-2"
+              />
+            </template>
+
             <result-item
               :max-items="5"
               :items="cluster.raw.transactions"
@@ -122,7 +125,7 @@ const keys = [
 
 const results = ref([]);
 const sortKey = ref('transactionCount');
-const sortDesc = ref(true);
+const sortDirection = ref('dsc');
 const search = ref('');
 const page = ref(1);
 
@@ -144,7 +147,7 @@ const clusters = computed(() => {
 			valB = b.attributionCount;
 		}
 
-		if (sortDesc.value) {
+		if (sortDirection.value === 'dsc') {
 			return valB - valA;
 		}
 

@@ -15,7 +15,7 @@ import (
 
 // exportTransactionData exports all transaction timestamps in a CSV-file per transaction type.
 func exportTransactionData(ctx context.Context, database external.Database, directory string) {
-	info("Creating privacy transaction charts")
+	info("Creating transaction type charts")
 	if len(directory) == 0 {
 		info("invalid directory: " + directory)
 		return

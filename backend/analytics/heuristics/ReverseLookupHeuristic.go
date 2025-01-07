@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -60,10 +61,11 @@ func (h *reverseLookupHeuristic) String() string {
 
 func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:       "Reverse lookup",
-		Type:        h.heuristicType,
-		Category:    heuristicCategoryReverse,
-		Description: "Traverses the transaction graph backwards for the given duration and returns all found origins.",
+		Title:    "Reverse lookup",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
+		Description: "Starting from each connected mixing transaciton, traverses the transaction " +
+			"graph backwards for the given duration and returns all found origins.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			MinimumValue: parameterMinDuration,
@@ -79,10 +81,10 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c, constants.TypeDashMixing)
+	return reverseLookup(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c, constants.TypeDashMixing)
 }
 
-func reverseLookupByTime(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string, lookBackTime time.Duration, depth int,
 	options heuristics.Options, mixingTransactionType string) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 && depth == 0 {
@@ -120,12 +122,17 @@ func reverseLookupByTime(ctx context.Context, dgraph external.Database, g *graph
 		}
 	}
 
+	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
 	allTimeLimitedOrigins := make(map[string]heuristics.HeuristicTransaction)
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			lookBackTime, depth, exclusions, options)
+			lookBackTime, depth, exclusions, attributions, options)
 		if err != nil {
 			return nil, err
 		}

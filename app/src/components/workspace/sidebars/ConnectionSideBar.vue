@@ -296,7 +296,7 @@ async function getConnectionData() {
 			if (hasTxType) {
 				filteredHeaders.value = headers;
 			} else {
-				// Data has no privacy type, so remove it from header
+				// Data has no transaction type, so remove it from header
 				filteredHeaders.value = headers.filter(d => d.key !== 'txtype');
 			}
 		} else if (response.frontendTransactions) {

@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -63,9 +64,10 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
-			"Each input mixing transaction is connected to a mixing sub graph. " +
-			"This heuristic excludes all clusters which can't fund every mixing sub " +
-			"graph (due to lack of funds or du to having not connection to them).",
+			"Each input mixing transaction is connected to a mixing sub graph. Starting from each connected " +
+			"mixing transacion, this heuristic traverses the transaction graph backwards until the given depth " +
+			"is reached and excludes all clusters which can't fund every mixing sub graph (due to lack of funds " +
+			"or due to having no connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			MinimumValue: parameterMinDuration,
@@ -84,10 +86,10 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
 func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	return oneSourceByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+	return oneSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
 }
 
-func oneSourceByTime(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
 	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
@@ -126,6 +128,11 @@ func oneSourceByTime(ctx context.Context, dgraph external.Database, g *graph.Wra
 		}
 	}
 
+	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
@@ -134,7 +141,7 @@ func oneSourceByTime(ctx context.Context, dgraph external.Database, g *graph.Wra
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			lookBackTime, depth, exclusions, options)
+			lookBackTime, depth, exclusions, attributions, options)
 		if err != nil {
 			return nil, err
 		}

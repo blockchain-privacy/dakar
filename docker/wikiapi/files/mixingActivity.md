@@ -5,8 +5,8 @@ which can be attributed to one address or cluster. This allows to partially obse
 
 ## Bar Chart
 
-The bar chart shows a timeline of all the privacy transactions. It can be filtered by transaction type and time.
+The bar chart shows a timeline of all classified transactions. It can be filtered by transaction type and time.
 
 ## Force Graph
 
-The force graph shows the connections between all the privacy transactions. It can be filtered by transaction type and time.
+The force graph shows the connections between all the classified transactions. It can be filtered by transaction type and time.

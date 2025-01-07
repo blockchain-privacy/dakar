@@ -28,7 +28,7 @@ func (t *Transaction) String() string {
 	output := fmt.Sprintf("UID: %s, Hash: %s", t.UID, t.Hash)
 
 	if t.Type != "" {
-		output += ", Privacy type:" + t.Type
+		output += ", Transaction type:" + t.Type
 	}
 
 	if t.Fee != nil {

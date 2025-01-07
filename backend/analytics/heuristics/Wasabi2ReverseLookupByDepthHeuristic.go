@@ -57,10 +57,11 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) String() string {
 
 func (h *wasabi2ReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:       "Reverse lookup by depth",
-		Type:        h.heuristicType,
-		Category:    heuristicCategoryReverse,
-		Description: "Traverses the transaction graph backwards until the given depth is reached and returns all found origins.",
+		Title:    "Reverse lookup by depth",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
+		Description: "Starting from each connected mixing transaciton, traverses the transaction " +
+			"graph backwards until the given depth is reached and returns all found origins.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "2",
 			MinimumValue: parameterMinDepth,
@@ -76,5 +77,5 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *wasabi2ReverseLookupByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c, constants.TypeWasabi2Mixing)
+	return reverseLookup(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c, constants.TypeWasabi2Mixing)
 }

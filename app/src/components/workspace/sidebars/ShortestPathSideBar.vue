@@ -51,7 +51,7 @@
             </v-radio-group>
             <v-checkbox
               v-model="includePrivacyTransactions"
-              label="Traverse private transactions"
+              label="Traverse Classified Transactions"
               class="mx-5"
               :disabled="isLoading"
               hide-details

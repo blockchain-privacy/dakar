@@ -3,6 +3,9 @@ package analytics
 import (
 	"backend/db"
 	"backend/testhelper"
+	"context"
+	"errors"
+	"github.com/qrest/gomisc/serror"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -45,4 +48,13 @@ func TestGetTransactionCountPerCluster(t *testing.T) {
 			break
 		}
 	}
+}
+
+func Test_isDeadlineExceeded(t *testing.T) {
+	err := errors.New("test")
+	require.False(t, isDeadlineExceeded(err))
+	err = serror.FromStr("test")
+	require.False(t, isDeadlineExceeded(err))
+	ctxErr := context.DeadlineExceeded
+	require.True(t, isDeadlineExceeded(ctxErr))
 }
