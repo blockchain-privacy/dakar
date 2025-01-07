@@ -737,12 +737,18 @@ type OutputCount struct {
 	OutputCount int    `json:"outputCount,omitempty"`
 }
 
-// GetTransactionOutputCounts returns every transaction in the specified block range with its input and output counts
+// GetTransactionOutputCounts returns every transaction in the specified block range with its input and output counts.
+// If excludeTransactionType is not empty, transactions matching the given type will excluded.
 func GetTransactionOutputCounts(ctx context.Context, c external.Database,
-	fromBlockID int64, toBlockID int64) ([]OutputCount, error) {
+	fromBlockID int64, toBlockID int64, excludeTransactionType string) ([]OutputCount, error) {
+	var filter string
+	if excludeTransactionType != "" {
+		filter = "@filter(not eq(Transaction.type,\"" + excludeTransactionType + "\"))"
+	}
+
 	query := `query Q($id1:int,$id2:int){
 				var(func: between(id,$id1, $id2)){
-					t as transactions
+					t as transactions` + filter + `
 				}
 
 				q(func:uid(t)){
