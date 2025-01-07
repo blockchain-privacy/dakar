@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -13,9 +14,8 @@ import (
 
 // denominationTypeHeuristic - see exec for description
 type denominationTypeHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
+	heuristicType string
+	c             heuristics.Options
 }
 
 func newDenominationTypeHeuristic() heuristic {
@@ -24,10 +24,6 @@ func newDenominationTypeHeuristic() heuristic {
 
 func (h *denominationTypeHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *denominationTypeHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *denominationTypeHeuristic) setConfig(c heuristics.Options) error {
@@ -54,11 +50,10 @@ func (h *denominationTypeHeuristic) String() string {
 
 func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Denomination Type",
+		Title:    "Denomination type",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "The denomination type heuristic filters " +
-			"all origins of clusters, which have denominations of " +
+		Description: "Filters all origins of clusters, which have denominations of " +
 			"types which do not occur in the denominations of the " +
 			"destination transaction. For example a destination " +
 			"transaction spends 5 × 10.0001 and 10 × 1.00001. Now " +
@@ -84,13 +79,14 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID)
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+		constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}
 
 	// maps an address to its origin transactions
-	sourceTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+	sourceTransactionMap := mapClusterToTransactions(results)
 
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash
@@ -104,7 +100,7 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}

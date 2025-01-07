@@ -14,22 +14,22 @@ import (
 	"time"
 )
 
-// oneSourceHeuristic - see exec for description
-type oneSourceHeuristic struct {
+// wasabi2OneSourceByTimeHeuristic - see exec for description
+type wasabi2OneSourceByTimeHeuristic struct {
 	heuristicType string
 	lookBackTime  time.Duration
 	c             heuristics.Options
 }
 
-func newOneSourceHeuristic() heuristic {
-	return &oneSourceHeuristic{heuristicType: heuristicTypeOneSource}
+func newWasabi2OneSourceByTimeHeuristic() heuristic {
+	return &wasabi2OneSourceByTimeHeuristic{heuristicType: heuristicTypeWasabi2OneSourceByTime}
 }
 
-func (h *oneSourceHeuristic) getType() string {
+func (h *wasabi2OneSourceByTimeHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2OneSourceByTimeHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -49,17 +49,17 @@ func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *oneSourceHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2OneSourceByTimeHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 
-func (h *oneSourceHeuristic) String() string {
+func (h *wasabi2OneSourceByTimeHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
 }
 
-func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
+func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "One source",
+		Title:    "One source by time",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
@@ -71,24 +71,28 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 			Description:  "Look back time in hours",
 			Type:         "int",
 		},
-		AllowedParents: constants.TransactionTypesDash,
+		AllowedParents: constants.TransactionTypesWasabi2,
 	}
 }
 
-type txAndOrigins struct {
-	inputTransaction heuristics.HeuristicTransaction
-	origins          []heuristics.HeuristicTransaction
-}
-
-// oneSourceHeuristic applies the following heuristics:
+// wasabi2OneSourceByTimeHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by lookBackTime
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	if h.lookBackTime == 0 {
+	return oneSourceByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+}
+
+func oneSourceByTime(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
+	}
+
+	if lookBackTime != 0 && depth != 0 {
+		return nil, serror.FromStr("both depth and look back time are set")
 	}
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
@@ -102,7 +106,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash.
-	inputTransactions, err := getInputTransactions(ctx, dgraph, h.c.TransactionHash, constants.TypeDashMixing)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeWasabi2Mixing)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +117,8 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	}
 
 	var exclusions []string
-	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
+	if options.ExcludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +132,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
-			h.lookBackTime, 0, exclusions, h.c)
+			lookBackTime, depth, exclusions, options)
 		if err != nil {
 			return nil, err
 		}
@@ -155,37 +159,48 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	// for each input transaction to the destination transaction,
 	// inputClusters holds one map with all its occurring clusters
 	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
+
 	for _, t := range allTxAndOrigins {
-		// get input denominations
-		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, h.c.TransactionHash)
-		if getErr != nil {
-			return nil, getErr
+		var inputTxOutputSum int64 //nolint:prealloc
+		for _, output := range t.inputTransaction.Outputs {
+			// skip if output of was not used by destination transaction
+			if output.InputTransaction != options.TransactionHash {
+				continue
+			}
+			inputTxOutputSum += output.Amount
 		}
 
-		oSource := countClusterDenominations(t.origins, denominationIndex)
+		// per input transaction, map clusters to their origins and
+		// mark them for removal if they don't have enough funds for the input transaction
+		clusterTransactionMap := mapClusterToTransactions(t.origins)
+		for clusterUID, clusterOrigins := range clusterTransactionMap {
+			var clusterOutputAmount int64
+			for _, origin := range clusterOrigins {
+				for _, output := range origin.Outputs {
+					clusterOutputAmount += output.Amount
+				}
+			}
 
-		// add element inputSources and set index of current element
-		inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
-		icIndex := len(inputClusters) - 1
+			// add element inputClusters and set index of current element
+			inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
+			icIndex := len(inputClusters) - 1
 
-		// Loop through all clusters of the current input transaction and mark
-		// the clusters which do not have enough denominations to fund all outputs of
-		// the input transaction which are used as inputs in the destination transaction
-		for k, v := range oSource.clusters {
-			clusters[k] = true
-			inputClusters[icIndex][k] = true
-			if v < nDenominations {
-				mRemovableClusters[k] = true
+			clusters[clusterUID] = true
+			inputClusters[icIndex][clusterUID] = true
+
+			if clusterOutputAmount < inputTxOutputSum {
+				mRemovableClusters[clusterUID] = true
 			}
 		}
 	}
 
-	// Remove sources which do not have enough denominations to
+	// Remove clusters which do not have enough denominations to
 	// fund all input transaction to which they are connected
 	for k := range mRemovableClusters {
 		delete(clusters, k)
 	}
 
+	// create cluster->origin map
 	clusterTransactionMap := mapClusterToTransactions(allTimeLimitedOrigins)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k := range clusters {

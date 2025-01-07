@@ -37,6 +37,7 @@ const (
 )
 
 const (
+	// Dash
 	heuristicTypeReverseLookup    = "reverse_lookup"
 	heuristicTypeOneSource        = "one_source"
 	heuristicTypeReverseAmount    = "reverse_amount"
@@ -44,12 +45,19 @@ const (
 	heuristicTypeDenominationType = "denomination_type"
 	heuristicTypeForwardAmount    = "forward_amount"
 	heuristicTypeForwardLookup    = "forward_lookup"
+	// Wasabi 2.0
+	heuristicTypeWasabi2ReverseLookupByTime  = "wasabi2_reverse_lookup_by_time"
+	heuristicTypeWasabi2ReverseLookupByDepth = "wasabi2_reverse_lookup_by_depth"
+	heuristicTypeWasabi2OneSourceByTime      = "wasabi2_one_source_by_time"
+	heuristicTypeWasabi2OneSourceByDepth     = "wasabi2_one_source_by_depth"
+	heuristicTypeWasabi2ReverseAmount        = "wasabi2_reverse_amount"
 )
 
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
 	var validHeuristicTypes = []heuristicConstructor{
+		// Dash
 		newOneSourceHeuristic,
 		newReverseAmountHeuristic,
 		newPerfectMatchHeuristic,
@@ -57,6 +65,12 @@ func init() {
 		newReverseLookupHeuristic,
 		newForwardAmountHeuristic,
 		newForwardLookupHeuristic,
+		// Wasabi 2.0
+		newWasabi2ReverseLookupByTimeHeuristic,
+		newWasabi2ReverseLookupByDepthHeuristic,
+		newWasabi2OneSourceByTimeHeuristic,
+		newWasabi2OneSourceByDepthHeuristic,
+		newWasabi2ReverseAmountHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
@@ -100,9 +114,6 @@ type heuristic interface {
 		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
-	// getParameterString should return the parameter in string (e.g. '10h' for a 10 hour duration).
-	// This string is saved in the database.
-	getParameterString() string
 	// setConfig applies the provided configuration values
 	setConfig(heuristics.Options) error
 	// getConfig returns the configuration of the heuristic
@@ -150,21 +161,22 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 
 // If the given transaction hash belongs to a mixing transaction then it returns the transaction itself,
 // otherwise it return the input transactions of the transaction.
-func getInputTransactions(ctx context.Context, c external.Database, txhash string) ([]heuristics.HeuristicTransaction, error) {
+func getInputTransactions(ctx context.Context, c external.Database, txhash string,
+	allowedTransactionType string) ([]heuristics.HeuristicTransaction, error) {
 	transaction, err := db.GetTransaction(ctx, c, txhash)
 	if err != nil {
 		return nil, err
 	}
 
 	var inputTransactions []heuristics.HeuristicTransaction
-	if transaction.Type == constants.TypeDashMixing {
+	if constants.IsMixingTransaction(transaction.Type) {
 		hs, err := heuristics.GetInputTransaction(ctx, c, txhash)
 		if err != nil {
 			return nil, err
 		}
 		inputTransactions = []heuristics.HeuristicTransaction{*hs}
 	} else {
-		hs, err := heuristics.GetInputTransactions(ctx, c, txhash)
+		hs, err := heuristics.GetInputTransactions(ctx, c, txhash, allowedTransactionType)
 		if err != nil {
 			return nil, err
 		}
@@ -190,9 +202,9 @@ type clusterDenominations struct {
 	clusters map[heuristics.ClusterUID]int
 }
 
-// addTransactionToCluster adds the given transactions to its cluster
-func addTransactionToCluster(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
-	origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
+// mapClusterToTransactions maps clusters to their transactions
+func mapClusterToTransactions(origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
+	sourceTransactionMap := map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}
 	for _, o := range origins {
 		// add transaction to sourceTransactionMap
 		transactions := sourceTransactionMap[o.Cluster]
@@ -215,8 +227,7 @@ func countClusterDenominations(origins []heuristics.HeuristicTransaction,
 	oSource.denominationIndex = denominationIndex
 	oSource.clusters = make(map[heuristics.ClusterUID]int)
 	for _, o := range origins {
-		nDenominations := getDenominationCounts(o)[denominationIndex]
-		oSource.clusters[o.Cluster] += nDenominations
+		oSource.clusters[o.Cluster] += getDenominationCounts(o)[denominationIndex]
 	}
 
 	return

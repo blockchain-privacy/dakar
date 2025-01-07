@@ -16,10 +16,9 @@ import (
 
 // forwardHeuristic - see exec for description
 type forwardHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
-	lookForwardTime      time.Duration
+	heuristicType   string
+	c               heuristics.Options
+	lookForwardTime time.Duration
 }
 
 func newForwardLookupHeuristic() heuristic {
@@ -28,10 +27,6 @@ func newForwardLookupHeuristic() heuristic {
 
 func (h *forwardHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *forwardHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *forwardHeuristic) setConfig(c heuristics.Options) error {
@@ -49,7 +44,6 @@ func (h *forwardHeuristic) setConfig(c heuristics.Options) error {
 	}
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
-	h.parameterDescription = strconv.FormatInt(hoursToLookForward, 10)
 	h.c = c
 
 	return nil
@@ -65,10 +59,10 @@ func (h *forwardHeuristic) String() string {
 
 func (h *forwardHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:       "Forward Lookup",
+		Title:       "Forward lookup by time",
 		Type:        h.heuristicType,
 		Category:    heuristicCategoryForward,
-		Description: "Traverses the transaction graph forward and collects destination transactions.",
+		Description: "Traverses the transaction graph forward for the given duration and collects destination transactions.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
 			Description:  "Look forward time in hours",

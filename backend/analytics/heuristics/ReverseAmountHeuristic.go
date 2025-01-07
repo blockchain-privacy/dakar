@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -13,9 +14,8 @@ import (
 
 // reverseAmountHeuristic - see exec for description
 type reverseAmountHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
+	heuristicType string
+	c             heuristics.Options
 }
 
 func newReverseAmountHeuristic() heuristic {
@@ -24,10 +24,6 @@ func newReverseAmountHeuristic() heuristic {
 
 func (h *reverseAmountHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *reverseAmountHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *reverseAmountHeuristic) setConfig(c heuristics.Options) error {
@@ -54,12 +50,10 @@ func (h *reverseAmountHeuristic) String() string {
 
 func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Reverse Amount",
-		Type:     h.heuristicType,
-		Category: heuristicCategoryReverse,
-		Description: "Returns all origins of sources, which " +
-			"have equal or more denominations to fund the " +
-			"destination transaction.",
+		Title:          "Reverse amount",
+		Type:           h.heuristicType,
+		Category:       heuristicCategoryReverse,
+		Description:    "Returns all clusters which can fully fund the destination transaction via the denominations of their origins.",
 		AllowedParents: []string{heuristicTypeReverseLookup, heuristicTypeOneSource, heuristicTypeDenominationType, heuristicTypePerfect},
 	}
 }
@@ -79,13 +73,20 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID)
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+		constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}
 
-	// maps an address to its origin transactions
-	sourceTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+	if len(results) == 0 {
+		return nil, serror.New(errNoOriginsAtStart)
+	}
+
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
+	if err != nil {
+		return nil, err
+	}
 
 	// origins hold all origins found bei either the parent heuristic
 	// or the destination transaction specified by txHash
@@ -95,23 +96,14 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		origins[r.UID] = r
 	}
 
-	if len(origins) == 0 {
-		return nil, serror.New(errNoOriginsAtStart)
-	}
-
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash)
-	if err != nil {
-		return nil, err
-	}
-
 	inputDenominationCounts := getDenominationCounts(transaction)
 	originAmounts := buildSourceAmounts(origins)
-
+	clusterTransactionMap := mapClusterToTransactions(results)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {
 			// add all transaction uids of a particular cluster to the return set
-			for _, tx := range sourceTransactionMap[clusterID] {
+			for _, tx := range clusterTransactionMap[clusterID] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], db.UIDNode{UID: tx.UID})
 			}
 		}

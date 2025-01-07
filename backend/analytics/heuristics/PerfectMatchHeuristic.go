@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -13,9 +14,8 @@ import (
 
 // perfectMatchHeuristic - see exec for description
 type perfectMatchHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	c                    heuristics.Options
+	heuristicType string
+	c             heuristics.Options
 }
 
 func newPerfectMatchHeuristic() heuristic {
@@ -24,10 +24,6 @@ func newPerfectMatchHeuristic() heuristic {
 
 func (h *perfectMatchHeuristic) getType() string {
 	return h.heuristicType
-}
-
-func (h *perfectMatchHeuristic) getParameterString() string {
-	return h.parameterDescription
 }
 
 func (h *perfectMatchHeuristic) setConfig(c heuristics.Options) error {
@@ -50,7 +46,7 @@ func (h *perfectMatchHeuristic) getConfig() heuristics.Options {
 
 func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title:    "Perfect Match",
+		Title:    "Perfect match",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "The perfect match heuristic filters all " +
@@ -81,13 +77,13 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID)
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+		constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}
 
-	// maps an address to its origin transactions
-	sourceTransactionMap := addTransactionToCluster(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction{}, results)
+	clusterTransactionMap := mapClusterToTransactions(results)
 
 	// origins hold all origins found by the parent heuristic
 	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
@@ -100,7 +96,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +106,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k, o := range originAmounts {
 		if isEqualDenomination(inputDenominationCounts, o) {
-			for _, tx := range sourceTransactionMap[k] {
+			for _, tx := range clusterTransactionMap[k] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], db.UIDNode{UID: tx.UID})
 			}
 		}
