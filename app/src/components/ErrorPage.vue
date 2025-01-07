@@ -1,9 +1,9 @@
 <template>
-  <v-container class="fill-height">
+  <v-container class="fill-height d-flex justify-center">
     <v-card
-      class="mx-auto"
       variant="text"
       max-width="600px"
+      style="width: 100%"
     >
       <v-img
         v-if="imageSource"
@@ -14,7 +14,7 @@
         {{ title }}
       </v-card-title>
       <v-card-text>
-        {{ errorDescription }}
+        {{ errorDescription?errorDescription:description }}
       </v-card-text>
       <v-card-actions class="d-flex justify-end">
         <v-btn :to="{ name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.settings.blockchainMode}}">
@@ -44,9 +44,7 @@ const ory = inject('ory');
 const errorDescription = ref('');
 
 onMounted(async () => {
-	document.title = `${route.meta.title} - ${PAGE_TITLE}`;
-	// Set description from prop
-	errorDescription.value = props.description;
+	document.title = `${props.title} - ${PAGE_TITLE}`;
 
 	// If id query parameter is present, then check if error messages can be pulled
 	if (route.query.id) {

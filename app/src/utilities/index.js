@@ -8,7 +8,7 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
-	DENOMINATIONS_WASABI2,
+	DENOMINATIONS_WASABI2, RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -164,31 +164,6 @@ export const fileRule = [v => {
 	return v.length > 0 || 'File is required';
 }];
 
-// IsValidQueryInput returns true if the input query is valid. This function
-// should be used instead of isValidQuery if the input is expected to be trimmed.
-export function isValidQueryInput(str) {
-	const inputLen = str.length;
-	// 64 -> length of transaction hash and block hash
-	if (inputLen === 0 || inputLen > 64) {
-		return false;
-	}
-
-	// 33,34 -> address length; if smaller than it must be a block id
-	if (inputLen < 33) {
-		return Number.isInteger(Number(str));
-	}
-
-	return str.match(/^[\da-zA-Z]+$/) !== null;
-}
-
-// IsValidQuery returns true if the input query is valid. This function should
-// be used instead of isValidQueryInput if the input is not expected to be trimmed.
-export function isValidQuery(str) {
-	const trimmed = str.trim();
-
-	return trimmed.length === 0 ? true : isValidQueryInput(trimmed);
-}
-
 function isRole(session, mode, roleName) {
 	switch (mode) {
 		case BLOCKCHAIN_BTC: return Boolean(session?.identity?.metadata_public?.roles?.dakar_btc === roleName);
@@ -299,4 +274,32 @@ export function isWasabi2Denomination(amount) {
 // IsUncommonWasabi2Denomination returns true if the given amount is a uncommon wasabi 2.0 denomination
 export function isUncommonWasabi2Denomination(amount) {
 	return amount % 5000 !== 0 && DENOMINATIONS_WASABI2.has(amount);
+}
+
+async function storeResult(promise, piniaAction) {
+	try {
+		const response = await promise;
+		piniaAction(response);
+	} catch (e) {
+		return e;
+	}
+
+	return undefined;
+}
+
+export async function handleQuery(q, explorerStore, client, type) {
+	explorerStore.setAddress(null);
+	explorerStore.setBlock(null);
+	explorerStore.setTransaction(null);
+
+	switch (type) {
+		case RESPONSE_TYPE_TRANSACTION:
+			return await storeResult(client.data.blockchainTransactionsHashGet({hash: q}), explorerStore.updateTransaction);
+		case RESPONSE_TYPE_BLOCK:
+			return await storeResult(client.data.blockchainBlocksHashGet({hash: q}), explorerStore.updateBlock);
+		case RESPONSE_TYPE_ADDRESS:
+			return await storeResult(client.data.blockchainAddressesHashGet({hash: q}), explorerStore.updateAddress);
+		default:
+			return await storeResult(client.data.blockchainSearchQueryGet({query: q}), explorerStore.updateSearchResult);
+	}
 }

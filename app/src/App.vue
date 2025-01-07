@@ -32,20 +32,42 @@
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
 import {
-	BLOCKCHAIN_BTC, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_WORKSPACE_PAGE,
+	BLOCKCHAIN_BTC, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_404_PAGE,
+	ROUTE_NAME_ADDRESS_PAGE,
+	ROUTE_NAME_BLOCK_PAGE,
+	ROUTE_NAME_ENTRY_PAGE,
+	ROUTE_NAME_TRANSACTION_PAGE,
+	ROUTE_NAME_WORKSPACE_PAGE,
 } from './constants';
 import AppBar from './components/appbar/AppBar.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {computed, onBeforeMount} from 'vue';
-import {useRoute} from 'vue-router';
+import {computed, onBeforeMount, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import {useTheme} from 'vuetify';
 import {useLocalStore} from '@/pinia/local';
 import {mdiTestTube} from '@mdi/js';
-import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities/index.js';
+import {
+	getDakarClients,
+	handleError, handleQuery, isAdminIdentity, isPrivilegedIdentity,
+} from '@/utilities/index.js';
+import {useExplorerStore} from '@/pinia/explorer.js';
+import {storeToRefs} from 'pinia';
+import {useNavStore} from '@/pinia/nav.js';
+import {useMsgStore} from '@/pinia/msg.js';
 
 const route = useRoute();
+const router = useRouter();
 const theme = useTheme();
+const msgStore = useMsgStore();
 const localStore = useLocalStore();
+const explorerStore = useExplorerStore();
+const {pushFromUserInput} = storeToRefs(useNavStore());
+const context = {addMessage: msgStore.addMessage, $route: route};
+
+// When the blockchain mode is switched and the current component is not reloaded,
+// the dakar client is in the wrong state. As a workaround, get all available dakar
+// clients and select the right one when doing a request.
+const dakarClients = getDakarClients();
 
 // Computed
 const settings = computed({
@@ -63,7 +85,67 @@ const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
 const isBitcoinAlertPage = computed(() => !isEntryPage.value && route.params.blockchainMode === BLOCKCHAIN_BTC
 	&& route.name !== ROUTE_NAME_WORKSPACE_PAGE);
 
+// Hooks
+onBeforeMount(() => {
+	checkSessionExpiration();
+	setDarkTheme();
+
+	const mode = route.params.blockchainMode;
+	if (mode !== undefined) {
+		persistBlockchainMode(mode);
+	}
+
+	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+		persistDarkTheme(e.matches);
+		setDarkTheme();
+	});
+});
+
+// Watch
+watch(route, () => {
+	newRouting();
+});
+
 // Functions
+async function newRouting() {
+	const {id} = route.params;
+	const isPushFromUserInput = pushFromUserInput.value;
+
+	if (isPushFromUserInput) {
+		pushFromUserInput.value = false;
+	}
+
+	if (isPushFromUserInput || !id
+		|| !(route.name === ROUTE_NAME_BLOCK_PAGE
+		|| route.name === ROUTE_NAME_ADDRESS_PAGE
+		|| route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
+		return;
+	}
+
+	let err;
+	switch (route.name) {
+		case ROUTE_NAME_TRANSACTION_PAGE:
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_TRANSACTION);
+			break;
+		case ROUTE_NAME_BLOCK_PAGE:
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_BLOCK);
+			break;
+		case ROUTE_NAME_ADDRESS_PAGE:
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode], RESPONSE_TYPE_ADDRESS);
+			break;
+		default:
+			err = await handleQuery(id, explorerStore, dakarClients[settings.value.blockchainMode]);
+	}
+
+	if (err) {
+		if (err.cause?.status === 404) {
+			await router.push({name: ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}});
+		} else {
+			handleError(context, err);
+		}
+	}
+}
+
 function persistDarkTheme(isDark) {
 	const set = settings.value;
 	set.dark = isDark;
@@ -107,21 +189,8 @@ function checkSessionExpiration() {
 	}
 }
 
-// Hooks
-onBeforeMount(() => {
-	checkSessionExpiration();
-	setDarkTheme();
-
-	const mode = route.params.blockchainMode;
-	if (mode !== undefined) {
-		persistBlockchainMode(mode);
-	}
-
-	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-		persistDarkTheme(e.matches);
-		setDarkTheme();
-	});
-});
+// Initial routing
+newRouting();
 
 </script>
 

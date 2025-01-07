@@ -201,23 +201,23 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 	numOutputs := len(t.Inputs)
 
 	denominationOut := countWhirlpoolDenominations(t.Outputs)
-	denomationIndex := -1
-	for i, outputDenomationCount := range denominationOut {
-		// there must be only one denomation type, which must be all 5 outputs
-		if outputDenomationCount == numOutputs {
-			denomationIndex = i
+	denominationIndex := -1
+	for i, outputDenominationCount := range denominationOut {
+		// there must be only one denomination type, which must be all 5 outputs
+		if outputDenominationCount == numOutputs {
+			denominationIndex = i
 			break
 		}
 	}
 
 	// no denomination has the required number of occurrences
-	if denomationIndex == -1 {
+	if denominationIndex == -1 {
 		return false
 	}
 
 	// there must be at least one non-denomination input
 	denominationIn := countWhirlpoolDenominations(t.Inputs)
-	if denominationIn[denomationIndex] == numOutputs {
+	if denominationIn[denominationIndex] == numOutputs {
 		return false
 	}
 
@@ -226,7 +226,7 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 			return false
 		}
 
-		if !isAmountWhirlpoolDenomationPlusE(*input.Amount, denominationTypesWhirlpool[denomationIndex], 0) {
+		if !isAmountWhirlpoolDenominationPlusE(*input.Amount, denominationTypesWhirlpool[denominationIndex], 0) {
 			return false
 		}
 	}
@@ -234,12 +234,12 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 	return true
 }
 
-// isAmountWhirlpoolDenomationPlusE returns true if it is close to the given whirlpool denomination.
+// isAmountWhirlpoolDenominationPlusE returns true if it is close to the given whirlpool denomination.
 // set minDiff to > 0 if the amount must not be equal to the denomination
-func isAmountWhirlpoolDenomationPlusE(amount int64, denomation int64, minDiff int64) bool {
-	diff := amount - denomation
+func isAmountWhirlpoolDenominationPlusE(amount int64, denomination int64, minDiff int64) bool {
+	diff := amount - denomination
 	// diff must be between 0 and 100000 and not not be higher than the denomination itself
-	return diff <= 100000 && diff >= minDiff && diff <= denomation
+	return diff <= 100000 && diff >= minDiff && diff <= denomination
 }
 
 // isWhirlpoolOrigin checks if the transaction is a whirlpool origin transaction
@@ -291,8 +291,8 @@ func isWhirlpoolOrigin(t db.Transaction) bool {
 }
 
 func isAnyWhirlpoolDenominationPlusE(amount int64, minDiff int64) bool {
-	for _, denomation := range denominationTypesWhirlpool {
-		if isAmountWhirlpoolDenomationPlusE(amount, denomation, minDiff) {
+	for _, denomination := range denominationTypesWhirlpool {
+		if isAmountWhirlpoolDenominationPlusE(amount, denomination, minDiff) {
 			return true
 		}
 	}

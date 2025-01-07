@@ -195,7 +195,7 @@ export const router = createRouter({
 			props: {
 				default: true,
 				title: 'No results found!',
-				description: 'Your search query did not return any results. Either navigate back or click below to get back to the entry page.',
+				description: 'Your search query did not return any results.',
 				imageSource: NoResultsImg,
 			},
 		},
@@ -217,7 +217,7 @@ export const router = createRouter({
 			props: {
 				default: true,
 				title: '404 - Page not found!',
-				description: 'The requested page does not exist. Either navigate back or click below to get back to the entry page.',
+				description: 'The requested page does not exist.',
 				imageSource: BugsImg,
 			},
 		},

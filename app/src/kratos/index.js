@@ -9,11 +9,11 @@ async function refreshFlow(onRefreshFlow) {
 	await onRefreshFlow();
 }
 
-// Returns true if error has been handled
-async function checkErrorID(context, error, onRefreshFlow) {
+// Returns true if the error was handled
+async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 	switch (error.response.error.id) {
 		case 'session_already_available': // User is already signed in, let's redirect them home!
-			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE});
+			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: context.localStore.getSettings.blockchainMode}});
 			return true;
 		case 'session_aal2_required': // 2FA is enabled and enforced, but user did not perform 2fa yet!
 		case 'session_refresh_required': // We need to re-authenticate to perform this action
@@ -29,15 +29,6 @@ async function checkErrorID(context, error, onRefreshFlow) {
 			context.navStore.setFailedRoute(context.$route);
 			context.localStore.setSession(null);
 			context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
-			if (error.response.error.message) {
-				context.msgStore.addMessage({
-					text: error.response.error.reason,
-					type: 'error',
-					temporary: true,
-					category: context.$route.name,
-				});
-			}
-
 			return true;
 		case 'session_inactive':
 			await context.navStore.setFailedRoute(context.$route);
@@ -45,38 +36,28 @@ async function checkErrorID(context, error, onRefreshFlow) {
 			context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 			return true;
 		default:
-			return false;
+			break;
 	}
-}
 
-async function checkErrorStatus(context, error, onRefreshFlow) {
-	switch (error.response.status) {
-		case 410: // The flow expired, let's request a new one.
+	switch (error.response.error.code) {
+		case 410: // Flow expired
 			await refreshFlow(onRefreshFlow);
 			return true;
-		case 401: { // Unauthorized access -> show error
+		case 401: // Unauthorized access
 			await refreshFlow(onRefreshFlow);
-			let msg = '';
-			if (error.response?.error?.reason) {
-				msg = error.response.error.reason;
-			} else {
-				msg = error.response.statusText;
-			}
-
-			context.msgStore.addMessage({text: msg, type: 'error', temporary: true});
 			return true;
-		}
-
 		default:
-			return false;
+			break;
 	}
+
+	return false;
 }
 
 // HandleGetFlowError tries to handle possible ory kratos error scenarios.
 // onRefreshFlow is called when a flow has expired.
 export default async function handleGetFlowError(context, error, onRefreshFlow) {
-	if (error.response?.error?.id) {
-		if (await checkErrorID(context, error, onRefreshFlow)) {
+	if (error.response?.error) {
+		if (await handleErrorCodeAndID(context, error, onRefreshFlow)) {
 			return Promise.resolve();
 		}
 	}
@@ -97,20 +78,14 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 		}
 
 		context.msgStore.addMessage({
-			text: msg, type: 'error', temporary: true, category: context.$route.name,
+			text: msg, type: 'error', temporary: false, category: context.$route.name,
 		});
 		return Promise.resolve();
 	}
 
-	if (error.response?.status) {
-		if (await checkErrorStatus(context, error, onRefreshFlow)) {
-			return Promise.resolve();
-		}
-	}
-
 	if (error.message) {
 		context.msgStore.addMessage({
-			text: error.message, type: 'error', temporary: true, category: context.$route.name,
+			text: error.message, type: 'error', temporary: false, category: context.$route.name,
 		});
 		return Promise.resolve();
 	}

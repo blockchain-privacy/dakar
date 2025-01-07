@@ -99,7 +99,7 @@ func Test_isWasabi2Mixing(t *testing.T) {
 		shouldFail bool
 	}
 
-	onlyOneDenomation := db.Transaction{
+	onlyOneDenomination := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Inputs: []db.Output{
@@ -214,7 +214,7 @@ func Test_isWasabi2Mixing(t *testing.T) {
 		},
 	}
 
-	noUncommonDenomation := db.Transaction{
+	noUncommonDenomination := db.Transaction{
 		Fee:  new(int64),
 		Hash: "f7a484919cee80b71d61a37cb901a6aa6204e7f26535cb7e479079722d571b10",
 		Inputs: []db.Output{
@@ -265,11 +265,11 @@ func Test_isWasabi2Mixing(t *testing.T) {
 	}
 
 	var cases = []transactionTest{
-		{onlyOneDenomation, true},
+		{onlyOneDenomination, true},
 		{lowNumberOfDenominations, true},
 		{lowNumberOfOutputs, true},
 		{shouldWork, false},
-		{noUncommonDenomation, true},
+		{noUncommonDenomination, true},
 	}
 
 	for _, c := range cases {
@@ -490,7 +490,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		},
 	}
 
-	mostFrequentAmountNotCloseToDenomation := db.Transaction{
+	mostFrequentAmountNotCloseToDenomination := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
 		Inputs: []db.Output{
@@ -525,7 +525,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		},
 	}
 
-	noExactDenomation := db.Transaction{
+	noExactDenomination := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
 		Inputs: []db.Output{
@@ -541,7 +541,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		},
 	}
 
-	mostFrequentAmountNotCloseToDenomation2 := db.Transaction{
+	mostFrequentAmountNotCloseToDenomination2 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
 		Inputs: []db.Output{
@@ -557,7 +557,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		},
 	}
 
-	lowDenomationCount := db.Transaction{
+	lowDenominationCount := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9045ef9690fa9e41c7a541984dcbb2a61947467ca6a21c79c8ca4899bb060230",
 		Inputs: []db.Output{
@@ -590,12 +590,12 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 		{shouldWork2, false},
 		{shouldWork3, false},
 		{twoDenominationGroups, true},
-		{lowDenomationCount, false},
+		{lowDenominationCount, false},
 		{noNilAmount, true},
 		{twoNilAmount, true},
-		{mostFrequentAmountNotCloseToDenomation, true},
-		{mostFrequentAmountNotCloseToDenomation2, true},
-		{noExactDenomation, true},
+		{mostFrequentAmountNotCloseToDenomination, true},
+		{mostFrequentAmountNotCloseToDenomination2, true},
+		{noExactDenomination, true},
 	}
 
 	for _, c := range cases {
