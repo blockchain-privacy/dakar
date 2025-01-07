@@ -12,14 +12,14 @@
         The following transactions spend outputs of CoinJoin transactions from
         <wiki-tooltip description-url="destinationFingerprinting.md">
           similar
-        </wiki-tooltip> timeframes as this destination transaction.
+        </wiki-tooltip> time frames as this destination transaction.
       </p>
       <v-alert
         v-if="sessionCount !== -1 && sessionCount < 2"
         type="warning"
         variant="text"
       >
-        This transaction uses outputs from only one mixing timeframe.
+        This transaction uses outputs from only one mixing time frame.
         The results are therefore likely not relevant.
       </v-alert>
       <v-alert
@@ -35,7 +35,7 @@
             v-if="sessionCount !== -1"
             class="text-caption"
           >
-            Number of mixing timeframes: {{ sessionCount.toLocaleString() }}
+            Number of mixing time frames: {{ sessionCount.toLocaleString() }}
           </p>
         </v-col>
         <v-col>

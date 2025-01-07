@@ -8,7 +8,7 @@ CYAN   = $(shell tput -Txterm setaf 6)
 RESET  = $(shell tput -Txterm sgr0)
 
 .PHONY: all build clean test vet lint tidy update_dependencies docker
-.PHONY: openapi-fmt openapi-spec openapi-client openapi-publish push-tag
+.PHONY: openapi-fmt openapi-spec openapi-client openapi-publish push-tag spellcheck-wikiapi
 
 all: crawler
 build: crawler
@@ -57,6 +57,10 @@ openapi-publish: ## Publishes an existing client to the configured repository
 ## Git:
 push-tag: ## increment the most recent tag and push it and any local commits
 	bash createTag.sh
+
+## Spellcheck:
+spellcheck-wiki: ## check the spelling of all markdown files in docker/wikiapi/files
+	find ../docker/wikiapi/files/ -type f -name "*.md" -exec aspell --dont-backup -c "{}" \;
 
 ## Help:
 help: ## Show this help.

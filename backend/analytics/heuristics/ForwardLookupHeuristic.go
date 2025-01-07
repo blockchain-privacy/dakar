@@ -65,8 +65,10 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 		Description: "Traverses the transaction graph forward for the given duration and collects destination transactions.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
-			Description:  "Look forward time in hours",
-			Type:         "int",
+			MinimumValue: parameterMinDuration,
+			MaximumValue: parameterMaxDuration,
+			Description:  parameterDescriptionLookForward,
+			Type:         parameterTypeInt,
 		},
 		AllowedParents: constants.TransactionTypesDash,
 	}

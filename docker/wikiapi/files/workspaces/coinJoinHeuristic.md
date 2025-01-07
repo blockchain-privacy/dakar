@@ -25,7 +25,7 @@ Depending on the transaction type, some of the following heuristic types are ava
 
 ## Modifiers
 
-The behaviour of each heuristic can be modified by the following options:
+The behavior of each heuristic can be modified by the following options:
 
 - Use custom clusters: Use pre-defined defined custom clusters in combination with multi-input clusters when executing the heuristic
 - Use address exclusion list: Do not traverse outputs belonging to the pre-defined address exclusion list

@@ -14,7 +14,7 @@ Copy and paste transaction hash `85834761b7befb9852e4fd328f316ff6f190d945dfc8ee8
 ![add transaction](img/workspace_example_add_transaction.webp)
 
 ### 5. Open the CoinJoin heuristic side bar
-After clicking on the newly added transaction, the transaction side bar opens. Here  transaction details can be viewed. The top section of the sidbar allows various actions, including creating a CoinJoin heuristic. Clicking *Add CoinJoin Heuristic* opens the CoinJoin heuristic side bar.
+After clicking on the newly added transaction, the transaction side bar opens. Here  transaction details can be viewed. The top section of the sidebar allows various actions, including creating a CoinJoin heuristic. Clicking *Add CoinJoin Heuristic* opens the CoinJoin heuristic side bar.
 ![open coinjoin heuristic sidebar](img/workspace_example_open_coinjoin_heuristic_side_bar.webp)
 
 ### 6. Create a CoinJoin heuristic

@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
+	"strconv"
 	"time"
 )
 
@@ -34,6 +35,21 @@ const (
 	heuristicCategoryReverse = "Reverse"
 	// heuristicCategoryForward defines a category string for the frontend to order the heuristic
 	heuristicCategoryForward = "Forward"
+)
+
+const (
+	// maximum duration in hours
+	parameterMaxDuration = 90
+	// minimum duration in hours
+	parameterMinDuration = 1
+	// maximum depth
+	parameterMaxDepth = 5
+	parameterMinDepth = 1
+
+	parameterDescriptionLookForward = "Look forward time in hours"
+	parameterDescriptionLookBack    = "Look back time in hours"
+	parameterDescriptionDepth       = "Maximum traversal depth"
+	parameterTypeInt                = "int"
 )
 
 const (
@@ -90,19 +106,22 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 
 type DescriptorParameter struct {
 	DefaultValue string `json:"value,omitempty"`
+	// MaximumValue in case it is an integer
+	MaximumValue int `json:"maximum,omitempty"`
+	// MinimumValue in case it is an integer
+	MinimumValue int    `json:"minimum,omitempty"`
 	Description  string `json:"description,omitempty"`
 	// Type must be one of the following values: 'int', 'string'
 	Type string `json:"type,omitempty"`
 }
 
 type Descriptor struct {
-	Title       string `json:"title,omitempty"`
-	Type        string `json:"type,omitempty"`
-	Description string `json:"description,omitempty"`
-	Category    string `json:"category,omitempty"`
-	// pointer so Parameter does not appear in JSON if not set
-	Parameter *DescriptorParameter `json:"parameter,omitempty"`
-	// controls which types of parent are allowed for a heuristic. Possible types are transaction types and heuristic types.
+	Title       string               `json:"title,omitempty"`
+	Type        string               `json:"type,omitempty"`
+	Description string               `json:"description,omitempty"`
+	Category    string               `json:"category,omitempty"`
+	Parameter   *DescriptorParameter `json:"parameter,omitempty"`
+	// controls which types of parent are allowed for a heuristic. Possible values are transaction types and heuristic types.
 	// currently not enforced in the backend.
 	AllowedParents []string `json:"allowedParents,omitempty"`
 }
@@ -291,6 +310,7 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 	clonedHeuristic := constructor()
 	c := config
 	c.UserUID = userUID
+
 	if err = clonedHeuristic.setConfig(c); err != nil {
 		return
 	}
@@ -301,6 +321,31 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 	}
 
 	return
+}
+
+// IsConfigValid checks if the given config can be applied to its heuristic type and if the heuristic parameter is valid
+func IsConfigValid(config heuristics.Options) error {
+	constructor, ok := ConstructorMap[config.Type]
+	if !ok {
+		return serror.FromStrWithContext("invalid heuristic type", "type", config.Type)
+	}
+
+	clonedHeuristic := constructor()
+	c := config
+
+	descriptorParameter := clonedHeuristic.GetDescriptor().Parameter
+	if descriptorParameter != nil && descriptorParameter.Type == parameterTypeInt {
+		p, err := strconv.Atoi(config.Parameter)
+		if err != nil {
+			return serror.New(err)
+		}
+
+		if p < descriptorParameter.MinimumValue || p > descriptorParameter.MaximumValue {
+			return serror.FromStrWithContext("invalid parameter value", "value", p)
+		}
+	}
+
+	return clonedHeuristic.setConfig(c)
 }
 
 // Run starts the execution of the given heuristic executor.

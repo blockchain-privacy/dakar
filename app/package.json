@@ -10,7 +10,7 @@
     "lint": "eslint src --fix"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.55",
+    "@blockchain/dakar": "^1.1.56",
     "@fontsource/roboto": "^5.1.1",
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.26",
@@ -42,5 +42,5 @@
     "vite-plugin-vuetify": "^2.0.4",
     "vite-svg-loader": "^5.1.0"
   },
-  "packageManager": "yarn@4.3.1"
+  "packageManager": "yarn@4.6.0"
 }

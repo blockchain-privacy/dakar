@@ -62,9 +62,11 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 		Category:    heuristicCategoryReverse,
 		Description: "Traverses the transaction graph backwards until the given depth is reached and returns all found origins.",
 		Parameter: &DescriptorParameter{
-			DefaultValue: "48",
-			Description:  "Maximum traversal depth",
-			Type:         "int",
+			DefaultValue: "2",
+			MinimumValue: parameterMinDepth,
+			MaximumValue: parameterMaxDepth,
+			Description:  parameterDescriptionDepth,
+			Type:         parameterTypeInt,
 		},
 		AllowedParents: constants.TransactionTypesWasabi2,
 	}

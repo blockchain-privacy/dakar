@@ -68,8 +68,10 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 			"graph (due to lack of funds or du to having not connection to them).",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
-			Description:  "Look back time in hours",
-			Type:         "int",
+			MinimumValue: parameterMinDuration,
+			MaximumValue: parameterMaxDuration,
+			Description:  parameterDescriptionLookBack,
+			Type:         parameterTypeInt,
 		},
 		AllowedParents: constants.TransactionTypesDash,
 	}

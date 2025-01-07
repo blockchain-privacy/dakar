@@ -12,6 +12,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 )
@@ -189,6 +190,11 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		if !ok {
 			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
 		}
+
+		if err := heuristics.IsConfigValid(opt); err != nil {
+			return "", nil, fmt.Errorf("%w: %w", err, db.ErrInvalidRequestArgument)
+		}
+
 		newNode.HeuristicOptions = &opt
 	case workspace.TypeTxProp:
 		opt, ok := any(options).(workspace.TxPropOptions)
@@ -216,6 +222,11 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 		}
 	}
 
+	optionStr, err := json.Marshal(options)
+	if err != nil {
+		return "", nil, serror.NewWithContext(err, "options", options)
+	}
+
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -227,11 +238,6 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	parentIndex, parentNode, err := getSelectorParent(selectorParent, w.Nodes)
 	if err != nil {
 		return "", nil, serror.AddContext(err, "options", options)
-	}
-
-	optionStr, err := json.Marshal(options)
-	if err != nil {
-		return "", nil, serror.NewWithContext(err, "options", options)
 	}
 
 	newNode.UID, err = workspace.InsertSelector(ctx, dgraph, &workspace.Selector{

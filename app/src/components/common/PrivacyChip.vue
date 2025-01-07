@@ -6,10 +6,11 @@
     <v-chip
       v-bind="$attrs"
       rounded
-      color="purple"
+      :color="color"
       :size="size"
       style="cursor: pointer"
       class="text-capitalize"
+      variant="flat"
     >
       <v-icon
         :icon="mdiIncognito"
@@ -37,11 +38,18 @@ import {
 	PRIVACY_TYPE_WHIRLPOOL_ORIGIN,
 } from '@/constants/index.js';
 import {computed} from 'vue';
+import {getColorMap} from '@/utilities/index.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	transactionType: {type: String, required: true},
 	size: {type: String, required: false, default: 'default'},
 });
+const {getSettings} = storeToRefs(useLocalStore());
+const colorMap = getColorMap(getSettings.value.blockchainMode);
+
+const color = computed(() => colorMap.get(props.transactionType));
 
 const transactionTypeWikiPath = computed(() => {
 	const dashDirectory = 'dash';
