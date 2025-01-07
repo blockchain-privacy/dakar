@@ -249,16 +249,16 @@ export function getColorMap(mode) {
 		{name: 'collateral payment', color: '#bfef45'},
 	];
 
-	const wasabi2TransactionTypes = [
-		{name: 'wasabi 2.0 origin', color: '#800000'},
-		{name: 'wasabi 2.0 mixing', color: '#e6194b'},
-		{name: 'wasabi 2.0 destination', color: '#fabed4'},
+	const whirlPoolTransactionTypes = [
+		{name: 'whirlpool origin', color: '#800000'},
+		{name: 'whirlpool mixing', color: '#e6194b'},
+		{name: 'whirlpool destination', color: '#fabed4'},
 	];
 
-	const whirlPoolTransactionTypes = [
-		{name: 'whirlpool origin', color: '#3cb44b'},
-		{name: 'whirlpool mixing', color: '#bfef45'},
-		{name: 'whirlpool destination', color: '#45ef87'},
+	const wasabi2TransactionTypes = [
+		{name: 'wasabi 2.0 origin', color: '#3cb44b'},
+		{name: 'wasabi 2.0 mixing', color: '#bfef45'},
+		{name: 'wasabi 2.0 destination', color: '#45ef87'},
 	];
 
 	const colorMap = new Map();

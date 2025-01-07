@@ -165,19 +165,23 @@
         class="mb-5"
       >
         <div class="d-flex align-center">
-          <wiki-tooltip
-            class="me-1"
-            description-url="wasabi/denominations.md"
-          >
-            Uncommon Wasabi 2.0 denomination
-          </wiki-tooltip> detected. Highlight all Wasabi 2.0 denominations?
+          <div>
+            <wiki-tooltip
+              class="me-1"
+              description-url="wasabi/denominations.md"
+            >
+              Uncommon Wasabi 2.0 denomination
+            </wiki-tooltip> detected. Highlight all Wasabi 2.0 denominations?
+          </div>
           <v-spacer />
+          <!-- need to set min-width so the switch does not shrink when less space is available -->
           <v-switch
             v-model="highlightWasabi2Denominations"
-            class="ml-2"
+            class="ms-2"
             inset
             density="compact"
             hide-details
+            min-width="55px"
           />
         </div>
       </v-alert>

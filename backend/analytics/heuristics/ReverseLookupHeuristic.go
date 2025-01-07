@@ -77,11 +77,12 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *reverseLookupHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c, constants.TypeDashMixing)
 }
 
 func reverseLookupByTime(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	parentHeuristicUID string, lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	parentHeuristicUID string, lookBackTime time.Duration, depth int,
+	options heuristics.Options, mixingTransactionType string) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
 	}
@@ -99,7 +100,7 @@ func reverseLookupByTime(ctx context.Context, dgraph external.Database, g *graph
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeDashMixing)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, mixingTransactionType)
 	if err != nil {
 		return nil, err
 	}

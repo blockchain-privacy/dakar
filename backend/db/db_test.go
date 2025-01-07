@@ -87,6 +87,36 @@ func TestCreateCommaList(t *testing.T) {
 	}
 }
 
+func TestCreateCommaListQuotationMarks(t *testing.T) {
+	type testCase struct {
+		uids   []string
+		result string
+	}
+
+	var cases = []testCase{
+		{
+			uids:   []string{},
+			result: "",
+		},
+		{
+			uids:   nil,
+			result: "",
+		},
+		{
+			uids:   []string{"123", "456"},
+			result: "\"123\",\"456\"",
+		},
+		{
+			uids:   []string{"123", ""},
+			result: "\"123\",\"\"",
+		},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, CreateCommaListQuotationMarks(c.uids), c.result)
+	}
+}
+
 func TestCreateCommaArray(t *testing.T) {
 	type testCase struct {
 		uids   []string

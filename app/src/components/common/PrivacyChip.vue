@@ -24,13 +24,17 @@
 import WikiTooltip from '../wiki/WikiTooltip.vue';
 import {mdiIncognito} from '@mdi/js';
 import {
-	PRIVACY_TYPE_CC, PRIVACY_TYPE_CP,
+	PRIVACY_TYPE_CC,
+	PRIVACY_TYPE_CP,
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_MIXING,
 	PRIVACY_TYPE_ORIGIN,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_MIXING,
 	PRIVACY_TYPE_WASABI_2_ORIGIN,
+	PRIVACY_TYPE_WHIRLPOOL_DESTINATION,
+	PRIVACY_TYPE_WHIRLPOOL_MIXING,
+	PRIVACY_TYPE_WHIRLPOOL_ORIGIN,
 } from '@/constants/index.js';
 import {computed} from 'vue';
 
@@ -42,6 +46,7 @@ const props = defineProps({
 const transactionTypeWikiPath = computed(() => {
 	const dashDirectory = 'dash';
 	const wasabiDirectory = 'wasabi';
+	const whirlpoolDirectory = 'whirlpool';
 
 	switch (props.transactionType) {
 		case PRIVACY_TYPE_ORIGIN: return `${dashDirectory}/originTransaction.md`;
@@ -52,6 +57,9 @@ const transactionTypeWikiPath = computed(() => {
 		case PRIVACY_TYPE_WASABI_2_ORIGIN: return `${wasabiDirectory}/originTransaction.md`;
 		case PRIVACY_TYPE_WASABI_2_MIXING: return `${wasabiDirectory}/mixingTransaction.md`;
 		case PRIVACY_TYPE_WASABI_2_DESTINATION: return `${wasabiDirectory}/destinationTransaction.md`;
+		case PRIVACY_TYPE_WHIRLPOOL_ORIGIN: return `${whirlpoolDirectory}/originTransaction.md`;
+		case PRIVACY_TYPE_WHIRLPOOL_MIXING: return `${whirlpoolDirectory}/mixingTransaction.md`;
+		case PRIVACY_TYPE_WHIRLPOOL_DESTINATION: return `${whirlpoolDirectory}/destinationTransaction.md`;
 		default: return '';
 	}
 });

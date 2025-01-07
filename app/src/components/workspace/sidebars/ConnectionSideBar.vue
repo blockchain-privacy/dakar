@@ -3,7 +3,7 @@
     v-model="model"
     :title="title"
     :icon="mdiArrowLeftRight"
-    max-width="648px"
+    max-width="700px"
   >
     <template #actions>
       <add-nodes-chip
@@ -84,12 +84,14 @@
                     Outputs which connect the two nodes are <span class="textBorder">outlined</span>. Only show outlined outputs?
                   </div>
                   <v-spacer />
+                  <!-- need to set min-width so the switch does not shrink when less space is available -->
                   <v-switch
                     v-model="showOnlyHiglightedOutputs"
-                    class="ml-2"
+                    class="ms-2"
                     inset
                     density="compact"
                     hide-details
+                    min-width="55px"
                   />
                 </div>
               </v-alert>

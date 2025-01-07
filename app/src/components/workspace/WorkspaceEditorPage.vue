@@ -211,6 +211,9 @@ import {
 	PRIVACY_TYPE_ORIGIN,
 	SELECTOR_STATUS_SUCCESS,
 	PRIVACY_TYPE_MIXING,
+	PRIVACY_TYPE_WASABI_2_ORIGIN,
+	PRIVACY_TYPE_WASABI_2_MIXING,
+	PRIVACY_TYPE_WASABI_2_DESTINATION,
 } from '@/constants';
 import {
 	capitalize,
@@ -524,8 +527,11 @@ function isCoinJoinTransactionNode(node) {
 
 	switch (node.txtype) {
 		case PRIVACY_TYPE_ORIGIN:
-		case PRIVACY_TYPE_DESTINATION:
 		case PRIVACY_TYPE_MIXING:
+		case PRIVACY_TYPE_DESTINATION:
+		case PRIVACY_TYPE_WASABI_2_ORIGIN:
+		case PRIVACY_TYPE_WASABI_2_MIXING:
+		case PRIVACY_TYPE_WASABI_2_DESTINATION:
 			return true;
 		default: return false;
 	}

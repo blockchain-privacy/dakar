@@ -74,5 +74,5 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *wasabi2ReverseLookupByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+	return reverseLookupByTime(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c, constants.TypeWasabi2Mixing)
 }

@@ -419,7 +419,7 @@ function getFilteredData(withGraphData) {
 	const numActivities = activities.value.length;
 
 	const items = activities.value.map(d => toRaw(d)).filter(d => {
-		if (selectedTransactionType.value.length < 5
+		if (selectedTransactionType.value.length < transactionTypes.length
 			&& !selectedTransactionType.value.includes(d.txtype)) {
 			return false;
 		}
