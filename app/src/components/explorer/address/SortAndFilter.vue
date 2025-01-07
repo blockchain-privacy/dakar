@@ -2,11 +2,11 @@
   <v-row>
     <v-col>
       <v-select
-        v-model="sort.selected"
+        v-model="model.order"
         :disabled="loading"
         :loading="loading?'primary':false"
         style="max-width: 300px; min-width: 200px;"
-        :items="sort.items"
+        :items="sortItems"
         item-value="id"
         item-title="text"
         label="Sort"
@@ -25,11 +25,11 @@
     </v-col>
     <v-col>
       <v-select
-        v-model="filter.selected"
+        v-model="model.filter"
         :disabled="loading"
         :loading="loading?'primary':false"
         style="max-width: 300px; min-width: 200px;"
-        :items="filter.items"
+        :items="filterItems"
         item-value="id"
         item-title="text"
         label="Filter"
@@ -55,44 +55,40 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 
 const props = defineProps({
-	modelValue: {type: Object, required: true},
 	loading: {type: Boolean, required: false},
 	outputCount: {type: Number, required: true},
 	inputCount: {type: Number, required: true},
 	coinbaseCount: {type: Number, required: true},
-	dataAvailable: {type: Boolean, required: true},
 });
-
+const model = defineModel({type: Object});
 const emit = defineEmits(['update:modelValue', 'change']);
 
-const isSortingByInput = ref(false);
-const sort = ref({
-	selected: 0,
-	items: [
-		{id: 0, text: 'Ascending by output date', disabled: false},
-		{id: 1, text: 'Descending by output date', disabled: false},
-		{divider: true},
-		{id: 2, text: 'Ascending by input date', disabled: false},
-		{id: 3, text: 'Descending by input date', disabled: false},
-		{divider: true},
-		{id: 4, text: 'Ascending by amount', disabled: false},
-		{id: 5, text: 'Descending by amount', disabled: false},
-	],
-});
-const filter = ref({
-	selected: [],
-	items: [
-		{
-			id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
-		},
-		{
-			id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
-		},
-	],
-});
+const sortItems = ref([
+	{id: 0, text: 'Ascending by output date', disabled: false},
+	{id: 1, text: 'Descending by output date', disabled: false},
+	{divider: true},
+	{id: 2, text: 'Ascending by input date', disabled: false},
+	{id: 3, text: 'Descending by input date', disabled: false},
+	{divider: true},
+	{id: 4, text: 'Ascending by amount', disabled: false},
+	{id: 5, text: 'Descending by amount', disabled: false},
+]);
+
+const filterItems = ref([
+	{
+		id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
+	},
+	{
+		id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
+	},
+]);
+
+// Computed
+
+const isSortingByInput = computed(() => model.value.order === 2 || model.value.order === 3);
 
 // Hooks
 onMounted(() => {
@@ -104,20 +100,16 @@ onMounted(() => {
 function handleSortAndFilter() {
 	updateSortState();
 	updateFilterState();
-
-	isSortingByInput.value = sort.value.selected === 2 || sort.value.selected === 3;
-
-	emit('update:modelValue', {order: sort.value.selected, filter: filter.value.selected});
 	emit('change');
 }
 
 function updateSortState() {
 	let isUnspentFilterSelected = false;
 
-	if (props.dataAvailable && props.inputCount === 0) {
+	if (props.inputCount === 0) {
 		isUnspentFilterSelected = true;
 	} else {
-		for (const s of filter.value.selected) {
+		for (const s of model.value.filter) {
 			if (s === 1) {
 				isUnspentFilterSelected = true;
 				break;
@@ -125,7 +117,7 @@ function updateSortState() {
 		}
 	}
 
-	sort.value.items.forEach(d => {
+	sortItems.value.forEach(d => {
 		if (d.id === 2 || d.id === 3) {
 			d.disabled = isUnspentFilterSelected;
 		}
@@ -134,22 +126,21 @@ function updateSortState() {
 
 function updateFilterState() {
 	let disableUnspentFilter = false;
-	if (props.dataAvailable && props.outputCount - props.inputCount === 0) {
+	if (props.outputCount - props.inputCount === 0) {
 		disableUnspentFilter = true;
 	} else {
-		const selection = sort.value.selected;
+		const selection = model.value.order;
 		if (selection === 2 || selection === 3) {
 			disableUnspentFilter = true;
 		}
 	}
 
 	let disableCoinbaseFilter = false;
-	if (props.dataAvailable
-		&& (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount)) {
+	if (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount) {
 		disableCoinbaseFilter = true;
 	}
 
-	filter.value.items.forEach(d => {
+	filterItems.value.forEach(d => {
 		if (d.id === 0) {
 			d.disabled = disableCoinbaseFilter;
 		} else if (d.id === 1) {
