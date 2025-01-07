@@ -60,12 +60,15 @@
             class="my-2"
             variant="flat"
           >
-            <attribution-tag
-              v-for="(attribution, y) in cluster.raw.attributions"
-              :key="y"
-              :attribution="attribution"
-              class="ms-2"
-            />
+            <template v-if="cluster.raw.attributions">
+              <attribution-tag
+                v-for="(attribution, y) in cluster.raw.attributions.slice(0,3)"
+                :key="y"
+                :attribution="attribution"
+                class="ms-2"
+              />
+            </template>
+
             <result-item
               :max-items="5"
               :items="cluster.raw.transactions"
