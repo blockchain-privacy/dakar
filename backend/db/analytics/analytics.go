@@ -697,7 +697,7 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 		return
 	}
 
-	clusterToDestinationTransactions := map[string][]string{}
+	clusterToDestinationTransactions := map[string]map[string]bool{}
 	uidToTx := make(map[string]db.Transaction, len(r.Transactions))
 	includedTransactions := map[string]bool{}
 	for _, tx := range r.Transactions {
@@ -705,12 +705,18 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 			UID:  tx.UID,
 			Hash: tx.TransactionHash,
 		}
+
 		for _, cluster := range tx.Clusters {
 			if cluster.ClusterCount > 1000 {
 				excludedBecauseOfClusterSizeCount++
 				continue
 			}
-			clusterToDestinationTransactions[cluster.UID] = append(clusterToDestinationTransactions[cluster.UID], tx.UID)
+
+			if len(clusterToDestinationTransactions[cluster.UID]) == 0 {
+				clusterToDestinationTransactions[cluster.UID] = make(map[string]bool)
+			}
+
+			clusterToDestinationTransactions[cluster.UID][tx.UID] = true
 		}
 	}
 
@@ -720,9 +726,11 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 		}
 
 		destinations := make([]db.Transaction, len(txUIDs))
-		for i, txUID := range txUIDs {
+		i := 0
+		for txUID := range txUIDs {
 			includedTransactions[txUID] = true
 			destinations[i] = uidToTx[txUID]
+			i++
 		}
 
 		transactions = append(transactions, SpenderTransaction{

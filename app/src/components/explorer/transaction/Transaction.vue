@@ -2,7 +2,7 @@
   <v-card :variant="embed?undefined:'text'">
     <icon-title
       v-if="showTitleBar"
-      class="ma-2"
+      class="pa-2"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
     >
@@ -252,6 +252,11 @@
             margin="100"
             @load="showMoreOutputs"
           >
+            <!-- todo: remove when https://github.com/vuetifyjs/vuetify/pull/20637 is merged -->
+            <template
+              v-if="filterHighlightedOutputs"
+              #loading
+            />
             <template
               v-for="(i,y) in displayedOutputs"
               :key="i.addresshash + i.outputindex"
@@ -493,7 +498,17 @@ function showMoreInputs({done}) {
 
 function showMoreOutputs({done}) {
 	if (allOutputs.value.length === 0 || showMaxOutputs.value >= allOutputs.value.length || props.embed) {
-		done('empty');
+		// When filtering the outputs, the infinite scroll would normaly send 'empty'.
+		// Once in that state it can not be reset. So switchting back to unfiltered outputs,
+		// the infinite scroll would not work anymore.
+		// The following workaround only sends 'empty' when not filtering.
+		// todo: once https://github.com/vuetifyjs/vuetify/pull/20637 is merged, remove workaround (compare with showMoreInputs()) and use reset method
+		if (!props.filterHighlightedOutputs) {
+			done('empty');
+			return;
+		}
+
+		done('ok');
 		return;
 	}
 

@@ -91,14 +91,13 @@
                 </v-card>
               </v-col>
               <template v-if="block.transactions">
-                <v-divider />
                 <v-container class="pa-0">
                   <v-infinite-scroll @load="addNewData">
                     <template
                       v-for="tx in block.transactions"
                       :key="tx.txhash+tx.bid"
                     >
-                      <v-col class="px-0">
+                      <v-col class="px-1">
                         <transaction
                           :tx="tx"
                           show-title-link
