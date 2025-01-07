@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"time"
 )
@@ -43,8 +42,6 @@ type Properties struct {
 	// Name of the iterator
 	Name    string
 	Context context.Context
-	// Logger used for this iterator
-	Logger *slog.Logger
 	// CurrentBlock refers to the block height which is currently being processed
 	CurrentBlock int64
 	// ProcessedBlockCount is the total number of blocks that were processed during the last Iterate call
@@ -88,17 +85,11 @@ func (s State) String() string {
 }
 
 func info(iterator BlockIterator, msg string, v ...interface{}) {
-	props := iterator.Props()
-	props.Logger.Info(msg, append([]interface{}{"block_iterator_name", props.Name}, v...)...)
+	slog.Info(msg, append([]interface{}{"block_iterator_name", iterator.Props().Name}, v...)...)
 }
 
 // StartIteration starts the iteration process. Set targetIterationDuration to the duration each iteration should scale to.
 func StartIteration(iterator BlockIterator, targetIterationDuration time.Duration, postIterationHook func()) (err error) {
-	props := iterator.Props()
-	if l := props.Logger; l == nil {
-		return serror.FromStr(props.Name + " logger is nil")
-	}
-
 	defer func() {
 		info(iterator, "iterator stopped", "current block", iterator.Props().CurrentBlock)
 
@@ -113,6 +104,7 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 		}
 	}()
 
+	props := iterator.Props()
 	if initErr := iterator.CalculateInitialState(props.Context); initErr != nil {
 		// only return an error if context was not canceled
 		if !errors.Is(props.Context.Err(), context.Canceled) {

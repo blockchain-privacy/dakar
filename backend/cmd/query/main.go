@@ -1,57 +1,29 @@
 package main
 
 import (
-	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/status"
 	"backend/external"
-	"backend/processor"
-	"backend/server"
-	"backend/workspace"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/qrest/gomisc/config"
 	"github.com/qrest/gomisc/serror"
-	"io"
-	"log"
 	"log/slog"
 	"os"
 	"time"
 )
 
-var thisLogger *slog.Logger
-
-func initAllLoggers(fileHandle *os.File) {
-	var outputWriter io.Writer
-	if fileHandle != nil {
-		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
-	} else {
-		outputWriter = os.Stdout
-	}
-
-	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
-	slog.SetDefault(logger)
-
-	thisLogger = slog.With(slog.String("module", "query"))
-
-	analytics.InitLogger()
-	db.InitLogger()
-	processor.InitLogger()
-	server.InitLogger()
-	workspace.InitLogger()
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "main"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 type UniqueAddressesModule struct {
@@ -134,7 +106,6 @@ type ExportClusterActivityModule struct {
 }
 
 type Config struct {
-	Logfile               string                      `yaml:"logfile"`
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
 	UniqueAddresses       UniqueAddressesModule       `yaml:"uniqueAddresses"`
@@ -151,8 +122,7 @@ type Config struct {
 }
 
 var defaultConfig = Config{
-	Logfile: "",
-	DBHost:  "0.0.0.0:9080",
+	DBHost: "0.0.0.0:9080",
 	PrivacyCharts: PrivacyChartModule{
 		Active:    false,
 		Directory: "",
@@ -244,24 +214,7 @@ func main() {
 		return
 	}
 
-	// setup Logging
-	var f *os.File
-	if len(newConfig.Logfile) > 0 {
-		var err error
-		if f, err = config.GetLogfile(newConfig.Logfile); err == nil {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.SetOutput(io.MultiWriter(os.Stdout, f))
-			defer func() {
-				if err = f.Close(); err != nil {
-					fmt.Println(err)
-				}
-			}()
-		} else {
-			fmt.Println("error setting up log file")
-		}
-	}
-
-	initAllLoggers(f)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
 	// create dgraph client
 	dgraph, c, err := external.CreateClient(newConfig.DBHost)

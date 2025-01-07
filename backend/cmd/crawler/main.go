@@ -1,7 +1,6 @@
 package main
 
 import (
-	"backend/analytics"
 	"backend/analytics/classifier"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
@@ -22,7 +21,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/config"
 	"github.com/qrest/gomisc/serror"
-	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -41,36 +39,12 @@ const versionString = "v1.0.0"
 // name of the executable
 const executableName = "crawler"
 
-var thisLogger *slog.Logger
-
-func initAllLoggers(fileHandle *os.File) {
-	var outputWriter io.Writer
-	if fileHandle != nil {
-		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
-	} else {
-		outputWriter = os.Stdout
-	}
-
-	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
-	slog.SetDefault(logger)
-
-	thisLogger = slog.With(slog.String("module", "crawler"))
-
-	analytics.InitLogger()
-	db.InitLogger()
-	processor.InitLogger()
-	server.InitLogger()
-	userserver.InitLogger()
-	workspace.InitLogger()
-	upgrades.InitLogger()
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "main"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -226,22 +200,9 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	////// SETUP //////
+	////// LOGGING //////
 
-	// setup Logging
-	f, err := config.GetLogfile(newConfig.Logfile)
-	if err == nil {
-		defer func() {
-			if err = f.Close(); err != nil {
-				fmt.Println(err)
-			}
-		}()
-	} else if len(newConfig.Logfile) > 0 {
-		fmt.Println("Could not create logfile", newConfig.Logfile)
-		return
-	}
-
-	initAllLoggers(f)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
 	////// CONNECT TO DATABASE //////
 

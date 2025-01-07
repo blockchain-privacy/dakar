@@ -16,7 +16,6 @@ import (
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
-	InitLogger()
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 

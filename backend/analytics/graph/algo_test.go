@@ -2,7 +2,6 @@ package graph
 
 import (
 	"backend/constants"
-	"backend/db"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"slices"
@@ -13,8 +12,6 @@ import (
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
-	InitLogger()
-	db.InitLogger()
 	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 

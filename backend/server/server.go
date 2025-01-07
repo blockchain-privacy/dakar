@@ -19,19 +19,12 @@ import (
 // without an error being thrown while it being read
 const maxBodySize = 5242880 // 5242880 = 1024 * 1024 * 5 -> 5 MiB
 
-var thisLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "server"))
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "server"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 type Server struct {
@@ -59,7 +52,7 @@ func NewServer(m *workspace.Mutex, db external.Database, client external.RPCClie
 		return nil, serror.FromStr("worker pointer is nil")
 	}
 
-	factory, err := mw.NewCacheFactory(1024, thisLogger)
+	factory, err := mw.NewCacheFactory(1024, func(err error) { warn(err) })
 	if err != nil {
 		return nil, err
 	}

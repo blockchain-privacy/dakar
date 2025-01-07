@@ -38,8 +38,6 @@ func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
 
 //nolint:staticcheck // statichceck somehow complains about SA3000, despite being only relevant for go versions <1.15
 func TestMain(m *testing.M) {
-	InitLogger()
-
 	if testhelper.DoDBTests() {
 		dbName, ok := testhelper.GetDBName()
 		if !ok {

@@ -13,19 +13,12 @@ import (
 	"time"
 )
 
-var thisLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "server"))
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "server"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 type Server struct {

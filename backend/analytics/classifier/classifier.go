@@ -3,25 +3,13 @@ package classifier
 import (
 	"backend/analytics/classifier/btc"
 	"backend/analytics/classifier/dash"
-	"backend/analytics/clustering"
-	"backend/analytics/graph"
 	"backend/blockiterator"
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/serror"
-	"log/slog"
 )
-
-var classiferLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	classiferLogger = slog.With(slog.String("module", "classifier"))
-	graph.InitLogger()
-	clustering.InitLogger()
-}
 
 type iteratorFunction func(ctx context.Context, c external.Database, from int64, to int64) (bool, error)
 
@@ -86,7 +74,6 @@ func (c *Classifier) Props() blockiterator.Properties {
 	return blockiterator.Properties{
 		Name:                        "classifier",
 		Context:                     c.ctx,
-		Logger:                      classiferLogger,
 		CurrentBlock:                c.state.ID,
 		ProcessedBlockCount:         c.blocksProcessed,
 		SupportsMultiBlockIteration: true,

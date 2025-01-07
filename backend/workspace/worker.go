@@ -12,19 +12,12 @@ import (
 	"time"
 )
 
-var thisLogger *slog.Logger
-
-// InitLogger creates new loggers with the given parameters.
-func InitLogger() {
-	thisLogger = slog.With(slog.String("module", "workspace"))
-}
-
 func info(msg string, v ...any) {
-	thisLogger.Info(msg, v...)
+	slog.Info(msg, append([]any{"module", "workspace"}, v...)...)
 }
 
 func warn(err error, v ...any) {
-	serror.Log(thisLogger, err, v...)
+	serror.Log(slog.Default(), err, v...)
 }
 
 // Work is an interface to pass a package of work to a Worker, which will process it eventually.
