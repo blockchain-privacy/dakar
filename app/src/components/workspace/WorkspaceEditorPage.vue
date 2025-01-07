@@ -648,7 +648,11 @@ async function addMultipleNodes(nodes) {
 			setInfoMessage(defaultText);
 		}
 	} catch (e) {
-		setErrorMessage(e);
+		if (e.cause?.status === 404) {
+			setInfoMessage(`No results for query '${nodes}'`);
+		} else {
+			setErrorMessage(e);
+		}
 	}
 
 	releaseAutosaveLock();

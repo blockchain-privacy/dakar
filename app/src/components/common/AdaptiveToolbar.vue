@@ -8,7 +8,7 @@
       />
       <p
         v-tooltip="{'text': 'Name of the Workspace', 'location':'top', 'open-delay': 400}"
-        class="me-3 text-h6 workspace-name"
+        class="text-h6 workspace-name"
       >
         {{ name }}
       </p>
@@ -220,7 +220,7 @@ function onAddSelector() {
 <style scoped>
 
 .workspace-name {
-  max-width: 220px;
+  max-width: 150px;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;

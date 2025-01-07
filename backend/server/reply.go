@@ -1432,7 +1432,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 	for _, query := range searchRequest.Queries {
 		newNode, err := dbwork.SearchForNode(r.Context(), dgraph, query)
 		if errors.Is(err, dbwork.ErrNodeNotFound) {
-			status = http.StatusBadRequest
+			status = http.StatusNotFound
 			return
 		}
 
