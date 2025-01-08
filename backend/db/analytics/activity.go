@@ -42,12 +42,17 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 					
 					not_mixing as var(func: uid(t1,t2))@filter(has(Transaction.type) and not eq(Transaction.type,`+constants.AllMixingTypes+`))
 					
-					var(func: uid(not_mixing))@recurse{
+					# outputs of destinations and wasabi 2.0 origins do not all belong to the user
+					dst_and_wasabi_2_origins as var(func: uid(not_mixing))@filter(eq(Transaction.type,`+constants.AllDestinationTypes+",\""+constants.TypeWasabi2Origin+"\""+`))
+
+					for_recurse as var(func: uid(not_mixing))@filter(not uid(dst_and_wasabi_2_origins))
+
+					var(func: uid(for_recurse))@recurse{
 						tx_outputs
 						c_not_mixing as ~tx_inputs@filter(has(Transaction.type) and not eq(Transaction.type,`+constants.AllMixingTypes+`))
 					}
 					
-					all_not_mixing as var(func: uid(not_mixing, c_not_mixing))
+					all_not_mixing as var(func: uid(for_recurse, c_not_mixing, dst_and_wasabi_2_origins))
 					
 					var(func: uid(all_not_mixing)){
 						tx_outputs {
