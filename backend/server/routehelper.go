@@ -162,7 +162,7 @@ const typeEmpty queryResultType = "response_empty"
 // SearchResult holds result data of a block, address or transaction search request
 type SearchResult struct {
 	resultType queryResultType
-	result     interface{}
+	result     any
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true

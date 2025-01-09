@@ -100,7 +100,7 @@ func getAddressReply(dgraph external.Database, r *http.Request) (reply addressRe
 		return
 	}
 
-	reply.Address = &addr
+	reply.Address = addr
 
 	return
 }
