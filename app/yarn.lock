@@ -41,10 +41,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.56":
-  version: 1.1.56
-  resolution: "@blockchain/dakar@npm:1.1.56::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.56.tgz"
-  checksum: 10c0/e92d3729a2b3c6f5a41bcbb9f569f6b025133ce941333dc79bb1a7df25361acfea5ef2233723ed929b3ab0cd33843c1b1cda4140bd3dfce15aa936d335cb29dc
+"@blockchain/dakar@npm:^1.1.57":
+  version: 1.1.57
+  resolution: "@blockchain/dakar@npm:1.1.57::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.57.tgz"
+  checksum: 10c0/a9c12a3054fe5fea84125fa4c5b1f18353f4c99ecf532f481dc81de7e608598111bb422b66b571963b4ec8b0239d500709b83d49624ae572dd5713fd1de2a96a
   languageName: node
   linkType: hard
 
@@ -1513,7 +1513,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.56"
+    "@blockchain/dakar": "npm:^1.1.57"
     "@fontsource/roboto": "npm:^5.1.1"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.26"
@@ -1535,8 +1535,8 @@ __metadata:
     eslint-config-xo: "npm:^0.46.0"
     eslint-plugin-vue: "npm:^9.32.0"
     pinia: "npm:^2.3.0"
-    sass: "npm:^1.83.0"
-    vite: "npm:^6.0.6"
+    sass: "npm:^1.83.1"
+    vite: "npm:^6.0.7"
     vite-plugin-vuetify: "npm:^2.0.4"
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.5.13"
@@ -2998,9 +2998,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.83.0":
-  version: 1.83.0
-  resolution: "sass@npm:1.83.0"
+"sass@npm:^1.83.1":
+  version: 1.83.1
+  resolution: "sass@npm:1.83.1"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     chokidar: "npm:^4.0.0"
@@ -3011,7 +3011,7 @@ __metadata:
       optional: true
   bin:
     sass: sass.js
-  checksum: 10c0/4415361229879a9041d77c953da85482e89032aa4321ba13250a9987d39c80fac6c88af3777f2a2d76a4e8b0c8afbd21c1970fdbe84e0b3ec25fb26741f92beb
+  checksum: 10c0/9772506cd8290df7b5e800055098e91a8a65100840fd9e90c660deb74b248b3ddbbd1a274b8f7f09777d472d2c873575357bd87939a40fb5a80bdf654985486f
   languageName: node
   linkType: hard
 
@@ -3316,9 +3316,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^6.0.6":
-  version: 6.0.6
-  resolution: "vite@npm:6.0.6"
+"vite@npm:^6.0.7":
+  version: 6.0.7
+  resolution: "vite@npm:6.0.7"
   dependencies:
     esbuild: "npm:^0.24.2"
     fsevents: "npm:~2.3.3"
@@ -3364,7 +3364,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/144c3f80a7920a4b2fa14f00f99b58ece246455ca9313561a67a227b45dadac3343e406d3c1dbfafa79992ac88f54cb2b040b229997e432daf47594fe8cacec2
+  checksum: 10c0/ae81047b4290a7206b9394a39a782d509e9610462e7946422ba22d5bc615b5a322c07e33d7bf9dd0b3312ec3f5c63353b725913d1519324bfdf539b4f1e03f52
   languageName: node
   linkType: hard
 
