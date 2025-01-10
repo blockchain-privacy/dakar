@@ -68,14 +68,6 @@
                 {{ outputCount - inputCount }}
               </icon-item>
             </v-col>
-            <v-col>
-              <icon-item
-                :icon="mdiPound"
-                title="Coinbase outputs"
-              >
-                {{ coinbaseCount }}
-              </icon-item>
-            </v-col>
           </v-row>
         </v-container>
       </v-card-text>
@@ -235,7 +227,6 @@ const inputSum = ref(-1);
 const outputSum = ref(-1);
 const inputCount = ref(-1);
 const outputCount = ref(-1);
-const coinbaseCount = ref(-1);
 const queryMaxCount = ref(-1);
 const outputItems = ref([]);
 const isOutputManipulationSupported = ref(false);
@@ -281,7 +272,6 @@ function dataToRef(data) {
 	outputSum.value = data.outputSum;
 	inputCount.value = data.inputCount;
 	outputCount.value = data.outputCount;
-	coinbaseCount.value = data.coinbaseCount;
 	queryMaxCount.value = data.queryMaxCount === 0 ? data.outputCount : data.queryMaxCount;
 	isOutputManipulationSupported.value = data.isOutputManipulationSupported;
 }

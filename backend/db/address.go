@@ -102,7 +102,6 @@ type FrontendAddress struct {
 	// QueryMaxCount is the number results for the given filter.
 	// If IsOutputManipulationSupported is true, this number will always be zero and should be ignored.
 	QueryMaxCount int64            `json:"queryMaxCount"`
-	CoinbaseCount int64            `json:"coinbaseCount"`
 	OutputCount   int64            `json:"outputCount"`
 	InputCount    int64            `json:"inputCount"`
 	InputSum      int64            `json:"inputSum"`
@@ -539,9 +538,6 @@ func GetFrontendAddressHeader(ctx context.Context, c external.Database, addrHash
 		var(func: uid(a))@filter(has(~tx_inputs)){
     		iamt as amount
   		}
-		coinbase(func: uid(a))@filter(eq(iscoinbase, true)){
-			count(uid)
-		}
 		ci(func: uid(iamt)){
 			count(uid)
 		}
@@ -563,9 +559,6 @@ func GetFrontendAddressHeader(ctx context.Context, c external.Database, addrHash
 	}
 
 	var r struct {
-		CoinbaseCount []struct {
-			Count int64 `json:"count"`
-		} `json:"coinbase"`
 		InputCount []struct {
 			Count int64 `json:"count"`
 		} `json:"ci"`
@@ -585,8 +578,7 @@ func GetFrontendAddressHeader(ctx context.Context, c external.Database, addrHash
 		return addr, err
 	}
 
-	if len(r.CoinbaseCount) != 1 ||
-		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
+	if len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
 		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
 		err = serror.New(errInvalidResult)
 		return
@@ -600,12 +592,11 @@ func GetFrontendAddressHeader(ctx context.Context, c external.Database, addrHash
 	}
 
 	addr = FrontendAddress{
-		Hash:          addrHash,
-		InputCount:    r.InputCount[0].Count,
-		OutputCount:   r.OutputCount[0].Count,
-		InputSum:      r.InputSum[0].Sum,
-		OutputSum:     r.OutputSum[0].Sum,
-		CoinbaseCount: r.CoinbaseCount[0].Count,
+		Hash:        addrHash,
+		InputCount:  r.InputCount[0].Count,
+		OutputCount: r.OutputCount[0].Count,
+		InputSum:    r.InputSum[0].Sum,
+		OutputSum:   r.OutputSum[0].Sum,
 	}
 
 	return
