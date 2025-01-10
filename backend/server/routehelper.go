@@ -128,6 +128,8 @@ type spendingFingerprintReply struct {
 type addWorkspaceNodesReply struct {
 	Nodes            []workspace.Node `json:"nodes,omitempty"`
 	DuplicateNodeUID string           `json:"duplicateNodeUID,omitempty"`
+	// ClusterTooLarge is true if one of the supplied nodes is a cluster with too many outputs
+	ClusterTooLarge bool `json:"clusterTooLarge,omitempty"`
 }
 type addWorkspaceNoteReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`
