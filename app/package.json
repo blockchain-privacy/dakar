@@ -10,11 +10,11 @@
     "lint": "eslint src --fix"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.57",
+    "@blockchain/dakar": "^1.1.58",
     "@fontsource/roboto": "^5.1.1",
     "@mdi/js": "^7.4.47",
-    "@neondark/kratosadmin": "^0.0.26",
-    "@neondark/wikiapi": "^1.2.47",
+    "@neondark/kratosadmin": "^0.0.27",
+    "@neondark/wikiapi": "^1.2.48",
     "@ory/client-fetch": "^1.15.17",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
-    "eslint": "^9.17.0",
+    "eslint": "^9.18.0",
     "eslint-config-xo": "^0.46.0",
     "eslint-plugin-vue": "^9.32.0",
     "sass": "^1.83.1",

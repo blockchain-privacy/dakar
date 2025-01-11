@@ -213,7 +213,7 @@ import {
 	PRIVACY_TYPE_MIXING,
 	PRIVACY_TYPE_WASABI_2_ORIGIN,
 	PRIVACY_TYPE_WASABI_2_MIXING,
-	PRIVACY_TYPE_WASABI_2_DESTINATION,
+	PRIVACY_TYPE_WASABI_2_DESTINATION, CLUSTER_MAX_OUTPUTS,
 } from '@/constants';
 import {
 	capitalize,
@@ -646,6 +646,8 @@ async function addMultipleNodes(nodes) {
 			}
 
 			setInfoMessage(defaultText);
+		} else if (response.clusterTooLarge) {
+			setWarningMessage(`Cluster has more than ${CLUSTER_MAX_OUTPUTS.toLocaleString()} outputs. The node was not added to the workspace.`);
 		}
 	} catch (e) {
 		if (e.cause?.status === 404) {
@@ -745,6 +747,12 @@ function setErrorMessage(msg) {
 function setInfoMessage(msg) {
 	msgStore.addMessage({
 		text: msg, type: 'info', temporary: true, category: route.name,
+	});
+}
+
+function setWarningMessage(msg) {
+	msgStore.addMessage({
+		text: msg, type: 'warning', temporary: true, category: route.name,
 	});
 }
 
