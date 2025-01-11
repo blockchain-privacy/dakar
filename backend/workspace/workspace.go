@@ -243,13 +243,21 @@ func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []stri
 // Returns ErrTooManyOutputs if a given cluster has more outputs than maxOutputCount.
 func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
 	userUID string, newNodes []workspace.Node) ([]workspace.Node, string, error) {
-	ok, err := workspace.CheckClusterSize(ctx, dgraph, []string{newNodes[0].UID}, maxOutputCount)
-	if err != nil {
-		return nil, "", err
+	var clusterUIDs []string
+	for _, n := range newNodes {
+		if n.IsCluster() {
+			clusterUIDs = append(clusterUIDs, n.UID)
+		}
 	}
 
-	if !ok {
-		return nil, "", serror.New(ErrTooManyOutputs)
+	if len(clusterUIDs) > 0 {
+		ok, err := workspace.CheckClusterSize(ctx, dgraph, clusterUIDs, maxOutputCount)
+		if err != nil {
+			return nil, "", err
+		}
+		if !ok {
+			return nil, "", serror.New(ErrTooManyOutputs)
+		}
 	}
 
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
