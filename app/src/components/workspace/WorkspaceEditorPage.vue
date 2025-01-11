@@ -819,9 +819,9 @@ async function addNewSelector(type, options) {
 		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
-
 		// Immediatly auto save to store coordinates of new node
 		queueAutoSave(0);
+		nodeGraph.centerOnNewNodes();
 	} catch (e) {
 		setErrorMessage(e);
 	}
