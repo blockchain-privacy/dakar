@@ -643,6 +643,8 @@ async function addMultipleNodes(nodes) {
 				if (n.nodeDisplayTitle && n.type) {
 					defaultText = `${capitalize(n.type)} ${n.nodeDisplayTitle} already in workspace`;
 				}
+
+				nodeGraph.centerOnNode(n);
 			}
 
 			setInfoMessage(defaultText);

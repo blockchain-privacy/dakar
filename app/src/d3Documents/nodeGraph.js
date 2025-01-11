@@ -684,8 +684,24 @@ export default class NodeGraph {
 		this.centerOnSelection(this.#newNodes);
 	}
 
+	centerOnNode(n) {
+		if (!n.uid) {
+			return;
+		}
+
+		const selection = this.#nodeGroup
+			.selectAll('.nodeContainer')
+			.data([...this.getFilteredMap().values()], d => d.uid)
+			.filter(d => d.uid === n.uid);
+		if (selection.empty()) {
+			return;
+		}
+
+		this.centerOnSelection(selection);
+	}
+
 	centerOnSelection(selection) {
-		if (selection === null) {
+		if (selection === null || selection.empty()) {
 			return;
 		}
 
