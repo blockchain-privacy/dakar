@@ -15,26 +15,11 @@
           <code>category</code>). The fields <code>address</code>
           and <code>tag</code> are mandatory, the rest are optional.
           The file may contain at maximum {{ Number(1000).toLocaleString() }} attributions.
+
+          The <wiki-tooltip description-url="attributions.md">
+            attribution
+          </wiki-tooltip> wiki page shows a CSV-file example.
         </div>
-        <v-expansion-panels>
-          <v-expansion-panel elevation="0">
-            <v-expansion-panel-title>
-              Example CSV-file
-            </v-expansion-panel-title>
-            <v-expansion-panel-text style="overflow: auto">
-              <p>
-                The following file content would generate five attributions,
-                with one address having two tags.
-              </p>
-              <pre style="width: 200px"><code>address;tag;description;source;category
-XgfSvDijDxPyWGXUw6CAxe91iYzZDMe3CV;darknet-address;;;
-XooBLwqL5wbBjoHJ1D4iZyrHWSRKQeRms9;twitter-@josh;Josh Noname;https://twitter.com/josh;social media
-XeNFLcypT3ayuqjVzK5HnzfRMBxwuBVKfB;facebook-some-user-name;;;social media
-XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;case-123;;;
-XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
         <v-form
           id="csvForm"
           ref="csvForm"
@@ -100,6 +85,7 @@ import {useRoute} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useMsgStore} from '@/pinia/msg';
 import {storeToRefs} from 'pinia';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();

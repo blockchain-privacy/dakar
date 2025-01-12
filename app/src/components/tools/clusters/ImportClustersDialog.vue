@@ -9,26 +9,14 @@
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
-          Import address clusters by uploading a CSV-file.
+          Import custom address clusters by uploading a CSV-file.
           The file must have two columns, where the first column contains an
           identifier for each cluster and the second column the addresses.
           The file may contain at maximum {{ Number(1000).toLocaleString() }} clusters.
+          The <wiki-tooltip description-url="customClusters.md">
+            custom clusters
+          </wiki-tooltip> wiki page shows a CSV-file example.
         </div>
-        <v-expansion-panels>
-          <v-expansion-panel elevation="0">
-            <v-expansion-panel-title>
-              Example CSV-file
-            </v-expansion-panel-title>
-            <v-expansion-panel-text style="overflow: auto">
-              <p>The following file content would generate two clusters with two addresses each.</p>
-              <pre style="width: 200px"><code>cluster-id,address
-1,XgG6Nosmei5woQ2VTDzwmLX7SzdNYKHdiz
-1,Xf36MqBkoK8G5wBbjUSwDRy6XTjdNq8hgB
-2,XatWuw7BhTxHvjPLbnvPArWgW9r6hjpt8o
-2,XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
         <v-form
           id="csvForm"
           ref="csvForm"
@@ -87,6 +75,7 @@ import {fileRule, getDakarClient} from '@/utilities';
 import {useMsgStore} from '@/pinia/msg';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
