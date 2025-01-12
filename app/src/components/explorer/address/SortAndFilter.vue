@@ -61,7 +61,6 @@ const props = defineProps({
 	loading: {type: Boolean, required: false},
 	outputCount: {type: Number, required: true},
 	inputCount: {type: Number, required: true},
-	coinbaseCount: {type: Number, required: true},
 });
 const model = defineModel({type: Object});
 const emit = defineEmits(['update:modelValue', 'change']);
@@ -136,7 +135,7 @@ function updateFilterState() {
 	}
 
 	let disableCoinbaseFilter = false;
-	if (props.coinbaseCount === 0 || props.coinbaseCount === props.outputCount) {
+	if (props.coinbaseCount === props.outputCount) {
 		disableCoinbaseFilter = true;
 	}
 
