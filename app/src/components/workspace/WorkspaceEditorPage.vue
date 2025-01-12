@@ -938,12 +938,14 @@ function openEntitySideBar(nodeData) {
 				entityIdentifier.value = nodeData.uid;
 
 				let displayType = '';
+				let parameterTitle = '';
 
 				switch (nodeData.selectorType) {
 					case SELECTOR_TYPE_HEURISTIC:
 						for (const descriptor of heuristicDescriptors.value) {
 							if (descriptor.type === nodeData.heuristicOptions?.type) {
 								displayType = descriptor.title;
+								parameterTitle = descriptor.parameter?.description;
 								break;
 							}
 						}
@@ -956,6 +958,7 @@ function openEntitySideBar(nodeData) {
 				}
 
 				entityAuxiliaryData.value.displayType = displayType;
+				entityAuxiliaryData.value.parameterTitle = parameterTitle;
 			}
 
 			break;
