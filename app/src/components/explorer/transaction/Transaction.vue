@@ -396,10 +396,12 @@ onMounted(() => {
 		if (width < 1000) {
 			isTabMode.value = true;
 
-			if (allInputs.value?.length > 0) {
-				tabs.value = 'inputs';
-			} else {
-				tabs.value = 'outputs';
+			if (!tabs.value) {
+				if (allInputs.value?.length > 0) {
+					tabs.value = 'inputs';
+				} else {
+					tabs.value = 'outputs';
+				}
 			}
 		} else {
 			isTabMode.value = false;
@@ -496,7 +498,6 @@ function showMoreInputs({done}) {
 	}
 
 	showMaxInputs.value += 15;
-
 	done('ok');
 }
 
@@ -518,7 +519,6 @@ function showMoreOutputs({done}) {
 	}
 
 	showMaxOutputs.value += 15;
-
 	done('ok');
 }
 
