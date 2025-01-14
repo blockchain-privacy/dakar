@@ -4,7 +4,6 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -75,13 +74,16 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// forwardLookupHeuristic applies the following heuristics:
-//   - parent == transaction: By traversing the mixing graph forward limited by time,
-//     find all destination transactions connected to this transaction.
-//   - parent == heuristic: None, this is not allowed.
+// forwardLookupHeuristic finds all destination transactions connected the given
+// transaction by traversing the mixing graph forward limited by time.
 func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	if h.lookForwardTime == 0 {
+	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, h.lookForwardTime, 0, h.c)
+}
+
+func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+	lookForwardTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	if lookForwardTime == 0 {
 		return nil, nil
 	}
 
@@ -94,18 +96,13 @@ func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g
 		return nil, serror.New(errHeuristicNotValid)
 	}
 
-	uid, err := db.GetTransactionUID(ctx, dgraph, h.c.TransactionHash)
-	if err != nil {
-		return nil, err
-	}
-
-	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, h.c.UserUID, h.c.ClusterTypes)
+	uid, err := db.GetTransactionUID(ctx, dgraph, options.TransactionHash)
 	if err != nil {
 		return nil, err
 	}
 
 	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, attributions)
+		[]string{uid}, options.UserUID, options.ClusterTypes, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -119,15 +116,15 @@ func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g
 	}
 
 	var exclusions []string
-	if h.c.ExcludeAddresses {
+	if options.ExcludeAddresses {
 		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	uidMap, err := g.ForwardLookup(uid, h.lookForwardTime, 0, exclusions, h.c.ExcludeSpendingGaps)
+	uidMap, err := g.ForwardLookup(uid, lookForwardTime, depth, exclusions, options.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, err
 	}
