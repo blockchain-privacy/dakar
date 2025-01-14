@@ -67,6 +67,8 @@ const (
 	heuristicTypeWasabi2OneSourceByTime      = "wasabi2_one_source_by_time"
 	heuristicTypeWasabi2OneSourceByDepth     = "wasabi2_one_source_by_depth"
 	heuristicTypeWasabi2ReverseAmount        = "wasabi2_reverse_amount"
+	heuristicTypeWasabi2ForwardLookupByTime  = "wasabi2_forward_lookup_by_time"
+	heuristicTypeWasabi2ForwardLookupByDepth = "wasabi2_forward_lookup_by_depth"
 )
 
 func init() {
@@ -87,6 +89,8 @@ func init() {
 		newWasabi2OneSourceByTimeHeuristic,
 		newWasabi2OneSourceByDepthHeuristic,
 		newWasabi2ReverseAmountHeuristic,
+		newWasabi2ForwardLookupByTimeHeuristic,
+		newwasabi2ForwardLookupByDepthHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
@@ -137,7 +141,7 @@ type heuristic interface {
 	setConfig(heuristics.Options) error
 	// getConfig returns the configuration of the heuristic
 	getConfig() heuristics.Options
-	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
+	// GetDescriptor returns the description of the heuristic and its expected parameter for the frontend
 	GetDescriptor() Descriptor
 }
 
