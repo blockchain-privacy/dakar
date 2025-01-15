@@ -252,7 +252,7 @@ const colorMap = getColorMap(getSettings.value.blockchainMode);
 let svgBarChart = null;
 const tableHeaders = [
 	{
-		key: 'txhash', title: 'Tranasaction Hash', sortable: false, align: 'left',
+		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
 	},
 	{
 		key: 'ts', title: 'Timestamp', align: 'right',
