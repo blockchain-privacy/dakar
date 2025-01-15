@@ -361,7 +361,8 @@ const showMaxOutputs = ref(3);
 const outputContainerRef = useTemplateRef('outputContainer');
 
 const isTabMode = ref(false);
-const tabs = ref('inputs');
+// Needs to be null, so initial resize observer can set correct value
+const tabs = ref(null);
 let resizeObserver;
 // Computed
 const filteredInputs = computed(() => props.tx.inputs
