@@ -101,7 +101,7 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		return nil, err
 	}
 
-	results, resultAttributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
+	results, _, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
 		[]string{uid}, options.UserUID, options.ClusterTypes, nil)
 	if err != nil {
 		return nil, err
@@ -124,15 +124,13 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		}
 	}
 
-	uidMap, err := g.ForwardLookup(uid, lookForwardTime, depth, exclusions, options.ExcludeSpendingGaps)
-	if err != nil {
-		return nil, err
+	destinations, _, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
+		lookForwardTime, depth, exclusions, nil, options)
+
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
+	for _, dst := range destinations {
+		resultClusters[dst.Cluster] = append(resultClusters[dst.Cluster], db.UIDNode{UID: dst.UID})
 	}
 
-	result := make([]db.UIDNode, 0, len(uidMap))
-	for k := range uidMap {
-		result = append(result, db.UIDNode{UID: k})
-	}
-
-	return createHeuristicClusters(map[heuristics.ClusterUID][]db.UIDNode{results[0].Cluster: result}, resultAttributionMap), nil
+	return createHeuristicClusters(resultClusters, nil), nil
 }

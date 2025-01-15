@@ -131,7 +131,7 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
 			lookBackTime, depth, exclusions, attributions, options)
 		if err != nil {
 			return nil, err
@@ -145,8 +145,8 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		}
 
 		// merge the attribution maps
-		for id, attributions := range usedAttributions {
-			attributionMap[id] = attributions
+		for id, usedAttribution := range usedAttributions {
+			attributionMap[id] = usedAttribution
 		}
 	}
 

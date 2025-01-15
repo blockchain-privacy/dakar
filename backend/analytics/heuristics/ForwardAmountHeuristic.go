@@ -5,7 +5,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -98,14 +97,9 @@ func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, err
 	}
 
-	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, h.c.UserUID, h.c.ClusterTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, attributions)
+		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, nil)
 	if err != nil {
 		return nil, err
 	}
