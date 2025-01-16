@@ -299,7 +299,7 @@ function init() {
 		return;
 	}
 
-	svgBarChart = new BarChart('selector_details_canvas', 600, 300, false);
+	svgBarChart = new BarChart('selector_details_canvas', 600, 300);
 	svgBarChart.draw(props.selectorData.transactions);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;

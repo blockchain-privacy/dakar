@@ -443,7 +443,7 @@ function updateInputGraph() {
 		return;
 	}
 
-	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150);
 	svgInputGraph.drawStacked(props.tx.inputs, colorMap);
 	enoughDataForInputGraph.value = !svgInputGraph.empty;
 }
@@ -454,7 +454,7 @@ function updateOutputGraph() {
 		return;
 	}
 
-	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150);
 	svgOutputGraph.drawStacked(props.tx.outputs, colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }

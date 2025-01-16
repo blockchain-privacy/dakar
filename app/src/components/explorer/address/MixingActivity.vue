@@ -325,12 +325,7 @@ const isSameDay = computed(() => {
 onBeforeMount(() => {
 	includeCusterAddresses.value = false;
 
-	svgBarChart = new BarChart(
-		'mixing_activity_barchart',
-		1200,
-		300,
-		false,
-	);
+	svgBarChart = new BarChart('mixing_activity_barchart', 1200, 300);
 	svgBarChart.setClickHandler(onBarClick);
 });
 
