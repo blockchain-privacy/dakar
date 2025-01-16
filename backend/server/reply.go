@@ -621,6 +621,7 @@ func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "text/csv")
 
 	csvWriter := csv.NewWriter(w)
+	// cluster attributions are separated by comma, therefore use another character as a separator
 	csvWriter.Comma = ';'
 
 	if len(heuristicResults.Clusters) > 0 {

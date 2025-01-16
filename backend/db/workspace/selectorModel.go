@@ -182,6 +182,7 @@ type FrontendSelectorResults struct {
 
 type TransactionWithTimestamp struct {
 	Timestamp string `json:"ts,omitempty"`
+	Type      string `json:"txtype,omitempty"`
 	Hash      string `json:"txhash,omitempty"`
 }
 
