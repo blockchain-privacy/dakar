@@ -126,6 +126,9 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 
 	destinations, _, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
 		lookForwardTime, depth, exclusions, nil, options)
+	if err != nil {
+		return nil, err
+	}
 
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for _, dst := range destinations {
