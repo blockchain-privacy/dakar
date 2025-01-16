@@ -303,7 +303,7 @@ function init() {
 		return;
 	}
 
-	svgBarChart = new BarChart('selector_details_canvas', 600, 300);
+	svgBarChart = new BarChart('selector_details_canvas', 600, 150);
 	svgBarChart.drawStacked(props.selectorData.transactions, colorMap);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;

@@ -205,7 +205,7 @@ function init() {
 		return;
 	}
 
-	svgBarChart = new BarChart('heuristic_details_canvas', 600, 300);
+	svgBarChart = new BarChart('heuristic_details_canvas', 600, 150);
 	updateData(props.heuristicData.clusters);
 }
 
