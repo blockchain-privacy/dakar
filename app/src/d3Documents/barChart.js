@@ -3,8 +3,6 @@ import {select as d3Select} from 'd3-selection';
 import {scaleTime, scaleLinear} from 'd3-scale';
 import {timeTickInterval} from 'd3-time';
 import {bin, max, group} from 'd3-array';
-import {transition} from 'd3-transition';
-import {easeLinear} from 'd3-ease';
 import {axisBottom, axisLeft} from 'd3-axis';
 import {format} from 'd3-format';
 
