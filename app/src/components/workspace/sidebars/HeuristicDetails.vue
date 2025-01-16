@@ -160,12 +160,17 @@ import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
-import {plural} from '@/utilities/index.js';
+import {getColorMap, plural} from '@/utilities/index.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	heuristicData: {type: Object, required: true},
 });
 
+const {getSettings} = storeToRefs(useLocalStore());
+
+const colorMap = getColorMap(getSettings.value.blockchainMode);
 let svgBarChart = null;
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);
@@ -211,7 +216,7 @@ function updateData(graphData) {
 		detailArray.push(...d.transactions);
 	});
 
-	svgBarChart.draw(detailArray);
+	svgBarChart.drawStacked(detailArray, colorMap);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;
 }

@@ -204,6 +204,7 @@
           <template #item.txhash="{item}">
             <td>
               <workspace-link
+                style="max-width: 300px"
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                        params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
               >
@@ -255,6 +256,9 @@ const tableHeaders = [
 		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
 	},
 	{
+		key: 'txtype', title: 'Type', align: 'right',
+	},
+	{
 		key: 'ts', title: 'Timestamp', align: 'right',
 	},
 ];
@@ -300,7 +304,7 @@ function init() {
 	}
 
 	svgBarChart = new BarChart('selector_details_canvas', 600, 300);
-	svgBarChart.draw(props.selectorData.transactions);
+	svgBarChart.drawStacked(props.selectorData.transactions, colorMap);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;
 }
