@@ -1,6 +1,5 @@
 <template>
   <v-text-field
-    id="query-input"
     v-model="query"
     hide-details
     :append-inner-icon="mdiMagnify"
