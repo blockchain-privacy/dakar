@@ -139,7 +139,7 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 			if !isReversed {
 				// maxDepth - 1 because edges are considered as well
 				// for forward lookups we need to traverse an additional edge
-				d -= 1
+				d--
 			}
 
 			if depth > d {
