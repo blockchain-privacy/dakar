@@ -234,7 +234,7 @@ import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
 import {
-	convertAmount, getColorMap, plural,
+	convertAmount, getColorMap, plural, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
@@ -250,6 +250,7 @@ const props = defineProps({selectorData: {type: Object, required: true}});
 const {getSettings} = storeToRefs(useLocalStore());
 
 const colorMap = getColorMap(getSettings.value.blockchainMode);
+setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
 const tableHeaders = [
 	{

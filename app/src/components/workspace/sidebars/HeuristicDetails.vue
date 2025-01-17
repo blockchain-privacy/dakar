@@ -160,7 +160,7 @@ import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
-import {getColorMap, plural} from '@/utilities/index.js';
+import {getColorMap, plural, setUndefinedTransactionColor} from '@/utilities/index.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 
@@ -171,6 +171,7 @@ const props = defineProps({
 const {getSettings} = storeToRefs(useLocalStore());
 
 const colorMap = getColorMap(getSettings.value.blockchainMode);
+setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);

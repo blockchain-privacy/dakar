@@ -310,7 +310,7 @@ import {
 	getColorMap,
 	isDestination,
 	isModeBTC, isUncommonWasabi2Denomination,
-	plural,
+	plural, setUndefinedTransactionColor,
 	shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
@@ -350,8 +350,7 @@ const showTransactionDetails = toRef(props.showDetails);
 let svgInputGraph = null;
 let svgOutputGraph = null;
 const colorMap = getColorMap(getSettings.value.blockchainMode);
-// Set color for transaction without type
-colorMap.set(undefined, '#607D8B');
+setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
 
