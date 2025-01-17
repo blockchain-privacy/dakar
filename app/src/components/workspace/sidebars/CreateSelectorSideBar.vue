@@ -352,10 +352,6 @@ const transactionTypeItems = [];
 // Hooks
 onMounted(() => {
 	getColorMap(localStore.getSettings.blockchainMode).forEach((v, k) => {
-		if (!k) {
-			return;
-		}
-
 		transactionTypeItems.push({title: capitalize(k), value: k, color: v});
 	});
 });

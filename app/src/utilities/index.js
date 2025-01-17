@@ -241,8 +241,6 @@ export function getColorMap(mode) {
 	];
 
 	const colorMap = new Map();
-	// Set color for transaction without type
-	colorMap.set(undefined, '#607D8B');
 
 	switch (mode) {
 		case BLOCKCHAIN_DASH:
