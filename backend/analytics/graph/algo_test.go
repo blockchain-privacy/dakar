@@ -547,6 +547,56 @@ func TestForwardLookup(t *testing.T) {
 			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
 			wantErr: false,
 		},
+		{
+			args: args{
+				nodeID:              1,
+				maxDepth:            2,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              3,
+				maxDepth:            2,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              4,
+				maxDepth:            3,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              4,
+				maxDepth:            2,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              6,
+				maxDepth:            1,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		results, err := ForwardLookup(graph, ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.maxDepth,

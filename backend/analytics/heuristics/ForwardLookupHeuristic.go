@@ -83,7 +83,7 @@ func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g
 
 func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
 	lookForwardTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
-	if lookForwardTime == 0 {
+	if lookForwardTime == 0 && depth == 0 {
 		return nil, nil
 	}
 

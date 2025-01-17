@@ -90,7 +90,7 @@ func init() {
 		newWasabi2OneSourceByDepthHeuristic,
 		newWasabi2ReverseAmountHeuristic,
 		newWasabi2ForwardLookupByTimeHeuristic,
-		newwasabi2ForwardLookupByDepthHeuristic,
+		newWasabi2ForwardLookupByDepthHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
