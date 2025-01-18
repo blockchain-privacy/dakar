@@ -134,11 +134,13 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 	}
 
 	w.Walk(g, node, func(n graph.Node, depth int) bool {
-		if maxDepth > 0 && depth > maxDepth-1 {
+		if maxDepth > 0 {
 			d := maxDepth
 			if !isReversed {
-				// maxDepth - 1 because edges are considered as well
-				// for forward lookups we need to traverse an additional edge
+				// Reduce the maximum depth by 1,because in Traverse() connected nodes are considered.
+				// Therefore we consider: maxDepth + 1 - 1 = maxDepth
+				// This is limited to reverse lookups. When doing forward lookups we want to traverse
+				// one additional hop, which is achieved in Traverse()
 				d--
 			}
 
