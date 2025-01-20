@@ -59,17 +59,17 @@ func DeleteAllHeuristics(ctx context.Context, c external.Database) error {
 // GetHeuristicTransactions returns the connected transactions of heuristic.
 // Only outputs connected to transactions with the given transaction types are included.
 func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristicUID string,
-	allowedTransactionTypes []string) (results []HeuristicTransaction, attributionMap map[ClusterUID][]string, err error) {
-	query := `query Q($uid:string) {
+	allowedTransactionType string) (results []HeuristicTransaction, attributionMap map[ClusterUID][]string, err error) {
+	query := `query Q($uid:string,$type:string) {
 				var (func: uid($uid)){ x as Selector.results }
 				
 				q(func: uid(x)){
 					uid
 					HeuristicCluster.results{
 						uid
-						tx_outputs{
+						tx_outputs@cascade{
 							amount
-							~tx_inputs@filter(eq(Transaction.type,` + db.CreateCommaListQuotationMarks(allowedTransactionTypes) + `)){uid}
+							~tx_inputs@filter(eq(Transaction.type,$type))
 						}
 					}
 					HeuristicCluster.attributions{
@@ -78,7 +78,7 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 			  	}
 			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": heuristicUID})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": heuristicUID, "$type": allowedTransactionType})
 	if err != nil {
 		return
 	}
@@ -475,18 +475,18 @@ func GetTransactionsWithInputAmount(ctx context.Context, c external.Database,
 // GetInputAmounts gets the amounts of the inputs.
 // Only inputs produced by transactions with the given transaction types are included.
 func GetInputAmounts(ctx context.Context, c external.Database, tx string,
-	allowedTransactionTypes []string) (transaction HeuristicTransaction, err error) {
-	query := `query Q($txhash: string){
+	allowedTransactionType string) (transaction HeuristicTransaction, err error) {
+	query := `query Q($txhash:string,$type:string){
 				q(func: eq(txhash,$txhash)){
 					uid
 					tx_inputs@cascade{
 						amount
-						~tx_outputs@filter(eq(Transaction.type,` + db.CreateCommaListQuotationMarks(allowedTransactionTypes) + `)){uid}
+						~tx_outputs@filter(eq(Transaction.type,$type))
 					}
 				}
 			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txhash": tx})
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txhash": tx, "$type": allowedTransactionType})
 	if err != nil {
 		return
 	}

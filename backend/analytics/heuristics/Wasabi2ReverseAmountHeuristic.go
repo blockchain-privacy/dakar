@@ -74,7 +74,7 @@ func (h *wasabi2ReverseAmountHeuristic) exec(ctx context.Context, dgraph externa
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
-		constants.TransactionTypesWasabi2)
+		constants.TypeWasabi2Mixing)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (h *wasabi2ReverseAmountHeuristic) exec(ctx context.Context, dgraph externa
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesWasabi2)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TypeWasabi2Mixing)
 	if err != nil {
 		return nil, err
 	}

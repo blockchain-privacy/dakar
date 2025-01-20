@@ -74,7 +74,7 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
-		constants.TransactionTypesDash)
+		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
