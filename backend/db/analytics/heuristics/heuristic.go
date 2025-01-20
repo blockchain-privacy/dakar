@@ -244,9 +244,13 @@ func GetInputTransaction(ctx context.Context, c external.Database, txhash string
 // GetTransactionsWithOutputAmountAndCluster returns a slice of transactions and used attributions per cluster.
 // Each transaction contains its output amounts and the clusters of all inputs.
 // If no attributions were used or found the returned map is nil.
-func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.Database, uids []string, userUID string,
-	requestedClusterTypes []clustering.ClusterType, attributions map[string][]string) (origins []HeuristicTransaction,
-	attributionMapping map[ClusterUID][]string, err error) {
+func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.Database, uids []string,
+	userUID string, requestedClusterTypes []clustering.ClusterType, attributions map[string][]string,
+	allowedTransactionType string) (origins []HeuristicTransaction, attributionMapping map[ClusterUID][]string, err error) {
+	if allowedTransactionType == "" {
+		return nil, nil, serror.FromStr("received empty transaction type")
+	}
+
 	isSimpleClustering := len(requestedClusterTypes) == 0 // true -> only multi-input clusters will be used
 
 	// get user clusters if necessary
@@ -264,16 +268,17 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 		}
 	}
 
-	query := `query Q($uids:string){
+	query := `query Q($uids:string,$txType:string,$clusterType:string){
 				q(func: uid($uids)){
 					uid
-					tx_outputs{
+					tx_outputs@cascade{
 						amount
+						~tx_inputs@filter(eq(Transaction.type,$txType))
 					}
 					tx_inputs(first:1){
 						~addr_outputs{
 							uid
-							~Cluster.addresses@filter(eq(Cluster.type,` + string(clustering.TypeFMI) + `)){
+							~Cluster.addresses@filter(eq(Cluster.type,$clusterType)){
 								uid
 							}
 						}
@@ -281,7 +286,9 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 			   	}
 			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
+		map[string]string{"$uids": db.CreateCommaArray(uids), "$txType": allowedTransactionType,
+			"$clusterType": string(clustering.TypeFMI)})
 	if err != nil {
 		return
 	}

@@ -137,7 +137,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			h.lookBackTime, 0, exclusions, attributions, h.c)
+			h.lookBackTime, 0, exclusions, attributions, h.c, constants.TypeDashMixing)
 		if err != nil {
 			return nil, err
 		}

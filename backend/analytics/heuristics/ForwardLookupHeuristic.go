@@ -101,20 +101,6 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		return nil, err
 	}
 
-	results, _, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		[]string{uid}, options.UserUID, options.ClusterTypes, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(results) > 1 {
-		return nil, serror.FromStr("received more than one transaction")
-	}
-
-	if len(results) == 0 {
-		return nil, serror.New(errNoOriginsAtStart)
-	}
-
 	var exclusions []string
 	if options.ExcludeAddresses {
 		var err error
@@ -125,7 +111,7 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 	}
 
 	destinations, _, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
-		lookForwardTime, depth, exclusions, nil, options)
+		lookForwardTime, depth, exclusions, nil, options, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
