@@ -56,12 +56,12 @@ export const useLocalStore = defineStore('local', {
 			setLocalSession(payload);
 
 			// When session is set, also set the current blockchain mode
-			if (isPrivilegedIdentity(payload, BLOCKCHAIN_DASH)
-				|| isAdminIdentity(payload, BLOCKCHAIN_DASH)) {
-				this.settings.blockchainMode = BLOCKCHAIN_DASH;
-			} else if (isPrivilegedIdentity(payload, BLOCKCHAIN_BTC)
-			|| isAdminIdentity(payload, BLOCKCHAIN_BTC)) {
+			if (isPrivilegedIdentity(payload, BLOCKCHAIN_BTC)
+				|| isAdminIdentity(payload, BLOCKCHAIN_BTC)) {
 				this.settings.blockchainMode = BLOCKCHAIN_BTC;
+			} else if (isPrivilegedIdentity(payload, BLOCKCHAIN_DASH)
+			|| isAdminIdentity(payload, BLOCKCHAIN_DASH)) {
+				this.settings.blockchainMode = BLOCKCHAIN_DASH;
 			}
 
 			this.session = payload;
