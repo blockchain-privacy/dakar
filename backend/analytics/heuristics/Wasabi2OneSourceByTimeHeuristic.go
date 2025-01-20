@@ -179,6 +179,10 @@ func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, 
 			inputTxOutputSum += output.Amount
 		}
 
+		// add element inputClusters and set index of current element
+		inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
+		icIndex := len(inputClusters) - 1
+
 		// per input transaction, map clusters to their origins and
 		// mark them for removal if they don't have enough funds for the input transaction
 		clusterTransactionMap := mapClusterToTransactions(t.origins)
@@ -189,10 +193,6 @@ func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, 
 					clusterOutputAmount += output.Amount
 				}
 			}
-
-			// add element inputClusters and set index of current element
-			inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
-			icIndex := len(inputClusters) - 1
 
 			clusters[clusterUID] = true
 			inputClusters[icIndex][clusterUID] = true
