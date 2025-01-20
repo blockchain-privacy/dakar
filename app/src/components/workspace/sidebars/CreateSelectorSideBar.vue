@@ -312,6 +312,7 @@ const heuristicOptions = ref({
 	excludeAddresses: false,
 	excludeSpendingGaps: false,
 	type: null,
+	parameter: '',
 });
 
 const startDateError = ref(false);
@@ -366,6 +367,8 @@ onUpdated(() => {
 			heuristicTypeModel.value = [];
 			heuristicOptions.value.type = null;
 		}
+
+		heuristicOptions.value.parameter = '';
 	}
 
 	startDateError.value = false;
@@ -619,7 +622,7 @@ async function addNewSelectorAction(event) {
 	}
 
 	// Check for empty object
-	if (isOptionsEmpty(options)) {
+	if (props.selectorType !== SELECTOR_TYPE_HEURISTIC && isOptionsEmpty(options)) {
 		setErrorMessage('at least one filter must be set');
 		return;
 	}
