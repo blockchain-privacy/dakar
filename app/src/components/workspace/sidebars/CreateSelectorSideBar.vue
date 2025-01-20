@@ -362,6 +362,9 @@ onUpdated(() => {
 		if (heuristicTypes.value.length > 0) {
 			heuristicTypeModel.value = heuristicTypes.value.find(d => !d.divider && !d.disabled);
 			heuristicOptions.value.type = heuristicTypeModel.value?.type;
+		} else {
+			heuristicTypeModel.value = [];
+			heuristicOptions.value.type = null;
 		}
 	}
 
