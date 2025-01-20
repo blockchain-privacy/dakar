@@ -513,7 +513,7 @@ function isDateRangeToBig(startDate, endDate) {
 
 // Checks if besides 'startDate', 'endDate' and 'maxItems' another option is set
 function isOptionsEmpty(options) {
-	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate' && k !== 'maxItems');
+	return !Object.keys(options).some(k => k === 'endDate' || k === 'startDate' || k === 'maxItems');
 }
 
 function buildTxPropOptions() {
