@@ -51,7 +51,7 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *wasabi2ForwardLookupByDepthHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *wasabi2ForwardLookupByDepthHeuristic) GetDescriptor() Descriptor {

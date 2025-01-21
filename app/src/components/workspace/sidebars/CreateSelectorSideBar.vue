@@ -499,8 +499,7 @@ function buildHeuristicOptions() {
 	options = structuredClone(toRaw(heuristicOptions.value));
 	options.clusterTypes = heuristicOptions.value.clusterTypes?.length > 0 ? [CLUSTER_TYPE_CUSTOM] : [];
 
-	// Int to string
-	options.paramter &&= `${options.paramter}`;
+	options.parameter &&= `${options.parameter}`;
 	return options;
 }
 

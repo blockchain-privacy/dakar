@@ -55,7 +55,7 @@ func (h *oneSourceHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *oneSourceHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, e: %v", h.heuristicType, h.c)
 }
 
 func (h *oneSourceHeuristic) GetDescriptor() Descriptor {

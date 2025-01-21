@@ -55,7 +55,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *wasabi2OneSourceByTimeHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {

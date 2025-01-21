@@ -44,7 +44,7 @@ func (h *wasabi2ReverseAmountHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *wasabi2ReverseAmountHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *wasabi2ReverseAmountHeuristic) GetDescriptor() Descriptor {

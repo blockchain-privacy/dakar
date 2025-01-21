@@ -45,7 +45,7 @@ func (h *denominationTypeHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *denominationTypeHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {

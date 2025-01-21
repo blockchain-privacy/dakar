@@ -54,7 +54,7 @@ func (h *forwardHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *forwardHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *forwardHeuristic) GetDescriptor() Descriptor {

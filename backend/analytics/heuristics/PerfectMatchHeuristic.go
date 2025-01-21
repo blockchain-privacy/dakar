@@ -56,7 +56,7 @@ func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 }
 
 func (h *perfectMatchHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 // perfectMatchHeuristic applies the following heuristic:
