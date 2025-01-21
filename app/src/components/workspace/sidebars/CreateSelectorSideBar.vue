@@ -282,7 +282,7 @@ const props = defineProps({
 });
 
 // Heuristic select model
-const heuristicTypeModel = ref([]);
+const heuristicTypeModel = ref(null);
 // Heuristic select items
 const heuristicTypes = ref([]);
 
@@ -361,10 +361,10 @@ onUpdated(() => {
 	if (props.selectorType === SELECTOR_TYPE_HEURISTIC) {
 		heuristicTypes.value = getHeuristicTypes();
 		if (heuristicTypes.value.length > 0) {
-			heuristicTypeModel.value = heuristicTypes.value.find(d => !d.divider && !d.disabled);
+			heuristicTypeModel.value = getInitialHeuristicTypeModel(heuristicTypeModel.value, heuristicTypes.value);
 			heuristicOptions.value.type = heuristicTypeModel.value?.type;
 		} else {
-			heuristicTypeModel.value = [];
+			heuristicTypeModel.value = null;
 			heuristicOptions.value.type = null;
 		}
 
@@ -487,6 +487,18 @@ function getAmount(amount) {
 	}
 
 	return amountToIntegers(parseFloat(amount));
+}
+
+// Returns a valid heuristic type. tries to set it to oldHeuristicTypeObject if possible.
+function getInitialHeuristicTypeModel(oldHeuristicTypeObject, newHeuristicTypes) {
+	if (oldHeuristicTypeObject) {
+		const obj = newHeuristicTypes.find(d => d.type === oldHeuristicTypeObject.type);
+		if (obj) {
+			return obj;
+		}
+	}
+
+	return newHeuristicTypes.find(d => !d.divider && !d.disabled);
 }
 
 function buildHeuristicOptions() {
