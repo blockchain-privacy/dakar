@@ -6,6 +6,7 @@
       :submit-enabled="submitEnabled"
       :attributes="node.attributes"
       :meta="node.meta"
+      :messages="node.messages"
       @submit="propagateSubmitEvent"
     />
     <v-img
@@ -46,7 +47,7 @@
       </p>
     </template>
     <v-btn v-else-if="node.type === 'submit'" />
-    <template v-if="node.messages">
+    <template v-if="node.messages && !isUiNodeInputAttributes(node.attributes)">
       <ory-ui-message
         v-for="(msg,i) in node.messages"
         :key="i"

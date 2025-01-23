@@ -14,6 +14,8 @@
     :type="password.show ? 'text' : 'password'"
     :append-inner-icon="password.show ? mdiEye : mdiEyeOff"
     autocomplete="current-password"
+    :error-messages="errorMessages"
+    :messages="infoMessages"
     @click:append-inner="password.show = !password.show"
   />
   <!--    Use a random number for 'key', so the content always gets-->
@@ -26,6 +28,8 @@
     :model-value="attributes.value?attributes.value:''"
     :name="attributes.name"
     :prepend-inner-icon="inputIcon"
+    :error-messages="errorMessages"
+    :messages="infoMessages"
     autocomplete="one-time-code"
   />
   <v-text-field
@@ -34,6 +38,8 @@
     :label="metaLabel"
     :model-value="attributes.value?attributes.value:''"
     :name="attributes.name"
+    :error-messages="errorMessages"
+    :messages="infoMessages"
     :prepend-inner-icon="inputIcon"
   />
   <v-text-field
@@ -42,6 +48,8 @@
     :model-value="attributes.value"
     :name="attributes.name"
     type="email"
+    :error-messages="errorMessages"
+    :messages="infoMessages"
     :prepend-inner-icon="mdiEmail"
   />
   <div v-else-if="attributes.type === 'submit'">
@@ -96,7 +104,8 @@ const props = defineProps({
 	meta: {type: Object, required: true},
 	attributes: {type: Object, required: true},
 	name: {type: String, required: true},
-	submitEnabled: {type: Boolean, require: false},
+	submitEnabled: {type: Boolean, required: false},
+	messages: {type: Array, required: false, default: () => []},
 });
 
 const emit = defineEmits(['submit']);
@@ -130,6 +139,22 @@ const inputIcon = computed(() => {
 	}
 
 	return null;
+});
+
+const errorMessages = computed(() => {
+	if (!props.messages || props.messages.length === 0) {
+		return props.messages;
+	}
+
+	return props.messages.filter(msg => msg.type === 'error').map(msg => msg.text);
+});
+
+const infoMessages = computed(() => {
+	if (!props.messages || props.messages.length === 0) {
+		return props.messages;
+	}
+
+	return props.messages.filter(msg => msg.type !== 'error').map(msg => msg.text);
 });
 
 // Functions
