@@ -5,53 +5,6 @@
     :value="attributes.value"
     type="hidden"
   >
-  <v-text-field
-    v-else-if="attributes.type === 'password'"
-    :label="metaLabel"
-    :model-value="attributes.value"
-    :name="attributes.name"
-    :prepend-inner-icon="mdiLockOutline"
-    :type="password.show ? 'text' : 'password'"
-    :append-inner-icon="password.show ? mdiEye : mdiEyeOff"
-    autocomplete="current-password"
-    :error-messages="errorMessages"
-    :messages="infoMessages"
-    @click:append-inner="password.show = !password.show"
-  />
-  <!--    Use a random number for 'key', so the content always gets-->
-  <!--    cleared when it is replaced by the result of a call to Kratos.-->
-  <!--    Otherwise the finish event gets called on each field update if the input is full -->
-  <v-text-field
-    v-else-if="attributes?.type === 'text' && attributes?.name === 'totp_code'"
-    :key="Math.random()"
-    :label="metaLabel"
-    :model-value="attributes.value?attributes.value:''"
-    :name="attributes.name"
-    :prepend-inner-icon="inputIcon"
-    :error-messages="errorMessages"
-    :messages="infoMessages"
-    autocomplete="one-time-code"
-  />
-  <v-text-field
-    v-else-if="attributes.type === 'text' || (attributes.type === 'text'&& metaLabel === 'E-Mail')"
-    :key="meta?.label?.id"
-    :label="metaLabel"
-    :model-value="attributes.value?attributes.value:''"
-    :name="attributes.name"
-    :error-messages="errorMessages"
-    :messages="infoMessages"
-    :prepend-inner-icon="inputIcon"
-  />
-  <v-text-field
-    v-else-if="attributes.type === 'email'"
-    :label="metaLabel"
-    :model-value="attributes.value"
-    :name="attributes.name"
-    type="email"
-    :error-messages="errorMessages"
-    :messages="infoMessages"
-    :prepend-inner-icon="mdiEmail"
-  />
   <div v-else-if="attributes.type === 'submit'">
     <input
       :name="attributes.name"
@@ -92,6 +45,20 @@
   >
     {{ metaLabel }}
   </v-btn>
+  <v-text-field
+    v-else
+    :key="meta?.label?.id"
+    :label="metaLabel"
+    :model-value="attributes.value"
+    :name="attributes.name"
+    :prepend-inner-icon="prependIcon"
+    :type="inputType"
+    :append-inner-icon="appendIcon"
+    :autocomplete="autocomplete"
+    :error-messages="errorMessages"
+    :messages="infoMessages"
+    @click:append-inner="appendClick"
+  />
 </template>
 
 <script setup>
@@ -121,7 +88,7 @@ const metaLabel = computed(() => {
 	return '';
 });
 
-const inputIcon = computed(() => {
+const prependIcon = computed(() => {
 	if (props.attributes?.name === 'totp_code') {
 		return mdiFormTextboxPassword;
 	}
@@ -136,6 +103,38 @@ const inputIcon = computed(() => {
 
 	if (props.attributes?.name === 'identifier') {
 		return mdiAccount;
+	}
+
+	if (props.attributes?.type === 'password') {
+		return mdiLockOutline;
+	}
+
+	return null;
+});
+
+const appendIcon = computed(() => {
+	if (props.attributes?.type === 'password') {
+		return password.value.show ? mdiEye : mdiEyeOff;
+	}
+
+	return null;
+});
+
+const autocomplete = computed(() => {
+	if (props.attributes?.name === 'totp_code') {
+		return 'one-time-code';
+	}
+
+	if (props.attributes?.type === 'password') {
+		return 'current-password';
+	}
+
+	return null;
+});
+
+const inputType = computed(() => {
+	if (props.attributes?.type === 'password') {
+		return password.value.show ? 'text' : 'password';
 	}
 
 	return null;
@@ -155,6 +154,16 @@ const infoMessages = computed(() => {
 	}
 
 	return props.messages.filter(msg => msg.type !== 'error').map(msg => msg.text);
+});
+
+const appendClick = computed(() => {
+	if (props.attributes?.type === 'password') {
+		return () => {
+			password.value.show = !password.value.show;
+		};
+	}
+
+	return null;
 });
 
 // Functions
