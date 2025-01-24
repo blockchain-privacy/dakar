@@ -1,12 +1,16 @@
 <template>
   <div>
-    <template v-if="flow.ui?.messages">
-      <ory-ui-message
-        v-for="(msg,i) in flow.ui.messages"
-        :key="i"
-        :message="msg"
-      />
-    </template>
+    <v-expand-transition>
+      <template v-if="flow.ui?.messages">
+        <div>
+          <ory-ui-message
+            v-for="(msg,i) in flow.ui.messages"
+            :key="i"
+            :message="msg"
+          />
+        </div>
+      </template>
+    </v-expand-transition>
     <template v-if="embed">
       <v-tabs
         v-model="tab"
@@ -83,9 +87,7 @@
 <script setup>
 import OryUiNode from './OryUiNode.vue';
 import {getNodeName} from '@/components/user/ory/utils';
-import {
-	computed, onMounted, ref, watch,
-} from 'vue';
+import {computed, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import OryUiMessage from '@/components/user/ory/OryUiMessage.vue';
 
