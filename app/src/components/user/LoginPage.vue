@@ -148,7 +148,7 @@ function leave() {
 		return;
 	}
 
-	if (failedRoute.value?.name !== ROUTE_NAME_LOGIN_PAGE) {
+	if (failedRoute.value !== null && failedRoute.value.name !== ROUTE_NAME_LOGIN_PAGE) {
 		goToPage(failedRoute.value);
 		failedRoute.value = null;
 		return;
