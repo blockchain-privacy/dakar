@@ -13,9 +13,9 @@
     "@blockchain/dakar": "^1.1.60",
     "@fontsource/roboto": "^5.1.1",
     "@mdi/js": "^7.4.47",
-    "@neondark/kratosadmin": "^0.0.27",
+    "@neondark/kratosadmin": "^0.0.28",
     "@neondark/wikiapi": "^1.2.48",
-    "@ory/client-fetch": "^1.16.2",
+    "@ory/client-fetch": "^1.16.3",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -28,11 +28,11 @@
     "pinia": "^2.3.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
-    "vuetify": "3.7.4"
+    "vuetify": "^3.7.8"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
-    "eslint": "^9.18.0",
+    "eslint": "^9.19.0",
     "eslint-config-xo": "^0.46.0",
     "eslint-plugin-vue": "^9.32.0",
     "sass": "^1.83.4",
