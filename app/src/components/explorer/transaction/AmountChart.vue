@@ -4,7 +4,7 @@
       v-for="(t,i) in amountsPerType"
       :key="t.type"
       v-tooltip="{'text': tooltipText(t.type,t.amount, t.percent), 'location':'top', 'open-delay': 400}"
-      className="amountElement"
+      class="amountElement"
       :style="`width:${displayPercent[i]}%; background-color:${colorMap.get(t.type)}`"
     />
   </div>
@@ -67,25 +67,23 @@ const displayPercent = computed(() => {
 
 	for (const t of amountsPerType.value) {
 		if (t.percent < minPercent) {
-			newBase -= minPercent;
+			// Reduce base by the difference of t.percent to minPercent
+			newBase -= minPercent - t.percent;
 		}
 	}
 
 	return amountsPerType.value.map(t => {
-		let p;
 		if (t.percent >= minPercent) {
-			p = t.percent / 100.0 * newBase;
-		} else {
-			p = minPercent;
+			return t.percent / 100.0 * newBase;
 		}
 
-		return p;
+		return minPercent;
 	});
 });
 
 // Functions
 function tooltipText(type, amount, percent) {
-	return `${type}: ${convertAmount(amount).toLocaleString()} ${coinUnit.value}, ${percent.toFixed(2)}%`;
+	return `${type}: ${convertAmount(amount).toLocaleString()} ${coinUnit.value}, ${percent.toFixed(2).toLocaleString()}%`;
 }
 
 </script>
