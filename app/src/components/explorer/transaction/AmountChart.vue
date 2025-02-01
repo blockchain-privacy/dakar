@@ -46,7 +46,7 @@ const amountsPerType = computed(() => {
 		let t = noTypeKey;
 		if (output.txtype) {
 			t = output.txtype;
-		} else if (!output.sigasm) {
+		} else if (!output.ts) {
 			t = notSpent;
 		}
 
