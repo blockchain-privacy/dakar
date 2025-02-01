@@ -21,9 +21,11 @@ import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({outputs: {type: Array, required: true}});
 const noTypeKey = 'no type';
+const notSpent = 'not spent';
 const {getSettings} = storeToRefs(useLocalStore());
 const colorMap = getColorMap(getSettings.value.blockchainMode);
 setUndefinedTransactionColor(colorMap, noTypeKey);
+colorMap.set(notSpent, 'lightgrey');
 
 // Computed
 const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
@@ -41,9 +43,12 @@ const amountsPerType = computed(() => {
 
 		amountSum += output.amount;
 
-		let t = output.txtype;
-
-		t ||= noTypeKey;
+		let t = noTypeKey;
+		if (output.txtype) {
+			t = output.txtype;
+		} else if (!output.sigasm) {
+			t = notSpent;
+		}
 
 		let val = typeMap.get(t);
 		if (val) {
