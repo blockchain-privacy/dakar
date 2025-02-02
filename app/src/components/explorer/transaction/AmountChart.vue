@@ -3,7 +3,7 @@
     <div
       v-for="(t,i) in amountsPerType"
       :key="t.type"
-      v-tooltip="{'text': tooltipText(t.type,t.amount, t.percent), 'location':'top', 'open-delay': 400}"
+      v-tooltip="{'text': tooltipText(t.type,t.amount, t.percent), 'location':'top', 'open-delay': 0}"
       class="amountElement"
       :style="`width:${displayPercent[i]}%; background-color:${colorMap.get(t.type)}`"
     />
@@ -11,7 +11,6 @@
 </template>
 
 <script setup>
-
 import {computed} from 'vue';
 import {
 	convertAmount, getCoinUnit, getColorMap, setUndefinedTransactionColor,
