@@ -115,7 +115,7 @@
           <div class="d-flex flex-wrap">
             <div style="flex: 1 1 500px">
               <div
-                v-if="tx.inputs"
+                v-if="tx.inputs?.some(d => d.amount)"
                 class="mx-4 mb-2"
               >
                 <p class="text-subtitle-1 text-center">
@@ -132,7 +132,7 @@
             </div>
             <div style="flex: 1 1 500px">
               <div
-                v-if="tx.outputs"
+                v-if="tx.outputs?.some(d => d.amount)"
                 class="mx-4 mb-2"
               >
                 <p class="text-subtitle-1 text-center">
