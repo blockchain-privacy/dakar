@@ -16,14 +16,12 @@
       />
     </template>
     <v-card>
-      <!-- todo: to determine the first day of the week locale.weekInfo or getWeekInfo() can be used. Firefox does not support this yet
-        (see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/getWeekInfo) -->
       <v-date-picker
         v-model="model"
         hide-header
         :allowed-dates="isDateAllowed"
         show-adjacent-months
-        :first-day-of-week="1"
+        :first-day-of-week="firstDayOfWeek"
       />
       <v-card-actions>
         <v-btn
@@ -43,7 +41,7 @@
 // - the input field can not set to be readonly, while still allowing the date picker to work
 // Thus, this component allows selecting a date via the date picker. The selected date
 // is displayed as formatted text in the readonly text field.
-import {ref} from 'vue';
+import {computed, ref} from 'vue';
 
 defineProps({
 	label: {type: String, required: false, default: 'Date'},
@@ -61,6 +59,15 @@ function isDateAllowed(someDate) {
 
 const model = defineModel({type: Date});
 const menuModel = ref(false);
+
+// Computed
+
+// Firefox does not support getWeekInfo() yet.
+// see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/getWeekInfo
+// Default to Monday as the first day of the week if it could not be determined.
+// eslint-disable-next-line no-warning-comments
+// Todo: simplify this when firefox adds support.
+const firstDayOfWeek = computed(() => new Intl.Locale(navigator.language)?.getWeekInfo?.().firstDay || 1);
 
 </script>
 <style scoped>

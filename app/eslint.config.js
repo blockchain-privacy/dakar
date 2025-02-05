@@ -4,9 +4,6 @@ import eslintJsPlugin from '@eslint/js';
 import xo from 'eslint-config-xo';
 
 export default [
-	{
-		rules: eslintJsPlugin.configs.recommended.rules,
-	},
 	...pluginVue.configs['flat/base'],
 	...pluginVue.configs['flat/recommended'],
 	...xo,
@@ -20,11 +17,16 @@ export default [
 			'vue/component-name-in-template-casing': ['error', 'kebab-case'],
 			'no-return-await': 'off',
 			'vue/valid-v-slot': ['error', {allowModifiers: true}],
+			...eslintJsPlugin.configs.recommended.rules,
 		},
 		languageOptions: {
 			globals: {
 				...globals.browser,
 			},
+		},
+		linterOptions: {
+			reportUnusedInlineConfigs: 'error',
+			reportUnusedDisableDirectives: 'error',
 		},
 	},
 ];
