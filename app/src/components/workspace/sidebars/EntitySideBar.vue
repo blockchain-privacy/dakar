@@ -382,6 +382,7 @@ async function getSelectorData() {
 					heuristicExcludeSpendingGaps: opt.excludeSpendingGaps,
 					heuristicCustomClusters: opt.clusterTypes?.length > 0,
 					heuristicTypeTitle: props.auxiliaryData.displayType,
+					heuristicParameterTitle: props.auxiliaryData.parameterTitle,
 					clusterCount: props.auxiliaryData.selectorResultCount,
 					selectorUid: props.auxiliaryData.uid,
 					heuristicTimestamp: new Date(props.auxiliaryData.selectorModified),

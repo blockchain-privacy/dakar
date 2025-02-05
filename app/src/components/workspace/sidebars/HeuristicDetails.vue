@@ -31,7 +31,7 @@
           sm="6"
         >
           <icon-item
-            title="Parameter"
+            :title="heuristicData.heuristicParameterTitle?heuristicData.heuristicParameterTitle:'Parameter'"
             :icon="mdiTune"
           >
             {{ heuristicData.heuristicParameter }}
