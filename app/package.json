@@ -15,7 +15,7 @@
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.28",
     "@neondark/wikiapi": "^1.2.48",
-    "@ory/client-fetch": "^1.16.3",
+    "@ory/client-fetch": "^1.16.5",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -28,7 +28,7 @@
     "pinia": "^2.3.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
-    "vuetify": "^3.7.8"
+    "vuetify": "^3.7.9"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",

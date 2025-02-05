@@ -438,10 +438,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.16.3":
-  version: 1.16.3
-  resolution: "@ory/client-fetch@npm:1.16.3"
-  checksum: 10c0/d1525abc2ec7fd65f81e8b30d2ef87db3274f3e14ed403c603c8cdb01424bd507fd7409565e9219283fa0fad6a12bc343bdd0ceb5b915a2873b1b4e34113ba38
+"@ory/client-fetch@npm:^1.16.5":
+  version: 1.16.5
+  resolution: "@ory/client-fetch@npm:1.16.5"
+  checksum: 10c0/5f0bf97cc414cc3cb98165333560bb87ac14dd143a61463d5ec73029573b54448d43c40f352ddd825270ef62d60254a2d7092a93aa1fa4f3d8b49437b3927d8d
   languageName: node
   linkType: hard
 
@@ -1521,7 +1521,7 @@ __metadata:
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.28"
     "@neondark/wikiapi": "npm:^1.2.48"
-    "@ory/client-fetch": "npm:^1.16.3"
+    "@ory/client-fetch": "npm:^1.16.5"
     "@vitejs/plugin-vue": "npm:^5.2.1"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1542,7 +1542,7 @@ __metadata:
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.5.13"
     vue-router: "npm:^4.5.0"
-    vuetify: "npm:^3.7.8"
+    vuetify: "npm:^3.7.9"
   languageName: unknown
   linkType: soft
 
@@ -3431,9 +3431,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.7.8":
-  version: 3.7.8
-  resolution: "vuetify@npm:3.7.8"
+"vuetify@npm:^3.7.9":
+  version: 3.7.9
+  resolution: "vuetify@npm:3.7.9"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=1.0.0"
@@ -3446,7 +3446,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/bfd04880326a29c0b51578295217e054e791ffc79630fe2212178db73eafce7647d6d6097eea4b11f91555dac8f6c972b4db92b441eebbb4675e2cd51e7de8a7
+  checksum: 10c0/4e3a268b26907c1caaed8df58b406566e214cc5c50c47c9ad966dd567e447543ae3380f1cc19d45e84fd4cd859fde6737f48791b220d7615438a05a21acddefa
   languageName: node
   linkType: hard
 
