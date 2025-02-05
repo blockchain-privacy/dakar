@@ -13,10 +13,9 @@
               class="d-flex"
             >
               <p class="text-subtitle-1 my-auto mr-auto">
-                Attributions help to easier identify addresses belonging to the same
-                <wiki-tooltip description-url="addressCluster.md">
-                  address cluster
-                </wiki-tooltip>.
+                <wiki-tooltip description-url="attributions.md">
+                  Attributions
+                </wiki-tooltip> allow linking external information to addresses.
               </p>
               <v-menu location="bottom">
                 <template #activator="{ props }">

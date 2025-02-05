@@ -39,16 +39,21 @@
         </v-menu>
       </icon-title>
       <v-card-text>
+        <p class="text-subtitle-1">
+          <wiki-tooltip description-url="addressExclusions.md">
+            Address exclusions
+          </wiki-tooltip> allow to exclude outputs linked to addresses from being traversed by CoinJoin heuristics.
+        </p>
         <v-progress-linear
           v-if="isLoading"
           indeterminate
+          class="mt-2"
         />
         <p
           v-else-if="items.length > 0"
           class="text-subtitle-1"
         >
-          The addresses part of this list can be excluded from processing by heuristics.
-          This list contains {{ Number(addressCount).toLocaleString() }} address exclusions.
+          The address exclusion list contains {{ Number(addressCount).toLocaleString() }} address exclusions.
           The list below is limited to 30 addresses.
         </p>
         <div
@@ -156,6 +161,7 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};

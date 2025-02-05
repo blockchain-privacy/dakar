@@ -112,7 +112,6 @@
               :loading="isLoading"
               :output-count="outputCount"
               :input-count="inputCount"
-              :coinbase-count="coinbaseCount"
               @change="handleFilterOrSortChange"
             />
             <v-sheet

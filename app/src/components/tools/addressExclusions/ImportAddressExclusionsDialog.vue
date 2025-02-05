@@ -12,20 +12,10 @@
           Import an address exclusion list, which consists of a list of address hashes,
           separated by new line characters. The file must <strong>not</strong> have a header.
           The file may contain at maximum {{ Number(10000).toLocaleString() }} addresses.
+          The <wiki-tooltip description-url="addressExclusions.md">
+            address exclusions
+          </wiki-tooltip> wiki page shows an example.
         </div>
-        <v-expansion-panels>
-          <v-expansion-panel elevation="0">
-            <v-expansion-panel-title>
-              Example file
-            </v-expansion-panel-title>
-            <v-expansion-panel-text style="overflow: auto">
-              <p>The following file content would add 3 addresses to the address exclusion list.</p>
-              <pre style="width: 200px"><code>Xf36MqBkoK8G5wBbjUSwDRy6XTjdNq8hgB
-XatWuw7BhTxHvjPLbnvPArWgW9r6hjpt8o
-XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
         <v-form
           id="csvForm"
           ref="csvForm"
@@ -69,6 +59,7 @@ import {fileRule, getDakarClient} from '@/utilities';
 import {useMsgStore} from '@/pinia/msg';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
