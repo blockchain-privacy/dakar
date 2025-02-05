@@ -54,7 +54,7 @@
                 :icon="mdiPound"
                 title="Outputs"
               >
-                {{ inputCount }}
+                {{ outputCount }}
               </icon-item>
             </v-col>
             <v-col

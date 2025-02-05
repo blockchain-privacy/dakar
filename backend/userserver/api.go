@@ -5,6 +5,7 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
+	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	dbwork "backend/db/workspace"
 	"backend/external"
@@ -13,12 +14,25 @@ import (
 	"net/http"
 )
 
+type healthCheckReply struct {
+	Healthy bool `json:"healthy"`
+}
+
 type createUserReply struct {
 	DakarUserUID string `json:"dakarUserUID"`
 }
 
 type msgReply struct {
 	Msg string `json:"msg"`
+}
+
+// getCreateUserReply reads the data from body and constructs a identityReply
+func getHealthCheckReply(r *http.Request, dgraph external.Database) (reply healthCheckReply, status int) {
+	// do a simple status check to determine if the database connection is healthy
+	_, err := dbstat.GetFrontendStatus(r.Context(), dgraph)
+	reply.Healthy = err == nil
+
+	return
 }
 
 // getCreateUserReply reads the data from body and constructs a identityReply
@@ -125,6 +139,22 @@ func (s *Server) handlerCreateUser() http.Handler {
 func (s *Server) handlerDeleteUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteUserReply(r, s.db)
+
+		server.SendReply(w, reply, status)
+	})
+}
+
+// Health Check godoc
+//
+//	@Summary	Check the health of the server. This includes a database connection check.
+//	@Tags		user
+//	@Produce	json
+//	@Success	200	{object}	server.healthCheckReply
+//	@Failure	500	{object}	server.healthCheckReply
+//	@Router		/health/ [get]
+func (s *Server) handlerHealth() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getHealthCheckReply(r, s.db)
 
 		server.SendReply(w, reply, status)
 	})
