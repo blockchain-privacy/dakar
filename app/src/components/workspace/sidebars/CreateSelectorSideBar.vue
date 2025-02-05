@@ -312,6 +312,7 @@ const heuristicOptions = ref({
 	excludeAddresses: false,
 	excludeSpendingGaps: false,
 	type: null,
+	parameter: '',
 });
 
 const startDateError = ref(false);
@@ -362,7 +363,12 @@ onUpdated(() => {
 		if (heuristicTypes.value.length > 0) {
 			heuristicTypeModel.value = heuristicTypes.value.find(d => !d.divider && !d.disabled);
 			heuristicOptions.value.type = heuristicTypeModel.value?.type;
+		} else {
+			heuristicTypeModel.value = [];
+			heuristicOptions.value.type = null;
 		}
+
+		heuristicOptions.value.parameter = '';
 	}
 
 	startDateError.value = false;
@@ -493,8 +499,7 @@ function buildHeuristicOptions() {
 	options = structuredClone(toRaw(heuristicOptions.value));
 	options.clusterTypes = heuristicOptions.value.clusterTypes?.length > 0 ? [CLUSTER_TYPE_CUSTOM] : [];
 
-	// Int to string
-	options.paramter &&= `${options.paramter}`;
+	options.parameter &&= `${options.parameter}`;
 	return options;
 }
 
@@ -507,7 +512,7 @@ function isDateRangeToBig(startDate, endDate) {
 
 // Checks if besides 'startDate', 'endDate' and 'maxItems' another option is set
 function isOptionsEmpty(options) {
-	return !Object.keys(options).some(k => k !== 'endDate' && k !== 'startDate' && k !== 'maxItems');
+	return !Object.keys(options).some(k => k === 'endDate' || k === 'startDate' || k === 'maxItems');
 }
 
 function buildTxPropOptions() {
@@ -616,7 +621,7 @@ async function addNewSelectorAction(event) {
 	}
 
 	// Check for empty object
-	if (isOptionsEmpty(options)) {
+	if (props.selectorType !== SELECTOR_TYPE_HEURISTIC && isOptionsEmpty(options)) {
 		setErrorMessage('at least one filter must be set');
 		return;
 	}

@@ -56,7 +56,7 @@ func (h *reverseLookupHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *reverseLookupHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
@@ -132,7 +132,7 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			lookBackTime, depth, exclusions, attributions, options)
+			lookBackTime, depth, exclusions, attributions, options, mixingTransactionType)
 		if err != nil {
 			return nil, err
 		}

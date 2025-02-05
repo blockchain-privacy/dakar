@@ -18,7 +18,7 @@ type wasabi2ForwardLookupByDepthHeuristic struct {
 	depth         int
 }
 
-func newwasabi2ForwardLookupByDepthHeuristic() heuristic {
+func newWasabi2ForwardLookupByDepthHeuristic() heuristic {
 	return &wasabi2ForwardLookupByDepthHeuristic{heuristicType: heuristicTypeWasabi2ForwardLookupByDepth}
 }
 
@@ -31,7 +31,7 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) setConfig(c heuristics.Options) e
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
 
-	duration, err := strconv.Atoi(c.Parameter)
+	d, err := strconv.Atoi(c.Parameter)
 	if err != nil {
 		return serror.New(err)
 	}
@@ -40,7 +40,7 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) setConfig(c heuristics.Options) e
 		return serror.New(errInvalidClusterTypes)
 	}
 
-	h.depth = duration
+	h.depth = d
 	h.c = c
 
 	return nil
@@ -51,7 +51,7 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *wasabi2ForwardLookupByDepthHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *wasabi2ForwardLookupByDepthHeuristic) GetDescriptor() Descriptor {

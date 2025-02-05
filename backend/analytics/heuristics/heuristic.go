@@ -90,7 +90,7 @@ func init() {
 		newWasabi2OneSourceByDepthHeuristic,
 		newWasabi2ReverseAmountHeuristic,
 		newWasabi2ForwardLookupByTimeHeuristic,
-		newwasabi2ForwardLookupByDepthHeuristic,
+		newWasabi2ForwardLookupByDepthHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
@@ -275,7 +275,7 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	transactionUID string, lookBackTime time.Duration, maxDepth int, exclusions []string,
-	attributions map[string][]string, c heuristics.Options) (origins []heuristics.HeuristicTransaction,
+	attributions map[string][]string, c heuristics.Options, allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
 	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(transactionUID, lookBackTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
@@ -285,7 +285,7 @@ func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *gra
 
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions)
+		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions, allowedTransactionType)
 }
 
 // getTimeLimitedDestinations returns all destinations of the given transaction.
@@ -293,7 +293,7 @@ func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *gra
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedDestinations(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	transactionUID string, lookForwardTime time.Duration, maxDepth int, exclusions []string,
-	attributions map[string][]string, c heuristics.Options) (origins []heuristics.HeuristicTransaction,
+	attributions map[string][]string, c heuristics.Options, allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
 	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ForwardLookup(transactionUID, lookForwardTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
@@ -303,7 +303,7 @@ func getTimeLimitedDestinations(ctx context.Context, dgraph external.Database, g
 
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions)
+		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions, allowedTransactionType)
 }
 
 func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {

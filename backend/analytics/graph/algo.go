@@ -62,15 +62,15 @@ func CheckAddressExclusions(exclusions map[int64]bool, edge AddressEdge) bool {
 // ReverseLookupByID performs a reverse lookup starting at the given nodeId
 // Can be limited by time (maxLookBackTime) and number of  hops (maxDepth)
 // Set maxLookBackTime and maxDepth to 0 respectively if they should not be considered.
-func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Duration, maxDepth int,
+func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Duration, maxDepthParameter int,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	node := g.Node(nodeID)
 	if node == nil {
 		return nil, ErrNodeNotFound(nodeID)
 	}
 
-	if maxDepth < 0 {
-		return nil, serror.FromStrWithContext("invalid maximum depth", "depth", maxDepth)
+	if maxDepthParameter < 0 {
+		return nil, serror.FromStrWithContext("invalid maximum depth", "depth", maxDepthParameter)
 	}
 
 	exclusionsMap := make(map[int64]bool, len(addressExclusions))
@@ -133,14 +133,23 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 		},
 	}
 
+	maxDepth := maxDepthParameter
+	if maxDepthParameter > 0 {
+		if !isReversed {
+			// Reduce the maximum depth by 1, because in Traverse() connected nodes are also considered.
+			// Therefore we traverse: maxDepth + 1 - 1 = maxDepth
+			// This is limited to reverse lookups. When doing forward lookups we want to traverse
+			// one additional hop, which is achieved in Traverse()
+			maxDepth--
+		}
+	}
+
 	w.Walk(g, node, func(n graph.Node, depth int) bool {
-		// maxDepth - 1 because edges are considered as well
-		if maxDepth > 0 && depth > maxDepth-1 {
+		if maxDepthParameter > 0 && depth > maxDepth {
 			return true
 		}
 
-		from := g.From(n.ID())
-		if from.Len() == 0 && !constants.IsMixingTransaction(n.(TransactionNode).Type) {
+		if g.From(n.ID()).Len() == 0 && !constants.IsMixingTransaction(n.(TransactionNode).Type) {
 			thisNode := n.(TransactionNode)
 			foundEndpoints[thisNode.String()] = true
 		}

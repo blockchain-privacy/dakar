@@ -920,6 +920,10 @@ function openCreateSelectorSheet(selectorType, parentNode) {
 }
 
 function openEntitySideBar(nodeData) {
+	if (nodeData.selectorStatus === SELECTOR_STATUS_WAITING || nodeData.selectorStatus === SELECTOR_STATUS_WAITING) {
+		return;
+	}
+
 	entityAuxiliaryData.value = null;
 	entityType.value = nodeData.type;
 

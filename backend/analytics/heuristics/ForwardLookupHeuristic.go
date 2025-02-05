@@ -54,7 +54,7 @@ func (h *forwardHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *forwardHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *forwardHeuristic) GetDescriptor() Descriptor {
@@ -83,7 +83,7 @@ func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g
 
 func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
 	lookForwardTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
-	if lookForwardTime == 0 {
+	if lookForwardTime == 0 && depth == 0 {
 		return nil, nil
 	}
 
@@ -101,20 +101,6 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		return nil, err
 	}
 
-	results, _, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		[]string{uid}, options.UserUID, options.ClusterTypes, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(results) > 1 {
-		return nil, serror.FromStr("received more than one transaction")
-	}
-
-	if len(results) == 0 {
-		return nil, serror.New(errNoOriginsAtStart)
-	}
-
 	var exclusions []string
 	if options.ExcludeAddresses {
 		var err error
@@ -125,7 +111,7 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 	}
 
 	destinations, _, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
-		lookForwardTime, depth, exclusions, nil, options)
+		lookForwardTime, depth, exclusions, nil, options, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}

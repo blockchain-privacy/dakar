@@ -45,7 +45,7 @@ func (h *denominationTypeHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *denominationTypeHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
@@ -80,7 +80,7 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
-		constants.TransactionTypesDash)
+		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}

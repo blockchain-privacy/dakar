@@ -55,7 +55,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *wasabi2OneSourceByTimeHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
@@ -141,7 +141,7 @@ func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, 
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			lookBackTime, depth, exclusions, attributions, options)
+			lookBackTime, depth, exclusions, attributions, options, constants.TypeWasabi2Mixing)
 		if err != nil {
 			return nil, err
 		}
@@ -179,6 +179,10 @@ func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, 
 			inputTxOutputSum += output.Amount
 		}
 
+		// add element inputClusters and set index of current element
+		inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
+		icIndex := len(inputClusters) - 1
+
 		// per input transaction, map clusters to their origins and
 		// mark them for removal if they don't have enough funds for the input transaction
 		clusterTransactionMap := mapClusterToTransactions(t.origins)
@@ -189,10 +193,6 @@ func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, 
 					clusterOutputAmount += output.Amount
 				}
 			}
-
-			// add element inputClusters and set index of current element
-			inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
-			icIndex := len(inputClusters) - 1
 
 			clusters[clusterUID] = true
 			inputClusters[icIndex][clusterUID] = true

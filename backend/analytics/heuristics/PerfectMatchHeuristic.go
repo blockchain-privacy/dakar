@@ -56,7 +56,7 @@ func (h *perfectMatchHeuristic) GetDescriptor() Descriptor {
 }
 
 func (h *perfectMatchHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 // perfectMatchHeuristic applies the following heuristic:
@@ -76,7 +76,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
-		constants.TransactionTypesDash)
+		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TransactionTypesDash)
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}

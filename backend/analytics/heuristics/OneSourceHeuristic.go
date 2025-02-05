@@ -55,7 +55,7 @@ func (h *oneSourceHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *oneSourceHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, e: %v", h.heuristicType, h.c)
 }
 
 func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
@@ -137,7 +137,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			h.lookBackTime, 0, exclusions, attributions, h.c)
+			h.lookBackTime, 0, exclusions, attributions, h.c, constants.TypeDashMixing)
 		if err != nil {
 			return nil, err
 		}

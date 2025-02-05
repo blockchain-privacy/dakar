@@ -55,7 +55,7 @@ func (h *forwardAmountHeuristic) getConfig() heuristics.Options {
 }
 
 func (h *forwardAmountHeuristic) String() string {
-	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
 func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
@@ -99,7 +99,7 @@ func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, nil)
+		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, nil, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
