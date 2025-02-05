@@ -1,87 +1,97 @@
 <template>
-  <div v-if="embed">
-    <v-tabs
-      v-model="tab"
-      align-tabs="center"
-    >
-      <v-tab
-        v-for="(formNodes, i) in getForms"
-        :key="`${formId}_${i}`"
-        :value="`${formId}_${i}`"
-        :to="{ name: route.name, params: { tabName: getFormGroupName(formNodes) }, query: route.query}"
+  <div>
+    <v-expand-transition>
+      <template v-if="flow.ui?.messages">
+        <div>
+          <ory-ui-message
+            v-for="(msg,i) in flow.ui.messages"
+            :key="i"
+            :message="msg"
+          />
+        </div>
+      </template>
+    </v-expand-transition>
+    <template v-if="embed">
+      <v-tabs
+        v-model="tab"
+        align-tabs="center"
       >
-        {{ groupTitles.get(getFormGroupName(formNodes)) }}
-      </v-tab>
-    </v-tabs>
-    <v-card
-      class="mx-auto"
-      variant="text"
-    >
-      <v-card-text>
-        <v-window v-model="tab">
-          <v-window-item
-            v-for="(formNodes,i) in getForms"
-            :key="`${formId}_${i}`"
-            :value="`${formId}_${i}`"
-          >
-            <v-form
-              :id="`${formId}_${i}`"
-              :action="flow.ui.action"
-              :method="flow.ui.method"
+        <v-tab
+          v-for="(formNodes, i) in getForms"
+          :key="`${formId}_${i}`"
+          :value="`${formId}_${i}`"
+          :to="{ name: route.name, params: { tabName: getFormGroupName(formNodes) }, query: route.query}"
+        >
+          {{ groupTitles.get(getFormGroupName(formNodes)) }}
+        </v-tab>
+      </v-tabs>
+      <v-card
+        class="mx-auto"
+        variant="text"
+      >
+        <v-card-text>
+          <v-window v-model="tab">
+            <v-window-item
+              v-for="(formNodes,i) in getForms"
+              :key="`${formId}_${i}`"
+              :value="`${formId}_${i}`"
             >
-              <ory-ui-node
-                v-for="(node, y) in formNodes"
-                :key="y"
-                :name="getNodeName(node)"
-                :node="node"
-                :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
-                @submit="propagateSubmitEvent(`${formId}_${i}`)"
-              />
-            </v-form>
-          </v-window-item>
-        </v-window>
-      </v-card-text>
-    </v-card>
-  </div>
-  <div v-else>
-    <div
-      v-for="(formNodes,i) in getForms"
-      :key="`${formId}_${i}`"
-    >
-      <v-form
-        :id="`${formId}_${i}`"
-        :action="flow.ui.action"
-        :method="flow.ui.method"
-        autocomplete="on"
+              <v-form
+                :id="`${formId}_${i}`"
+                :action="flow.ui.action"
+                :method="flow.ui.method"
+              >
+                <ory-ui-node
+                  v-for="(node, y) in formNodes"
+                  :key="y"
+                  :name="getNodeName(node)"
+                  :node="node"
+                  :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
+                  @submit="propagateSubmitEvent(`${formId}_${i}`)"
+                />
+              </v-form>
+            </v-window-item>
+          </v-window>
+        </v-card-text>
+      </v-card>
+    </template>
+    <template v-else>
+      <div
+        v-for="(formNodes,i) in getForms"
+        :key="`${formId}_${i}`"
       >
-        <ory-ui-node
-          v-for="(node, y) in formNodes"
-          :key="y"
-          :name="getNodeName(node)"
-          :node="node"
-          :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
-          @submit="(btnName) => propagateSubmitEvent(`${formId}_${i}`,btnName)"
+        <v-form
+          :id="`${formId}_${i}`"
+          :action="flow.ui.action"
+          :method="flow.ui.method"
+          autocomplete="on"
+        >
+          <ory-ui-node
+            v-for="(node, y) in formNodes"
+            :key="y"
+            :name="getNodeName(node)"
+            :node="node"
+            :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
+            @submit="(btnName) => propagateSubmitEvent(`${formId}_${i}`,btnName)"
+          />
+        </v-form>
+        <v-divider
+          v-if="getForms.length > 1 && i +1 < getForms.length"
+          class="my-5"
         />
-      </v-form>
-      <v-divider
-        v-if="getForms.length > 1 && i +1 < getForms.length"
-        class="my-5"
-      />
-    </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import OryUiNode from './OryUiNode.vue';
 import {getNodeName} from '@/components/user/ory/utils';
-import {
-	computed, onMounted, ref, watch,
-} from 'vue';
+import {computed, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import OryUiMessage from '@/components/user/ory/OryUiMessage.vue';
 
 const route = useRoute();
-const msgStore = useMsgStore();
 
 const props = defineProps({
 	flow: {type: Object, required: true},
@@ -101,15 +111,6 @@ const groupTitles = new Map([
 	['webauthn', 'Webauthn'],
 ]);
 const tab = ref(null);
-
-// Need to use getter for nested prop
-watch(() => props.flow, () => {
-	displayMessages();
-});
-
-onMounted(() => {
-	displayMessages();
-});
 
 // Computed
 // getFormGroupNames returns a unique array including all form group names except the 'default' group
@@ -145,12 +146,6 @@ const getForms = computed(() => {
 });
 
 // Functions
-function setMessage(msg, msgType) {
-	msgStore.addMessage({
-		text: msg, type: msgType, temporary: false, category: route.name,
-	});
-}
-
 function propagateSubmitEvent(formID, btnName) {
 	emit('submit', formID, btnName);
 }
@@ -162,14 +157,6 @@ function getFormGroupName(formNodes) {
 	}
 
 	return '';
-}
-
-function displayMessages() {
-	if (!props.flow.ui || !props.flow.ui.messages) {
-		return;
-	}
-
-	props.flow.ui.messages.forEach(msg => setMessage(msg.text, msg.type));
 }
 
 </script>

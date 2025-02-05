@@ -44,8 +44,8 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 			await refreshFlow(onRefreshFlow);
 			return true;
 		case 401: // Unauthorized access
-			await refreshFlow(onRefreshFlow);
-			return true;
+			// return false so error message can be displayed
+			return false;
 		default:
 			break;
 	}

@@ -143,14 +143,18 @@ async function tryToGetSession() {
 }
 
 function leave() {
-	if (loginFlow.value && loginFlow.value.return_to) {
+	if (loginFlow.value?.return_to) {
 		window.location.href = loginFlow.value.return_to;
-	} else if (failedRoute.value) {
+		return;
+	}
+
+	if (failedRoute.value !== null && failedRoute.value.name !== ROUTE_NAME_LOGIN_PAGE) {
 		goToPage(failedRoute.value);
 		failedRoute.value = null;
-	} else {
-		goToPage({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}});
+		return;
 	}
+
+	goToPage({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}});
 }
 
 // Used to break login flow (when aal2 or higher is required) and go to a different page
@@ -209,7 +213,6 @@ async function handleOrySubmitLogin(formID) {
 		} else {
 			handleGetFlowError(context, e, () => {
 				initLoginFlow('aal1');
-				setErrorMessage('The login flow has expired, please try again.');
 			}).catch(e => {
 				setErrorMessage(e);
 			});

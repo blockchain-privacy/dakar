@@ -2,7 +2,6 @@
   <v-alert
     :type="message.type"
     class="mt-2"
-    density="compact"
     variant="text"
   >
     {{ message.text }}
