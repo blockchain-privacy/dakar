@@ -86,12 +86,12 @@ func getUserAndWorkspaces(t *testing.T) ([]string, [][]string, [][]string) {
 				"040c7a2b65f2f5130f49e244cc8dfcd306bc2873ea34d0a4933d07c73293c536",
 				"af25e5385300cfbec9ecba1e7c75035b1c1e77853250db08ac7e455476f5c310",
 				"2c101a43418eb86a3a0be0485de90da51dfbf4732ae5c057408cce73aa6f816e"}
-			newNodes := make([]*workspace.Node, len(txUids))
+			newNodes := make([]workspace.Node, len(txUids))
 			for x, query := range txUids {
 				newNode, err := workspace.SearchForNode(ctx, dbHandle, query)
 				require.NoError(t, err)
 
-				newNodes[x] = newNode
+				newNodes[x] = *newNode
 			}
 
 			addedNodes, _, err := AddNodes(ctx, dbHandle, m, userToWorkspaces[i][y], userUID, newNodes)
@@ -151,13 +151,13 @@ func TestWorkspaceUsageParallel(t *testing.T) {
 		"d0bc5aba5a81df73b706d7819956fb298e03baf52a97c736bb588dfd3586e849",
 		"e5a76d4f80bd03f378fc40b550ea8fde9ca6b1dd0916a15c7f22f30947bbe896"}
 
-	newNodes := make([]*workspace.Node, len(txUIDs))
+	newNodes := make([]workspace.Node, len(txUIDs))
 	newNodeUIDs := make([]string, len(txUIDs))
 	for x, query := range txUIDs {
 		newNode, err := workspace.SearchForNode(ctx, dbHandle, query)
 		require.NoError(t, err)
 
-		newNodes[x] = newNode
+		newNodes[x] = *newNode
 		newNodeUIDs[x] = newNode.UID
 	}
 

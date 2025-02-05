@@ -55,7 +55,7 @@
       />
     </v-btn-toggle>
   </div>
-  <div class="d-flex justify-center flex-wrap">
+  <div class="d-flex justify-center align-center flex-wrap">
     <v-btn
       variant="text"
       class="my-1"

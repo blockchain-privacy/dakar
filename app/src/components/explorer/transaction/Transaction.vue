@@ -506,6 +506,7 @@ function showMoreOutputs({done}) {
 		// Once in that state it can not be reset. So switchting back to unfiltered outputs,
 		// the infinite scroll would not work anymore.
 		// The following workaround only sends 'empty' when not filtering.
+		// eslint-disable-next-line no-warning-comments
 		// todo: once https://github.com/vuetifyjs/vuetify/pull/20637 is merged, remove workaround (compare with showMoreInputs()) and use reset method
 		if (!props.filterHighlightedOutputs) {
 			done('empty');

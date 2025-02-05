@@ -100,7 +100,7 @@ func getAddressReply(dgraph external.Database, r *http.Request) (reply addressRe
 		return
 	}
 
-	reply.Address = &addr
+	reply.Address = addr
 
 	return
 }
@@ -1431,7 +1431,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 		}
 	}
 
-	newNodes := map[string]*dbwork.Node{}
+	newNodes := map[string]dbwork.Node{}
 	for _, query := range searchRequest.Queries {
 		newNode, err := dbwork.SearchForNode(r.Context(), dgraph, query)
 		if errors.Is(err, dbwork.ErrNodeNotFound) {
@@ -1445,12 +1445,17 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 			return
 		}
 
-		newNodes[newNode.UID] = newNode
+		newNodes[newNode.UID] = *newNode
 	}
 
 	reply.Nodes, reply.DuplicateNodeUID, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, searchRequest.WorkspaceUID,
 		tUser.ID, cliutil.GetMapValues(newNodes))
 	if err != nil {
+		if errors.Is(err, workspace.ErrTooManyOutputs) {
+			reply.ClusterTooLarge = true
+			return
+		}
+
 		status = http.StatusInternalServerError
 		warn(err)
 		return

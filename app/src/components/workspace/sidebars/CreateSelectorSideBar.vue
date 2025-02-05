@@ -523,6 +523,10 @@ function buildTxPropOptions() {
 			return;
 		}
 
+		// Set endDate to the end of the day, so the full range of the end date is included
+		const endDate = new Date(options.endDate);
+		options.endDate = new Date(endDate.setHours(23, 59, 59, 999));
+
 		if (isDateRangeToBig(options.startDate, options.endDate)) {
 			startDateError.value = true;
 			endDateError.value = true;

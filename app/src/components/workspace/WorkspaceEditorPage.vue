@@ -213,7 +213,7 @@ import {
 	PRIVACY_TYPE_MIXING,
 	PRIVACY_TYPE_WASABI_2_ORIGIN,
 	PRIVACY_TYPE_WASABI_2_MIXING,
-	PRIVACY_TYPE_WASABI_2_DESTINATION,
+	PRIVACY_TYPE_WASABI_2_DESTINATION, CLUSTER_MAX_OUTPUTS,
 } from '@/constants';
 import {
 	capitalize,
@@ -643,9 +643,13 @@ async function addMultipleNodes(nodes) {
 				if (n.nodeDisplayTitle && n.type) {
 					defaultText = `${capitalize(n.type)} ${n.nodeDisplayTitle} already in workspace`;
 				}
+
+				nodeGraph.centerOnNode(n);
 			}
 
 			setInfoMessage(defaultText);
+		} else if (response.clusterTooLarge) {
+			setWarningMessage(`Cluster has more than ${CLUSTER_MAX_OUTPUTS.toLocaleString()} outputs. The node was not added to the workspace.`);
 		}
 	} catch (e) {
 		if (e.cause?.status === 404) {
@@ -748,6 +752,12 @@ function setInfoMessage(msg) {
 	});
 }
 
+function setWarningMessage(msg) {
+	msgStore.addMessage({
+		text: msg, type: 'warning', temporary: true, category: route.name,
+	});
+}
+
 // Sends the new selector to the backend
 async function addNewSelector(type, options) {
 	const currentNode = nodeGraph.getContextNode();
@@ -811,9 +821,9 @@ async function addNewSelector(type, options) {
 		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 		nodeGraph.addNodes(response.nodes);
 		startWaitingforSelectors(response.nodes);
-
 		// Immediatly auto save to store coordinates of new node
 		queueAutoSave(0);
+		nodeGraph.centerOnNewNodes();
 	} catch (e) {
 		setErrorMessage(e);
 	}

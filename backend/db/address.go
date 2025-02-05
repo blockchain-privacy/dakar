@@ -4,14 +4,21 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v240/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 )
 
+// ErrAddressNotFound is returned if no address has been found
+var ErrAddressNotFound = errors.New("no address found")
+
 // AddressDType is the dgraph database type for the Address type
 const AddressDType = "Address"
+
+// if an address has more outputs than maximumSortAndFilterOutputs sorting and filtering will be ignored
+const maximumSortAndFilterOutputs = 10000
 
 const (
 	// SortAscendingByOutputTime sort outputs ascending by the output transaction timestamp
@@ -79,13 +86,10 @@ func (a *Address) SetDType() {
 // FrontendOutput is the representation for the frontend of an output
 type FrontendOutput struct {
 	Amount                int64  `json:"amount"`
-	IsCoinbase            bool   `json:"is_coinbase"`
-	InputIndex            int    `json:"input_index"`
-	InputTransactionHash  string `json:"input_transaction"`
-	InputTimestamp        string `json:"input_ts"`
-	OutputIndex           int    `json:"output_index"`
-	OutputTransactionHash string `json:"output_transaction"`
-	OutputTimestamp       string `json:"output_ts"`
+	InputTransactionHash  string `json:"inputTransactionHash"`
+	InputTimestamp        string `json:"inputTimestamp"`
+	OutputTransactionHash string `json:"outputTransactionHash"`
+	OutputTimestamp       string `json:"outputTimestamp"`
 }
 
 func (o FrontendOutput) String() string {
@@ -94,24 +98,59 @@ func (o FrontendOutput) String() string {
 
 // FrontendAddress is the representation for the frontend of an address
 type FrontendAddress struct {
-	Hash          string           `json:"addresshash"`
-	QueryMaxCount int64            `json:"query_max_count"`
-	CoinbaseCount int64            `json:"coinbase_count"`
-	OutputCount   int64            `json:"output_count"`
-	InputCount    int64            `json:"input_count"`
-	InputSum      int64            `json:"input_sum"`
-	OutputSum     int64            `json:"output_sum"`
-	Outputs       []FrontendOutput `json:"addr_outputs"`
+	Hash string `json:"addresshash"`
+	// QueryMaxCount is the number results for the given filter.
+	// If IsOutputManipulationSupported is true, this number will always be zero and should be ignored.
+	QueryMaxCount int64            `json:"queryMaxCount"`
+	OutputCount   int64            `json:"outputCount"`
+	InputCount    int64            `json:"inputCount"`
+	InputSum      int64            `json:"inputSum"`
+	OutputSum     int64            `json:"outputSum"`
+	Outputs       []FrontendOutput `json:"outputs"`
+	// IsOutputManipulationSupported is true if the address has to many outputs to allow performant sorting and filtering
+	IsOutputManipulationSupported bool `json:"isOutputManipulationSupported"`
 }
 
 func (f FrontendAddress) String() string {
 	return fmt.Sprintf("Hash: %s, OutputCount: %d", f.Hash, len(f.Outputs))
 }
 
-// GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
-// Use one of the constants like SortAscendingByInputTime to set the sortOrder
+// GetFrontendAddress returns the address with outputs filter and sorted as specified.
+// If the address has too many outputs the filter and sort order will be ignored.
 func GetFrontendAddress(ctx context.Context, c external.Database, addrHash string, sortOrder int,
-	offset int, filters []int) (addr FrontendAddress, err error) {
+	offset int, filters []int) (*FrontendAddress, error) {
+	addr, err := GetFrontendAddressHeader(ctx, c, addrHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if addr.OutputCount > maximumSortAndFilterOutputs {
+		outputs, err := getFrontendAddressOutputs(ctx, c, addrHash, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		addr.QueryMaxCount = 0
+		addr.IsOutputManipulationSupported = false
+		addr.Outputs = outputs
+	} else {
+		outputs, queryMaxCount, err := GetFrontendAddressOutputsSortAndFilter(ctx, c, addrHash, sortOrder, offset, filters)
+		if err != nil {
+			return nil, err
+		}
+
+		addr.QueryMaxCount = queryMaxCount
+		addr.IsOutputManipulationSupported = true
+		addr.Outputs = outputs
+	}
+
+	return &addr, nil
+}
+
+// GetFrontendAddressOutputsSortAndFilter returns outputs for the address sorted as specified by sortOrder.
+// Use one of the constants like SortAscendingByInputTime to set the sortOrder
+func GetFrontendAddressOutputsSortAndFilter(ctx context.Context, c external.Database, addrHash string, sortOrder int,
+	offset int, filters []int) (outputs []FrontendOutput, queryMaxCount int64, err error) {
 	if addrHash == "" {
 		err = serror.New(ErrEmptyRequestArgument)
 		return
@@ -168,7 +207,6 @@ func GetFrontendAddress(ctx context.Context, c external.Database, addrHash strin
 		var(func: eq(addresshash, $hash)){
 			addr_outputs{
 				a as uid
-				oamt as amount
 				~tx_outputs{
 					~transactions{
 						obts as ts
@@ -185,40 +223,21 @@ func GetFrontendAddress(ctx context.Context, c external.Database, addrHash strin
 				its as min(val(itts))
 			}
 		}
-		var(func: uid(a))@filter(has(~tx_inputs)){
-    		iamt as amount
-  		}
-		coinbase(func: uid(a))@filter(eq(iscoinbase, true)){
-			count(uid)
-		}
+
 		c(func:uid(a), orderdesc: ` + sortBy + ")" + filter + `{
 			count(uid)
         }
-		ci(func: uid(iamt)){
-			count(uid)
-		}
-		co(func: uid(oamt)){
-			count(uid)
-		}
-		input_sum(){
-			sum:sum(val(iamt))
-		}
-		output_sum(){
-			sum:sum(val(oamt))
-		}
+
 		q(func: uid(a), order` + sortDirection + ":" + sortBy + ", first:" +
 		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + ")" + filter + `@normalize{
 			amount:amount
-			is_coinbase:iscoinbase
-			output_ts:val(ots)
-			input_ts:val(its)
-			input_index:inputindex
-			output_index:outputindex
+			outputTimestamp:val(ots)
+			inputTimestamp:val(its)
 			~tx_outputs{
-				output_transaction: txhash
+				outputTransactionHash: txhash
 			}
 			~tx_inputs{
-				input_transaction: txhash
+				inputTransactionHash: txhash
 			}
 		}
 	}`
@@ -236,52 +255,85 @@ func GetFrontendAddress(ctx context.Context, c external.Database, addrHash strin
 		QueryMaxCount []struct {
 			Count int64 `json:"count"`
 		} `json:"c"`
-		CoinbaseCount []struct {
-			Count int64 `json:"count"`
-		} `json:"coinbase"`
-		InputCount []struct {
-			Count int64 `json:"count"`
-		} `json:"ci"`
-		OutputCount []struct {
-			Count int64 `json:"count"`
-		} `json:"co"`
-		InputSum []struct {
-			Sum int64 `json:"sum"`
-		} `json:"input_sum"`
-		OutputSum []struct {
-			Sum int64 `json:"sum"`
-		} `json:"output_sum"`
 	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		err = serror.New(err)
-		return addr, err
+		return
 	}
 
-	if len(r.QueryMaxCount) != 1 || len(r.CoinbaseCount) != 1 ||
-		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
-		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
+	if len(r.QueryMaxCount) != 1 {
 		err = serror.New(errInvalidResult)
 		return
 	}
 
-	// not checking the length of r.Outputs, as for certain filters the number of outputs can be 0
-	// instead check for the calculated output count
-	if r.OutputCount[0].Count == 0 {
-		err = serror.New(ErrAddressNotFound)
+	queryMaxCount = r.QueryMaxCount[0].Count
+	outputs = r.Outputs
+
+	return
+}
+
+// getFrontendAddressOutputs returns outputs for the address with the given offset
+func getFrontendAddressOutputs(ctx context.Context, c external.Database, addrHash string,
+	offset int) (outputs []FrontendOutput, err error) {
+	if addrHash == "" {
+		err = serror.New(ErrEmptyRequestArgument)
 		return
 	}
 
-	addr = FrontendAddress{
-		Hash:          addrHash,
-		QueryMaxCount: r.QueryMaxCount[0].Count,
-		InputCount:    r.InputCount[0].Count,
-		OutputCount:   r.OutputCount[0].Count,
-		InputSum:      r.InputSum[0].Sum,
-		OutputSum:     r.OutputSum[0].Sum,
-		Outputs:       r.Outputs,
-		CoinbaseCount: r.CoinbaseCount[0].Count,
+	const maxOutputsPerQuery = 20
+
+	// fill variables
+	query := `query Q($hash: string){
+		var(func: eq(addresshash, $hash)){
+			addr_outputs{
+				a as uid
+				~tx_outputs{
+					~transactions{
+						obts as ts
+					}
+					otts as min(val(obts))
+				}
+				ots as min(val(otts))
+				~tx_inputs{
+					~transactions{
+						ibts as ts
+					}
+					itts as min(val(ibts))
+				}
+				its as min(val(itts))
+			}
+		}
+
+		q(func: uid(a), first:` + strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + `)@normalize{
+			amount:amount
+			outputTimestamp:val(ots)
+			inputTimestamp:val(its)
+			~tx_outputs{
+				outputTransactionHash: txhash
+			}
+			~tx_inputs{
+				inputTransactionHash: txhash
+			}
+		}
+	}`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": addrHash})
+	if err != nil {
+		err = serror.New(err)
+		return
 	}
+
+	var r struct {
+		Outputs []FrontendOutput `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	outputs = r.Outputs
 
 	return
 }
@@ -464,6 +516,88 @@ func GetAddressesByBlockRange(ctx context.Context, c external.Database, blockHei
 	}
 
 	addresses = r.Addresses
+
+	return
+}
+
+// GetFrontendAddressHeader return address information
+func GetFrontendAddressHeader(ctx context.Context, c external.Database, addrHash string) (addr FrontendAddress, err error) {
+	if addrHash == "" {
+		err = serror.New(ErrEmptyRequestArgument)
+		return
+	}
+
+	// fill variables
+	const query = `query Q($hash: string){
+		var(func: eq(addresshash, $hash)){
+			addr_outputs{
+				a as uid
+				oamt as amount
+			}
+		}
+		var(func: uid(a))@filter(has(~tx_inputs)){
+    		iamt as amount
+  		}
+		ci(func: uid(iamt)){
+			count(uid)
+		}
+		co(func: uid(oamt)){
+			count(uid)
+		}
+		input_sum(){
+			sum:sum(val(iamt))
+		}
+		output_sum(){
+			sum:sum(val(oamt))
+		}
+	}`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": addrHash})
+	if err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	var r struct {
+		InputCount []struct {
+			Count int64 `json:"count"`
+		} `json:"ci"`
+		OutputCount []struct {
+			Count int64 `json:"count"`
+		} `json:"co"`
+		InputSum []struct {
+			Sum int64 `json:"sum"`
+		} `json:"input_sum"`
+		OutputSum []struct {
+			Sum int64 `json:"sum"`
+		} `json:"output_sum"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		err = serror.New(err)
+		return addr, err
+	}
+
+	if len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
+		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
+		err = serror.New(errInvalidResult)
+		return
+	}
+
+	// not checking the length of r.Outputs, as for certain filters the number of outputs can be 0
+	// instead check for the calculated output count
+	if r.OutputCount[0].Count == 0 {
+		err = serror.New(ErrAddressNotFound)
+		return
+	}
+
+	addr = FrontendAddress{
+		Hash:        addrHash,
+		InputCount:  r.InputCount[0].Count,
+		OutputCount: r.OutputCount[0].Count,
+		InputSum:    r.InputSum[0].Sum,
+		OutputSum:   r.OutputSum[0].Sum,
+	}
 
 	return
 }

@@ -42,25 +42,37 @@ func GetMixingActivity(ctx context.Context, c external.Database,
 					
 					not_mixing as var(func: uid(t1,t2))@filter(has(Transaction.type) and not eq(Transaction.type,`+constants.AllMixingTypes+`))
 					
-					# outputs of destinations and wasabi 2.0 origins do not all belong to the user
-					dst_and_wasabi_2_origins as var(func: uid(not_mixing))@filter(eq(Transaction.type,`+constants.AllDestinationTypes+",\""+constants.TypeWasabi2Origin+"\""+`))
+					# outputs of destinations do not all belong to the user
+					dst as var(func: uid(not_mixing))@filter(eq(Transaction.type,`+constants.AllDestinationTypes+`))
 
-					for_recurse as var(func: uid(not_mixing))@filter(not uid(dst_and_wasabi_2_origins))
+					# outputs of wasabi 2.0 origins do not all belong to the user
+					wasabi_2_origins as var(func: uid(not_mixing))@filter(eq(Transaction.type,"`+constants.TypeWasabi2Origin+`"))
 
-					var(func: uid(for_recurse))@recurse{
+
+					# all origins except wasabi 2.0 and collateral transactions
+					origins_and_collaterals as var(func: uid(not_mixing))@filter(not uid(dst) and not uid(wasabi_2_origins))
+
+					var(func: uid(origins_and_collaterals))@recurse{
 						tx_outputs
-						c_not_mixing as ~tx_inputs@filter(has(Transaction.type) and not eq(Transaction.type,`+constants.AllMixingTypes+`))
+						recurse_origins_and_collaterals as ~tx_inputs@filter(has(Transaction.type) and not eq(Transaction.type,`+constants.AllMixingTypes+`))
 					}
 					
-					all_not_mixing as var(func: uid(for_recurse, c_not_mixing, dst_and_wasabi_2_origins))
 					
-					var(func: uid(all_not_mixing)){
+					all_not_mixing_not_dst as var(func: uid(origins_and_collaterals, recurse_origins_and_collaterals, wasabi_2_origins))
+
+					var(func: uid(all_not_mixing_not_dst)){
 						tx_outputs {
-							mixing as ~tx_inputs@filter(eq(Transaction.type,`+constants.AllMixingTypes+`))
+							mixing1 as ~tx_inputs@filter(eq(Transaction.type,`+constants.AllMixingTypes+`))
 						}
 					}
-					
-					transactions as var(func: uid(all_not_mixing, mixing))
+
+					var(func: uid(dst)){
+						tx_inputs {
+							mixing2 as ~tx_outputs@filter(eq(Transaction.type,`+constants.AllMixingTypes+`))
+						}
+					}
+
+					transactions as var(func: uid(all_not_mixing_not_dst, mixing1, mixing2, dst))
 					
 					q(func: uid(transactions)){
 						txhash

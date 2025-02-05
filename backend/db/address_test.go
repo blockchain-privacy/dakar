@@ -69,10 +69,12 @@ func TestGetFrontendAddress(t *testing.T) {
 
 	addr, err := GetFrontendAddress(context.Background(), dbHandle, addrHash, SortAscendingByAmount, 1, nil)
 	require.NoError(t, err)
+	require.NotNil(t, addr)
 	require.NotEmpty(t, addr.Outputs)
 
 	addr, err = GetFrontendAddress(context.Background(), dbHandle, addrHash, SortAscendingByAmount, 1, []int{FilterByUnspent})
 	require.NoError(t, err)
+	require.NotNil(t, addr)
 	require.Empty(t, addr.Outputs)
 }
 

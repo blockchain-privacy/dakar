@@ -68,14 +68,6 @@
                 {{ outputCount - inputCount }}
               </icon-item>
             </v-col>
-            <v-col>
-              <icon-item
-                :icon="mdiPound"
-                title="Coinbase outputs"
-              >
-                {{ coinbaseCount }}
-              </icon-item>
-            </v-col>
           </v-row>
         </v-container>
       </v-card-text>
@@ -102,8 +94,20 @@
       <v-window-item>
         <v-card variant="text">
           <v-card-text>
+            <v-progress-linear
+              v-if="isLoading"
+              indeterminate
+            />
+            <v-alert
+              v-else-if="!isOutputManipulationSupported"
+              variant="tonal"
+              type="info"
+              class="mb-2"
+            >
+              Sorting and filtering is not available for this address because of its high number of outputs.
+            </v-alert>
             <sort-and-filter
-              v-if="outputCount > 1"
+              v-else-if="outputCount > 1"
               v-model="sortAndFilterModel"
               :loading="isLoading"
               :output-count="outputCount"
@@ -128,31 +132,31 @@
                 :items-per-page-options="[{value:20, title:'20'}]"
                 @update:page="getTableData"
               >
-                <template #item.input_transaction="{ item }">
+                <template #item.inputTransactionHash="{ item }">
                   <workspace-link
-                    v-if="item.input_transaction"
+                    v-if="item.inputTransactionHash"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.input_transaction, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.inputTransactionHash, blockchainMode: getSettings.blockchainMode }}"
                   >
-                    {{ item.input_transaction }}
+                    {{ item.inputTransactionHash }}
                   </workspace-link>
                 </template>
-                <template #item.output_transaction="{ item }">
+                <template #item.outputTransactionHash="{ item }">
                   <workspace-link
-                    v-if="item.output_transaction"
+                    v-if="item.outputTransactionHash"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.output_transaction, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.outputTransactionHash, blockchainMode: getSettings.blockchainMode }}"
                   >
-                    {{ item.output_transaction }}
+                    {{ item.outputTransactionHash }}
                   </workspace-link>
                 </template>
-                <template #item.input_ts="{ item }">
-                  {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
+                <template #item.inputTimestamp="{ item }">
+                  {{ item.inputTimestamp ? new Date(item.inputTimestamp).toLocaleString() : '' }}
                 </template>
-                <template #item.output_ts="{ item }">
-                  {{ item.output_ts ? new Date(item.output_ts).toLocaleString() : '' }}
+                <template #item.outputTimestamp="{ item }">
+                  {{ item.outputTimestamp ? new Date(item.outputTimestamp).toLocaleString() : '' }}
                 </template>
                 <template #item.amount="{ item }">
                   {{ convertAmount(item.amount) }} {{ coinUnit }}
@@ -223,9 +227,9 @@ const inputSum = ref(-1);
 const outputSum = ref(-1);
 const inputCount = ref(-1);
 const outputCount = ref(-1);
-const coinbaseCount = ref(-1);
 const queryMaxCount = ref(-1);
 const outputItems = ref([]);
+const isOutputManipulationSupported = ref(false);
 
 const itemsPerPage = 20;
 // EmptyResponse is only used for data loaded after the initial data load
@@ -237,10 +241,10 @@ const sortAndFilterModel = ref({
 const table = ref({
 	page: 1,
 	headers: [
-		{title: 'Received', key: 'output_transaction', sortable: false},
-		{title: '', key: 'output_ts', sortable: false},
-		{title: 'Sent', key: 'input_transaction', sortable: false},
-		{title: '', key: 'input_ts', sortable: false},
+		{title: 'Received', key: 'outputTransactionHash', sortable: false},
+		{title: '', key: 'outputTimestamp', sortable: false},
+		{title: 'Sent', key: 'inputTransactionHash', sortable: false},
+		{title: '', key: 'inputTimestamp', sortable: false},
 		{title: 'Amount', key: 'amount', sortable: false},
 	],
 });
@@ -263,13 +267,13 @@ onUpdated(() => {
 // Functions
 function dataToRef(data) {
 	addressHash.value = data.addresshash;
-	outputItems.value = data.addr_outputs;
-	inputSum.value = data.input_sum;
-	outputSum.value = data.output_sum;
-	inputCount.value = data.input_count;
-	outputCount.value = data.output_count;
-	coinbaseCount.value = data.coinbase_count;
-	queryMaxCount.value = data.query_max_count;
+	outputItems.value = data.outputs;
+	inputSum.value = data.inputSum;
+	outputSum.value = data.outputSum;
+	inputCount.value = data.inputCount;
+	outputCount.value = data.outputCount;
+	queryMaxCount.value = data.queryMaxCount === 0 ? data.outputCount : data.queryMaxCount;
+	isOutputManipulationSupported.value = data.isOutputManipulationSupported;
 }
 
 function init() {
@@ -314,7 +318,7 @@ async function getTableData() {
 			},
 		});
 
-		if (response.payload?.addr_outputs?.length > 0) {
+		if (response.payload?.outputs?.length > 0) {
 			dataToRef(response.payload);
 			emptyResponse.value = false;
 		} else {

@@ -196,6 +196,10 @@ func (f Node) IsTransaction() bool {
 	return f.Type == NodeTypeTransaction
 }
 
+func (f Node) IsCluster() bool {
+	return f.Type == NodeTypeCluster
+}
+
 func (f Node) IsSelector() bool {
 	return f.Type == NodeTypeSelector
 }

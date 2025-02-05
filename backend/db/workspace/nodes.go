@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/qrest/gomisc/serror"
 	"slices"
+	"strconv"
 )
 
 var ErrNodeNotFound = errors.New("node not found")
@@ -222,6 +223,49 @@ func CheckDuplicateAddress(ctx context.Context, c external.Database, uids []stri
 	}
 
 	return r.Query[0].UID, nil
+}
+
+// CheckClusterSize checks if the provided UID maps to a cluster which has too many outputs.
+// Returns true if none of the clusters have more outputs than maxOutputCount.
+func CheckClusterSize(ctx context.Context, c external.Database, uids []string, maxOutputCount int) (bool, error) {
+	if len(uids) == 0 {
+		return false, serror.New(db.ErrEmptyRequestArgument)
+	}
+
+	const query = `query Q($uids:string, $max:int){
+					var(func: uid($uids))@filter(has(addresshash)){
+						newClusters as ~Cluster.addresses@filter(eq(Cluster.type, "fmi"))
+					}
+
+					var(func: uid(newClusters)) {
+						Cluster.addresses {
+							o as count(addr_outputs)
+						}
+						os as sum(val(o))
+					}
+					
+					q(func: uid(newClusters))@filter(gt(val(os),$max)) {
+						outputCount:val(os)
+					}
+				   }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query,
+		map[string]string{"$uids": db.CreateCommaArray(uids), "$max": strconv.Itoa(maxOutputCount)})
+	if err != nil {
+		return false, err
+	}
+
+	// json struct
+	var r struct {
+		Query []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return false, serror.New(err)
+	}
+
+	return len(r.Query) == 0, nil
 }
 
 // parseConnectionResult parses the result of a connection request and returns the resulting connections

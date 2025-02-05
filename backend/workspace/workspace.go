@@ -15,9 +15,14 @@ import (
 	"time"
 )
 
-const MaxWorkspaceNameLength = 50
+const (
+	MaxWorkspaceNameLength = 50
+	// maxOutputCount is used to determine when a cluster is too large to be added to a workspace
+	maxOutputCount = 200_000
+)
 
 var errNodeNotFound = errors.New("node not found")
+var ErrTooManyOutputs = errors.New("too many outputs")
 
 // GetAndRefreshWorkspace returns the specified workspace. If necessary the workspace contents will also be refreshed.
 // This becomes necessary if connections become outdated, when new blocks are added to the blockchain.
@@ -235,8 +240,26 @@ func findDisconnectedNotes(nodes []workspace.Node, deletedNodes []string) []stri
 }
 
 // AddNodes adds a node to a workspace and refreshes the connections between all nodes.
+// Returns ErrTooManyOutputs if a given cluster has more outputs than maxOutputCount.
 func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, workspaceUID string,
-	userUID string, newNodes []*workspace.Node) ([]workspace.Node, string, error) {
+	userUID string, newNodes []workspace.Node) ([]workspace.Node, string, error) {
+	var clusterUIDs []string
+	for _, n := range newNodes {
+		if n.IsCluster() {
+			clusterUIDs = append(clusterUIDs, n.UID)
+		}
+	}
+
+	if len(clusterUIDs) > 0 {
+		ok, err := workspace.CheckClusterSize(ctx, dgraph, clusterUIDs, maxOutputCount)
+		if err != nil {
+			return nil, "", err
+		}
+		if !ok {
+			return nil, "", serror.New(ErrTooManyOutputs)
+		}
+	}
+
 	workspaceLock := workspaceMutex.Lock(workspaceUID)
 	defer workspaceLock.Unlock()
 
@@ -247,26 +270,25 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 
 	nodeMap, notes := separateNodes(w.Nodes)
 
-	// If the transmitted state is empty, then there are only connections between the new nodes.
-	// If newNodes is a transaction, it might be connected to selectors.
+	// If the current state is empty and there is only one new node, then there is no need to check for connections.
+	// If the new node is a transaction, it might be connected to selectors.
 	if len(nodeMap) == 0 && len(newNodes) == 1 && !newNodes[0].IsTransaction() {
-		frontEndNodes := []workspace.Node{*newNodes[0]}
 		if err := encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID,
-			frontEndNodes, w.ClusterHeight); err != nil {
+			newNodes, w.ClusterHeight); err != nil {
 			return nil, "", err
 		}
 
-		return frontEndNodes, "", nil
+		return newNodes, "", nil
 	}
 
 	var alreadyExistingNode string
-	var oldLength = len(nodeMap)
+	oldLength := len(nodeMap)
 	for _, newNode := range newNodes {
 		if _, ok := nodeMap[newNode.UID]; ok {
 			alreadyExistingNode = newNode.UID
 		}
 
-		nodeMap[newNode.UID] = *newNode
+		nodeMap[newNode.UID] = newNode
 	}
 
 	// check if all new nodes already exist in the workspace

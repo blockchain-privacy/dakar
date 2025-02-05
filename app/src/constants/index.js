@@ -74,6 +74,7 @@ export const SELECTOR_STATUS_ERROR = 'error';
 export const SELECTOR_STATUS_SUCCESS = 'success';
 
 export const SELECTOR_MAX_ITEMS = 200;
+export const CLUSTER_MAX_OUTPUTS = 200_000;
 
 // Wasabi 2.0 denominations
 /* eslint-disable @stylistic/indent, @stylistic/array-element-newline */

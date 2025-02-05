@@ -284,13 +284,13 @@ function setSelectableEntities() {
 
 			break;
 		case WORKSPACE_NODE_TYPE_CLUSTER:
-			for (const output of entityData.value.addr_outputs) {
-				if (output.input_transaction) {
-					selectableEntities.set(output.input_transaction, {id: output.input_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			for (const output of entityData.value.outputs) {
+				if (output.inputTransactionHash) {
+					selectableEntities.set(output.inputTransactionHash, {id: output.inputTransactionHash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
 				}
 
-				if (output.output_transaction) {
-					selectableEntities.set(output.output_transaction, {id: output.output_transaction, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+				if (output.outputTransactionHash) {
+					selectableEntities.set(output.outputTransactionHash, {id: output.outputTransactionHash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
 				}
 			}
 

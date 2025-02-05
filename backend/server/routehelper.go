@@ -128,6 +128,8 @@ type spendingFingerprintReply struct {
 type addWorkspaceNodesReply struct {
 	Nodes            []workspace.Node `json:"nodes,omitempty"`
 	DuplicateNodeUID string           `json:"duplicateNodeUID,omitempty"`
+	// ClusterTooLarge is true if one of the supplied nodes is a cluster with too many outputs
+	ClusterTooLarge bool `json:"clusterTooLarge,omitempty"`
 }
 type addWorkspaceNoteReply struct {
 	Nodes []workspace.Node `json:"nodes,omitempty"`
@@ -162,7 +164,7 @@ const typeEmpty queryResultType = "response_empty"
 // SearchResult holds result data of a block, address or transaction search request
 type SearchResult struct {
 	resultType queryResultType
-	result     interface{}
+	result     any
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
