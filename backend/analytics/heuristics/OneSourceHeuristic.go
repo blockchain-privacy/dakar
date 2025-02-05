@@ -136,7 +136,7 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it,
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
 			h.lookBackTime, 0, exclusions, attributions, h.c)
 		if err != nil {
 			return nil, err

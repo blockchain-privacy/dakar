@@ -41,10 +41,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.58":
-  version: 1.1.58
-  resolution: "@blockchain/dakar@npm:1.1.58::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.58.tgz"
-  checksum: 10c0/8e949e33c9436daa601f014922e892de3aaeb78c8acbaf6a0642117da49a9dd0a5dcd8dd36a01f07510ccadd912496973f6f4ee7994f241bf5dc237e05116dd9
+"@blockchain/dakar@npm:^1.1.60":
+  version: 1.1.60
+  resolution: "@blockchain/dakar@npm:1.1.60::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.60.tgz"
+  checksum: 10c0/b1029279d42ba5f186d68a18b7e23a5c4a29fa9bd108f5d19ae8f881706076a9a446389f803067884be28e90335a98d4b94a25521d50f1c7e152250ebe860bab
   languageName: node
   linkType: hard
 
@@ -438,10 +438,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.15.17":
-  version: 1.15.17
-  resolution: "@ory/client-fetch@npm:1.15.17"
-  checksum: 10c0/f2ecad48f988a6894ca206858f130292818b095455479e1a7ff10a66fbea3e271eb8ad30b5c6a426216b6446ab69f350bd806c01e8a9cecdc87370daf5002983
+"@ory/client-fetch@npm:^1.16.2":
+  version: 1.16.2
+  resolution: "@ory/client-fetch@npm:1.16.2"
+  checksum: 10c0/eef918649ad13bb16d8bd459a6e936ac549b3ff583b2c0ea3cd085f4c034c51ce0da88de4dd0bd9f3c94c09d9031ea5265cf78d9b28bc1a9533f879c4790930c
   languageName: node
   linkType: hard
 
@@ -1398,7 +1398,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"d3-ease@npm:1 - 3, d3-ease@npm:^3.0.1":
+"d3-ease@npm:1 - 3":
   version: 3.0.1
   resolution: "d3-ease@npm:3.0.1"
   checksum: 10c0/fec8ef826c0cc35cda3092c6841e07672868b1839fcaf556e19266a3a37e6bc7977d8298c0fcb9885e7799bfdcef7db1baaba9cd4dcf4bc5e952cf78574a88b0
@@ -1484,7 +1484,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"d3-transition@npm:2 - 3, d3-transition@npm:^3.0.1":
+"d3-transition@npm:2 - 3":
   version: 3.0.1
   resolution: "d3-transition@npm:3.0.1"
   dependencies:
@@ -1516,29 +1516,27 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.58"
+    "@blockchain/dakar": "npm:^1.1.60"
     "@fontsource/roboto": "npm:^5.1.1"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.27"
     "@neondark/wikiapi": "npm:^1.2.48"
-    "@ory/client-fetch": "npm:^1.15.17"
+    "@ory/client-fetch": "npm:^1.16.2"
     "@vitejs/plugin-vue": "npm:^5.2.1"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
     d3-drag: "npm:^3.0.0"
-    d3-ease: "npm:^3.0.1"
     d3-force: "npm:^3.0.0"
     d3-format: "npm:^3.1.0"
     d3-scale: "npm:^4.0.2"
     d3-selection: "npm:^3.0.0"
     d3-time: "npm:^3.1.0"
-    d3-transition: "npm:^3.0.1"
     d3-zoom: "npm:^3.0.0"
     eslint: "npm:^9.18.0"
     eslint-config-xo: "npm:^0.46.0"
     eslint-plugin-vue: "npm:^9.32.0"
     pinia: "npm:^2.3.0"
-    sass: "npm:^1.83.1"
+    sass: "npm:^1.83.4"
     vite: "npm:^6.0.7"
     vite-plugin-vuetify: "npm:^2.0.4"
     vite-svg-loader: "npm:^5.1.0"
@@ -3001,9 +2999,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.83.1":
-  version: 1.83.1
-  resolution: "sass@npm:1.83.1"
+"sass@npm:^1.83.4":
+  version: 1.83.4
+  resolution: "sass@npm:1.83.4"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     chokidar: "npm:^4.0.0"
@@ -3014,7 +3012,7 @@ __metadata:
       optional: true
   bin:
     sass: sass.js
-  checksum: 10c0/9772506cd8290df7b5e800055098e91a8a65100840fd9e90c660deb74b248b3ddbbd1a274b8f7f09777d472d2c873575357bd87939a40fb5a80bdf654985486f
+  checksum: 10c0/6f27f0eebfeb50222b14baaeef548ef58a05daf8abd9797e6c499334ed7ad40541767056c8693780d06ca83d8836348ea7396a923d3be439b133507993ca78be
   languageName: node
   linkType: hard
 

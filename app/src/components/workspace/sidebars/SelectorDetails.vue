@@ -204,6 +204,7 @@
           <template #item.txhash="{item}">
             <td>
               <workspace-link
+                style="max-width: 300px"
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                        params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
               >
@@ -233,7 +234,7 @@ import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
 import {
-	convertAmount, getColorMap, plural,
+	convertAmount, getColorMap, plural, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
@@ -249,10 +250,14 @@ const props = defineProps({selectorData: {type: Object, required: true}});
 const {getSettings} = storeToRefs(useLocalStore());
 
 const colorMap = getColorMap(getSettings.value.blockchainMode);
+setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
 const tableHeaders = [
 	{
-		key: 'txhash', title: 'Tranasaction Hash', sortable: false, align: 'left',
+		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
+	},
+	{
+		key: 'txtype', title: 'Type', align: 'right',
 	},
 	{
 		key: 'ts', title: 'Timestamp', align: 'right',
@@ -299,8 +304,8 @@ function init() {
 		return;
 	}
 
-	svgBarChart = new BarChart('selector_details_canvas', 600, 300, false);
-	svgBarChart.draw(props.selectorData.transactions);
+	svgBarChart = new BarChart('selector_details_canvas', 600, 150);
+	svgBarChart.drawStacked(props.selectorData.transactions, colorMap);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;
 }

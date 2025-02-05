@@ -310,7 +310,7 @@ import {
 	getColorMap,
 	isDestination,
 	isModeBTC, isUncommonWasabi2Denomination,
-	plural,
+	plural, setUndefinedTransactionColor,
 	shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
@@ -350,8 +350,7 @@ const showTransactionDetails = toRef(props.showDetails);
 let svgInputGraph = null;
 let svgOutputGraph = null;
 const colorMap = getColorMap(getSettings.value.blockchainMode);
-// Set color for transaction without type
-colorMap.set(undefined, '#607D8B');
+setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
 
@@ -361,7 +360,8 @@ const showMaxOutputs = ref(3);
 const outputContainerRef = useTemplateRef('outputContainer');
 
 const isTabMode = ref(false);
-const tabs = ref('inputs');
+// Needs to be null, so initial resize observer can set correct value
+const tabs = ref(null);
 let resizeObserver;
 // Computed
 const filteredInputs = computed(() => props.tx.inputs
@@ -442,7 +442,7 @@ function updateInputGraph() {
 		return;
 	}
 
-	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150);
 	svgInputGraph.drawStacked(props.tx.inputs, colorMap);
 	enoughDataForInputGraph.value = !svgInputGraph.empty;
 }
@@ -453,7 +453,7 @@ function updateOutputGraph() {
 		return;
 	}
 
-	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150, false);
+	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150);
 	svgOutputGraph.drawStacked(props.tx.outputs, colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }

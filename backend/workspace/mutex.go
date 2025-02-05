@@ -4,7 +4,6 @@ import (
 	"sync"
 )
 
-// todo: evaluate if golang native sync.map could be a replacement for Mutex
 // Credit: https://stackoverflow.com/questions/40931373/how-to-gc-a-map-of-mutexes-in-go/62562831#62562831
 // Package mutex provides locking per-key.
 // For example, you can acquire a lock for a specific user ID and all other requests for that user ID

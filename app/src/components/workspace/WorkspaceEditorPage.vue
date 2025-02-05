@@ -217,7 +217,7 @@ import {
 } from '@/constants';
 import {
 	capitalize,
-	getColorMap, getDakarClient, handleError,
+	getColorMap, getDakarClient, handleError, setUndefinedTransactionColor,
 } from '@/utilities';
 import {
 	computed, nextTick, onMounted, onUnmounted, ref, watch,
@@ -249,8 +249,7 @@ const dakar = getDakarClient(getSettings.value.blockchainMode);
 
 const colorMap = getColorMap(getSettings.value.blockchainMode);
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
-// Transactions without type
-colorMap.set(WORKSPACE_NODE_TYPE_TRANSACTION, '#607d8b');
+setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
 
 colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
 colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');

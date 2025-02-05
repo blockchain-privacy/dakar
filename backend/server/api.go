@@ -471,8 +471,8 @@ func (s *Server) handlerHMILookup() http.Handler {
 // Selector Results godoc
 //
 //	@Summary		Get the results of a selector.
-//	@Description	Get the rsults of a selector.
-//	@Description	Depending on the selector type the one of the result properties is filled.
+//	@Description	Get the results of a selector.
+//	@Description	Depending on the selector type, one of the result properties is set.
 //	@Tags			workspace
 //	@Produce		json
 //	@Accept			json

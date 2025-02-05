@@ -400,6 +400,7 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 
 				transactions(func: uid(r))@filter(has(txhash))@normalize{
 					txhash:txhash
+					txtype:Transaction.type
 					~transactions{
 						ts:ts
 					}
@@ -408,6 +409,7 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 				clusters(func: uid(r))@filter(has(HeuristicCluster.results)){
 					transactions: HeuristicCluster.results@normalize{
 						txhash:txhash
+						txtype:Transaction.type
 						~transactions{
 							ts:ts
 						}

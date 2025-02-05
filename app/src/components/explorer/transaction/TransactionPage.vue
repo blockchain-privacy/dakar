@@ -11,25 +11,26 @@
         lg="10"
         xl="8"
       >
-        <fade-transition>
-          <template v-if="tx">
+        <template v-if="tx">
+          <fade-transition
+            v-for="t in tx"
+            :key="t.txhash+t.bid"
+          >
             <!-- duplicate transaction hashes can exist -> loop through all results
                (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
             <transaction
-              v-for="t in tx"
-              :key="t.txhash+t.bid"
               :tx="t"
               :show-heuristic-editor-link="isPrivilegedOrHigher"
               :show-fingerprint-link="isPrivilegedOrHigher"
               show-title-bar
               show-details
             />
-          </template>
-          <v-skeleton-loader
-            v-else
-            type="list-item-three-line, list-item-three-line, list-item-three-line"
-          />
-        </fade-transition>
+          </fade-transition>
+        </template>
+        <v-skeleton-loader
+          v-else
+          type="list-item-three-line, list-item-three-line, list-item-three-line"
+        />
       </v-col>
     </v-row>
   </v-container>

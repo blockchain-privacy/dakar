@@ -261,6 +261,12 @@ export function getColorMap(mode) {
 	return colorMap;
 }
 
+// SetUndefinedTransactionColor adds the color for transactions without transaction type for the given key
+export function setUndefinedTransactionColor(colorMap, key) {
+	// Set color for transaction without type
+	colorMap.set(key, '#607D8B');
+}
+
 // Capitalize returns the first letter of each word (separated by a space) in str capitalized
 export function capitalize(str) {
 	return str.split(' ').map(d => d[0].toUpperCase() + d.slice(1)).join(' ');

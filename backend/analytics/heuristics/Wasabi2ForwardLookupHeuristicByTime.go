@@ -1,0 +1,80 @@
+package heuristics
+
+import (
+	"backend/analytics/graph"
+	"backend/constants"
+	"backend/db/analytics/heuristics"
+	"backend/external"
+	"context"
+	"fmt"
+	"github.com/qrest/gomisc/serror"
+	"strconv"
+	"time"
+)
+
+// forwardHeuristic - see exec for description
+type wasabi2ForwardLookupByTimeHeuristic struct {
+	heuristicType   string
+	c               heuristics.Options
+	lookForwardTime time.Duration
+}
+
+func newWasabi2ForwardLookupByTimeHeuristic() heuristic {
+	return &wasabi2ForwardLookupByTimeHeuristic{heuristicType: heuristicTypeWasabi2ForwardLookupByTime}
+}
+
+func (h *wasabi2ForwardLookupByTimeHeuristic) getType() string {
+	return h.heuristicType
+}
+
+func (h *wasabi2ForwardLookupByTimeHeuristic) setConfig(c heuristics.Options) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
+	hoursToLookForward, err := strconv.ParseInt(c.Parameter, 10, 64)
+	if err != nil {
+		return serror.New(err)
+	}
+
+	if !areClusterTypesValid(c.ClusterTypes) {
+		return serror.New(errInvalidClusterTypes)
+	}
+
+	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
+	h.c = c
+
+	return nil
+}
+
+func (h *wasabi2ForwardLookupByTimeHeuristic) getConfig() heuristics.Options {
+	return h.c
+}
+
+func (h *wasabi2ForwardLookupByTimeHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Paramter: %v", h.heuristicType, h.c)
+}
+
+func (h *wasabi2ForwardLookupByTimeHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title:       "Forward lookup by time",
+		Type:        h.heuristicType,
+		Category:    heuristicCategoryForward,
+		Description: "Traverses the transaction graph forward for the given duration and collects destination transactions.",
+		Parameter: &DescriptorParameter{
+			DefaultValue: "48",
+			MinimumValue: parameterMinDuration,
+			MaximumValue: parameterMaxDuration,
+			Description:  parameterDescriptionLookForward,
+			Type:         parameterTypeInt,
+		},
+		AllowedParents: constants.TransactionTypesWasabi2,
+	}
+}
+
+// wasabi2ForwardLookupByTimeHeuristic finds all destination transactions connected the given
+// transaction by traversing the mixing graph forward limited by time.
+func (h *wasabi2ForwardLookupByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
+	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, h.lookForwardTime, 0, h.c)
+}

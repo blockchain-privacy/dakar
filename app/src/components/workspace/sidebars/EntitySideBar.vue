@@ -79,7 +79,7 @@
           type="list-item-three-line, list-item-three-line, list-item-three-line"
         />
         <template v-else>
-          <template v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length">
+          <div v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length">
             <!-- duplicate transaction hashes can exist -> loop through all results
             (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
             <template
@@ -94,7 +94,7 @@
                 :embed="false"
               />
             </template>
-          </template>
+          </div>
           <address-view
             v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
             :address-data="entityData"

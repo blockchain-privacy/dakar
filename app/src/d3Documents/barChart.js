@@ -3,8 +3,6 @@ import {select as d3Select} from 'd3-selection';
 import {scaleTime, scaleLinear} from 'd3-scale';
 import {timeTickInterval} from 'd3-time';
 import {bin, max, group} from 'd3-array';
-import {transition} from 'd3-transition';
-import {easeLinear} from 'd3-ease';
 import {axisBottom, axisLeft} from 'd3-axis';
 import {format} from 'd3-format';
 
@@ -16,13 +14,12 @@ function addPercentageToDate(date, duration, percentage) {
 }
 
 export default class BarChart {
-	constructor(svgId, width, height, enableTransition = true) {
+	constructor(svgId, width, height) {
 		this.svgId = svgId;
 		this.width = width;
 		this.height = height;
 		this.isEmpty = false;
 		this.durationInMinutes = 0;
-		this.enableTransition = enableTransition;
 		this.clickCallBack = null;
 	}
 
@@ -232,14 +229,7 @@ export default class BarChart {
 			}
 		}
 
-		if (this.enableTransition) {
-			bars
-				.attr('transform', d => `translate(${0},${y(d.length)})`)
-				.transition(transition().duration(300).ease(easeLinear))
-				.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
-		} else {
-			bars.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
-		}
+		bars.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
 
 		// Add the x Axis
 		svgGroup.append('g')
