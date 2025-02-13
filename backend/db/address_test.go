@@ -3,7 +3,6 @@ package db
 import (
 	"backend/external"
 	"backend/testhelper"
-	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -62,17 +61,17 @@ func TestGetFrontendAddress(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	_, err := GetFrontendAddress(context.Background(), dbHandle, "", 1, 1, nil)
+	_, err := GetFrontendAddress(t.Context(), dbHandle, "", 1, 1, nil)
 	require.Error(t, err)
 
 	const addrHash = "XsE93qsgqTkzumVTaeanYRXqVz3uXjWpkc"
 
-	addr, err := GetFrontendAddress(context.Background(), dbHandle, addrHash, SortAscendingByAmount, 1, nil)
+	addr, err := GetFrontendAddress(t.Context(), dbHandle, addrHash, SortAscendingByAmount, 1, nil)
 	require.NoError(t, err)
 	require.NotNil(t, addr)
 	require.NotEmpty(t, addr.Outputs)
 
-	addr, err = GetFrontendAddress(context.Background(), dbHandle, addrHash, SortAscendingByAmount, 1, []int{FilterByUnspent})
+	addr, err = GetFrontendAddress(t.Context(), dbHandle, addrHash, SortAscendingByAmount, 1, []int{FilterByUnspent})
 	require.NoError(t, err)
 	require.NotNil(t, addr)
 	require.Empty(t, addr.Outputs)
@@ -149,7 +148,7 @@ func TestGetAddressUIDs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		gotAddresses, err := GetAddressUIDs(context.Background(), tt.args.c, tt.args.addressHashes)
+		gotAddresses, err := GetAddressUIDs(t.Context(), tt.args.c, tt.args.addressHashes)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

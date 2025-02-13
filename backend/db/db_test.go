@@ -35,7 +35,7 @@ func TestGetBackendContext(t *testing.T) {
 func TestExecTx(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 0)
+	ctx, cancel := context.WithTimeout(t.Context(), 0)
 	defer cancel()
 
 	_, err := ExecTx(ctx, dbHandle.NewTxn(), &api.Request{
@@ -168,11 +168,11 @@ func TestGetTypeByUID(t *testing.T) {
 	SetupDBWithoutData(t, dbHandle)
 
 	// empty db
-	_, err := GetTypeByUID(context.Background(), dbHandle, "0x123")
+	_, err := GetTypeByUID(t.Context(), dbHandle, "0x123")
 	require.Error(t, err)
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	ctx := context.Background()
+	ctx := t.Context()
 	txUID, err := GetTransactionUID(ctx, dbHandle, "91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb")
 	require.NoError(t, err)
 

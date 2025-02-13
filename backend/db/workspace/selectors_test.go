@@ -170,7 +170,7 @@ func TestDoSelection(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		selection, totalResultCount, err := DoSelection(context.Background(), dbHandle, tt.o, "")
+		selection, totalResultCount, err := DoSelection(t.Context(), dbHandle, tt.o, "")
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -245,7 +245,7 @@ func TestInsertSelector(t *testing.T) {
 		results[i] = db.UIDNode{UID: result}
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// for parent test
 	parentSelectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
@@ -350,7 +350,7 @@ func TestGetSelectorResultsByUID(t *testing.T) {
 	for i, result := range resultUIDs {
 		results[i] = db.UIDNode{UID: result}
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
 		Type:    TypeTxProp,
 		Status:  StatusSuccess,
@@ -389,7 +389,7 @@ func TestUpdateSelector(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
@@ -448,7 +448,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
@@ -481,7 +481,7 @@ func TestGetWaitingSelectors(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
@@ -526,7 +526,7 @@ func TestGetSelectorStatus(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	userUID, workspaceUID, err := createUserAndWorkspace()
 	require.NoError(t, err)
@@ -601,7 +601,7 @@ func TestDoGraphSelection(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		selection, totalResultCount, err := DoGraphSelection(context.Background(), dbHandle, tt.o, tt.parentUID)
+		selection, totalResultCount, err := DoGraphSelection(t.Context(), dbHandle, tt.o, tt.parentUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

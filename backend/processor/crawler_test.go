@@ -3,19 +3,18 @@ package processor
 import (
 	"backend/db"
 	"backend/testhelper"
-	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestNewCrawler(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
+	crawler := NewCrawler(t.Context(), nil, nil, 0, Config{})
 	require.NotNil(t, crawler)
 }
 
 func TestCrawler_Props(t *testing.T) {
-	crawler := NewCrawler(context.Background(), nil, nil, 0, Config{})
+	crawler := NewCrawler(t.Context(), nil, nil, 0, Config{})
 
 	require.NotEmpty(t, crawler.Props())
 }

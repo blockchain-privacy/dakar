@@ -3,7 +3,6 @@ package user
 import (
 	"backend/db"
 	"backend/testhelper"
-	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -37,8 +36,8 @@ func TestDeleteUser(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 	// delete user
-	require.NoError(t, DeleteUser(context.Background(), dbHandle, user))
+	require.NoError(t, DeleteUser(t.Context(), dbHandle, user))
 
 	// try to delete user which does not exist
-	require.ErrorIs(t, DeleteUser(context.Background(), dbHandle, "0x9999999"), ErrUserDoesNotExist)
+	require.ErrorIs(t, DeleteUser(t.Context(), dbHandle, "0x9999999"), ErrUserDoesNotExist)
 }

@@ -5,14 +5,13 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/testhelper"
-	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestNewHierarchicalMultiInput(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
+	hm := NewHierarchicalMultiInput(t.Context(), nil)
 	require.NotNil(t, hm)
 }
 
@@ -111,7 +110,7 @@ func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_IncrementState(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
+	hm := NewHierarchicalMultiInput(t.Context(), dbHandle)
 
 	require.EqualValues(t, 0, hm.state.ID)
 	require.NoError(t, hm.IncrementState())
@@ -119,7 +118,7 @@ func TestHierarchicalMultiInput_IncrementState(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_Empty(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
+	hm := NewHierarchicalMultiInput(t.Context(), nil)
 
 	// initially top and id are 0, so not empty
 	require.False(t, hm.Empty())
@@ -130,7 +129,7 @@ func TestHierarchicalMultiInput_Empty(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_Props(t *testing.T) {
-	hm := NewHierarchicalMultiInput(context.Background(), nil)
+	hm := NewHierarchicalMultiInput(t.Context(), nil)
 
 	require.NotEmpty(t, hm.Props())
 }

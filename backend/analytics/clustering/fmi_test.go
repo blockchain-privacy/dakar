@@ -5,7 +5,6 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/testhelper"
-	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -379,7 +378,7 @@ func Test_calculateMetrics(t *testing.T) {
 }
 
 func TestNewFlatMultiInput(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
+	fm := NewFlatMultiInput(t.Context(), nil, NewDashConfig())
 
 	require.NotNil(t, fm)
 }
@@ -476,7 +475,7 @@ func TestFlatMultiInput_PostExecution(t *testing.T) {
 }
 
 func TestFlatMultiInput_IncrementState(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
+	fm := NewFlatMultiInput(t.Context(), nil, NewDashConfig())
 
 	require.EqualValues(t, 0, fm.state.ID)
 	// need to simulate a block being processed
@@ -486,7 +485,7 @@ func TestFlatMultiInput_IncrementState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Empty(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
+	fm := NewFlatMultiInput(t.Context(), nil, NewDashConfig())
 
 	// initially top and id are 0, so not empty
 	require.False(t, fm.Empty())
@@ -497,7 +496,7 @@ func TestFlatMultiInput_Empty(t *testing.T) {
 }
 
 func TestFlatMultiInput_Props(t *testing.T) {
-	fm := NewFlatMultiInput(context.Background(), nil, NewDashConfig())
+	fm := NewFlatMultiInput(t.Context(), nil, NewDashConfig())
 
 	require.NotEmpty(t, fm.Props())
 }

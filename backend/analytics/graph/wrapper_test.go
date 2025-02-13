@@ -4,7 +4,6 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/testhelper"
-	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"slices"
@@ -14,13 +13,13 @@ import (
 )
 
 func TestNewWrapper(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 	require.NotNil(t, w)
 	require.NotNil(t, w.transactionGraphMutex)
 }
 
 func TestWrapper_IsTransactionGraphLoaded(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 
 	require.False(t, w.IsTransactionGraphLoaded())
 	w.transactionGraph = NewReversibleGraph(1)
@@ -42,7 +41,7 @@ func TestWrapper_IsTransactionGraphLoaded(t *testing.T) {
 }
 
 func TestWrapper_ReverseLookup(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.ReverseLookup("", 0, 0, nil, false)
@@ -123,7 +122,7 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 }
 
 func TestWrapper_ForwardLookup(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.ForwardLookup("", 0, 0, nil, false)
@@ -203,7 +202,7 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 }
 
 func TestWrapper_SpendingFingerprint(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
 	_, _, err := w.SpendingFingerprint("")
@@ -315,7 +314,7 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 }
 
 func TestWrapper_GetInputTransactions(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
 	_, err := w.GetInputTransactions("")
@@ -387,7 +386,7 @@ func TestWrapper_GetInputTransactions(t *testing.T) {
 func TestWrapper_LoadGraphs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// database is not set
@@ -417,12 +416,12 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 }
 
 func TestWrapper_Props(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 	require.NotEmpty(t, w.Props())
 }
 
 func TestWrapper_CalculateInitialState(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// error because no graphs were loaded so far
@@ -466,7 +465,7 @@ func TestWrapper_PostExecution(t *testing.T) {
 }
 
 func TestWrapper_IncrementState(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 
 	require.Zero(t, w.state.ID)
 	require.NoError(t, w.IncrementState())
@@ -474,7 +473,7 @@ func TestWrapper_IncrementState(t *testing.T) {
 }
 
 func TestWrapper_Empty(t *testing.T) {
-	w := NewWrapper(context.Background(), nil)
+	w := NewWrapper(t.Context(), nil)
 	require.False(t, w.Empty())
 
 	w.state.ID = 30
