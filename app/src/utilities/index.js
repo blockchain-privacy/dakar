@@ -161,7 +161,7 @@ export const fileRule = [v => {
 		return false;
 	}
 
-	return v.length > 0 || 'File is required';
+	return v.length > 0 || v instanceof File || 'File is required';
 }];
 
 function isRole(session, mode, roleName) {
