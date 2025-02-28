@@ -900,3 +900,42 @@ func isDeadlineExceeded(err error) bool {
 
 	return status.Code(err) == codes.DeadlineExceeded
 }
+
+// GetOutputCountsPerAddress returns the number of outputs controlled by each address,
+// for all addresses part of the transactions specified by transactionType
+func GetOutputCountsPerAddress(ctx context.Context, c external.Database, transactionType string) ([]AddressOutputCount, error) {
+	query := `{
+		t as var(func: eq(Transaction.type, "` + transactionType + `"))@cascade{
+			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
+		}
+		
+		var(func: uid(t)){
+			tx_inputs {
+				ia as ~addr_outputs
+			}
+		
+			tx_outputs {
+				oa as ~addr_outputs
+			}
+		}
+		
+		q(func: uid(ia,oa)) {
+			addresshash
+			outputCount:count(addr_outputs)
+		}
+	}`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Counts []AddressOutputCount `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return r.Counts, nil
+}
