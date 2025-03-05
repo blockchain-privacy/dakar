@@ -561,21 +561,34 @@ export default class NodeGraph {
 	}
 
 	reorderNodes() {
-		for (const [key, value] of this.getFilteredMap()) {
-			// Randomize position, reorderNodes creates different arrangements for each call
-			const random = Math.random() * 30;
-			value.x = random;
-			value.y = random;
-			delete value.fx;
-			delete value.fy;
-			this.#nodeMap[key] = value;
-			if (this.#filteredNodeMap[key] !== undefined) {
-				this.#filteredNodeMap[key] = value;
+		if (this.lassoSelectedNodes === null) {
+			for (const [key, value] of this.getFilteredMap()) {
+				// Randomize position, reorderNodes creates different arrangements for each call
+				const random = Math.random() * 30;
+				value.x = random;
+				value.y = random;
+				delete value.fx;
+				delete value.fy;
+				this.#nodeMap[key] = value;
+				if (this.#filteredNodeMap[key] !== undefined) {
+					this.#filteredNodeMap[key] = value;
+				}
 			}
-		}
 
-		this.draw();
-		this.centerGraph();
+			this.draw();
+			this.centerGraph();
+		} else {
+			this.lassoSelectedNodes.each(d => {
+				delete d.fx;
+				delete d.fy;
+				this.#nodeMap[d.uid] = d;
+				if (this.#filteredNodeMap[d.uid] !== undefined) {
+					this.#filteredNodeMap[d.uid] = d;
+				}
+			});
+			this.draw(false);
+			this.centerOnSelection(this.lassoSelectedNodes);
+		}
 	}
 
 	getCenterOfNodes() {
@@ -1144,9 +1157,11 @@ export default class NodeGraph {
 	}
 
 	// Draws the state of the graph, returns all newly added nodes
-	draw() {
-		this.resetClick();
-		this.resetLasso();
+	draw(reset = true) {
+		if (reset) {
+			this.resetClick();
+			this.resetLasso();
+		}
 
 		// If there is a simulation ongoing from a previous call, stop it
 		if (this.simulation) {
