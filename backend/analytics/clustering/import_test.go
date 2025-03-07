@@ -4,7 +4,6 @@ import (
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/testhelper"
-	"context"
 	"github.com/stretchr/testify/require"
 	"sort"
 	"strconv"
@@ -136,7 +135,7 @@ func Test_validateAddresses(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		addresses, err := validateAddresses(context.Background(), dbHandle, tt.clusters)
+		addresses, err := validateAddresses(t.Context(), dbHandle, tt.clusters)
 		if tt.wantErr {
 			require.Error(t, err)
 			if tt.wantErrType != nil {
@@ -180,7 +179,7 @@ func TestImportCluster(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := ImportCluster(context.Background(), dbHandle, tt.args.clusters, tt.args.userID)
+		err := ImportCluster(t.Context(), dbHandle, tt.args.clusters, tt.args.userID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {

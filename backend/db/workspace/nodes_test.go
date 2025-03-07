@@ -3,7 +3,6 @@ package workspace
 import (
 	"backend/db"
 	"backend/testhelper"
-	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -12,7 +11,7 @@ func Test_getWorkspaceConnectionsRaw(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	txUID, err := db.GetTransactionUID(ctx, dbHandle, "91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb")
 	require.NoError(t, err)
@@ -68,7 +67,7 @@ func TestCheckDuplicateAddress(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// both addresses belong to the same cluster
 	addresses, err := db.GetAddressUIDs(ctx, dbHandle, []string{

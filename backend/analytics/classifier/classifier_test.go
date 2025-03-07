@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/testhelper"
-	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -20,13 +19,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewClassifier(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
+	classifier := NewClassifier(t.Context(), nil, NewDashConfig())
 
 	require.NotNil(t, classifier)
 }
 
 func TestClassifier_IncrementState(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
+	classifier := NewClassifier(t.Context(), nil, NewDashConfig())
 
 	for range 10 {
 		classifier.blocksProcessed = 1
@@ -37,7 +36,7 @@ func TestClassifier_IncrementState(t *testing.T) {
 }
 
 func TestClassifier_Empty(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
+	classifier := NewClassifier(t.Context(), nil, NewDashConfig())
 
 	require.False(t, classifier.Empty())
 	// simulate a block having been processed
@@ -99,7 +98,7 @@ func TestClassifier_NextBlock(t *testing.T) {
 }
 
 func TestClassifier_Props(t *testing.T) {
-	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
+	classifier := NewClassifier(t.Context(), nil, NewDashConfig())
 
 	require.NotEmpty(t, classifier.Props())
 }

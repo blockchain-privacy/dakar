@@ -51,7 +51,7 @@ func TestWorker_work(t *testing.T) {
 	}
 
 	m := NewMutex()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	// insert 3 selectors into db

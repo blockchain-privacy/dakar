@@ -104,7 +104,7 @@ func validateAddresses(ctx context.Context, dgraph external.Database,
 	// check if clusters contain at least two addresses
 	clusterSet := buildClusterSet(clusters)
 	for _, v := range clusterSet {
-		if v == nil || len(v) < 2 {
+		if len(v) < 2 {
 			return nil, serror.New(ErrShallowCluster)
 		}
 	}

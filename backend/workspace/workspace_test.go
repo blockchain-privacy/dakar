@@ -5,7 +5,6 @@ import (
 	"backend/db/user"
 	"backend/db/workspace"
 	"backend/testhelper"
-	"context"
 	"errors"
 	"github.com/qrest/gomisc/serror"
 	"github.com/stretchr/testify/require"
@@ -23,7 +22,7 @@ func TestMain(m *testing.M) {
 func TestGetAndRefreshWorkspace(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(ctx, dbHandle)
@@ -68,7 +67,7 @@ const userCount = 3
 const workspacesPerUser = 5
 
 func getUserAndWorkspaces(t *testing.T) ([]string, [][]string, [][]string) {
-	ctx := context.Background()
+	ctx := t.Context()
 	m := NewMutex()
 	users := make([]string, userCount)
 	userToWorkspaces := make([][]string, userCount)
@@ -110,7 +109,7 @@ func TestGetAndRefreshWorkspaceParallel(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	users, userToWorkspaces, _ := getUserAndWorkspaces(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	m := NewMutex()
 	wg := sync.WaitGroup{}
 	const numCalls = 100
@@ -144,7 +143,7 @@ func TestWorkspaceUsageParallel(t *testing.T) {
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	users, userToWorkspaces, workspaceToNodes := getUserAndWorkspaces(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	m := NewMutex()
 
 	txUIDs := []string{"e3902f922a4d5de38b5fd287e52f39d7c41edddcefd91c5c8347dceb3e4c25a9",

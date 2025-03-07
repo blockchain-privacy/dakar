@@ -3,7 +3,6 @@ package status
 import (
 	"backend/db"
 	"backend/testhelper"
-	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -158,7 +157,7 @@ func TestGetFrontendStatus(t *testing.T) {
 	require.NoError(t, SetCrawling(ctx, dbHandle, true))
 	require.NoError(t, SetLastBlockID(ctx, dbHandle, 50))
 
-	status, err = GetFrontendStatus(context.Background(), dbHandle)
+	status, err = GetFrontendStatus(t.Context(), dbHandle)
 	require.NoError(t, err)
 	require.NotNil(t, status.IsCrawling)
 	require.True(t, *status.IsCrawling)

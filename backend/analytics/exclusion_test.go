@@ -6,7 +6,6 @@ import (
 	"backend/db/user"
 	"backend/external"
 	"backend/testhelper"
-	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -72,7 +71,7 @@ func TestImportAddressExclusions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := ImportAddressExclusions(context.Background(), tt.args.dgraph, tt.args.exclusions, tt.args.userID)
+		err := ImportAddressExclusions(t.Context(), tt.args.dgraph, tt.args.exclusions, tt.args.userID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -153,7 +152,7 @@ func Test_validateExclusionAddresses(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		got, err := validateExclusionAddresses(context.Background(), tt.args.dgraph, tt.args.exclusions)
+		got, err := validateExclusionAddresses(t.Context(), tt.args.dgraph, tt.args.exclusions)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
