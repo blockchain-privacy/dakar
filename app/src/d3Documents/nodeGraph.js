@@ -561,21 +561,34 @@ export default class NodeGraph {
 	}
 
 	reorderNodes() {
-		for (const [key, value] of this.getFilteredMap()) {
-			// Randomize position, reorderNodes creates different arrangements for each call
-			const random = Math.random() * 30;
-			value.x = random;
-			value.y = random;
-			delete value.fx;
-			delete value.fy;
-			this.#nodeMap[key] = value;
-			if (this.#filteredNodeMap[key] !== undefined) {
-				this.#filteredNodeMap[key] = value;
+		if (this.lassoSelectedNodes === null) {
+			for (const [key, value] of this.getFilteredMap()) {
+				// Randomize position, reorderNodes creates different arrangements for each call
+				const random = Math.random() * 30;
+				value.x = random;
+				value.y = random;
+				delete value.fx;
+				delete value.fy;
+				this.#nodeMap[key] = value;
+				if (this.#filteredNodeMap[key] !== undefined) {
+					this.#filteredNodeMap[key] = value;
+				}
 			}
-		}
 
-		this.draw();
-		this.centerGraph();
+			this.draw();
+			this.centerGraph();
+		} else {
+			this.lassoSelectedNodes.each(d => {
+				delete d.fx;
+				delete d.fy;
+				this.#nodeMap[d.uid] = d;
+				if (this.#filteredNodeMap[d.uid] !== undefined) {
+					this.#filteredNodeMap[d.uid] = d;
+				}
+			});
+			this.draw(false, false);
+			this.centerOnSelection(this.lassoSelectedNodes);
+		}
 	}
 
 	getCenterOfNodes() {
@@ -645,7 +658,7 @@ export default class NodeGraph {
 		}
 
 		if (draw === undefined || draw === true) {
-			this.draw();
+			this.draw(true, false);
 		}
 	}
 
@@ -666,7 +679,7 @@ export default class NodeGraph {
 			this.addNode(node, false);
 		});
 		if (draw === undefined || draw === true) {
-			this.draw();
+			this.draw(true, false);
 		}
 	}
 
@@ -1144,9 +1157,11 @@ export default class NodeGraph {
 	}
 
 	// Draws the state of the graph, returns all newly added nodes
-	draw() {
-		this.resetClick();
-		this.resetLasso();
+	draw(reset = true, limitSimulation = true) {
+		if (reset) {
+			this.resetClick();
+			this.resetLasso();
+		}
 
 		// If there is a simulation ongoing from a previous call, stop it
 		if (this.simulation) {
@@ -1163,7 +1178,7 @@ export default class NodeGraph {
 		}
 
 		this.simulation = forceSimulation(nodes)
-			.force('link', forceLink(links).id(d => d.uid).strength(30))
+			.force('link', forceLink(links).id(d => d.uid))
 			.force('collide', forceCollide(d => {
 				if (d.type === WORKSPACE_NODE_TYPE_NOTE) {
 					if (d.width && d.height) {
@@ -1175,8 +1190,15 @@ export default class NodeGraph {
 				}
 
 				return this.#nodeRadius * 4;
-			}))
-			.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.#nodeRadius)).stop();
+			}));
+
+		// The limit simulation should only be done if all nodes are reordered.
+		// Otherwise nodes can get stuck in the limit rectangle if host nodes are outside of the rectangle
+		if (limitSimulation) {
+			this.simulation = this.simulation.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.#nodeRadius));
+		}
+
+		this.simulation.stop();
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));

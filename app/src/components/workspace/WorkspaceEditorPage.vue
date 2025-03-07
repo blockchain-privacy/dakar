@@ -419,6 +419,7 @@ onMounted(async () => {
 	workspaceStore.setWorkspaceActive(true);
 	await whenMounted();
 	document.addEventListener('visibilitychange', onDocumentClose);
+	document.addEventListener('keydown', handleKeyPress, false);
 });
 
 onUnmounted(() => {
@@ -433,6 +434,7 @@ onUnmounted(() => {
 	selectorTimers.forEach(d => clearTimeout(d));
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
+	document.removeEventListener('keydown', handleKeyPress);
 	workspaceStore.setWorkspaceActive(false);
 });
 
@@ -1207,6 +1209,15 @@ function acceptsChild(node) {
 	}
 
 	return node.selectorStatus && node.selectorStatus === SELECTOR_STATUS_SUCCESS;
+}
+
+function handleKeyPress(e) {
+	// Don't trigger delete event when editing a <input /> element such as text boxes
+	if (e.target instanceof HTMLInputElement || e.key !== 'Delete') {
+		return;
+	}
+
+	handleMenuDeleteSelected();
 }
 
 </script>
