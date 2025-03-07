@@ -96,3 +96,8 @@ type MixingActivity struct {
 		TransactionHash string `json:"txhash"`
 	} `json:"input_txs,omitempty"`
 }
+
+type AddressOutputCount struct {
+	AddressHash string `json:"addresshash"`
+	OutputCount int    `json:"outputCount"`
+}

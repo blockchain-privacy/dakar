@@ -110,6 +110,12 @@ type TagPackInserterModule struct {
 	Directory string `yaml:"directory"`
 }
 
+type CollateralsModule struct {
+	Active     bool   `yaml:"active"`
+	CpFilename string `yaml:"cpFilename"`
+	CcFilename string `yaml:"ccFilename"`
+}
+
 type Config struct {
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
@@ -125,72 +131,11 @@ type Config struct {
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
 	TagPackInserter       TagPackInserterModule       `yaml:"tagPackInserter"`
 	Stats                 StatsModule                 `yaml:"stats"`
+	Collaterals           CollateralsModule           `yaml:"collaterals"`
 }
 
 var defaultConfig = Config{
 	DBHost: "0.0.0.0:9080",
-	PrivacyCharts: PrivacyChartModule{
-		Active:    false,
-		Directory: "",
-	},
-	UniqueAddresses: UniqueAddressesModule{
-		Active: false,
-		Option: 0,
-	},
-	TimestampAnalytics: TimestampAnalyticsModule{
-		ExportDestinationTransactions: false,
-		ExportMixingTransactions:      false,
-		ExportReverseLookup: ExportReverseLookupModule{
-			Active:            false,
-			LookBackTimeHours: 0,
-			NodeID:            "",
-		},
-	},
-	ExclusionSimulations: ExclusionSimulationModule{
-		Active:            false,
-		UserUID:           "",
-		LookBackTimeHours: 0,
-		NodeID:            "",
-	},
-	OriginGap: OriginGapModule{
-		Active:      false,
-		Filename:    "",
-		MinGapHours: 0,
-	},
-	ExportBlocks: ExportBlocksModule{
-		Active:     false,
-		Filename:   "",
-		StartBlock: 0,
-		EndBlock:   0,
-	},
-	ExportTransactions: ExportTransactionsModule{
-		Active:           false,
-		Filename:         "",
-		StartBlock:       0,
-		EndBlock:         0,
-		TransactionTypes: nil,
-	},
-	ExportPrivacyGraph: ExportPrivacyGraphModule{
-		Active:           false,
-		Filename:         "",
-		StartTransaction: "",
-	},
-	DestinationCount: DestinationCountModule{
-		Active:   false,
-		Filename: "",
-	},
-	DestinationCount2: DestinationCount2Module{
-		Active:   false,
-		Filename: "",
-	},
-	ExportClusterActivity: ExportClusterActivityModule{
-		Active:   false,
-		Filename: "",
-	},
-	TagPackInserter: TagPackInserterModule{
-		Active:    false,
-		Directory: "",
-	},
 }
 
 //nolint:gocyclo
@@ -338,6 +283,10 @@ func main() {
 
 	if newConfig.TagPackInserter.Active {
 		doInsertTagPacks(ctx, dgraph, newConfig.TagPackInserter.Directory)
+	}
+
+	if newConfig.Collaterals.Active {
+		doCollateralAnalysis(ctx, dgraph, newConfig.Collaterals.CpFilename, newConfig.Collaterals.CcFilename)
 	}
 }
 
