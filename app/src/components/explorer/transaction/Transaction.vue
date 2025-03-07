@@ -113,34 +113,40 @@
             </v-col>
           </v-row>
           <div class="d-flex flex-wrap">
-            <div
-              v-show="enoughDataForInputGraph"
-              style="flex: 1 1 500px"
-            >
-              <p class="text-subtitle-1 text-center">
-                Input Distribution
-              </p>
-              <svg :id="`transaction_inputs_canvas_${tx.txhash}`" />
+            <div style="flex: 1 1 500px">
+              <div
+                v-if="tx.inputs?.some(d => d.amount)"
+                class="mx-4 mb-2"
+              >
+                <p class="text-subtitle-1 text-center">
+                  Input Amount Distribution
+                </p>
+                <amount-chart :outputs="tx.inputs" />
+              </div>
+              <div v-show="enoughDataForInputGraph">
+                <p class="text-subtitle-1 text-center">
+                  Input Timeline
+                </p>
+                <svg :id="`transaction_inputs_canvas_${tx.txhash}`" />
+              </div>
             </div>
-            <!-- empty element in case input graph is hidden but output graph is not -->
-            <div
-              v-if="!enoughDataForInputGraph"
-              style="flex: 1 1 500px"
-            />
-            <div
-              v-show="enoughDataForOutputGraph"
-              style="flex: 1 1 500px"
-            >
-              <p class="text-subtitle-1 text-center">
-                Output Distribution
-              </p>
-              <svg :id="`transaction_outputs_canvas_${tx.txhash}`" />
+            <div style="flex: 1 1 500px">
+              <div
+                v-if="tx.outputs?.some(d => d.amount)"
+                class="mx-4 mb-2"
+              >
+                <p class="text-subtitle-1 text-center">
+                  Output Amount Distribution
+                </p>
+                <amount-chart :outputs="tx.outputs" />
+              </div>
+              <div v-show="enoughDataForOutputGraph">
+                <p class="text-subtitle-1 text-center">
+                  Output Timeline
+                </p>
+                <svg :id="`transaction_outputs_canvas_${tx.txhash}`" />
+              </div>
             </div>
-            <!-- empty element in case output graph is hidden but input graph is not -->
-            <div
-              v-if="!enoughDataForOutputGraph"
-              style="flex: 1 1 500px"
-            />
           </div>
           <!-- bottom spacer for transition -->
           <div style="height: 10px" />
@@ -329,6 +335,7 @@ import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import {
 	VRow, VCol, VTabsWindowItem, VTabsWindow,
 } from 'vuetify/components';
+import AmountChart from '@/components/explorer/transaction/AmountChart.vue';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
