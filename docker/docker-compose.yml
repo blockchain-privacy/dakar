@@ -155,7 +155,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   keto:
-    image: oryd/keto:v0.12
+    image: oryd/keto:v0.14
     container_name: keto
     ports:
       - "4466:4466"
@@ -169,7 +169,7 @@ services:
       - dgraph_default
 
   keto-init:
-    image: oryd/keto:v0.12
+    image: oryd/keto:v0.14
     container_name: keto-init
     depends_on:
       - keto
