@@ -1435,18 +1435,23 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 	newNodes := map[string]dbwork.Node{}
 	for _, query := range searchRequest.Queries {
 		newNode, err := dbwork.SearchForNode(r.Context(), dgraph, query)
-		if errors.Is(err, dbwork.ErrNodeNotFound) {
-			status = http.StatusNotFound
-			return
-		}
-
 		if err != nil {
+			if errors.Is(err, dbwork.ErrNodeNotFound) {
+				// ignore nodes which are not found
+				continue
+			}
+
 			status = http.StatusInternalServerError
 			warn(err, "query", searchRequest)
 			return
 		}
 
 		newNodes[newNode.UID] = *newNode
+	}
+
+	if len(newNodes) == 0 {
+		status = http.StatusNotFound
+		return
 	}
 
 	reply.Nodes, reply.DuplicateNodeUID, err = workspace.AddNodes(r.Context(), dgraph, workspaceMutex, searchRequest.WorkspaceUID,
