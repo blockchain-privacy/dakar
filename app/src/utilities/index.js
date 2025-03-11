@@ -309,3 +309,14 @@ export async function handleQuery(q, explorerStore, client, type) {
 			return await storeResult(client.data.blockchainSearchQueryGet({query: q}), explorerStore.updateSearchResult);
 	}
 }
+
+// Returns an array containing all bitcoin addresses and transaction hashes in text
+export function extractEntities(text) {
+	if (!text) {
+		return [];
+	}
+
+	const regexp = /[13X7][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59}|[a-fA-F0-9]{64}/g;
+	const matches = [...text.matchAll(regexp)].map(r => r[0]);
+	return [...new Set(matches)];
+}
