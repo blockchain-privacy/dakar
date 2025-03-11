@@ -201,7 +201,7 @@
             class="d-flex align-center justify-center my-2"
           >
             <v-card variant="flat">
-              <adaptive-toolbar
+              <graph-toolbar
                 one-line
                 disable-filter
                 @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"
@@ -240,7 +240,7 @@ import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
-import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
+import GraphToolbar from '@/components/common/GraphToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {storeToRefs} from 'pinia';

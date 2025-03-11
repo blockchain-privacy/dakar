@@ -1,6 +1,9 @@
 <template>
-  <div class="d-flex align-center">
-    <template v-if="name && !$vuetify.display.xs">
+  <div class="d-flex align-center justify-space-between">
+    <div
+      v-if="name"
+      class="d-flex align-center d-inline-block"
+    >
       <v-icon
         class="mx-3"
         icon="$graphIcon"
@@ -8,34 +11,11 @@
       />
       <p
         v-tooltip="{'text': 'Name of the Workspace', 'location':'top', 'open-delay': 400}"
-        class="text-h6 workspace-name"
+        class="text-h6 my-2 workspace-name"
       >
         {{ name }}
       </p>
-    </template>
-    <v-text-field
-      v-if="showSearchField"
-      v-model="graphQuery"
-      class="noOutline"
-      hide-details
-      variant="outlined"
-      density="compact"
-      color="primary"
-      single-line
-      label="Add entities"
-      :disabled="!addEntityEnabled"
-      :append-inner-icon="mdiMagnify"
-      @click:append-inner="onAddEntity"
-      @keydown.enter="onAddEntity"
-    />
-    <v-btn
-      v-if="!disableFilter"
-      v-tooltip="{'text': 'Node Filter', 'location':'top', 'open-delay': 400}"
-      variant="text"
-      :icon="mdiCog"
-      :active="showFilter"
-      @click="showFilter = !showFilter"
-    />
+    </div>
     <v-btn-toggle
       v-if="!oneLine"
       v-model="selectionToggle"
@@ -56,6 +36,19 @@
     </v-btn-toggle>
   </div>
   <div class="d-flex justify-center align-center flex-wrap">
+    <v-btn
+      v-if="!disableFilter"
+      variant="text"
+      class="my-1"
+      :active="showFilter"
+      @click="showFilter = !showFilter"
+    >
+      <v-icon
+        :icon="mdiCog"
+        class="me-1"
+      />
+      Filter Nodes
+    </v-btn>
     <v-btn
       variant="text"
       class="my-1"
@@ -78,6 +71,8 @@
       />
       Center
     </v-btn>
+  </div>
+  <div class="d-flex justify-center align-center flex-wrap">
     <v-btn
       v-if="showAddSelectorButton"
       variant="text"
@@ -90,7 +85,19 @@
       />
       Add Property Selector
     </v-btn>
-
+    <v-btn
+      v-if="showSearchField"
+      v-tooltip="{'text': 'Add element', 'location':'top', 'open-delay': 400}"
+      variant="text"
+      :disabled="!addEntityEnabled"
+      @click="queryDialogModel = true"
+    >
+      <v-icon
+        :icon="mdiPlus"
+        class="me-1"
+      />
+      Add element
+    </v-btn>
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
       :disabled="deleteDisabled"
@@ -151,12 +158,44 @@
       </div>
     </div>
   </v-expand-transition>
+  <v-dialog
+    v-model="queryDialogModel"
+    max-width="600"
+  >
+    <v-card title="Add element">
+      <v-card-text>
+        <v-text-field
+          v-model="graphQuery"
+          autofocus
+          hide-details
+          variant="outlined"
+          density="compact"
+          color="primary"
+          label="Add a transaction or address cluster"
+          :disabled="!addEntityEnabled"
+          :append-inner-icon="mdiMagnify"
+          @click:append-inner="onAddEntity"
+          @keydown.enter="onAddEntity"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <v-btn
+          class="ml-auto"
+          text="Cancel"
+          @click="queryDialogModel = false"
+        />
+        <v-btn @click="onAddEntity">
+          Add
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
-	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiFilterPlus,
+	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
 import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
@@ -192,13 +231,16 @@ const graphQuery = ref('');
 const showFilter = ref(false);
 const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
+const queryDialogModel = ref(false);
 
 // Functions
 function onSelectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
 }
 
-function onAddEntity() {
+function onAddEntity(e) {
+	e.stopPropagation();
+	queryDialogModel.value = false;
 	emit('addEntity', graphQuery.value);
 	graphQuery.value = '';
 }
@@ -220,7 +262,7 @@ function onAddSelector() {
 <style scoped>
 
 .workspace-name {
-  max-width: 150px;
+  max-width: 200px;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;

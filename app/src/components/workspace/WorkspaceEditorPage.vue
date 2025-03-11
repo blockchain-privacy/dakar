@@ -8,9 +8,9 @@
         v-if="workspaceName"
         :rounded="$vuetify.display.xs?'0':undefined"
         :class="{'toolbar-sm': $vuetify.display.xs, 'toolbar': $vuetify.display.smAndUp}"
-        style="max-width:700px"
+        style="max-width:500px"
       >
-        <adaptive-toolbar
+        <graph-toolbar
           :name="workspaceName"
           :selected-item-count="lassoSelectedNodes.length"
           :delete-disabled="!isLassoDeletionEnabled"
@@ -177,7 +177,15 @@
                 >
                   <v-icon :icon="item.icon" />
                 </template>
-                <v-list-item-title>{{ item.title }}</v-list-item-title>
+                <div class="d-flex align-center pa-2 justify-space-between">
+                  <v-list-item-title>{{ item.title }}</v-list-item-title>
+                  <div
+                    v-if="item.shortcut"
+                    class="kbb ms-2"
+                  >
+                    {{ item.shortcut }}
+                  </div>
+                </div>
               </v-list-item>
             </template>
           </v-list>
@@ -228,7 +236,7 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/sidebars/EntitySideBar.vue';
-import AdaptiveToolbar from '@/components/common/AdaptiveToolbar.vue';
+import GraphToolbar from '@/components/common/GraphToolbar.vue';
 import ConnectionSideBar from '@/components/workspace/sidebars/ConnectionSideBar.vue';
 import RoutingDialog from '@/components/workspace/RoutingDialog.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
@@ -346,6 +354,7 @@ const nodeActions = ref([
 		icon: mdiDelete,
 		action: removeContextNode,
 		disabled: () => isModifyingWorkspace.value || !isDeleteEnabled(nodeGraph.getContextNode()),
+		shortcut: 'DEL',
 	},
 ]);
 
@@ -1258,6 +1267,13 @@ function handleKeyPress(e) {
   right:0;
   z-index: 1004;
   background-color: rgb(var(--v-theme-surface))
+}
+.kbb {
+  border: 2px solid #696969;
+  border-radius: 0.25rem;
+  box-shadow: inset 0 -1px 0 0 #696969;
+  font-size: .825rem;
+  padding: .25rem;
 }
 
 </style>
