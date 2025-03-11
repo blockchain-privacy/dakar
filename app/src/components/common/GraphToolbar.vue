@@ -163,31 +163,39 @@
     max-width="600"
   >
     <v-card title="Add element">
-      <v-card-text>
-        <v-text-field
-          v-model="graphQuery"
-          autofocus
-          hide-details
-          variant="outlined"
-          density="compact"
-          color="primary"
-          label="Add a transaction or address cluster"
-          :disabled="!addEntityEnabled"
-          :append-inner-icon="mdiMagnify"
-          @click:append-inner="onAddEntity"
-          @keydown.enter="onAddEntity"
-        />
-      </v-card-text>
-      <v-card-actions>
-        <v-btn
-          class="ml-auto"
-          text="Cancel"
-          @click="queryDialogModel = false"
-        />
-        <v-btn @click="onAddEntity">
-          Add
-        </v-btn>
-      </v-card-actions>
+      <v-form
+        id="queryForm"
+        ref="queryForm"
+      >
+        <v-card-text>
+          <v-text-field
+            v-model="graphQuery"
+            autofocus
+            variant="outlined"
+            density="compact"
+            color="primary"
+            :rules="inputRules"
+            label="Add a transaction or address cluster"
+            :disabled="!addEntityEnabled"
+            :append-inner-icon="mdiMagnify"
+            @click:append-inner="onAddEntity"
+            @keydown.enter="onAddEntity"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+            class="ml-auto"
+            text="Cancel"
+            @click="queryDialogModel = false"
+          />
+          <v-btn
+            :disabled="queryItemCount === 0"
+            @click="onAddEntity"
+          >
+            Add {{ queryItemCount > 0?queryItemCount:'' }}
+          </v-btn>
+        </v-card-actions>
+      </v-form>
     </v-card>
   </v-dialog>
 </template>
@@ -197,8 +205,9 @@ import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
 	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
-import {ref} from 'vue';
+import {ref, computed} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
+import {extractEntities} from '@/utilities/index.js';
 
 const emit = defineEmits([
 	'isSelectionEnabled',
@@ -232,16 +241,28 @@ const showFilter = ref(false);
 const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 const queryDialogModel = ref(false);
+const queryForm = ref(null);
+
+const inputRules = [
+	q => extractEntities(q).length > 0 || 'query contains no valid entities',
+];
+
+// Computed
+const queryItemCount = computed(() => extractEntities(graphQuery.value).length);
 
 // Functions
 function onSelectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
 }
 
-function onAddEntity(e) {
-	e.stopPropagation();
+async function onAddEntity() {
+	const {valid} = await queryForm.value.validate();
+	if (!valid) {
+		return;
+	}
+
 	queryDialogModel.value = false;
-	emit('addEntity', graphQuery.value);
+	emit('addEntity', extractEntities(graphQuery.value));
 	graphQuery.value = '';
 }
 

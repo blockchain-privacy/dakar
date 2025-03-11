@@ -672,17 +672,12 @@ async function addMultipleNodes(nodes) {
 	releaseAutosaveLock();
 }
 
-async function handleGraphQuery(query) {
+async function handleGraphQuery(hashes) {
 	if (isModifyingWorkspace.value) {
 		return;
 	}
 
-	const trimmedQuery = query.trim();
-	if (!trimmedQuery) {
-		return;
-	}
-
-	await addMultipleNodes([trimmedQuery]);
+	await addMultipleNodes(hashes);
 }
 
 async function changeNote(noteText) {
