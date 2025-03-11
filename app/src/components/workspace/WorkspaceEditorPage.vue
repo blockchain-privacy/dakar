@@ -25,7 +25,7 @@
           @rearrange="handleMenuRearrange"
           @center="handleMenuCenter"
           @delete-selected="handleMenuDeleteSelected"
-          @add-entity="handleGraphQuery"
+          @add-entities="addMultipleNodes"
           @filter-changed="handleMenuFilterChanged"
           @shortest-path-lookup="handleShortestPathLookup"
           @add-selector="showCreateSelectorSheetFromButton"
@@ -109,7 +109,7 @@
           v-model="showRouteGuardDialogModel"
           :to="routeGuardTo"
           :disable-adding-nodes="isModifyingWorkspace"
-          @add-node="handleGraphQuery"
+          @add-entities="addMultipleNodes"
         />
         <text-dialog
           v-if="showAddNoteDialogModel"
@@ -663,21 +663,13 @@ async function addMultipleNodes(nodes) {
 		}
 	} catch (e) {
 		if (e.cause?.status === 404) {
-			setInfoMessage(`No results for query '${nodes}'`);
+			setInfoMessage('Query returned no results');
 		} else {
 			setErrorMessage(e);
 		}
 	}
 
 	releaseAutosaveLock();
-}
-
-async function handleGraphQuery(hashes) {
-	if (isModifyingWorkspace.value) {
-		return;
-	}
-
-	await addMultipleNodes(hashes);
 }
 
 async function changeNote(noteText) {

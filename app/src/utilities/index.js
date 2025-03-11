@@ -216,6 +216,11 @@ export function plural(subject, count) {
 	return count === 0 || count > 1 ? `${subject}s` : subject;
 }
 
+// Appends an 's' at the end of subject if count is higher than one
+export function pluralIrregular(subject, plural, count) {
+	return count === 0 || count > 1 ? plural : subject;
+}
+
 // Returns a mapping between transaction types and their colors.
 // If a blockchain mode is provided, only transaction types of the given mode are returned.
 export function getColorMap(mode) {

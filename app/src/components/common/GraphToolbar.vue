@@ -87,7 +87,6 @@
     </v-btn>
     <v-btn
       v-if="showSearchField"
-      v-tooltip="{'text': 'Add element', 'location':'top', 'open-delay': 400}"
       variant="text"
       :disabled="!addEntityEnabled"
       @click="queryDialogModel = true"
@@ -96,7 +95,7 @@
         :icon="mdiPlus"
         class="me-1"
       />
-      Add element
+      Add entities
     </v-btn>
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
@@ -162,25 +161,56 @@
     v-model="queryDialogModel"
     max-width="600"
   >
-    <v-card title="Add element">
+    <v-card title="Add entities">
       <v-form
         id="queryForm"
         ref="queryForm"
+        validate-on="submit"
       >
         <v-card-text>
+          <p class="text-subtitle-1">
+            Add one or multiple entities. Separate multiple entities by any special character.
+          </p>
           <v-text-field
             v-model="graphQuery"
+            class="mt-4"
             autofocus
             variant="outlined"
             density="compact"
             color="primary"
             :rules="inputRules"
-            label="Add a transaction or address cluster"
+            label="Add a transactions or address clusters"
             :disabled="!addEntityEnabled"
             :append-inner-icon="mdiMagnify"
             @click:append-inner="onAddEntity"
             @keydown.enter="onAddEntity"
           />
+          <v-expand-transition>
+            <div
+              v-if="queryItemCount > 1"
+              class="d-flex justify-center"
+            >
+              <v-btn
+                variant="text"
+                @click="showDetectedEntities = !showDetectedEntities"
+              >
+                {{ showDetectedEntities?'Hide':'Show' }} detected entities
+              </v-btn>
+            </div>
+          </v-expand-transition>
+          <v-expand-transition>
+            <div v-if="queryItemCount > 1 && showDetectedEntities">
+              <v-list
+                v-for="entity in detectedEntities"
+                :key="entity"
+                density="compact"
+              >
+                <v-list-item>
+                  {{ entity }}
+                </v-list-item>
+              </v-list>
+            </div>
+          </v-expand-transition>
         </v-card-text>
         <v-card-actions>
           <v-btn
@@ -192,7 +222,7 @@
             :disabled="queryItemCount === 0"
             @click="onAddEntity"
           >
-            Add {{ queryItemCount > 0?queryItemCount:'' }}
+            Add {{ queryItemCount > 0?queryItemCount:'' }} {{ pluralIrregular('entity','entities', queryItemCount) }}
           </v-btn>
         </v-card-actions>
       </v-form>
@@ -207,14 +237,14 @@ import {
 } from '@mdi/js';
 import {ref, computed} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
-import {extractEntities} from '@/utilities/index.js';
+import {extractEntities, pluralIrregular} from '@/utilities/index.js';
 
 const emit = defineEmits([
 	'isSelectionEnabled',
 	'rearrange',
 	'center',
 	'deleteSelected',
-	'addEntity',
+	'addEntities',
 	'filterChanged',
 	'shortestPathLookup',
 	'addSelector',
@@ -242,13 +272,16 @@ const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 const queryDialogModel = ref(false);
 const queryForm = ref(null);
+const showDetectedEntities = ref(false);
 
 const inputRules = [
 	q => extractEntities(q).length > 0 || 'query contains no valid entities',
 ];
 
 // Computed
-const queryItemCount = computed(() => extractEntities(graphQuery.value).length);
+const detectedEntities = computed(() => extractEntities(graphQuery.value));
+
+const queryItemCount = computed(() => detectedEntities.value.length);
 
 // Functions
 function onSelectionModeChanged(mode) {
@@ -262,7 +295,7 @@ async function onAddEntity() {
 	}
 
 	queryDialogModel.value = false;
-	emit('addEntity', extractEntities(graphQuery.value));
+	emit('addEntities', extractEntities(graphQuery.value));
 	graphQuery.value = '';
 }
 
