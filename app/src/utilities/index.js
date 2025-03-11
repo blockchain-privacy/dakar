@@ -312,7 +312,7 @@ export async function handleQuery(q, explorerStore, client, type) {
 
 // Returns an array containing all bitcoin addresses and transaction hashes in text
 export function extractEntities(text) {
-	if (!text) {
+	if (!text || !text.trim()) {
 		return [];
 	}
 

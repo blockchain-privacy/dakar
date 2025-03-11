@@ -61,3 +61,8 @@ test('trm csv', () => {
 test('empty', () => {
 	expect(extractEntities('asdf')).toStrictEqual([]);
 });
+
+test('trim', () => {
+	expect(extractEntities('    ')).toStrictEqual([]);
+	expect(extractEntities('')).toStrictEqual([]);
+});
