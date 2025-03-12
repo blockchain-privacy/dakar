@@ -24,7 +24,7 @@
         v-model="showSearchField"
         variant="text"
         icon
-        @click="showSearchField = !showSearchField"
+        @click="showSearchButton = !showSearchField"
       >
         <v-icon>{{ mdiMagnify }}</v-icon>
       </v-btn>
@@ -75,7 +75,7 @@
           hide-details
           autofocus
           style="max-width:800px"
-          @keydown.esc="showSearchField = false"
+          @keydown.esc="showSearchButton = false"
         />
       </div>
     </fade-transition>

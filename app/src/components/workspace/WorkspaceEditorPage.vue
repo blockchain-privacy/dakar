@@ -18,7 +18,7 @@
           :add-entity-enabled="!isModifyingWorkspace"
           :node-type-items="nodeTypeLabels"
           :transaction-type-items="transactionTypeLabels"
-          show-search-field
+          show-search-button
           show-delete-button
           show-add-selector-button
           @is-selection-enabled="(flag) => nodeGraph.setLassoEnabled(flag)"

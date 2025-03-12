@@ -86,7 +86,7 @@
       Add Property Selector
     </v-btn>
     <v-btn
-      v-if="showSearchField"
+      v-if="showSearchButton"
       variant="text"
       :disabled="!addEntityEnabled"
       @click="queryDialogModel = true"
@@ -158,6 +158,7 @@
     </div>
   </v-expand-transition>
   <search-dialog
+    v-if="showSearchButton"
     v-model="queryDialogModel"
     :add-entity-enabled="addEntityEnabled"
     @add-entities="onAddEntities"
@@ -186,14 +187,14 @@ const emit = defineEmits([
 
 const props = defineProps({
 	name: {type: String, required: false, default: ''},
-	showSearchField: {type: Boolean, required: false},
+	showSearchButton: {type: Boolean, required: false},
+	showDeleteButton: {type: Boolean, required: false},
+	showAddSelectorButton: {type: Boolean, required: false},
 	selectedItemCount: {type: Number, required: false, default: 0},
 	shortestPathEnabled: {type: Boolean, required: false},
 	addEntityEnabled: {type: Boolean, required: false},
 	deleteDisabled: {type: Boolean, required: false},
 	oneLine: {type: Boolean, required: false},
-	showDeleteButton: {type: Boolean, required: false},
-	showAddSelectorButton: {type: Boolean, required: false},
 	nodeTypeItems: {type: Array, required: false, default: () => []},
 	transactionTypeItems: {type: Array, required: false, default: () => []},
 	disableFilter: {type: Boolean, required: false},
