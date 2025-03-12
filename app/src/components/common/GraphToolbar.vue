@@ -157,87 +157,21 @@
       </div>
     </div>
   </v-expand-transition>
-  <v-dialog
+  <search-dialog
     v-model="queryDialogModel"
-    max-width="600"
-  >
-    <v-card title="Add entities">
-      <v-form
-        id="queryForm"
-        ref="queryForm"
-        validate-on="submit"
-      >
-        <v-card-text>
-          <p class="text-subtitle-1">
-            Add one or multiple entities. Separate multiple entities by any special character.
-          </p>
-          <v-text-field
-            v-model="graphQuery"
-            class="mt-4"
-            autofocus
-            variant="outlined"
-            density="compact"
-            color="primary"
-            :rules="inputRules"
-            label="Add a transactions or address clusters"
-            :disabled="!addEntityEnabled"
-            :append-inner-icon="mdiMagnify"
-            @click:append-inner="onAddEntity"
-            @keydown.enter="onAddEntity"
-          />
-          <v-expand-transition>
-            <div
-              v-if="queryItemCount > 1"
-              class="d-flex justify-center"
-            >
-              <v-btn
-                variant="text"
-                @click="showDetectedEntities = !showDetectedEntities"
-              >
-                {{ showDetectedEntities?'Hide':'Show' }} detected entities
-              </v-btn>
-            </div>
-          </v-expand-transition>
-          <v-expand-transition>
-            <div v-if="queryItemCount > 1 && showDetectedEntities">
-              <v-list
-                v-for="entity in detectedEntities"
-                :key="entity"
-                density="compact"
-              >
-                <v-list-item>
-                  {{ entity }}
-                </v-list-item>
-              </v-list>
-            </div>
-          </v-expand-transition>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn
-            class="ml-auto"
-            text="Cancel"
-            @click="queryDialogModel = false"
-          />
-          <v-btn
-            :disabled="queryItemCount === 0"
-            @click="onAddEntity"
-          >
-            Add {{ queryItemCount > 0?queryItemCount:'' }} {{ pluralIrregular('entity','entities', queryItemCount) }}
-          </v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+    :add-entity-enabled="addEntityEnabled"
+    @add-entities="onAddEntities"
+  />
 </template>
 
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
-	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
+	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
-import {ref, computed} from 'vue';
+import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
-import {extractEntities, pluralIrregular} from '@/utilities/index.js';
+import SearchDialog from '@/components/common/SearchDialog.vue';
 
 const emit = defineEmits([
 	'isSelectionEnabled',
@@ -266,37 +200,18 @@ const props = defineProps({
 });
 
 const selectionToggle = ref(1);
-const graphQuery = ref('');
 const showFilter = ref(false);
 const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 const queryDialogModel = ref(false);
-const queryForm = ref(null);
-const showDetectedEntities = ref(false);
-
-const inputRules = [
-	q => extractEntities(q).length > 0 || 'query contains no valid entities',
-];
-
-// Computed
-const detectedEntities = computed(() => extractEntities(graphQuery.value));
-
-const queryItemCount = computed(() => detectedEntities.value.length);
 
 // Functions
 function onSelectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
 }
 
-async function onAddEntity() {
-	const {valid} = await queryForm.value.validate();
-	if (!valid) {
-		return;
-	}
-
-	queryDialogModel.value = false;
-	emit('addEntities', extractEntities(graphQuery.value));
-	graphQuery.value = '';
+async function onAddEntities(entities) {
+	emit('addEntities', entities);
 }
 
 function onFilterChanged() {
@@ -322,14 +237,4 @@ function onAddSelector() {
   white-space: nowrap;
 }
 
-/* remove outline from text-field variant 'outlined'.
- This can also be achieved by using variant 'plain',
- but then the label text is not centered */
-.noOutline :deep(.v-field__outline__start) {
-  border-width: 0 0 0 0 !important;
-}
-
-.noOutline :deep(.v-field__outline__end) {
-  border-width: 0 0 0 0 !important;
-}
 </style>
