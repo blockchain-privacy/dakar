@@ -1,97 +1,65 @@
 <template>
   <v-card variant="text">
     <v-card-text>
-      <v-row>
-        <v-col
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Type"
-            :icon="mdiApplicationVariableOutline"
-          >
-            {{ heuristicData.heuristicTypeTitle }}
-          </icon-item>
-        </v-col>
-        <v-col>
-          <icon-item
-            title="Timestamp"
-            :icon="mdiCalendar"
-          >
-            {{ heuristicData.heuristicTimestamp.toLocaleString() }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
+      <div v-if="transactionCount || heuristicData.clusterCount">
+        <v-row>
+          <v-col class="ms-4">
+            <div v-if="transactionCount">
+              <div class="text-h3">
+                {{ transactionCount.toLocaleString() }}
+              </div>
+              <div class="text-subtitle-1">
+                {{ plural('Transaction', transactionCount) }}
+              </div>
+            </div>
+          </v-col>
+          <v-col class="ms-4">
+            <div v-if="heuristicData.clusterCount">
+              <div class="text-h3">
+                {{ heuristicData.clusterCount.toLocaleString() }}
+              </div>
+              <div class="text-subtitle-1">
+                {{ plural('Cluster', heuristicData.clusterCount) }}
+              </div>
+            </div>
+          </v-col>
+        </v-row>
+        <named-divider title="Heuristic Properties" />
+      </div>
+      <div class="d-flex align-center flex-wrap itemContainer justify-center">
+        <small-icon-item
+          :title="heuristicData.heuristicTypeTitle"
+          :icon="mdiApplicationVariableOutline"
+          tooltip="Type"
+        />
+        <small-icon-item
           v-if="heuristicData.heuristicParameter"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            :title="heuristicData.heuristicParameterTitle?heuristicData.heuristicParameterTitle:'Parameter'"
-            :icon="mdiTune"
-          >
-            {{ heuristicData.heuristicParameter }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="heuristicData.heuristicCustomClusters">
-          <icon-item
-            title="Custom clusters"
-            :icon="mdiMerge"
-          >
-            yes
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
+          :title="heuristicData.heuristicParameter"
+          :icon="mdiTune"
+          :tooltip="heuristicData.heuristicParameterTitle?heuristicData.heuristicParameterTitle:'Parameter'"
+        />
+        <small-icon-item
+          :title="heuristicData.heuristicTimestamp.toLocaleDateString()"
+          :icon="mdiCalendar"
+          :tooltip="`Timestamp: ${heuristicData.heuristicTimestamp.toLocaleString()}`"
+        />
+        <small-icon-item
+          v-if="heuristicData.heuristicCustomClusters"
+          :icon="mdiMerge"
+          tooltip="Custom clusters"
+        />
+        <small-icon-item
           v-if="heuristicData.heuristicExcludeAddresses"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Exclude addresses"
-            :icon="mdiPlaylistRemove"
-          >
-            yes
-          </icon-item>
-        </v-col>
-        <v-col v-if="heuristicData.heuristicExcludeSpendingGaps">
-          <icon-item
-            title="Exclude spending gaps"
-            :icon="mdiClockAlertOutline"
-          >
-            yes
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row v-if="heuristicData.clusters?.length > 0">
-        <v-col
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Transaction Count"
-            :icon="mdiPoundBoxOutline"
-          >
-            {{ transactionCount }}
-          </icon-item>
-        </v-col>
-        <v-col>
-          <icon-item
-            title="Cluster Count"
-            :icon="mdiPoundBoxOutline"
-          >
-            {{ heuristicData.clusterCount ? heuristicData.clusterCount : 0 }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row v-else>
+          :icon="mdiPlaylistRemove"
+          tooltip="Exclude addresses"
+        />
+        <small-icon-item
+          v-if="heuristicData.heuristicExcludeSpendingGaps"
+          :icon="mdiClockAlertOutline"
+          tooltip="Exclude spending gaps"
+        />
+      </div>
+      <v-row v-if="heuristicData.clusters?.length === 0">
         <v-col>
           <v-card-title class="text-h5">
             No results
@@ -145,14 +113,12 @@
 
 <script setup>
 import Results from '@/components/workspace/sidebars/Results.vue';
-import IconItem from '@/components/common/IconItem.vue';
 import {
 	mdiApplicationVariableOutline,
 	mdiCalendar,
 	mdiClockAlertOutline,
 	mdiMerge,
 	mdiPlaylistRemove,
-	mdiPoundBoxOutline,
 	mdiTune,
 } from '@mdi/js';
 import BarChart from '@/d3Documents/barChart.js';
@@ -163,6 +129,7 @@ import {
 import {getColorMap, plural, setUndefinedTransactionColor} from '@/utilities/index.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import SmallIconItem from '@/components/common/SmallIconItem.vue';
 
 const props = defineProps({
 	heuristicData: {type: Object, required: true},
@@ -233,4 +200,10 @@ function updateData(graphData) {
   display: none;
   height: 0;
 }
+
+/* me-3 */
+.itemContainer > * {
+  margin-inline-end: 12px;
+}
+
 </style>
