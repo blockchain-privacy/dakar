@@ -105,6 +105,11 @@ export default createVuetify({
 			VTextarea: {
 				variant: 'outlined',
 			},
+			VDatePicker: {
+				VBtn: {
+					color: undefined,
+				},
+			},
 			VBtn: {
 				color: 'primary',
 			},
