@@ -1,31 +1,38 @@
 <template>
   <v-card variant="text">
     <v-card-text>
-      <div v-if="transactionCount || heuristicData.clusterCount">
-        <v-row>
-          <v-col class="ms-4">
-            <div v-if="transactionCount">
-              <div class="text-h3">
-                {{ transactionCount.toLocaleString() }}
-              </div>
-              <div class="text-subtitle-1">
-                {{ plural('Transaction', transactionCount) }}
-              </div>
+      <div class="d-flex align-center flex-wrap justify-center">
+        <v-card
+          color="primary"
+          variant="flat"
+          class="me-4"
+          min-width="150px"
+        >
+          <v-card-text>
+            <div class="text-h4">
+              {{ transactionCount.toLocaleString() }}
             </div>
-          </v-col>
-          <v-col class="ms-4">
-            <div v-if="heuristicData.clusterCount">
-              <div class="text-h3">
-                {{ heuristicData.clusterCount.toLocaleString() }}
-              </div>
-              <div class="text-subtitle-1">
-                {{ plural('Cluster', heuristicData.clusterCount) }}
-              </div>
+            <div class="text-subtitle-1">
+              {{ plural('Transaction', transactionCount) }}
             </div>
-          </v-col>
-        </v-row>
-        <named-divider title="Heuristic Properties" />
+          </v-card-text>
+        </v-card>
+        <v-card
+          color="primary"
+          variant="flat"
+          min-width="150px"
+        >
+          <v-card-text>
+            <div class="text-h4">
+              {{ heuristicData.clusterCount.toLocaleString() }}
+            </div>
+            <div class="text-subtitle-1">
+              {{ plural('Cluster', heuristicData.clusterCount) }}
+            </div>
+          </v-card-text>
+        </v-card>
       </div>
+      <named-divider title="Properties" />
       <div class="d-flex align-center flex-wrap itemContainer justify-center">
         <small-icon-item
           :title="heuristicData.heuristicTypeTitle"
@@ -59,17 +66,6 @@
           tooltip="Exclude spending gaps"
         />
       </div>
-      <v-row v-if="heuristicData.clusters?.length === 0">
-        <v-col>
-          <v-card-title class="text-h5">
-            No results
-          </v-card-title>
-          <v-card-text>
-            This heuristic returned no results. Try different parameters,
-            other heuristics or a different combination of heuristics.
-          </v-card-text>
-        </v-col>
-      </v-row>
       <v-card
         v-show="heuristicData.clusters?.length > 0"
         variant="text"
@@ -154,6 +150,7 @@ const transactionCount = computed(() => {
 	props.heuristicData.clusters.forEach(cluster => {
 		count += cluster.transactions.length;
 	});
+
 	return count;
 });
 
