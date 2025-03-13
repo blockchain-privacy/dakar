@@ -3,7 +3,10 @@
     v-model="model"
     max-width="600"
   >
-    <v-card title="Add entities">
+    <v-card
+      title="Add entities"
+      :prepend-icon="mdiPlus"
+    >
       <v-form
         id="queryForm"
         ref="queryForm"
@@ -73,7 +76,7 @@
 </template>
 
 <script setup>
-import {mdiMagnify} from '@mdi/js';
+import {mdiMagnify, mdiPlus} from '@mdi/js';
 import {extractEntities, pluralIrregular} from '@/utilities/index.js';
 import {ref, computed} from 'vue';
 
