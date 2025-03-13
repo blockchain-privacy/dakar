@@ -39,15 +39,25 @@ test('reactor csv', () => {
 });
 
 test('trm csv', () => {
-	const csvExport = '"Type","Chain","Address","Entity URN","Name","Risk Score","Categories","Entity URN","Txn Hash","Timestamp","From","To","Asset","Value","Value USD"\n'
-		+ '"address","btc","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j","/entity/wallet_cluster/2147171178717118612,/entity/inet/85.106.119.102,/entity/inet/41.113.253.119","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j:btc,85.106.119.102,41.113.253.119","high","Wallet Cluster,Unhosted Wallet,IP Address","","","","","","","",""\n'
-		+ '"address","btc","3AKuZXjMb9zBtdaMdTEDUVVP8pCphEuUWV","/entity/wallet_cluster/7462600734850833646","3AKuZXjMb9zBtdaMdTEDUVVP8pCphEuUWV:btc","medium","Wallet Cluster","","","","","","","",""\n'
-		+ '"address","btc","bc1qeff3wuh8y5xu45akx6ulns3mtrfrmaj9g06enj","/entity/manual/cab8a388-67d5-4d7f-89bf-93c74ded56c2","Wasabi","high","Mixer","","","","","","","",""\n'
-		+ '"entity","","","","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j:btc","medium","Wallet Cluster","/entity/wallet_cluster/2147171178717118612","","","","","","",""\n'
-		+ '"transfer","btc","","","","","","","7e3b58966f0f8746fa591d5730f74965f46c6af52980517c10b45a6d2a737c03","2022-03-01 13:25:54.000Z","3AKuZXjMb9zBtdaMdTEDUVVP8pCphEuUWV","","btc","18.12453128","813485.149893368"\n'
-		+ '"transfer","btc","","","","","","","8d9726c32b6d00127a52c0302669388db5ae1f9de4430eb7f09cbf5f9ede50a0","2022-08-06 19:21:29.000Z","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j","","btc","18.12452732","420636.2049858384"\n'
-		+ '"transfer","btc","","","","","","","7e3b58966f0f8746fa591d5730f74965f46c6af52980517c10b45a6d2a737c03","2022-03-01 13:25:54.000Z","","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j","btc","18.12452732","813484.972156292"\n'
-		+ '"transfer","btc","","","","","","","8d9726c32b6d00127a52c0302669388db5ae1f9de4430eb7f09cbf5f9ede50a0","2022-08-06 19:21:29.000Z","","bc1qeff3wuh8y5xu45akx6ulns3mtrfrmaj9g06enj","btc","18.12450972","420635.7965229264"';
+	const csvExport = '"Type","Chain","Address","Entity URN","Name","Risk Score","Categories","Entity URN",'
+		+ '"Txn Hash","Timestamp","From","To","Asset","Value","Value USD"\n'
+		+ '"address","btc","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j","/entity/wallet_cluster/2147171178717118612,'
+		+ '/entity/inet/85.106.119.102,/entity/inet/41.113.253.119","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j:btc,'
+		+ '85.106.119.102,41.113.253.119","high","Wallet Cluster,Unhosted Wallet,IP Address","","","","","","","",""\n'
+		+ '"address","btc","3AKuZXjMb9zBtdaMdTEDUVVP8pCphEuUWV","/entity/wallet_cluster/7462600734850833646",'
+		+ '"3AKuZXjMb9zBtdaMdTEDUVVP8pCphEuUWV:btc","medium","Wallet Cluster","","","","","","","",""\n'
+		+ '"address","btc","bc1qeff3wuh8y5xu45akx6ulns3mtrfrmaj9g06enj",'
+		+ '"/entity/manual/cab8a388-67d5-4d7f-89bf-93c74ded56c2","Wasabi","high","Mixer","","","","","","","",""\n'
+		+ '"entity","","","","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j:btc","medium","Wallet Cluster",'
+		+ '"/entity/wallet_cluster/2147171178717118612","","","","","","",""\n'
+		+ '"transfer","btc","","","","","","","7e3b58966f0f8746fa591d5730f74965f46c6af52980517c10b45a6d2a737c03",'
+		+ '"2022-03-01 13:25:54.000Z","3AKuZXjMb9zBtdaMdTEDUVVP8pCphEuUWV","","btc","18.12453128","813485.149893368"\n'
+		+ '"transfer","btc","","","","","","","8d9726c32b6d00127a52c0302669388db5ae1f9de4430eb7f09cbf5f9ede50a0",'
+		+ '"2022-08-06 19:21:29.000Z","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j","","btc","18.12452732","420636.2049858384"\n'
+		+ '"transfer","btc","","","","","","","7e3b58966f0f8746fa591d5730f74965f46c6af52980517c10b45a6d2a737c03",'
+		+ '"2022-03-01 13:25:54.000Z","","bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j","btc","18.12452732","813484.972156292"\n'
+		+ '"transfer","btc","","","","","","","8d9726c32b6d00127a52c0302669388db5ae1f9de4430eb7f09cbf5f9ede50a0",'
+		+ '"2022-08-06 19:21:29.000Z","","bc1qeff3wuh8y5xu45akx6ulns3mtrfrmaj9g06enj","btc","18.12450972","420635.7965229264"';
 
 	expect(extractEntities(csvExport)).toStrictEqual([
 		'bc1q0yvhvvud4nzq65yayd98upjqvz8xyep442kk0j',
