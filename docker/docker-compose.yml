@@ -93,7 +93,7 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:22.0
+    image: dashpay/dashd:22.1
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/home/dash
