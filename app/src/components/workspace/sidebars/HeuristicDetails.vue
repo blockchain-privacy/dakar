@@ -49,11 +49,6 @@
           :tooltip="heuristicData.heuristicParameterTitle?heuristicData.heuristicParameterTitle:'Parameter'"
         />
         <small-icon-item
-          :title="heuristicData.heuristicTimestamp.toLocaleDateString()"
-          :icon="mdiCalendar"
-          :tooltip="`Created ${heuristicData.heuristicTimestamp.toLocaleString()}`"
-        />
-        <small-icon-item
           v-if="heuristicData.heuristicCustomClusters"
           :icon="mdiMerge"
           tooltip="Custom clusters"
@@ -67,6 +62,11 @@
           v-if="heuristicData.heuristicExcludeSpendingGaps"
           :icon="mdiClockAlertOutline"
           tooltip="Exclude spending gaps"
+        />
+        <small-icon-item
+          :title="heuristicData.heuristicTimestamp.toLocaleDateString()"
+          :icon="mdiCalendar"
+          :tooltip="`Created ${heuristicData.heuristicTimestamp.toLocaleString()}`"
         />
       </div>
       <v-card
@@ -199,11 +199,6 @@ function updateData(graphData) {
 :deep(.hide) {
   display: none;
   height: 0;
-}
-
-/* me-3 */
-.itemContainer > * {
-  margin-inline-end: 12px;
 }
 
 </style>
