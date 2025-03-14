@@ -318,15 +318,13 @@ func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply s
 		return
 	}
 
-	results, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
+	reply.Results, err = dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
 		heuristicRequest.SelectorUID, tUser.ID, heuristicRequest.WorkspaceUID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
-
-	reply.Results = *results
 
 	return
 }
@@ -608,7 +606,7 @@ func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *htt
 		return
 	}
 
-	heuristicResults, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
+	selectorResults, err := dbwork.GetSelectorResultsByUID(r.Context(), dgraph,
 		selectorRequest.SelectorUID, tUser.ID, selectorRequest.WorkspaceUID)
 	if err != nil {
 		http.Error(w, errReport, http.StatusInternalServerError)
@@ -624,10 +622,8 @@ func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *htt
 	// cluster attributions are separated by comma, therefore use another character as a separator
 	csvWriter.Comma = ';'
 
-	if len(heuristicResults.Clusters) > 0 {
-		err = workspace.WriteClustersToCsv(csvWriter, heuristicResults.Clusters)
-	} else if len(heuristicResults.Transactions) > 0 {
-		err = workspace.WriteTransactionsToCsv(csvWriter, heuristicResults.Transactions)
+	if len(selectorResults) > 0 {
+		err = workspace.WriteTransactionsToCsv(csvWriter, selectorResults)
 	} else {
 		http.Error(w, "invalid selector results", http.StatusInternalServerError)
 		warn(serror.FromStr("invalid selector results"))

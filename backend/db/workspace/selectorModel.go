@@ -173,22 +173,15 @@ type WorkItem struct {
 	ParentUID       string
 }
 
-type FrontendSelectorResults struct {
-	// set if not a heuristic
-	Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
-	// set if a heuristic
-	Clusters []HeuristicCluster `json:"clusters,omitempty"`
-}
-
 type TransactionWithTimestamp struct {
+	Hash      string `json:"txhash,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
 	Type      string `json:"txtype,omitempty"`
-	Hash      string `json:"txhash,omitempty"`
+	Cluster   *int   `json:"cluster,omitempty"`
 }
 
 type HeuristicCluster struct {
 	Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
-	Attributions []Attribution              `json:"attributions,omitempty"`
 }
 
 type Attribution struct {
