@@ -1,11 +1,13 @@
 <template>
   <v-card variant="text">
     <v-card-text>
-      <div class="d-flex align-center flex-wrap justify-center">
+      <div
+        class="d-flex align-center flex-wrap justify-center"
+        style="gap: 16px"
+      >
         <v-card
           color="primary"
           variant="flat"
-          class="me-4"
           min-width="150px"
         >
           <v-card-text>
