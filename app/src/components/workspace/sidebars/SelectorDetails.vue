@@ -198,9 +198,17 @@
         </v-card-text>
       </v-card>
       <template v-if="selectorData.transactions?.length > 0">
+        <v-text-field
+          v-model="tableSearchModel"
+          label="Filter table"
+          hide-details
+        />
         <v-data-table
           :items="tableItems"
           :headers="tableHeaders"
+          multi-sort
+          :search="tableSearchModel"
+          items-per-page="25"
         >
           <template #item.txhash="{item}">
             <td>
@@ -279,10 +287,10 @@ const tableHeadersWithoutCluster = [
 
 const tableHeadersWithCluster = [
 	{
-		key: 'cluster', title: 'Cluster', align: 'left',
+		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
 	},
 	{
-		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
+		key: 'cluster', title: 'Cluster', align: 'left',
 	},
 	{
 		key: 'txtype', title: 'Type', align: 'right',
@@ -294,7 +302,7 @@ const tableHeadersWithCluster = [
 
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);
-
+const tableSearchModel = ref('');
 // Computed
 const transactionCount = computed(() => {
 	if (!props.selectorData.transactions) {
