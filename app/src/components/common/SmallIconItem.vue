@@ -15,6 +15,7 @@
     >
       {{ title }}
     </p>
+    <slot />
   </div>
 </template>
 
