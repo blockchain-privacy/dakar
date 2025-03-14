@@ -32,7 +32,10 @@
           </v-card-text>
         </v-card>
       </div>
-      <named-divider title="Properties" />
+      <named-divider
+        title="Properties"
+        title-class="text-subtitle-1"
+      />
       <div class="d-flex align-center flex-wrap itemContainer justify-center">
         <small-icon-item
           :title="heuristicData.heuristicTypeTitle"
@@ -48,7 +51,7 @@
         <small-icon-item
           :title="heuristicData.heuristicTimestamp.toLocaleDateString()"
           :icon="mdiCalendar"
-          :tooltip="`Timestamp: ${heuristicData.heuristicTimestamp.toLocaleString()}`"
+          :tooltip="`Created ${heuristicData.heuristicTimestamp.toLocaleString()}`"
         />
         <small-icon-item
           v-if="heuristicData.heuristicCustomClusters"
