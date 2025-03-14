@@ -1,171 +1,123 @@
 <template>
   <v-card variant="text">
     <v-card-text>
-      <v-row>
-        <v-col>
-          <icon-item
-            title="Timestamp"
-            :icon="mdiCalendar"
-          >
-            {{ selectorData.selectorTimestamp.toLocaleString() }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.startDate"
-          cols="12"
-          xs="12"
-          sm="6"
+      <div
+        class="d-flex align-center flex-wrap justify-center"
+        style="gap: 16px"
+      >
+        <v-card
+          color="primary"
+          variant="flat"
+          min-width="150px"
         >
-          <icon-item
-            title="Start date"
-            :icon="mdiCalendarStart"
-          >
-            {{ new Date(selectorData.startDate).toLocaleDateString() }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="selectorData.endDate">
-          <icon-item
-            title="End date"
-            :icon="mdiCalendarEnd"
-          >
-            {{ new Date(selectorData.endDate).toLocaleDateString() }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.inputSum?.min || selectorData.inputSum?.max"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Input Sum"
-            :icon="sigmaLeft"
-          >
-            {{ selectorData.inputSum?.min? convertAmount(selectorData.inputSum.min):0 }} - {{ selectorData.inputSum?.max?convertAmount(selectorData.inputSum.max):'*' }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="selectorData.outputSum?.min || selectorData.outputSum?.max">
-          <icon-item
-            title="Output Sum"
-            :icon="sigmaRight"
-          >
-            {{ selectorData.outputSum?.min? convertAmount(selectorData.outputSum.min):0 }} - {{ selectorData.outputSum?.max?convertAmount(selectorData.outputSum.max):'*' }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.inputRange?.min || selectorData.inputRange?.max"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Input Range"
-            :icon="cashLeft"
-          >
-            {{ selectorData.inputRange?.min? convertAmount(selectorData.inputRange.min):0 }} - {{ selectorData.inputRange?.max?convertAmount(selectorData.inputRange.max):'*' }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="selectorData.outputRange?.min || selectorData.outputRange?.max">
-          <icon-item
-            title="Output Range"
-            :icon="cashRight"
-          >
-            {{ selectorData.outputRange?.min? convertAmount(selectorData.outputRange.min):0 }} - {{ selectorData.outputRange?.max?convertAmount(selectorData.outputRange.max):'*' }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.excludePrivacyTransactions"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Exclude Transaction Types"
-            :icon="mdiIncognitoOff"
-          >
-            {{ selectorData.excludePrivacyTransactions }}
-          </icon-item>
-        </v-col>
-        <v-col v-else-if="selectorData.txTypes">
-          <icon-item
-            title=" Transaction Type Filter"
-            :icon="incognitoFilter"
-          >
-            <div class="d-flex flex-wrap">
-              <color-chip
-                v-for="p in selectorData.txTypes"
-                :key="p"
-                class="me-2 mb-4"
-                :title="p"
-                :color="colorMap.get(p)"
-              />
-            </div>
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col
-          v-if="selectorData.depth"
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Traversal Depth"
-            :icon="mdiArrowCollapseDown"
-          >
-            {{ selectorData.depth }}
-          </icon-item>
-        </v-col>
-        <v-col v-if="selectorData.isForward !== undefined">
-          <icon-item
-            title="Traversal Direction"
-            :icon="selectorData.isForward?mdiArrowRight:mdiArrowLeft"
-          >
-            {{ selectorData.isForward?'forward':'backward' }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row v-if="selectorData.transactions?.length > 0">
-        <v-col
-          cols="12"
-          xs="12"
-          sm="6"
-        >
-          <icon-item
-            title="Total Transaction Count"
-            :icon="mdiPoundBoxOutline"
-          >
-            {{ selectorData.selectorTotalResultCount.toLocaleString() }}
-          </icon-item>
-        </v-col>
-        <v-col>
-          <icon-item
-            title="Stored Transaction Count"
-            :icon="mdiPoundBoxOutline"
-          >
-            {{ transactionCount.toLocaleString() }}
-          </icon-item>
-        </v-col>
-      </v-row>
-      <v-row v-else>
-        <v-col>
-          <v-card-title class="text-h5">
-            No results
-          </v-card-title>
           <v-card-text>
-            This selector returned no results. Try different parameters or a larger time range.
+            <div class="text-h4">
+              {{ selectorData.selectorTotalResultCount.toLocaleString() }}
+            </div>
+            <div class="text-subtitle-1">
+              Total Transactions
+            </div>
           </v-card-text>
-        </v-col>
-      </v-row>
+        </v-card>
+        <v-card
+          color="primary"
+          variant="flat"
+          min-width="150px"
+        >
+          <v-card-text>
+            <div class="text-h4">
+              {{ transactionCount.toLocaleString() }}
+            </div>
+            <div class="text-subtitle-1">
+              Stored Transactions
+            </div>
+          </v-card-text>
+        </v-card>
+      </div>
+      <named-divider
+        title="Properties"
+        title-class="text-subtitle-1"
+      />
+      <div class="d-flex align-center flex-wrap itemContainer justify-center">
+        <small-icon-item
+          v-if="selectorData.startDate"
+          :title="new Date(selectorData.startDate).toLocaleDateString()"
+          :icon="mdiCalendarStart"
+          tooltip="Start date"
+        />
+        <small-icon-item
+          v-if="selectorData.endDate"
+          :title="new Date(selectorData.endDate).toLocaleDateString()"
+          :icon="mdiCalendarEnd"
+          tooltip="End date"
+        />
+        <small-icon-item
+          v-if="selectorData.inputSum?.min || selectorData.inputSum?.max"
+          :title="`${selectorData.inputSum?.min? convertAmount(selectorData.inputSum.min):0} - ${selectorData.inputSum?.max?convertAmount(selectorData.inputSum.max):'*'}`"
+          :icon="sigmaLeft"
+          tooltip="Input sum"
+        />
+        <small-icon-item
+          v-if="selectorData.outputSum?.min || selectorData.outputSum?.max"
+          :title="`${selectorData.outputSum?.min? convertAmount(selectorData.outputSum.min):0} - ${selectorData.outputSum?.max?convertAmount(selectorData.outputSum.max):'*'}`"
+          :icon="sigmaRight"
+          tooltip="Output sum"
+        />
+        <small-icon-item
+          v-if="selectorData.inputRange?.min || selectorData.inputRange?.max"
+          :title="`${selectorData.inputRange?.min? convertAmount(selectorData.inputRange.min):0} - ${selectorData.inputRange?.max?convertAmount(selectorData.inputRange.max):'*'}`"
+          :icon="cashLeft"
+          tooltip="Input range"
+        />
+        <small-icon-item
+          v-if="selectorData.outputRange?.min || selectorData.outputRange?.max"
+          :title="`${selectorData.outputRange?.min? convertAmount(selectorData.outputRange.min):0} - ${selectorData.outputRange?.max?convertAmount(selectorData.outputRange.max):'*'}`"
+          :icon="cashRight"
+          tooltip="Output range"
+        />
+        <small-icon-item
+          v-if="selectorData.excludePrivacyTransactions"
+          :icon="mdiIncognitoOff"
+          tooltip="Exclude transaction types"
+        />
+        <small-icon-item
+          v-if="selectorData.depth"
+          :title="`${selectorData.depth}`"
+          :icon="mdiArrowCollapseDown"
+          tooltip="Traversal depth"
+        />
+        <small-icon-item
+          v-if="selectorData.isForward !== undefined"
+          :title="selectorData.isForward?'forward':'backward'"
+          :icon="selectorData.isForward?mdiArrowRight:mdiArrowLeft"
+          tooltip="Traversal Direction"
+        />
+        <small-icon-item
+          :title="selectorData.selectorTimestamp.toLocaleDateString()"
+          :icon="mdiCalendar"
+          :tooltip="`Created ${selectorData.selectorTimestamp.toLocaleString()}`"
+        />
+      </div>
+      <div
+        v-if="selectorData.txTypes"
+        class="d-flex align-center flex-wrap itemContainer justify-center mt-2"
+      >
+        <small-icon-item
+          :icon="incognitoFilter"
+          tooltip="Transaction type filter"
+        >
+          <div class="d-flex flex-wrap">
+            <color-chip
+              v-for="p in selectorData.txTypes"
+              :key="p"
+              class="me-2"
+              :title="p"
+              :color="colorMap.get(p)"
+              size="small"
+            />
+          </div>
+        </small-icon-item>
+      </div>
       <v-card
         v-show="selectorData.transactions?.length > 0"
         variant="text"
@@ -222,11 +174,10 @@
 </template>
 
 <script setup>
-import IconItem from '@/components/common/IconItem.vue';
 import {
 	mdiArrowCollapseDown,
 	mdiArrowLeft, mdiArrowRight,
-	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognitoOff, mdiPoundBoxOutline,
+	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognitoOff,
 } from '@mdi/js';
 import BarChart from '@/d3Documents/barChart.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
@@ -244,6 +195,7 @@ import {
 import ColorChip from '@/components/common/ColorChip.vue';
 import {useLocalStore} from '@/pinia/local.js';
 import {storeToRefs} from 'pinia';
+import SmallIconItem from '@/components/common/SmallIconItem.vue';
 
 const props = defineProps({selectorData: {type: Object, required: true}});
 
