@@ -221,6 +221,16 @@
               </workspace-link>
             </td>
           </template>
+          <template #item.txtype="{item}">
+            <td>
+              <color-chip
+                v-if="item.txtype"
+                :title="item.txtype"
+                :color="colorMap.get(item.txtype)"
+                size="small"
+              />
+            </td>
+          </template>
           <template #item.ts="{item}">
             <td>{{ new Date(item.ts).toLocaleString() }}</td>
           </template>
