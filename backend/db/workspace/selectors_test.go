@@ -374,13 +374,13 @@ func TestGetSelectorResultsByUID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		selector, err := GetSelectorResultsByUID(ctx, dbHandle, tt.selectorUID, userUID, workspaceUID)
+		transactions, err := GetSelectorResultsByUID(ctx, dbHandle, tt.selectorUID, userUID, workspaceUID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.NotNil(t, selector)
-			require.NotEmpty(t, selector.Transactions)
+			require.NotNil(t, transactions)
+			require.NotEmpty(t, transactions)
 		}
 	}
 }
