@@ -386,7 +386,7 @@ func UpdateSelector(ctx context.Context, c external.Database, s *Selector, userU
 
 // GetSelectorResultsByUID returns the selector for the given selectorUID, which was created by userUID
 func GetSelectorResultsByUID(ctx context.Context, c external.Database,
-	selectorUID string, userUID string, workspaceUID string) (*FrontendSelectorResults, error) {
+	selectorUID string, userUID string, workspaceUID string) ([]TransactionWithTimestamp, error) {
 	const query = `query Q($selectorUID:string,$userUID:string,$workspaceUID:string){
 				var(func: uid($userUID)){
 					User.workspaces@filter(uid($workspaceUID)){
@@ -395,8 +395,6 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 						}
 					}
 				}
-
-
 
 				transactions(func: uid(r))@filter(has(txhash))@normalize{
 					txhash:txhash
@@ -414,10 +412,6 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 							ts:ts
 						}
 					}
-					attributions: HeuristicCluster.attributions {
-						tag:Attribution.tag
-						isPublic:Attribution.isPublic
-					}
 				}
 			   }`
 
@@ -428,17 +422,35 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 	}
 
 	// json struct
-	var r FrontendSelectorResults
+	var r struct {
+		// set if not a heuristic
+		Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
+		// set if a heuristic
+		Clusters []HeuristicCluster `json:"clusters,omitempty"`
+	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
-	if len(r.Clusters) == 0 && len(r.Transactions) == 0 {
-		return nil, serror.FromStr("no results returned")
+	if len(r.Transactions) > 0 {
+		return r.Transactions, nil
 	}
 
-	return &r, nil
+	if len(r.Clusters) > 0 {
+		var allTransactions []TransactionWithTimestamp
+		for i, cluster := range r.Clusters {
+			for y := range cluster.Transactions {
+				cluster.Transactions[y].Cluster = &i
+			}
+
+			allTransactions = append(allTransactions, cluster.Transactions...)
+		}
+
+		return allTransactions, nil
+	}
+
+	return nil, serror.FromStr("no results returned")
 }
 
 // DeleteUserSelectors deletes all given selectors of a user

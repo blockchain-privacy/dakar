@@ -99,12 +99,9 @@
             v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
             :address-data="entityData"
           />
-          <heuristic-details
-            v-else-if="isHeuristic"
-            :heuristic-data="entityData"
-          />
           <selector-details
-            v-else-if="isTxProp || isTxGraph"
+            v-else-if="isHeuristic || isTxProp || isTxGraph"
+            :selector-type="auxiliaryData.selectorType"
             :selector-data="entityData"
           />
           <div v-else>
@@ -136,7 +133,6 @@ import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
-import HeuristicDetails from '@/components/workspace/sidebars/HeuristicDetails.vue';
 import {getCurrentDate, getDakarClient, isDestination} from '@/utilities/index.js';
 import {
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
@@ -301,8 +297,6 @@ function setSelectableEntities() {
 		case WORKSPACE_NODE_TYPE_SELECTOR:
 			switch (props.auxiliaryData.selectorType) {
 				case SELECTOR_TYPE_HEURISTIC:
-					setSelectableHeuristicElements();
-					break;
 				case SELECTOR_TYPE_TX_GRAPH:
 				case SELECTOR_TYPE_TX_PROP:
 					setSelectableSelectorElements();
@@ -315,16 +309,6 @@ function setSelectableEntities() {
 
 			break;
 		default:
-	}
-}
-
-function setSelectableHeuristicElements() {
-	for (const cluster of entityData.value.clusters) {
-		for (const tx of cluster.transactions) {
-			if (tx.txhash) {
-				selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
-			}
-		}
 	}
 }
 
@@ -386,7 +370,7 @@ async function getSelectorData() {
 					clusterCount: props.auxiliaryData.selectorResultCount,
 					selectorUid: props.auxiliaryData.uid,
 					heuristicTimestamp: new Date(props.auxiliaryData.selectorModified),
-					clusters: [],
+					transactions: [],
 				};
 			}
 
@@ -437,12 +421,8 @@ async function getSelectorData() {
 			selector: {selectorUID: props.identifier, workspaceUID: props.workspaceUid},
 		});
 
-		if (response.selector?.clusters?.length > 0) {
-			// Heuristics
-			tmpEntityData.clusters = response.selector.clusters;
-		} else if (response.selector?.transactions?.length > 0) {
-			// Txprop
-			tmpEntityData.transactions = response.selector.transactions;
+		if (response.transactions?.length > 0) {
+			tmpEntityData.transactions = response.transactions;
 		}
 
 		entityData.value = tmpEntityData;

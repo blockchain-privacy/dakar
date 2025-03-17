@@ -6,13 +6,29 @@
         style="gap: 16px"
       >
         <v-card
+          v-if="selectorType === SELECTOR_TYPE_HEURISTIC"
           color="primary"
           variant="flat"
           min-width="150px"
         >
           <v-card-text>
             <div class="text-h4">
-              {{ selectorData.selectorTotalResultCount.toLocaleString() }}
+              {{ selectorData.clusterCount?.toLocaleString() }}
+            </div>
+            <div class="text-subtitle-1">
+              {{ plural('Cluster', selectorData.clusterCount) }}
+            </div>
+          </v-card-text>
+        </v-card>
+        <v-card
+          v-else
+          color="primary"
+          variant="flat"
+          min-width="150px"
+        >
+          <v-card-text>
+            <div class="text-h4">
+              {{ selectorData.selectorTotalResultCount?.toLocaleString() }}
             </div>
             <div class="text-subtitle-1">
               Total Transactions
@@ -29,7 +45,7 @@
               {{ transactionCount.toLocaleString() }}
             </div>
             <div class="text-subtitle-1">
-              Stored Transactions
+              {{ selectorType === SELECTOR_TYPE_HEURISTIC?'Transactions':'Stored Transactions' }}
             </div>
           </v-card-text>
         </v-card>
@@ -39,6 +55,39 @@
         title-class="text-subtitle-1"
       />
       <div class="d-flex align-center flex-wrap itemContainer justify-center">
+        <small-icon-item
+          v-if="selectorData.heuristicTypeTitle"
+          :title="selectorData.heuristicTypeTitle"
+          :icon="mdiApplicationVariableOutline"
+          tooltip="Type"
+        />
+        <small-icon-item
+          v-if="selectorData.heuristicParameter"
+          :title="selectorData.heuristicParameter"
+          :icon="mdiTune"
+          :tooltip="selectorData.heuristicParameterTitle?selectorData.heuristicParameterTitle:'Parameter'"
+        />
+        <small-icon-item
+          v-if="selectorData.heuristicCustomClusters"
+          :icon="mdiMerge"
+          tooltip="Custom clusters"
+        />
+        <small-icon-item
+          v-if="selectorData.heuristicExcludeAddresses"
+          :icon="mdiPlaylistRemove"
+          tooltip="Exclude addresses"
+        />
+        <small-icon-item
+          v-if="selectorData.heuristicExcludeSpendingGaps"
+          :icon="mdiClockAlertOutline"
+          tooltip="Exclude spending gaps"
+        />
+        <small-icon-item
+          v-if="selectorData.heuristicTimestamp"
+          :title="selectorData.heuristicTimestamp.toLocaleDateString()"
+          :icon="mdiCalendar"
+          :tooltip="`Created ${selectorData.heuristicTimestamp.toLocaleString()}`"
+        />
         <small-icon-item
           v-if="selectorData.startDate"
           :title="new Date(selectorData.startDate).toLocaleDateString()"
@@ -93,6 +142,7 @@
           tooltip="Traversal Direction"
         />
         <small-icon-item
+          v-if="selectorData.selectorTimestamp"
           :title="selectorData.selectorTimestamp.toLocaleDateString()"
           :icon="mdiCalendar"
           :tooltip="`Created ${selectorData.selectorTimestamp.toLocaleString()}`"
@@ -148,10 +198,17 @@
         </v-card-text>
       </v-card>
       <template v-if="selectorData.transactions?.length > 0">
-        <v-divider />
+        <v-text-field
+          v-model="tableSearchModel"
+          label="Filter table"
+          hide-details
+        />
         <v-data-table
           :items="tableItems"
           :headers="tableHeaders"
+          multi-sort
+          :search="tableSearchModel"
+          items-per-page="25"
         >
           <template #item.txhash="{item}">
             <td>
@@ -162,6 +219,16 @@
               >
                 {{ item.txhash }}
               </workspace-link>
+            </td>
+          </template>
+          <template #item.txtype="{item}">
+            <td>
+              <color-chip
+                v-if="item.txtype"
+                :title="item.txtype"
+                :color="colorMap.get(item.txtype)"
+                size="small"
+              />
             </td>
           </template>
           <template #item.ts="{item}">
@@ -175,9 +242,18 @@
 
 <script setup>
 import {
+	mdiApplicationVariableOutline,
 	mdiArrowCollapseDown,
-	mdiArrowLeft, mdiArrowRight,
-	mdiCalendar, mdiCalendarEnd, mdiCalendarStart, mdiIncognitoOff,
+	mdiArrowLeft,
+	mdiArrowRight,
+	mdiCalendar,
+	mdiCalendarEnd,
+	mdiCalendarStart,
+	mdiClockAlertOutline,
+	mdiIncognitoOff,
+	mdiMerge,
+	mdiPlaylistRemove,
+	mdiTune,
 } from '@mdi/js';
 import BarChart from '@/d3Documents/barChart.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
@@ -188,7 +264,7 @@ import {
 	convertAmount, getColorMap, plural, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants/index.js';
+import {ROUTE_NAME_TRANSACTION_PAGE, SELECTOR_TYPE_HEURISTIC} from '@/constants/index.js';
 import {
 	cashLeft, cashRight, sigmaLeft, sigmaRight, incognitoFilter,
 } from '@/customIcons/index.js';
@@ -197,14 +273,17 @@ import {useLocalStore} from '@/pinia/local.js';
 import {storeToRefs} from 'pinia';
 import SmallIconItem from '@/components/common/SmallIconItem.vue';
 
-const props = defineProps({selectorData: {type: Object, required: true}});
+const props = defineProps({
+	selectorType: {type: String, required: true},
+	selectorData: {type: Object, required: true},
+});
 
 const {getSettings} = storeToRefs(useLocalStore());
 
 const colorMap = getColorMap(getSettings.value.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
-const tableHeaders = [
+const tableHeadersWithoutCluster = [
 	{
 		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
 	},
@@ -216,9 +295,24 @@ const tableHeaders = [
 	},
 ];
 
+const tableHeadersWithCluster = [
+	{
+		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
+	},
+	{
+		key: 'cluster', title: 'Cluster', align: 'left',
+	},
+	{
+		key: 'txtype', title: 'Type', align: 'right',
+	},
+	{
+		key: 'ts', title: 'Timestamp', align: 'right',
+	},
+];
+
 const enoughDataForGraph = ref(true);
 const durationInMinutes = ref(0);
-
+const tableSearchModel = ref('');
 // Computed
 const transactionCount = computed(() => {
 	if (!props.selectorData.transactions) {
@@ -239,6 +333,10 @@ const tableItems = computed(() => {
 		return d;
 	});
 });
+
+const tableHeaders = computed(() => tableItems.value.length > 0 && tableItems.value[0].cluster >= 0
+	? tableHeadersWithCluster
+	: tableHeadersWithoutCluster);
 
 // Hooks
 onUpdated(() => {

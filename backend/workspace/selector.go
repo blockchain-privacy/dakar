@@ -349,51 +349,26 @@ func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
 	}, nil
 }
 
-// WriteClustersToCsv writes the provided cluster to a csv file
-func WriteClustersToCsv(writer *csv.Writer, clusters []workspace.HeuristicCluster) error {
-	header := []string{"cluster ID", "attributions", "transaction hash", "transaction type", "timestamp"}
-
-	if err := writer.Write(header); err != nil {
-		return serror.New(err)
-	}
-
-	var clusterCount int
-	for _, c := range clusters {
-		clusterCount++
-		var attributions string
-
-		for i, a := range c.Attributions {
-			attributions += a.Tag
-
-			if i+1 < len(c.Attributions) {
-				attributions += ","
-			}
-		}
-
-		for _, t := range c.Transactions {
-			row := []string{strconv.Itoa(clusterCount), attributions, t.Hash, t.Type, t.Timestamp}
-
-			if err := writer.Write(row); err != nil {
-				return serror.New(err)
-			}
-		}
-		writer.Flush()
-	}
-
-	writer.Flush()
-	return nil
-}
-
 // WriteTransactionsToCsv writes the provided transactions to a csv file
 func WriteTransactionsToCsv(writer *csv.Writer, transactions []workspace.TransactionWithTimestamp) error {
+	hasClusters := transactions[0].Cluster != nil
 	header := []string{"transaction hash", "transaction type", "timestamp"}
+	if hasClusters {
+		header = append([]string{"cluster ID"}, header...)
+	}
 
 	if err := writer.Write(header); err != nil {
 		return serror.New(err)
 	}
 
 	for _, t := range transactions {
-		if err := writer.Write([]string{t.Hash, t.Type, t.Timestamp}); err != nil {
+		line := []string{t.Hash, t.Type, t.Timestamp}
+
+		if t.Cluster != nil {
+			line = append([]string{strconv.Itoa(*t.Cluster)}, line...)
+		}
+
+		if err := writer.Write(line); err != nil {
 			return serror.New(err)
 		}
 	}
