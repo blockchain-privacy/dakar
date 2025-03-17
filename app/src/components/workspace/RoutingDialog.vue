@@ -53,7 +53,7 @@
 
 import {mdiOpenInNew, mdiPlus} from '@mdi/js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
-const emit = defineEmits(['addNode']);
+const emit = defineEmits(['addEntities']);
 const model = defineModel({type: Boolean});
 const props = defineProps({
 	to: {type: Object, required: true},
@@ -62,7 +62,7 @@ const props = defineProps({
 
 // Functions
 function handleRouteGuardDialogAdd() {
-	emit('addNode', props.to.params.id);
+	emit('addEntities', [props.to.params.id]);
 	model.value = false;
 }
 

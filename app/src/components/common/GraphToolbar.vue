@@ -1,6 +1,9 @@
 <template>
-  <div class="d-flex align-center">
-    <template v-if="name && !$vuetify.display.xs">
+  <div class="d-flex align-center justify-space-between">
+    <div
+      v-if="name"
+      class="d-flex align-center d-inline-block"
+    >
       <v-icon
         class="mx-3"
         icon="$graphIcon"
@@ -8,34 +11,11 @@
       />
       <p
         v-tooltip="{'text': 'Name of the Workspace', 'location':'top', 'open-delay': 400}"
-        class="text-h6 workspace-name"
+        class="text-h6 my-2 workspace-name"
       >
         {{ name }}
       </p>
-    </template>
-    <v-text-field
-      v-if="showSearchField"
-      v-model="graphQuery"
-      class="noOutline"
-      hide-details
-      variant="outlined"
-      density="compact"
-      color="primary"
-      single-line
-      label="Add entities"
-      :disabled="!addEntityEnabled"
-      :append-inner-icon="mdiMagnify"
-      @click:append-inner="onAddEntity"
-      @keydown.enter="onAddEntity"
-    />
-    <v-btn
-      v-if="!disableFilter"
-      v-tooltip="{'text': 'Node Filter', 'location':'top', 'open-delay': 400}"
-      variant="text"
-      :icon="mdiCog"
-      :active="showFilter"
-      @click="showFilter = !showFilter"
-    />
+    </div>
     <v-btn-toggle
       v-if="!oneLine"
       v-model="selectionToggle"
@@ -56,6 +36,19 @@
     </v-btn-toggle>
   </div>
   <div class="d-flex justify-center align-center flex-wrap">
+    <v-btn
+      v-if="!disableFilter"
+      variant="text"
+      class="my-1"
+      :active="showFilter"
+      @click="showFilter = !showFilter"
+    >
+      <v-icon
+        :icon="mdiCog"
+        class="me-1"
+      />
+      Filter Nodes
+    </v-btn>
     <v-btn
       variant="text"
       class="my-1"
@@ -78,6 +71,8 @@
       />
       Center
     </v-btn>
+  </div>
+  <div class="d-flex justify-center align-center flex-wrap">
     <v-btn
       v-if="showAddSelectorButton"
       variant="text"
@@ -90,7 +85,18 @@
       />
       Add Property Selector
     </v-btn>
-
+    <v-btn
+      v-if="showSearchButton"
+      variant="text"
+      :disabled="!addEntityEnabled"
+      @click="queryDialogModel = true"
+    >
+      <v-icon
+        :icon="mdiPlus"
+        class="me-1"
+      />
+      Add entities
+    </v-btn>
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
       :disabled="deleteDisabled"
@@ -151,22 +157,29 @@
       </div>
     </div>
   </v-expand-transition>
+  <search-dialog
+    v-if="showSearchButton"
+    v-model="queryDialogModel"
+    :add-entity-enabled="addEntityEnabled"
+    @add-entities="onAddEntities"
+  />
 </template>
 
 <script setup>
 import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
-	mdiMagnify, mdiChartTimelineVariant, mdiCog, mdiFilterPlus,
+	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
 import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
+import SearchDialog from '@/components/common/SearchDialog.vue';
 
 const emit = defineEmits([
 	'isSelectionEnabled',
 	'rearrange',
 	'center',
 	'deleteSelected',
-	'addEntity',
+	'addEntities',
 	'filterChanged',
 	'shortestPathLookup',
 	'addSelector',
@@ -174,33 +187,32 @@ const emit = defineEmits([
 
 const props = defineProps({
 	name: {type: String, required: false, default: ''},
-	showSearchField: {type: Boolean, required: false},
+	showSearchButton: {type: Boolean, required: false},
+	showDeleteButton: {type: Boolean, required: false},
+	showAddSelectorButton: {type: Boolean, required: false},
 	selectedItemCount: {type: Number, required: false, default: 0},
 	shortestPathEnabled: {type: Boolean, required: false},
 	addEntityEnabled: {type: Boolean, required: false},
 	deleteDisabled: {type: Boolean, required: false},
 	oneLine: {type: Boolean, required: false},
-	showDeleteButton: {type: Boolean, required: false},
-	showAddSelectorButton: {type: Boolean, required: false},
 	nodeTypeItems: {type: Array, required: false, default: () => []},
 	transactionTypeItems: {type: Array, required: false, default: () => []},
 	disableFilter: {type: Boolean, required: false},
 });
 
 const selectionToggle = ref(1);
-const graphQuery = ref('');
 const showFilter = ref(false);
 const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
+const queryDialogModel = ref(false);
 
 // Functions
 function onSelectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
 }
 
-function onAddEntity() {
-	emit('addEntity', graphQuery.value);
-	graphQuery.value = '';
+async function onAddEntities(entities) {
+	emit('addEntities', entities);
 }
 
 function onFilterChanged() {
@@ -220,20 +232,10 @@ function onAddSelector() {
 <style scoped>
 
 .workspace-name {
-  max-width: 150px;
+  max-width: 200px;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
 }
 
-/* remove outline from text-field variant 'outlined'.
- This can also be achieved by using variant 'plain',
- but then the label text is not centered */
-.noOutline :deep(.v-field__outline__start) {
-  border-width: 0 0 0 0 !important;
-}
-
-.noOutline :deep(.v-field__outline__end) {
-  border-width: 0 0 0 0 !important;
-}
 </style>

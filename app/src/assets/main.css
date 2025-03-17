@@ -3,3 +3,8 @@
     overflow: hidden;
     white-space: nowrap;
 }
+
+/* me-3 */
+.itemContainer > * {
+    margin-inline-end: 12px;
+}

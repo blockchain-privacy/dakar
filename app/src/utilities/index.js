@@ -216,6 +216,11 @@ export function plural(subject, count) {
 	return count === 0 || count > 1 ? `${subject}s` : subject;
 }
 
+// Appends an 's' at the end of subject if count is higher than one
+export function pluralIrregular(subject, plural, count) {
+	return count === 0 || count > 1 ? plural : subject;
+}
+
 // Returns a mapping between transaction types and their colors.
 // If a blockchain mode is provided, only transaction types of the given mode are returned.
 export function getColorMap(mode) {
@@ -308,4 +313,15 @@ export async function handleQuery(q, explorerStore, client, type) {
 		default:
 			return await storeResult(client.data.blockchainSearchQueryGet({query: q}), explorerStore.updateSearchResult);
 	}
+}
+
+// Returns an array containing all bitcoin addresses and transaction hashes in text
+export function extractEntities(text) {
+	if (!text || !text.trim()) {
+		return [];
+	}
+
+	const regexp = /[13X7][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59}|[a-fA-F0-9]{64}/g;
+	const matches = [...text.matchAll(regexp)].map(r => r[0]);
+	return [...new Set(matches)];
 }
