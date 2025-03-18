@@ -100,7 +100,8 @@ func writeTimestampsCountToCSV(fileName string, transactions []analytics.Collate
 		// first column is transaction hash
 		// second column is transaction timestamp
 		// third column is transaction input timestamp
-		line := []string{transaction.TransactionHash, transaction.Timestamp.Format(time.RFC3339), transaction.InputTimestamp.Format(time.RFC3339)}
+		line := []string{transaction.TransactionHash, transaction.Timestamp.UTC().Format(time.RFC3339),
+			transaction.InputTimestamp.UTC().Format(time.RFC3339)}
 		if err := w.Write(line); err != nil {
 			warn(err, "msg", "error writing record to file")
 			return
