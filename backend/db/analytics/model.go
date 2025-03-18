@@ -101,3 +101,9 @@ type AddressOutputCount struct {
 	AddressHash string `json:"addresshash"`
 	OutputCount int    `json:"outputCount"`
 }
+
+type CollateralPaymentTimestamps struct {
+	TransactionHash string    `json:"txhash,omitempty"`
+	Timestamp       time.Time `json:"ts,omitempty"`
+	InputTimestamp  time.Time `json:"input_ts,omitempty"`
+}

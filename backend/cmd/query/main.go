@@ -116,6 +116,11 @@ type CollateralsModule struct {
 	CcFilename string `yaml:"ccFilename"`
 }
 
+type CollateralGapModule struct {
+	Active   bool   `yaml:"active"`
+	Filename string `yaml:"filename"`
+}
+
 type Config struct {
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
@@ -132,6 +137,7 @@ type Config struct {
 	TagPackInserter       TagPackInserterModule       `yaml:"tagPackInserter"`
 	Stats                 StatsModule                 `yaml:"stats"`
 	Collaterals           CollateralsModule           `yaml:"collaterals"`
+	CollateralGap         CollateralGapModule         `yaml:"collateralGap"`
 }
 
 var defaultConfig = Config{
@@ -287,6 +293,10 @@ func main() {
 
 	if newConfig.Collaterals.Active {
 		doCollateralAnalysis(ctx, dgraph, newConfig.Collaterals.CpFilename, newConfig.Collaterals.CcFilename)
+	}
+
+	if newConfig.CollateralGap.Active {
+		doCollateralGapAnalysis(ctx, dgraph, newConfig.CollateralGap.Filename)
 	}
 }
 
