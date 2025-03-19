@@ -13,8 +13,8 @@
         validate-on="submit"
       >
         <v-card-text>
-          <p class="text-subtitle-1">
-            Add one or multiple entities. Separate multiple entities by any special character.
+          <p class="text-subtitle-2">
+            Add one or multiple entities. Entities can be separated by any special character. Pasting the content of a CSV-file is supported.
           </p>
           <v-text-field
             v-model="graphQuery"
