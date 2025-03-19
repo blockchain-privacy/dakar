@@ -1208,7 +1208,7 @@ function acceptsChild(node) {
 }
 
 function handleKeyPress(e) {
-	// Don't trigger delete event when editing a <input /> element such as text boxes
+	// Don't trigger delete event when editing an <input /> element such as text boxes
 	if (e.target instanceof HTMLInputElement || e.key !== 'Delete') {
 		return;
 	}
@@ -1254,13 +1254,6 @@ function handleKeyPress(e) {
   right:0;
   z-index: 1004;
   background-color: rgb(var(--v-theme-surface))
-}
-.kbb {
-  border: 2px solid #696969;
-  border-radius: 0.25rem;
-  box-shadow: inset 0 -1px 0 0 #696969;
-  font-size: .825rem;
-  padding: .25rem;
 }
 
 </style>
