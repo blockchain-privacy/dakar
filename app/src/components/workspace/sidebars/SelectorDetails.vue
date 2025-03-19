@@ -232,7 +232,9 @@
             </td>
           </template>
           <template #item.ts="{item}">
-            <td>{{ new Date(item.ts).toLocaleString() }}</td>
+            <td v-tooltip="{'text': new Date(item.ts).toLocaleString(), 'location':'top', 'open-delay': 400}">
+              {{ new Date(item.ts).toLocaleDateString() }}
+            </td>
           </template>
         </v-data-table>
       </template>
