@@ -10,6 +10,7 @@
       one-line
     >
       <v-btn
+        v-if="workspaceList.length > 0"
         v-model="showSearchField"
         variant="text"
         :icon="display.xs.value"
@@ -17,10 +18,11 @@
       >
         <v-icon :icon="mdiPlus" />
         <div class="hidden-xs">
-          New
+          Add Workspace
         </div>
       </v-btn>
       <v-btn
+        v-if="workspaceList.length > 0"
         v-model="showSearchField"
         variant="text"
         icon
@@ -53,7 +55,10 @@
             </template>
             <v-list-item-title>Refresh</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="showDeleteAllWorkspacesDialog">
+          <v-list-item
+            :disabled="workspaceList.length === 0"
+            @click="showDeleteAllWorkspacesDialog"
+          >
             <template #prepend>
               <v-icon>{{ mdiDelete }}</v-icon>
             </template>
@@ -80,6 +85,7 @@
       </div>
     </fade-transition>
     <v-data-table
+      v-if="workspaceList.length > 0"
       v-model:sort-by="sortBy"
       :search="search"
       :loading="isLoading"
@@ -111,6 +117,18 @@
         </div>
       </template>
     </v-data-table>
+    <div
+      v-else
+      class="d-flex justify-center"
+    >
+      <v-btn
+        variant="text"
+        :prepend-icon="mdiPlus"
+        @click="showAddWorkspaceDialogModel = true"
+      >
+        Add new workspace
+      </v-btn>
+    </div>
     <confirm-dialog
       v-if="showDeleteAllDialog"
       v-model="showDeleteAllDialog"
