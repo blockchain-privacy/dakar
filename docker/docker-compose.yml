@@ -6,7 +6,7 @@ x-logging:
 
 services:
   zero:
-    image: dgraph/dgraph:v24.1.0
+    image: dgraph/dgraph:v24.1.1
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -14,12 +14,12 @@ services:
       - "${CONTAINER_IP}:5080:5080"
       - "${CONTAINER_IP}:6080:6080"
     restart: unless-stopped
-    command: dgraph zero --my=zero:5080 --telemetry "reports=false; sentry=false"
+    command: dgraph zero --my=zero:5080 --telemetry "reports=false"
     networks:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v24.1.0
+    image: dgraph/dgraph:v24.1.1
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -29,7 +29,7 @@ services:
     expose:
       - 9080
     restart: unless-stopped
-    command: dgraph alpha --my=alpha:7080 --zero=zero:5080 --security "whitelist=192.168.188.0:192.168.188.255,172.16.0.0:172.31.255.255" --limit "query-edge=10000000" --telemetry "reports=false; sentry=false"
+    command: dgraph alpha --my=alpha:7080 --zero=zero:5080 --security "whitelist=192.168.188.0:192.168.188.255,172.16.0.0:172.31.255.255" --limit "query-edge=10000000" --telemetry "reports=false"
     networks:
       - dgraph_default
 
