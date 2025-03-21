@@ -338,17 +338,16 @@ func countWhirlpoolDenominations(outputs []db.Output) [NumWhirlpoolDenominations
 		}
 		amounts[i] = *o.Amount
 	}
-
-	return CountAmountWhirlpoolDenominations(amounts)
+	// 100 satoshi is the minimum fee per denomination
+	return CountAmountWhirlpoolDenominations(amounts, 100)
 }
 
 // CountAmountWhirlpoolDenominations returns the number of occurrences of each denomination in the given amounts
-func CountAmountWhirlpoolDenominations(amounts []int64) (denominations [NumWhirlpoolDenominations]int) {
+func CountAmountWhirlpoolDenominations(amounts []int64, minDiff int64) (denominations [NumWhirlpoolDenominations]int) {
 	for _, amt := range amounts {
 	inner:
 		for i, v := range denominationTypesWhirlpool {
-			// 100 satoshi is the minimum fee per denomination
-			if isAmountWhirlpoolDenominationPlusE(amt, v, 100) {
+			if isAmountWhirlpoolDenominationPlusE(amt, v, minDiff) {
 				denominations[i]++
 				break inner
 			}

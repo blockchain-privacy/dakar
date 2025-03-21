@@ -96,8 +96,10 @@ func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph exte
 		origins[r.UID] = r
 	}
 
-	inputDenominationCounts := getWhirlpoolDenominationCounts(transaction)
-	originAmounts := buildWhirlpoolSourceAmounts(origins)
+	// 0: exact denomiatino because the mixing transaction outputs do not carry a fee
+	inputDenominationCounts := getWhirlpoolDenominationCounts(transaction, 0)
+	// 100: because origin outputs also carry a fee
+	originAmounts := buildWhirlpoolSourceAmounts(origins, 100)
 	clusterTransactionMap := mapClusterToTransactions(results)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for clusterID, denominationSlice := range originAmounts {

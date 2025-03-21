@@ -233,13 +233,13 @@ func getDashDenominationCounts(it heuristics.HeuristicTransaction) [dash.NumDeno
 }
 
 // gets the counts of each Whirlpool denomination type
-func getWhirlpoolDenominationCounts(it heuristics.HeuristicTransaction) [btc.NumWhirlpoolDenominations]int {
+func getWhirlpoolDenominationCounts(it heuristics.HeuristicTransaction, minDiff int64) [btc.NumWhirlpoolDenominations]int {
 	denominations := make([]int64, len(it.Outputs))
 	for i, output := range it.Outputs {
 		denominations[i] = output.Amount
 	}
 
-	return btc.CountAmountWhirlpoolDenominations(denominations)
+	return btc.CountAmountWhirlpoolDenominations(denominations, minDiff)
 }
 
 type clusterDenominations struct {
@@ -293,11 +293,12 @@ func buildDashSourceAmounts(origins map[string]heuristics.HeuristicTransaction) 
 	return sourceAmounts
 }
 
-func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int {
+func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransaction,
+	minDiff int64) map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int {
 	sourceAmounts := make(map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int)
 
 	for _, o := range origins {
-		denominationSlice := getWhirlpoolDenominationCounts(o)
+		denominationSlice := getWhirlpoolDenominationCounts(o, minDiff)
 		for i := range denominationSlice {
 			denominationSlice[i] += sourceAmounts[o.Cluster][i]
 		}
