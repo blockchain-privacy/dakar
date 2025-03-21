@@ -69,6 +69,12 @@ const (
 	heuristicTypeWasabi2ReverseAmount        = "wasabi2_reverse_amount"
 	heuristicTypeWasabi2ForwardLookupByTime  = "wasabi2_forward_lookup_by_time"
 	heuristicTypeWasabi2ForwardLookupByDepth = "wasabi2_forward_lookup_by_depth"
+	// Whirlpool
+	heuristicTypeWhirlpoolReverseLookupByTime  = "whirlpool_reverse_lookup_by_time"
+	heuristicTypeWhirlpoolReverseLookupByDepth = "whirlpool_reverse_lookup_by_depth"
+	heuristicTypeWhirlpoolOneSourceByTime      = "whirlpool_one_source_by_time"
+	heuristicTypeWhirlpoolOneSourceByDepth     = "whirlpool_one_source_by_depth"
+	heuristicTypeWhirlpoolReverseAmount        = "whirlpool_reverse_amount"
 )
 
 func init() {
@@ -91,6 +97,12 @@ func init() {
 		newWasabi2ReverseAmountHeuristic,
 		newWasabi2ForwardLookupByTimeHeuristic,
 		newWasabi2ForwardLookupByDepthHeuristic,
+		// Whirlpool
+		newWhirlpoolReverseLookupByTimeHeuristic,
+		newWhirlpool2ReverseLookupByDepthHeuristic,
+		newWhirlpoolOneSourceByTimeHeuristic,
+		newWhirlpoolOneSourceByDepthHeuristic,
+		newWhirlpoolReverseAmountHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {

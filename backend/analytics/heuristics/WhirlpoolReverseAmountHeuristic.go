@@ -1,0 +1,121 @@
+package heuristics
+
+import (
+	"backend/analytics/graph"
+	"backend/constants"
+	"backend/db"
+	"backend/db/analytics/heuristics"
+	"backend/external"
+	"context"
+	"fmt"
+	"github.com/qrest/gomisc/serror"
+)
+
+// whirlpool2ReverseAmountHeuristic - see exec for description
+type whirlpool2ReverseAmountHeuristic struct {
+	heuristicType string
+	c             heuristics.Options
+}
+
+func newWhirlpoolReverseAmountHeuristic() heuristic {
+	return &whirlpool2ReverseAmountHeuristic{heuristicType: heuristicTypeWhirlpoolReverseAmount}
+}
+
+func (h *whirlpool2ReverseAmountHeuristic) getType() string {
+	return h.heuristicType
+}
+
+func (h *whirlpool2ReverseAmountHeuristic) setConfig(c heuristics.Options) error {
+	if c.TransactionHash == "" {
+		return serror.FromStrWithContext("transaction hash not set", "config", c)
+	}
+
+	if !areClusterTypesValid(c.ClusterTypes) {
+		return serror.New(errInvalidClusterTypes)
+	}
+
+	h.c = c
+
+	return nil
+}
+
+func (h *whirlpool2ReverseAmountHeuristic) getConfig() heuristics.Options {
+	return h.c
+}
+
+func (h *whirlpool2ReverseAmountHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
+}
+
+func (h *whirlpool2ReverseAmountHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title:       "Reverse amount",
+		Type:        h.heuristicType,
+		Category:    heuristicCategoryReverse,
+		Description: "Returns all clusters which can fully fund the destination transaction via their origins.",
+		AllowedParents: []string{heuristicTypeWhirlpoolReverseLookupByDepth, heuristicTypeWhirlpoolReverseLookupByTime,
+			heuristicTypeWhirlpoolOneSourceByTime, heuristicTypeWhirlpoolOneSourceByDepth},
+	}
+}
+
+// whirlpool2ReverseAmountHeuristic applies the following heuristic:
+// - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
+func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
+	[]heuristics.HeuristicCluster, error) {
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+	// heuristic is only allowed to be connected to another heuristic
+	if !parentHeuristicSet {
+		return nil, serror.New(errHeuristicNotValid)
+	}
+
+	// get origins from parent heuristic
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+		constants.TypeWhirlpoolMixing)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return nil, serror.New(errNoOriginsAtStart)
+	}
+
+	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TypeWhirlpoolMixing)
+	if err != nil {
+		return nil, err
+	}
+
+	// the amount of mixed funds consumed by the destination transaction
+	var destinationInputSum int64
+	for _, input := range transaction.Outputs {
+		destinationInputSum += input.Amount
+	}
+
+	// sanity check
+	if destinationInputSum == 0 {
+		return nil, serror.FromStrWithContext("destination transaction does not spend any mixed funds",
+			"transaction", h.c.TransactionHash)
+	}
+
+	clusterTransactionMap := mapClusterToTransactions(results)
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
+	for _, clusterOrigins := range clusterTransactionMap {
+		var clusterOutputAmount int64
+		for _, origin := range clusterOrigins {
+			for _, output := range origin.Outputs {
+				clusterOutputAmount += output.Amount
+			}
+		}
+
+		if clusterOutputAmount >= destinationInputSum {
+			for _, origin := range clusterOrigins {
+				resultClusters[origin.Cluster] = append(resultClusters[origin.Cluster], db.UIDNode{UID: origin.UID})
+			}
+		}
+	}
+
+	return createHeuristicClusters(resultClusters, attributionMap), nil
+}
