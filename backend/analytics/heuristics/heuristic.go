@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/analytics/classifier/btc"
 	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
@@ -221,14 +222,24 @@ func getInputTransactions(ctx context.Context, c external.Database, txhash strin
 	return inputTransactions, nil
 }
 
-// gets the counts of each denomination type
-func getDenominationCounts(it heuristics.HeuristicTransaction) [dash.NumDenominations]int {
+// gets the counts of each Dash denomination type
+func getDashDenominationCounts(it heuristics.HeuristicTransaction) [dash.NumDenominations]int {
 	denominations := make([]int64, len(it.Outputs))
 	for i, output := range it.Outputs {
 		denominations[i] = output.Amount
 	}
 
 	return dash.CountAmountDenominations(denominations)
+}
+
+// gets the counts of each Whirlpool denomination type
+func getWhirlpoolDenominationCounts(it heuristics.HeuristicTransaction) [btc.NumWhirlpoolDenominations]int {
+	denominations := make([]int64, len(it.Outputs))
+	for i, output := range it.Outputs {
+		denominations[i] = output.Amount
+	}
+
+	return btc.CountAmountWhirlpoolDenominations(denominations)
 }
 
 type clusterDenominations struct {
@@ -262,17 +273,31 @@ func countClusterDenominations(origins []heuristics.HeuristicTransaction,
 	oSource.denominationIndex = denominationIndex
 	oSource.clusters = make(map[heuristics.ClusterUID]int)
 	for _, o := range origins {
-		oSource.clusters[o.Cluster] += getDenominationCounts(o)[denominationIndex]
+		oSource.clusters[o.Cluster] += getDashDenominationCounts(o)[denominationIndex]
 	}
 
 	return
 }
 
-func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dash.NumDenominations]int {
+func buildDashSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dash.NumDenominations]int {
 	sourceAmounts := make(map[heuristics.ClusterUID][dash.NumDenominations]int)
 
 	for _, o := range origins {
-		denominationSlice := getDenominationCounts(o)
+		denominationSlice := getDashDenominationCounts(o)
+		for i := range denominationSlice {
+			denominationSlice[i] += sourceAmounts[o.Cluster][i]
+		}
+
+		sourceAmounts[o.Cluster] = denominationSlice
+	}
+	return sourceAmounts
+}
+
+func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int {
+	sourceAmounts := make(map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int)
+
+	for _, o := range origins {
+		denominationSlice := getWhirlpoolDenominationCounts(o)
 		for i := range denominationSlice {
 			denominationSlice[i] += sourceAmounts[o.Cluster][i]
 		}

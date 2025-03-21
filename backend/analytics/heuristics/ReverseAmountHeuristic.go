@@ -88,20 +88,19 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, err
 	}
 
-	// origins hold all origins found bei either the parent heuristic
-	// or the destination transaction specified by txHash
+	// origins hold all origins found by the parent heuristic
 	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
 	// Convert from slice to Hash
 	for _, r := range results {
 		origins[r.UID] = r
 	}
 
-	inputDenominationCounts := getDenominationCounts(transaction)
-	originAmounts := buildSourceAmounts(origins)
+	inputDenominationCounts := getDashDenominationCounts(transaction)
+	originAmounts := buildDashSourceAmounts(origins)
 	clusterTransactionMap := mapClusterToTransactions(results)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for clusterID, denominationSlice := range originAmounts {
-		if containsDenomination(inputDenominationCounts, denominationSlice) {
+		if containsDashDenomination(inputDenominationCounts, denominationSlice) {
 			// add all transaction uids of a particular cluster to the return set
 			for _, tx := range clusterTransactionMap[clusterID] {
 				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], db.UIDNode{UID: tx.UID})
@@ -112,9 +111,9 @@ func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 	return createHeuristicClusters(resultClusters, attributionMap), nil
 }
 
-// containsDenomination returns true if all denominations with at
+// containsDashDenomination returns true if all denominations with at
 // least the same amount of denom1 are contained in denom2
-func containsDenomination(denom1 [dash.NumDenominations]int, denom2 [dash.NumDenominations]int) bool {
+func containsDashDenomination(denom1 [dash.NumDenominations]int, denom2 [dash.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] < d {
 			return false

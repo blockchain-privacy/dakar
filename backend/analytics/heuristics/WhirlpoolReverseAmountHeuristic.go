@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/analytics/classifier/btc"
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
@@ -88,34 +89,36 @@ func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph exte
 		return nil, err
 	}
 
-	// the amount of mixed funds consumed by the destination transaction
-	var destinationInputSum int64
-	for _, input := range transaction.Outputs {
-		destinationInputSum += input.Amount
+	// origins hold all origins found by the parent heuristic
+	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
+	// Convert from slice to Hash
+	for _, r := range results {
+		origins[r.UID] = r
 	}
 
-	// sanity check
-	if destinationInputSum == 0 {
-		return nil, serror.FromStrWithContext("destination transaction does not spend any mixed funds",
-			"transaction", h.c.TransactionHash)
-	}
-
+	inputDenominationCounts := getWhirlpoolDenominationCounts(transaction)
+	originAmounts := buildWhirlpoolSourceAmounts(origins)
 	clusterTransactionMap := mapClusterToTransactions(results)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
-	for _, clusterOrigins := range clusterTransactionMap {
-		var clusterOutputAmount int64
-		for _, origin := range clusterOrigins {
-			for _, output := range origin.Outputs {
-				clusterOutputAmount += output.Amount
-			}
-		}
-
-		if clusterOutputAmount >= destinationInputSum {
-			for _, origin := range clusterOrigins {
-				resultClusters[origin.Cluster] = append(resultClusters[origin.Cluster], db.UIDNode{UID: origin.UID})
+	for clusterID, denominationSlice := range originAmounts {
+		if containsWhirlpoolDenomination(inputDenominationCounts, denominationSlice) {
+			// add all transaction uids of a particular cluster to the return set
+			for _, tx := range clusterTransactionMap[clusterID] {
+				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], db.UIDNode{UID: tx.UID})
 			}
 		}
 	}
 
 	return createHeuristicClusters(resultClusters, attributionMap), nil
+}
+
+// containsWhirlpoolDenomination returns true if all denominations with at
+// least the same amount of denom1 are contained in denom2
+func containsWhirlpoolDenomination(denom1 [btc.NumWhirlpoolDenominations]int, denom2 [btc.NumWhirlpoolDenominations]int) bool {
+	for i, d := range denom1 {
+		if denom2[i] < d {
+			return false
+		}
+	}
+	return true
 }
