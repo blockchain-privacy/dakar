@@ -717,3 +717,57 @@ func TestIterate(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 }
+
+func TestCountAmountWhirlpoolDenominations(t *testing.T) {
+	type testCase struct {
+		amounts []int64
+		result  [NumWhirlpoolDenominations]int
+	}
+
+	// with fee
+	var cases = []testCase{
+		{
+			amounts: []int64{1, 2, 0, 4, 0},
+			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
+		},
+		{
+			amounts: []int64{100105, 100105, 100105},
+			result:  [NumWhirlpoolDenominations]int{3, 0, 0, 0},
+		},
+		{
+			amounts: []int64{1000105, 1000105, 1000105, 6, 9, -1},
+			result:  [NumWhirlpoolDenominations]int{0, 3, 0, 0},
+		},
+		{
+			amounts: []int64{100105, 1000105, 5000105, 50000105},
+			result:  [NumWhirlpoolDenominations]int{1, 1, 1, 1},
+		},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, c.result, CountAmountWhirlpoolDenominations(c.amounts, 100))
+	}
+	// without fee
+	cases = []testCase{
+		{
+			amounts: []int64{1, 2, 0, 4, 0},
+			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
+		},
+		{
+			amounts: []int64{100000, 100000, 100000},
+			result:  [NumWhirlpoolDenominations]int{3, 0, 0, 0},
+		},
+		{
+			amounts: []int64{1000000, 1000000, 1000000, 6, 9, -1},
+			result:  [NumWhirlpoolDenominations]int{0, 3, 0, 0},
+		},
+		{
+			amounts: []int64{100000, 1000000, 5000000, 50000000},
+			result:  [NumWhirlpoolDenominations]int{1, 1, 1, 1},
+		},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, c.result, CountAmountWhirlpoolDenominations(c.amounts, 0))
+	}
+}
