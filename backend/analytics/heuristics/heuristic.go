@@ -100,7 +100,7 @@ func init() {
 		newWasabi2ForwardLookupByDepthHeuristic,
 		// Whirlpool
 		newWhirlpoolReverseLookupByTimeHeuristic,
-		newWhirlpool2ReverseLookupByDepthHeuristic,
+		newWhirlpoolReverseLookupByDepthHeuristic,
 		newWhirlpoolOneSourceByTimeHeuristic,
 		newWhirlpoolOneSourceByDepthHeuristic,
 		newWhirlpoolReverseAmountHeuristic,

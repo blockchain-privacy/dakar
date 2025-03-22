@@ -13,21 +13,21 @@ import (
 	"slices"
 )
 
-// whirlpool2ReverseAmountHeuristic - see exec for description
-type whirlpool2ReverseAmountHeuristic struct {
+// whirlpoolReverseAmountHeuristic - see exec for description
+type whirlpoolReverseAmountHeuristic struct {
 	heuristicType string
 	c             heuristics.Options
 }
 
 func newWhirlpoolReverseAmountHeuristic() heuristic {
-	return &whirlpool2ReverseAmountHeuristic{heuristicType: heuristicTypeWhirlpoolReverseAmount}
+	return &whirlpoolReverseAmountHeuristic{heuristicType: heuristicTypeWhirlpoolReverseAmount}
 }
 
-func (h *whirlpool2ReverseAmountHeuristic) getType() string {
+func (h *whirlpoolReverseAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpool2ReverseAmountHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolReverseAmountHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -41,15 +41,15 @@ func (h *whirlpool2ReverseAmountHeuristic) setConfig(c heuristics.Options) error
 	return nil
 }
 
-func (h *whirlpool2ReverseAmountHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolReverseAmountHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 
-func (h *whirlpool2ReverseAmountHeuristic) String() string {
+func (h *whirlpoolReverseAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
-func (h *whirlpool2ReverseAmountHeuristic) GetDescriptor() Descriptor {
+func (h *whirlpoolReverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:       "Reverse amount",
 		Type:        h.heuristicType,
@@ -60,9 +60,9 @@ func (h *whirlpool2ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// whirlpool2ReverseAmountHeuristic applies the following heuristic:
+// whirlpoolReverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
-func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *whirlpoolReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
@@ -116,9 +116,10 @@ func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph exte
 
 		// set this cluster UID for all neighbors, so they get merged via mapClusterToTransactions
 		clusterUID := tx.Cluster
-		for _, result := range results {
-			if slices.Contains(neighbours, result.UID) {
-				result.Cluster = clusterUID
+		for i := range results {
+			if slices.Contains(neighbours, results[i].UID) {
+				results[i].Cluster = clusterUID
+				origins[results[i].UID] = results[i]
 			}
 		}
 	}
