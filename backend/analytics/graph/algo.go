@@ -212,3 +212,31 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 
 	return uids, nil
 }
+
+// getConnectedNodes returns all nodes (including itself) in nodeSet which
+// can be reached via nodeID in both traversal directions.
+func getConnectedNodes(g *ReversibleGraph, nodeUID int64, nodeSet map[int64]bool) ([]int64, error) {
+	node := g.Node(nodeUID)
+	if node == nil {
+		return nil, ErrNodeNotFound(nodeUID)
+	}
+
+	var visitedNodes []int64
+
+	w := traverse.BreadthFirst{
+		Traverse: func(e graph.Edge) bool {
+			// true: follow this link
+			// false: do not follow this link
+			return nodeSet[e.To().ID()]
+		},
+		Visit: func(node graph.Node) {
+			visitedNodes = append(visitedNodes, node.ID())
+		},
+	}
+
+	g.SetDirected(false)
+	w.Walk(g, node, nil)
+	g.SetDirected(true)
+
+	return visitedNodes, nil
+}

@@ -164,10 +164,10 @@ func newTestGraph() *ReversibleGraph {
 	// ┌──────┬────┬─────┴┐    ┌──────┬──────┬──────┐
 	// │  3   │    │  7   │    │  10  │      │  12  │
 	// └──────┤    └──────┴────┴──┬───┘      └──────┘
-	//        │                   │
-	// ┌──────┤                ┌──┴───┐
-	// │  4   │                │  13  │
-	// └──────┘                └──────┘
+	//        │           ┌───────┘
+	// ┌──────┤        ┌──┴───┐
+	// │  4   │        │  13  │
+	// └──────┘        └──────┘
 	graph := NewReversibleGraph(12)
 	now := time.Now()
 
@@ -604,6 +604,52 @@ func TestForwardLookup(t *testing.T) {
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, results)
+		}
+	}
+}
+
+func Test_getConnectedNodes(t *testing.T) {
+	graph := newTestGraph()
+	tests := []struct {
+		nodeUID int64
+		nodes   map[int64]bool
+		want    []int64
+		wantErr bool
+	}{
+		{
+			nodeUID: 6,
+			nodes:   map[int64]bool{6: true, 1: true, 8: true, 11: true, 12: true, 4: true},
+			want:    []int64{6, 1, 8, 11},
+			wantErr: false,
+		},
+		{
+			nodeUID: 5,
+			nodes:   map[int64]bool{1: true, 8: true, 11: true, 12: true, 4: true},
+			want:    []int64{5, 8, 11},
+			wantErr: false,
+		},
+		{
+			nodeUID: 3,
+			nodes:   map[int64]bool{1: true, 8: true, 11: true, 12: true},
+			want:    []int64{3},
+			wantErr: false,
+		},
+		{
+			nodeUID: 7,
+			nodes:   map[int64]bool{7: true, 2: true, 10: true, 6: true, 11: true, 13: true},
+			want:    []int64{7, 10, 13},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		results, err := getConnectedNodes(graph, tt.nodeUID, tt.nodes)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			slices.Sort(results)
+			slices.Sort(tt.want)
 			require.NoError(t, err)
 			require.Equal(t, tt.want, results)
 		}

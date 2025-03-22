@@ -106,6 +106,44 @@ func (w *Wrapper) ForwardLookup(uid string, maxLookForwardTime time.Duration, ma
 		addressExclusions, excludeSpendingGaps)
 }
 
+// PartitionNodesByDirectConnections partitions the given nodes into groups which can reach each other by direct links
+func (w *Wrapper) PartitionNodesByDirectConnections(nodes []string) ([][]string, error) {
+	if len(nodes) == 0 {
+		return nil, nil
+	}
+
+	nodeSet := map[int64]bool{}
+	for _, n := range nodes {
+		i, err := ToInteger(n)
+		if err != nil {
+			return nil, err
+		}
+		nodeSet[i] = true
+	}
+
+	// need to write look, because the graph becomes undirected for a short time
+	w.transactionGraphMutex.Lock()
+	defer w.transactionGraphMutex.Unlock()
+
+	var partitions [][]string //nolint:prealloc
+	for n := range nodeSet {
+		neighbours, err := getConnectedNodes(w.transactionGraph, n, nodeSet)
+		if err != nil {
+			return nil, err
+		}
+
+		// neighbours always contains at least one node (n), so no need to check for length
+		part := make([]string, len(neighbours))
+		for i, neighbour := range neighbours {
+			part[i] = ToHex(neighbour)
+			delete(nodeSet, neighbour)
+		}
+
+		partitions = append(partitions, part)
+	}
+	return partitions, nil
+}
+
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
 // and the number of mixing sessions of this transactions
 func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {

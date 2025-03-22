@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
+	"slices"
 )
 
 // whirlpool2ReverseAmountHeuristic - see exec for description
@@ -61,7 +62,7 @@ func (h *whirlpool2ReverseAmountHeuristic) GetDescriptor() Descriptor {
 
 // whirlpool2ReverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
-func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
+func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {
@@ -91,9 +92,35 @@ func (h *whirlpool2ReverseAmountHeuristic) exec(ctx context.Context, dgraph exte
 
 	// origins hold all origins found by the parent heuristic
 	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
+	originUIDs := make([]string, len(results))
 	// Convert from slice to Hash
-	for _, r := range results {
+	for i, r := range results {
 		origins[r.UID] = r
+		originUIDs[i] = r.UID
+	}
+
+	partitions, err := g.PartitionNodesByDirectConnections(originUIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, neighbours := range partitions {
+		if len(neighbours) < 2 {
+			// nothing to do
+			continue
+		}
+		tx, ok := origins[neighbours[0]]
+		if !ok {
+			return nil, serror.FromStrWithContext("partitioned node not found", "node", neighbours[0])
+		}
+
+		// set this cluster UID for all neighbors, so they get merged via mapClusterToTransactions
+		clusterUID := tx.Cluster
+		for _, result := range results {
+			if slices.Contains(neighbours, result.UID) {
+				result.Cluster = clusterUID
+			}
+		}
 	}
 
 	// 0: exact denomiatino because the mixing transaction outputs do not carry a fee

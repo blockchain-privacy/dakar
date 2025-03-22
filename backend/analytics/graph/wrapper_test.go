@@ -6,6 +6,7 @@ import (
 	"backend/testhelper"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+	"reflect"
 	"slices"
 	"sort"
 	"testing"
@@ -508,4 +509,53 @@ func TestWrapper_Iterate(t *testing.T) {
 	flag, err = w.Iterate(ctx)
 	require.NoError(t, err)
 	require.True(t, flag)
+}
+
+func TestWrapper_PartitionNodesByDirectConnections(t *testing.T) {
+	w := NewWrapper(t.Context(), nil)
+	w.transactionGraph = newTestGraph()
+
+	tests := []struct {
+		nodes   []string
+		want    [][]string
+		wantErr bool
+	}{
+		{
+			nodes:   []string{ToHex(7)},
+			want:    [][]string{{ToHex(7)}},
+			wantErr: false,
+		},
+		{
+			nodes:   []string{ToHex(7), ToHex(6), ToHex(11)},
+			want:    [][]string{{ToHex(7)}, {ToHex(6)}, {ToHex(11)}},
+			wantErr: false,
+		},
+		{
+			nodes:   []string{ToHex(7), ToHex(2), ToHex(10), ToHex(6), ToHex(11), ToHex(13)},
+			want:    [][]string{{ToHex(10), ToHex(7), ToHex(13)}, {ToHex(6), ToHex(2)}, {ToHex(11)}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		results, err := w.PartitionNodesByDirectConnections(tt.nodes)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+
+			for _, resultPart := range results {
+				slices.Sort(resultPart)
+				foundEqual := false
+				for _, wantPart := range tt.want {
+					slices.Sort(wantPart)
+					if reflect.DeepEqual(resultPart, wantPart) {
+						foundEqual = true
+						break
+					}
+				}
+
+				require.True(t, foundEqual)
+			}
+		}
+	}
 }
