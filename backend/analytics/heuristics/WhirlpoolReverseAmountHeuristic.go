@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/classifier/btc"
 	"backend/analytics/graph"
+	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/heuristics"
@@ -10,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/qrest/gomisc/serror"
-	"slices"
 )
 
 // whirlpoolReverseAmountHeuristic - see exec for description
@@ -92,36 +92,18 @@ func (h *whirlpoolReverseAmountHeuristic) exec(ctx context.Context, dgraph exter
 
 	// origins hold all origins found by the parent heuristic
 	origins := make(map[string]heuristics.HeuristicTransaction, len(results))
-	originUIDs := make([]string, len(results))
 	// Convert from slice to Hash
-	for i, r := range results {
+	for _, r := range results {
 		origins[r.UID] = r
-		originUIDs[i] = r.UID
 	}
 
-	partitions, err := g.PartitionNodesByDirectConnections(originUIDs)
-	if err != nil {
+	if err = applyClusters(g, origins); err != nil {
 		return nil, err
 	}
 
-	for _, neighbours := range partitions {
-		if len(neighbours) < 2 {
-			// nothing to do
-			continue
-		}
-		tx, ok := origins[neighbours[0]]
-		if !ok {
-			return nil, serror.FromStrWithContext("partitioned node not found", "node", neighbours[0])
-		}
-
-		// set this cluster UID for all neighbors, so they get merged via mapClusterToTransactions
-		clusterUID := tx.Cluster
-		for i := range results {
-			if slices.Contains(neighbours, results[i].UID) {
-				results[i].Cluster = clusterUID
-				origins[results[i].UID] = results[i]
-			}
-		}
+	// apply new cluster to results
+	for i := range results {
+		results[i].Cluster = origins[results[i].UID].Cluster
 	}
 
 	// 0: exact denomiatino because the mixing transaction outputs do not carry a fee
@@ -151,4 +133,40 @@ func containsWhirlpoolDenomination(denom1 [btc.NumWhirlpoolDenominations]int, de
 		}
 	}
 	return true
+}
+
+// applyClusters detects if the origins are connected via a
+// peelchain and assigns the same cluster to all transactions part of a set.
+func applyClusters(g *graph.Wrapper, origins map[string]heuristics.HeuristicTransaction) error {
+	partitions, err := g.PartitionNodesByDirectConnections(cliutil.GetMapKeys(origins))
+	if err != nil {
+		return err
+	}
+
+	for _, neighbours := range partitions {
+		if len(neighbours) < 2 {
+			// nothing to do
+			continue
+		}
+
+		firstNeighbour, ok := origins[neighbours[0]]
+		if !ok {
+			return serror.FromStrWithContext("partitioned node not found", "node", neighbours[0])
+		}
+
+		clusterMergeList := map[string]bool{}
+		for _, n := range neighbours {
+			clusterMergeList[string(origins[n].Cluster)] = true
+		}
+
+		for k, v := range origins {
+			if clusterMergeList[string(v.Cluster)] {
+				// make all neighbours belong to the same cluster
+				v.Cluster = firstNeighbour.Cluster
+				origins[k] = v
+			}
+		}
+	}
+
+	return nil
 }
