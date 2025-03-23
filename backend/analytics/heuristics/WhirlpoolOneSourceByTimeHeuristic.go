@@ -131,6 +131,7 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
+	allTimeLimitedOriginsMap := map[string]heuristics.HeuristicTransaction{}
 	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins //nolint:prealloc
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
@@ -152,8 +153,27 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 		}
 
 		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)
+		for _, t := range timeLimitedOrigins {
+			allTimeLimitedOriginsMap[t.UID] = t
+		}
 
 		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
+	}
+
+	if err = mergePeelchainCluster(g, allTimeLimitedOriginsMap); err != nil {
+		return nil, err
+	}
+
+	// apply updated clusters from peelchains
+	for i := range allTimeLimitedOrigins {
+		allTimeLimitedOrigins[i].Cluster = allTimeLimitedOriginsMap[allTimeLimitedOrigins[i].UID].Cluster
+	}
+
+	// apply updated clusters from peelchains
+	for i := range allTxAndOrigins {
+		for y := range allTxAndOrigins[i].origins {
+			allTxAndOrigins[i].origins[y].Cluster = allTimeLimitedOriginsMap[allTxAndOrigins[i].origins[y].UID].Cluster
+		}
 	}
 
 	// mRemovableClusters holds all clusters which can be removed,
