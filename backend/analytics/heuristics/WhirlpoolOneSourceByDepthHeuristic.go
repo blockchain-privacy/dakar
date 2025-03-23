@@ -82,5 +82,5 @@ func (h *whirlpoolOneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
 func (h *whirlpoolOneSourceByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	return oneSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+	return whirlpoolOnceSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
 }

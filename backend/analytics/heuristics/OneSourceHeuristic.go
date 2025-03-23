@@ -166,12 +166,12 @@ func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database,
 	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
 	for _, t := range allTxAndOrigins {
 		// get input denominations
-		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, h.c.TransactionHash)
+		nDenominations, denominationIndex, getErr := getNumberOfDashDenominations(t.inputTransaction, h.c.TransactionHash)
 		if getErr != nil {
 			return nil, getErr
 		}
 
-		oSource := countClusterDenominations(t.origins, denominationIndex)
+		oSource := countClusterDashDenominations(t.origins, denominationIndex)
 
 		// add element inputSources and set index of current element
 		inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))

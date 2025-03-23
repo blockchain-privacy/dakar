@@ -3,6 +3,9 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/constants"
+	"backend/db"
+	"backend/db/analytics/attribution"
+	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
@@ -83,5 +86,134 @@ func (h *whirlpoolOneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
 func (h *whirlpoolOneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	return oneSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+	return whirlpoolOnceSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+}
+
+func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	if lookBackTime == 0 {
+		return nil, nil
+	}
+
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	if err != nil {
+		return nil, err
+	}
+	// heuristic is only allowed to be connected to a transaction
+	if parentHeuristicSet {
+		return nil, serror.New(errHeuristicNotValid)
+	}
+
+	// Get all transactions which are connected via the inputs of the destination
+	// transaction specified by txHash.
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeWhirlpoolMixing)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(inputTransactions) == 0 {
+		// nothing to do
+		return nil, nil
+	}
+
+	var exclusions []string
+	if options.ExcludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	// contains all time limited origins
+	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
+	// contains all time limited origins per input transaction
+	var allTxAndOrigins []txAndOrigins //nolint:prealloc
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	attributionMap := make(map[heuristics.ClusterUID][]string)
+	for _, it := range inputTransactions {
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
+			lookBackTime, depth, exclusions, attributions, options, constants.TypeWhirlpoolMixing)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(timeLimitedOrigins) == 0 {
+			continue
+		}
+
+		// merge the attribution maps
+		for id, attributions := range usedAttributions {
+			attributionMap[id] = attributions
+		}
+
+		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)
+
+		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
+	}
+
+	// mRemovableClusters holds all clusters which can be removed,
+	// due to not being able to fund all connected input transactions
+	mRemovableClusters := make(map[heuristics.ClusterUID]bool)
+	// clusters holds all clusters found in all input transactions
+	clusters := make(map[heuristics.ClusterUID]bool)
+	// for each input transaction to the destination transaction,
+	// inputClusters holds one map with all its occurring clusters
+	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
+	for _, t := range allTxAndOrigins {
+		// get input denominations
+		nDenominations, denominationIndex, getErr := getNumberOfWhirlpoolDenominations(t.inputTransaction, options.TransactionHash)
+		if getErr != nil {
+			return nil, getErr
+		}
+
+		oSource := countClusterWhirlpoolDenominations(t.origins, denominationIndex)
+
+		// add element inputSources and set index of current element
+		inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
+		icIndex := len(inputClusters) - 1
+
+		// Loop through all clusters of the current input transaction and mark
+		// the clusters which do not have enough denominations to fund all outputs of
+		// the input transaction which are used as inputs in the destination transaction
+		for k, v := range oSource.clusters {
+			clusters[k] = true
+			inputClusters[icIndex][k] = true
+			if v < nDenominations {
+				mRemovableClusters[k] = true
+			}
+		}
+	}
+
+	// Remove sources which do not have enough denominations to
+	// fund all input transaction to which they are connected
+	for k := range mRemovableClusters {
+		delete(clusters, k)
+	}
+
+	clusterTransactionMap := mapClusterToTransactions(allTimeLimitedOrigins)
+	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
+	for k := range clusters {
+		doesClusterOccurInAllMixingSubgraphs := true
+		// check for each input transaction if cluster k exists. If not set the flag to false
+		for _, inputTransactionSource := range inputClusters {
+			if !inputTransactionSource[k] {
+				doesClusterOccurInAllMixingSubgraphs = false
+				break
+			}
+		}
+
+		if doesClusterOccurInAllMixingSubgraphs {
+			omniOrigins := clusterTransactionMap[k]
+			for _, o := range omniOrigins {
+				resultClusters[o.Cluster] = append(resultClusters[o.Cluster], db.UIDNode{UID: o.UID})
+			}
+		}
+	}
+
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }

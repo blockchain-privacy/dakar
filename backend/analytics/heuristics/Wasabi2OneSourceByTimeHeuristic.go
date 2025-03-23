@@ -86,10 +86,10 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
 func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	return oneSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+	return wasabi2OneSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
 }
 
-func oneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
 	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
