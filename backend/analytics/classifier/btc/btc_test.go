@@ -285,7 +285,7 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 
 	shouldWork := db.Transaction{
 		Fee:  new(int64),
-		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Hash: "1",
 		Inputs: []db.Output{
 			{Amount: testhelper.GetPointer[int64](50000000)},
 			{Amount: testhelper.GetPointer[int64](50000302)},
@@ -304,7 +304,7 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 
 	shouldWork2 := db.Transaction{
 		Fee:  new(int64),
-		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Hash: "2",
 		Inputs: []db.Output{
 			{Amount: testhelper.GetPointer[int64](50006655)},
 			{Amount: testhelper.GetPointer[int64](50002218)},
@@ -323,7 +323,7 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 
 	lowerDenomination := db.Transaction{
 		Fee:  new(int64),
-		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Hash: "3",
 		Inputs: []db.Output{
 			{Amount: testhelper.GetPointer[int64](100050)},
 			{Amount: testhelper.GetPointer[int64](100000)},
@@ -342,7 +342,7 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 
 	fail := db.Transaction{
 		Fee:  new(int64),
-		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Hash: "4",
 		Inputs: []db.Output{
 			{Amount: testhelper.GetPointer[int64](100050)},
 			{Amount: testhelper.GetPointer[int64](100000)},
@@ -361,7 +361,7 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 
 	fail2 := db.Transaction{
 		Fee:  new(int64),
-		Hash: "a18b0025ca64ce09c5e11cd5a923e4ca8e2b04565d4d233ffcb6bc949b924d1e",
+		Hash: "5",
 		Inputs: []db.Output{
 			{Amount: testhelper.GetPointer[int64](100050)},
 			{Amount: testhelper.GetPointer[int64](100000)},
@@ -718,7 +718,7 @@ func TestIterate(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestCountAmountWhirlpoolDenominations(t *testing.T) {
+func TestCountAmountWhirlpoolFuzzyDenominations(t *testing.T) {
 	type testCase struct {
 		amounts []int64
 		result  [NumWhirlpoolDenominations]int
@@ -745,14 +745,10 @@ func TestCountAmountWhirlpoolDenominations(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.Equal(t, c.result, CountAmountWhirlpoolDenominations(c.amounts, 100))
+		require.Equal(t, c.result, CountAmountWhirlpoolFuzzyDenominations(c.amounts, 100))
 	}
 	// without fee
 	cases = []testCase{
-		{
-			amounts: []int64{1, 2, 0, 4, 0},
-			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
-		},
 		{
 			amounts: []int64{100000, 100000, 100000},
 			result:  [NumWhirlpoolDenominations]int{3, 0, 0, 0},
@@ -768,6 +764,56 @@ func TestCountAmountWhirlpoolDenominations(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.Equal(t, c.result, CountAmountWhirlpoolDenominations(c.amounts, 0))
+		require.Equal(t, c.result, CountAmountWhirlpoolFuzzyDenominations(c.amounts, 0))
+	}
+}
+
+func TestCountAmountWhirlpoolDenominations(t *testing.T) {
+	type testCase struct {
+		amounts []int64
+		result  [NumWhirlpoolDenominations]int
+	}
+
+	// with fee
+	var cases = []testCase{
+		{
+			amounts: []int64{1, 2, 0, 4, 0},
+			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
+		},
+		{
+			amounts: []int64{100105, 100105, 100105},
+			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
+		},
+		{
+			amounts: []int64{1000105, 1000105, 1000105, 6, 9, -1},
+			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
+		},
+		{
+			amounts: []int64{100105, 1000105, 5000105, 50000105},
+			result:  [NumWhirlpoolDenominations]int{0, 0, 0, 0},
+		},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, c.result, CountAmountWhirlpoolDenominations(c.amounts))
+	}
+	// without fee
+	cases = []testCase{
+		{
+			amounts: []int64{100000, 100000, 100000},
+			result:  [NumWhirlpoolDenominations]int{3, 0, 0, 0},
+		},
+		{
+			amounts: []int64{1000000, 1000000, 1000000, 6, 9, -1},
+			result:  [NumWhirlpoolDenominations]int{0, 3, 0, 0},
+		},
+		{
+			amounts: []int64{100000, 1000000, 5000000, 50000000},
+			result:  [NumWhirlpoolDenominations]int{1, 1, 1, 1},
+		},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, c.result, CountAmountWhirlpoolDenominations(c.amounts))
 	}
 }

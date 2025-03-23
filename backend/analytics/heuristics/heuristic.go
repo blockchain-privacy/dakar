@@ -229,7 +229,7 @@ func getWhirlpoolDenominationCountsWithFilter(it heuristics.HeuristicTransaction
 		denominations = append(denominations, output.Amount)
 	}
 
-	return btc.CountAmountWhirlpoolDenominations(denominations, 0)
+	return btc.CountAmountWhirlpoolFuzzyDenominations(denominations, 0)
 }
 
 // If the given transaction hash belongs to a mixing transaction then it returns the transaction itself,
@@ -276,7 +276,7 @@ func getWhirlpoolDenominationCounts(it heuristics.HeuristicTransaction, minDiff 
 		denominations[i] = output.Amount
 	}
 
-	return btc.CountAmountWhirlpoolDenominations(denominations, minDiff)
+	return btc.CountAmountWhirlpoolFuzzyDenominations(denominations, minDiff)
 }
 
 type clusterDenominations struct {
