@@ -152,7 +152,7 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 
 	// do custom peelchain handling for whirlpool origins
 	if mixingTransactionType == constants.TypeWhirlpoolMixing {
-		if err = applyClusters(g, allTimeLimitedOrigins); err != nil {
+		if err = mergePeelchainCluster(g, allTimeLimitedOrigins); err != nil {
 			return nil, err
 		}
 	}
