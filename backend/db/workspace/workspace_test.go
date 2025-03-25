@@ -158,7 +158,7 @@ func TestFindDescandantSelectorUIDs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.want, FindDescendantSelectorUIDs(tt.nodes, tt.nodeUID))
+		require.Equal(t, tt.want, FindDescendantSelectorUIDs(tt.nodes, tt.nodeUID))
 	}
 }
 
@@ -180,7 +180,7 @@ func TestDeleteNodes(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.want, DeleteNodes(tt.nodes, tt.uids))
+		require.Equal(t, tt.want, DeleteNodes(tt.nodes, tt.uids))
 	}
 }
 

@@ -61,7 +61,7 @@ type AmountRange struct {
 }
 
 func (a AmountRange) IsValid() bool {
-	return !((a.Min == nil && a.Max == nil) || (a.Max != nil && a.Min != nil && *a.Min > *a.Max))
+	return (a.Min != nil || a.Max != nil) && (a.Max == nil || a.Min == nil || *a.Min <= *a.Max)
 }
 
 type TxPropOptions struct {

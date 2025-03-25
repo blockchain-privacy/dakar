@@ -189,7 +189,7 @@ func TestWithRetry(t *testing.T) {
 	}
 
 	require.Error(t, WithRetry(errorFunction, 0))
-	require.EqualValues(t, 1, executionCounter)
+	require.Equal(t, 1, executionCounter)
 
 	executionCounter = 0
 	noErrorFunction := func() error {
@@ -198,7 +198,7 @@ func TestWithRetry(t *testing.T) {
 	}
 
 	require.NoError(t, WithRetry(noErrorFunction, 0))
-	require.EqualValues(t, 1, executionCounter)
+	require.Equal(t, 1, executionCounter)
 
 	executionCounter = 0
 	txAborted := func() error {
@@ -207,7 +207,7 @@ func TestWithRetry(t *testing.T) {
 	}
 
 	require.Error(t, WithRetry(txAborted, 0))
-	require.EqualValues(t, maxRetries, executionCounter)
+	require.Equal(t, maxRetries, executionCounter)
 
 	executionCounter = 0
 	txAbortedThenSuccessful := func() error {
@@ -221,5 +221,5 @@ func TestWithRetry(t *testing.T) {
 	}
 
 	require.NoError(t, WithRetry(txAbortedThenSuccessful, 0))
-	require.EqualValues(t, 3, executionCounter)
+	require.Equal(t, 3, executionCounter)
 }
