@@ -29,8 +29,8 @@
               ref="queryForm"
               validate-on="submit"
             >
-              <p class="text-subtitle-2">
-                Add one or multiple entities. Entities can be separated by any special character. Pasting the content of a CSV-file is supported.
+              <p class="text-subtitle-1">
+                Query for multiple entities by separating them by any special character.
               </p>
               <v-text-field
                 v-model="graphQuery"
@@ -40,11 +40,11 @@
                 density="compact"
                 color="primary"
                 :rules="inputRules"
-                label="Add a transactions or address clusters"
+                label="Add transactions or address clusters"
                 :disabled="!addEntityEnabled"
                 :append-inner-icon="mdiMagnify"
-                @click:append-inner="onAddEntities"
-                @keydown.enter="onAddEntities"
+                @click:append-inner="onAddEntities(tab)"
+                @keydown.enter="onAddEntities(tab)"
               />
             </v-form>
           </v-window-item>
@@ -162,6 +162,8 @@ async function onAddEntities(tab) {
 		if (!valid || !file.value) {
 			return;
 		}
+	} else {
+		return;
 	}
 
 	model.value = false;
