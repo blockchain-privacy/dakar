@@ -1,33 +1,36 @@
+version: "2"
 run:
   concurrency: 2
-  timeout: 10m
 linters:
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
     - bodyclose
     - errorlint
+    - gocheckcompilerdirectives
     - gocyclo
     - goprintffuncname
     - gosec
+    - intrange
+    - mirror
+    - musttag
+    - nilnil
+    - perfsprint
     - prealloc
+    - protogetter
     - revive
-    - stylecheck
+    - sloglint
+    - staticcheck
+    - testifylint
+    - usestdlibvars
     - usetesting
     - wastedassign
     - whitespace
-    - usestdlibvars
-    - testifylint
-    - perfsprint
-    - protogetter
-    - sloglint
-    - mirror
-    - gocheckcompilerdirectives
-    - intrange
-    - nilnil
-    - musttag
-
+  exclusions:
+    warn-unused: true
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+output:
+  path-prefix: "backend/"
