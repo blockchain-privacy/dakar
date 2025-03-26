@@ -466,7 +466,7 @@ func main() {
 	var clusteringFMIStopped = !newConfig.Modules.FMI.Active
 	var interrupted bool
 
-	for !interrupted && !crawlerStopped || !classifierStopped || !clusteringHMIStopped || !clusteringFMIStopped {
+	for !interrupted && (!crawlerStopped || !classifierStopped || !clusteringHMIStopped || !clusteringFMIStopped) {
 		select {
 		case <-chSignal:
 			interrupted = true
