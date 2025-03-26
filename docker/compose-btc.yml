@@ -6,17 +6,17 @@ x-logging:
 
 services:
   btc_zero:
-    image: dgraph/dgraph:v24.1.0
+    image: dgraph/dgraph:v24.1.1
     container_name: btc_zero
     volumes:
       - ${BTC_DGRAPH_PATH}:/dgraph
     restart: unless-stopped
-    command: dgraph zero --my=btc_zero:5080 --telemetry "reports=false; sentry=false"
+    command: dgraph zero --my=btc_zero:5080 --telemetry "reports=false"
     networks:
       - dgraph_default
 
   btc_alpha:
-    image: dgraph/dgraph:v24.1.0
+    image: dgraph/dgraph:v24.1.1
     container_name: btc_alpha
     volumes:
       - ${BTC_DGRAPH_PATH}:/dgraph
@@ -25,7 +25,7 @@ services:
     ports:
       - "${CONTAINER_IP}:18080:8080"
     restart: unless-stopped
-    command: dgraph alpha --my=btc_alpha:7080 --zero=btc_zero:5080 --security "whitelist=192.168.188.0:192.168.188.255,172.16.0.0:172.31.255.255" --limit "query-edge=10000000" --telemetry "reports=false; sentry=false"
+    command: dgraph alpha --my=btc_alpha:7080 --zero=btc_zero:5080 --security "whitelist=192.168.188.0:192.168.188.255,172.16.0.0:172.31.255.255" --limit "query-edge=10000000" --telemetry "reports=false"
     networks:
       - dgraph_default
 

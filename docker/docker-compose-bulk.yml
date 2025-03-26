@@ -1,10 +1,10 @@
 services:
   bulk:
-    image: dgraph/dgraph:v24.1.0
+    image: dgraph/dgraph:v24.1.1
     container_name: bulk
     volumes:
       - ${BULK_PATH}:/dgraph
-    command: dgraph bulk -f g01.rdf.gz -s g01.schema.gz --map_shards=1 --reduce_shards=1 --zero=zero:5080 --num_go_routines=1
+    command: dgraph bulk -f g01.rdf.gz -s g01.schema.gz --map_shards=1 --reduce_shards=1 --zero=zero:5080 --num_go_routines=1 --telemetry "reports=false"
     networks:
       - dgraph_default
 
