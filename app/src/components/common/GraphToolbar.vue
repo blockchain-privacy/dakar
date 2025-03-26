@@ -91,6 +91,21 @@
       :disabled="!addEntityEnabled"
       @click="queryDialogModel = true"
     >
+      <v-tooltip
+        activator="parent"
+        location="top"
+        open-delay="400"
+      >
+        <div class="d-flex align-center">
+          <div class="kbb">
+            Control
+          </div>
+          +
+          <div class="kbb">
+            k
+          </div>
+        </div>
+      </v-tooltip>
       <v-icon
         :icon="mdiPlus"
         class="me-1"
@@ -170,7 +185,7 @@ import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
 	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
-import {ref} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import SearchDialog from '@/components/common/SearchDialog.vue';
 
@@ -206,6 +221,15 @@ const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 const queryDialogModel = ref(false);
 
+// Hooks
+onMounted(() => {
+	document.addEventListener('keydown', handleKeyPress, false);
+});
+
+onUnmounted(() => {
+	document.removeEventListener('keydown', handleKeyPress);
+});
+
 // Functions
 function onSelectionModeChanged(mode) {
 	emit('isSelectionEnabled', mode === 0);
@@ -225,6 +249,16 @@ function onFilterChanged() {
 
 function onAddSelector() {
 	emit('addSelector');
+}
+
+function handleKeyPress(e) {
+	// Don't trigger delete event when editing an <input /> element such as text boxes
+	if (e.target instanceof HTMLInputElement || !e.ctrlKey || e.key !== 'k' || !props.showSearchButton) {
+		return;
+	}
+
+	queryDialogModel.value = true;
+	e.preventDefault();
 }
 
 </script>
