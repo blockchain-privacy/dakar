@@ -259,14 +259,10 @@
           value="outputs"
         >
           <v-infinite-scroll
+            :key="infiteScrollKey"
             margin="100"
             @load="showMoreOutputs"
           >
-            <!-- todo: remove when https://github.com/vuetifyjs/vuetify/pull/20637 is merged -->
-            <template
-              v-if="filterHighlightedOutputs"
-              #loading
-            />
             <template
               v-for="(i,y) in displayedOutputs"
               :key="i.addresshash + i.outputindex"
@@ -356,6 +352,7 @@ const showTransactionDetails = toRef(props.showDetails);
 
 let svgInputGraph = null;
 let svgOutputGraph = null;
+let infiteScrollKey = 0;
 const colorMap = getColorMap(getSettings.value.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
@@ -437,10 +434,25 @@ watch(allInputs, newVal => {
 	}
 });
 
+watch(() => props.filterHighlightedOutputs, () => {
+	resetInfiniteScroll();
+});
+
 // Functions
 function init() {
 	updateInputGraph();
 	updateOutputGraph();
+}
+
+// When filtering the outputs, the infinite scroll would normaly send 'empty'.
+// Once in that state it can not be reset. So switchting back to unfiltered outputs,
+// the infinite scroll would not work anymore.
+// As a workaround set the 'key' property on the output infinite scroll and change it to simulate a reset
+// todo: once https://github.com/vuetifyjs/vuetify/pull/20637 is merged, remove workaround and use reset method:
+// - remove key property from inifite scroll
+// - replace resetInfiniteScroll() with new reset function
+function resetInfiniteScroll() {
+	infiteScrollKey += 1;
 }
 
 function updateInputGraph() {
@@ -510,18 +522,7 @@ function showMoreInputs({done}) {
 
 function showMoreOutputs({done}) {
 	if (allOutputs.value.length === 0 || showMaxOutputs.value >= allOutputs.value.length || props.embed) {
-		// When filtering the outputs, the infinite scroll would normaly send 'empty'.
-		// Once in that state it can not be reset. So switchting back to unfiltered outputs,
-		// the infinite scroll would not work anymore.
-		// The following workaround only sends 'empty' when not filtering.
-		// eslint-disable-next-line no-warning-comments
-		// todo: once https://github.com/vuetifyjs/vuetify/pull/20637 is merged, remove workaround (compare with showMoreInputs()) and use reset method
-		if (!props.filterHighlightedOutputs) {
-			done('empty');
-			return;
-		}
-
-		done('ok');
+		done('empty');
 		return;
 	}
 
