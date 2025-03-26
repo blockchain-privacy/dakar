@@ -160,7 +160,7 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
 	}
 
-	if err = mergePeelchainCluster(g, allTimeLimitedOriginsMap); err != nil {
+	if err = mergeOriginPeelchainCluster(g, allTimeLimitedOriginsMap); err != nil {
 		return nil, err
 	}
 

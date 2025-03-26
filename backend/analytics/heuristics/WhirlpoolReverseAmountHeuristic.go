@@ -97,7 +97,7 @@ func (h *whirlpoolReverseAmountHeuristic) exec(ctx context.Context, dgraph exter
 		origins[r.UID] = r
 	}
 
-	if err = mergePeelchainCluster(g, origins); err != nil {
+	if err = mergeOriginPeelchainCluster(g, origins); err != nil {
 		return nil, err
 	}
 
@@ -135,9 +135,9 @@ func containsWhirlpoolDenomination(denom1 [btc.NumWhirlpoolDenominations]int, de
 	return true
 }
 
-// mergePeelchainCluster detects if the origins are connected via a
+// mergeOriginPeelchainCluster detects if the origins are connected via a
 // peelchain and assigns the same cluster to all transactions part of a set.
-func mergePeelchainCluster(g *graph.Wrapper, origins map[string]heuristics.HeuristicTransaction) error {
+func mergeOriginPeelchainCluster(g *graph.Wrapper, origins map[string]heuristics.HeuristicTransaction) error {
 	partitions, err := g.PartitionNodesByDirectConnections(cliutil.GetMapKeys(origins))
 	if err != nil {
 		return err
