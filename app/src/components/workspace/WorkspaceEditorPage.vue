@@ -25,7 +25,7 @@
           @rearrange="handleMenuRearrange"
           @center="handleMenuCenter"
           @delete-selected="handleMenuDeleteSelected"
-          @add-entities="addMultipleNodes"
+          @add-entities="checkNodeCount"
           @filter-changed="handleMenuFilterChanged"
           @shortest-path-lookup="handleShortestPathLookup"
           @add-selector="showCreateSelectorSheetFromButton"
