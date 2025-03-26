@@ -55,6 +55,25 @@
                 :items="roles"
                 label="Kratos Admin"
               />
+              <template v-if="!createNewUser">
+                <named-divider
+                  title="User UIDs"
+                  :vertical-margin="3"
+                />
+                <p class="text-subtitle-2 mb-3">
+                  Leaving these fields empty will result in no changes
+                </p>
+                <v-text-field
+                  v-model="shadowIdentity.dakarDashUser"
+                  label="Dakar Dash UID"
+                  style="min-width: 250px"
+                />
+                <v-text-field
+                  v-model="shadowIdentity.dakarBTCUser"
+                  label="Dakar BTC UID"
+                  style="min-width: 250px"
+                />
+              </template>
             </v-form>
           </v-row>
         </v-container>
@@ -99,7 +118,7 @@ const props = defineProps({
 const isLoading = ref(false);
 const shadowIdentity = ref({
 	// eslint-disable-next-line camelcase
-	id: '', email: '', roles: {dakar_dash: '', dakar_btc: '', kratos_admin: ''}, state: '',
+	id: '', email: '', roles: {dakar_dash: '', dakar_btc: '', kratos_admin: ''}, state: '', dakarDashUser: '', dakarBTCUser: '',
 });
 // Template ref
 const modifyIdentityForm = ref(null);
@@ -175,6 +194,8 @@ async function saveIdentity() {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
 					state: shadowIdentity.value.state,
+					dakarDashUser: shadowIdentity.value.dakarDashUser,
+					dakarBTCUser: shadowIdentity.value.dakarBTCUser,
 				},
 			});
 
