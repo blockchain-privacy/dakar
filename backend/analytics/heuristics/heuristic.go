@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/analytics/classifier/btc"
 	"backend/analytics/classifier/dash"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
@@ -69,6 +70,12 @@ const (
 	heuristicTypeWasabi2ReverseAmount        = "wasabi2_reverse_amount"
 	heuristicTypeWasabi2ForwardLookupByTime  = "wasabi2_forward_lookup_by_time"
 	heuristicTypeWasabi2ForwardLookupByDepth = "wasabi2_forward_lookup_by_depth"
+	// Whirlpool
+	heuristicTypeWhirlpoolReverseLookupByTime  = "whirlpool_reverse_lookup_by_time"
+	heuristicTypeWhirlpoolReverseLookupByDepth = "whirlpool_reverse_lookup_by_depth"
+	heuristicTypeWhirlpoolOneSourceByTime      = "whirlpool_one_source_by_time"
+	heuristicTypeWhirlpoolOneSourceByDepth     = "whirlpool_one_source_by_depth"
+	heuristicTypeWhirlpoolReverseAmount        = "whirlpool_reverse_amount"
 )
 
 func init() {
@@ -91,6 +98,12 @@ func init() {
 		newWasabi2ReverseAmountHeuristic,
 		newWasabi2ForwardLookupByTimeHeuristic,
 		newWasabi2ForwardLookupByDepthHeuristic,
+		// Whirlpool
+		newWhirlpoolReverseLookupByTimeHeuristic,
+		newWhirlpoolReverseLookupByDepthHeuristic,
+		newWhirlpoolOneSourceByTimeHeuristic,
+		newWhirlpoolOneSourceByDepthHeuristic,
+		newWhirlpoolReverseAmountHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
@@ -145,12 +158,12 @@ type heuristic interface {
 	GetDescriptor() Descriptor
 }
 
-// getNumberOfDenominations returns the number of denominations. If destinationTransaction is set, it
+// getNumberOfDashDenominations returns the number of Dash denominations. If destinationTransaction is set, it
 // only counts outputs with input transactions equal to destinationTransaction. An error is returned
 // if more than one type of denominations is found
-func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTransaction string) (nDenominations int,
+func getNumberOfDashDenominations(it heuristics.HeuristicTransaction, destinationTransaction string) (nDenominations int,
 	denomIndex int, err error) {
-	numDenominations := getDenominationCountsWithFilter(it, destinationTransaction)
+	numDenominations := getDashDenominationCountsWithFilter(it, destinationTransaction)
 
 	found := false
 	for i, nd := range numDenominations {
@@ -168,9 +181,32 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 	return
 }
 
-// getDenominationCountsWithFilter gets the counts of each denomination type.
+// getNumberOfWhirlpoolDenominations returns the number of Whirlpool denominations. If destinationTransaction is set, it
+// only counts outputs with input transactions equal to destinationTransaction. An error is returned
+// if more than one type of denominations is found
+func getNumberOfWhirlpoolDenominations(it heuristics.HeuristicTransaction, destinationTransaction string) (nDenominations int,
+	denomIndex int, err error) {
+	numDenominations := getWhirlpoolDenominationCountsWithFilter(it, destinationTransaction)
+
+	found := false
+	for i, nd := range numDenominations {
+		if nd > 0 {
+			if found {
+				err = serror.FromFormat("found more than one denomination type in input transaction %s for destination tx %s",
+					it, destinationTransaction)
+				return
+			}
+			denomIndex = i
+			found = true
+		}
+	}
+	nDenominations = numDenominations[denomIndex]
+	return
+}
+
+// getDashDenominationCountsWithFilter gets the counts of each Dash denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
-func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dash.NumDenominations]int {
+func getDashDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dash.NumDenominations]int {
 	var denominations []int64 //nolint:prealloc
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
@@ -180,6 +216,20 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 	}
 
 	return dash.CountAmountDenominations(denominations)
+}
+
+// getWhirlpoolDenominationCountsWithFilter gets the counts of each Whirlpool denomination type.
+// If filterTx is set, it only counts outputs with input transactions equal to filterTx.
+func getWhirlpoolDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [btc.NumWhirlpoolDenominations]int {
+	var denominations []int64 //nolint:prealloc
+	for _, output := range it.Outputs {
+		if filterTx != "" && output.InputTransaction != filterTx {
+			continue
+		}
+		denominations = append(denominations, output.Amount)
+	}
+
+	return btc.CountAmountWhirlpoolFuzzyDenominations(denominations, 0)
 }
 
 // If the given transaction hash belongs to a mixing transaction then it returns the transaction itself,
@@ -209,14 +259,24 @@ func getInputTransactions(ctx context.Context, c external.Database, txhash strin
 	return inputTransactions, nil
 }
 
-// gets the counts of each denomination type
-func getDenominationCounts(it heuristics.HeuristicTransaction) [dash.NumDenominations]int {
+// gets the counts of each Dash denomination type
+func getDashDenominationCounts(it heuristics.HeuristicTransaction) [dash.NumDenominations]int {
 	denominations := make([]int64, len(it.Outputs))
 	for i, output := range it.Outputs {
 		denominations[i] = output.Amount
 	}
 
 	return dash.CountAmountDenominations(denominations)
+}
+
+// gets the counts of each Whirlpool denomination type
+func getWhirlpoolDenominationCounts(it heuristics.HeuristicTransaction, minDiff int64) [btc.NumWhirlpoolDenominations]int {
+	denominations := make([]int64, len(it.Outputs))
+	for i, output := range it.Outputs {
+		denominations[i] = output.Amount
+	}
+
+	return btc.CountAmountWhirlpoolFuzzyDenominations(denominations, minDiff)
 }
 
 type clusterDenominations struct {
@@ -243,24 +303,52 @@ func mapClusterToTransactions(origins []heuristics.HeuristicTransaction) map[heu
 	return sourceTransactionMap
 }
 
-// countClusterDenominations creates a map of clusters with the
-// number of denominations of the specified denomination type
-func countClusterDenominations(origins []heuristics.HeuristicTransaction,
+// countClusterDashDenominations creates a map of clusters with the
+// number of Dash denominations of the specified denomination type
+func countClusterDashDenominations(origins []heuristics.HeuristicTransaction,
 	denominationIndex int) (oSource clusterDenominations) {
 	oSource.denominationIndex = denominationIndex
 	oSource.clusters = make(map[heuristics.ClusterUID]int)
 	for _, o := range origins {
-		oSource.clusters[o.Cluster] += getDenominationCounts(o)[denominationIndex]
+		oSource.clusters[o.Cluster] += getDashDenominationCounts(o)[denominationIndex]
 	}
 
 	return
 }
 
-func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dash.NumDenominations]int {
+// countClusterWhirlpoolDenominations creates a map of clusters with the
+// number of Whirlpool denominations of the specified denomination type
+func countClusterWhirlpoolDenominations(origins []heuristics.HeuristicTransaction,
+	denominationIndex int) (oSource clusterDenominations) {
+	oSource.denominationIndex = denominationIndex
+	oSource.clusters = make(map[heuristics.ClusterUID]int)
+	for _, o := range origins {
+		oSource.clusters[o.Cluster] += getWhirlpoolDenominationCounts(o, 100)[denominationIndex]
+	}
+
+	return
+}
+
+func buildDashSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dash.NumDenominations]int {
 	sourceAmounts := make(map[heuristics.ClusterUID][dash.NumDenominations]int)
 
 	for _, o := range origins {
-		denominationSlice := getDenominationCounts(o)
+		denominationSlice := getDashDenominationCounts(o)
+		for i := range denominationSlice {
+			denominationSlice[i] += sourceAmounts[o.Cluster][i]
+		}
+
+		sourceAmounts[o.Cluster] = denominationSlice
+	}
+	return sourceAmounts
+}
+
+func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransaction,
+	minDiff int64) map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int {
+	sourceAmounts := make(map[heuristics.ClusterUID][btc.NumWhirlpoolDenominations]int)
+
+	for _, o := range origins {
+		denominationSlice := getWhirlpoolDenominationCounts(o, minDiff)
 		for i := range denominationSlice {
 			denominationSlice[i] += sourceAmounts[o.Cluster][i]
 		}

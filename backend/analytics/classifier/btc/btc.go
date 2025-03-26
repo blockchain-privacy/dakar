@@ -238,7 +238,7 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 // set minDiff to > 0 if the amount must not be equal to the denomination
 func isAmountWhirlpoolDenominationPlusE(amount int64, denomination int64, minDiff int64) bool {
 	diff := amount - denomination
-	// diff must be between 0 and 100000 and not not be higher than the denomination itself
+	// diff must be between 0 and 100000 and not be higher than the denomination itself
 	return diff <= 100000 && diff >= minDiff && diff <= denomination
 }
 
@@ -338,8 +338,22 @@ func countWhirlpoolDenominations(outputs []db.Output) [NumWhirlpoolDenominations
 		}
 		amounts[i] = *o.Amount
 	}
-
 	return CountAmountWhirlpoolDenominations(amounts)
+}
+
+// CountAmountWhirlpoolFuzzyDenominations returns the number of occurrences of each denomination in the given amounts
+func CountAmountWhirlpoolFuzzyDenominations(amounts []int64, minDiff int64) (denominations [NumWhirlpoolDenominations]int) {
+	for _, amt := range amounts {
+	inner:
+		for i, v := range denominationTypesWhirlpool {
+			if isAmountWhirlpoolDenominationPlusE(amt, v, minDiff) {
+				denominations[i]++
+				break inner
+			}
+		}
+	}
+
+	return
 }
 
 // CountAmountWhirlpoolDenominations returns the number of occurrences of each denomination in the given amounts
@@ -347,7 +361,7 @@ func CountAmountWhirlpoolDenominations(amounts []int64) (denominations [NumWhirl
 	for _, amt := range amounts {
 	inner:
 		for i, v := range denominationTypesWhirlpool {
-			if amt == v {
+			if v == amt {
 				denominations[i]++
 				break inner
 			}

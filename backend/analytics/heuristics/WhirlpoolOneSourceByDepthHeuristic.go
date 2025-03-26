@@ -11,22 +11,22 @@ import (
 	"strconv"
 )
 
-// wasabi2OneSourceByDepthHeuristic - see exec for description
-type wasabi2OneSourceByDepthHeuristic struct {
+// whirlpoolOneSourceByDepthHeuristic - see exec for description
+type whirlpoolOneSourceByDepthHeuristic struct {
 	heuristicType string
 	depth         int
 	c             heuristics.Options
 }
 
-func newWasabi2OneSourceByDepthHeuristic() heuristic {
-	return &wasabi2OneSourceByDepthHeuristic{heuristicType: heuristicTypeWasabi2OneSourceByDepth}
+func newWhirlpoolOneSourceByDepthHeuristic() heuristic {
+	return &whirlpoolOneSourceByDepthHeuristic{heuristicType: heuristicTypeWhirlpoolOneSourceByDepth}
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) getType() string {
+func (h *whirlpoolOneSourceByDepthHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolOneSourceByDepthHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -46,15 +46,15 @@ func (h *wasabi2OneSourceByDepthHeuristic) setConfig(c heuristics.Options) error
 	return nil
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolOneSourceByDepthHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) String() string {
+func (h *whirlpoolOneSourceByDepthHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) GetDescriptor() Descriptor {
+func (h *whirlpoolOneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "One source by depth",
 		Type:     h.heuristicType,
@@ -71,16 +71,16 @@ func (h *wasabi2OneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 			Description:  parameterDescriptionDepth,
 			Type:         parameterTypeInt,
 		},
-		AllowedParents: constants.TransactionTypesWasabi2,
+		AllowedParents: constants.TransactionTypesWhirlpool,
 	}
 }
 
-// wasabi2OneSourceByDepthHeuristic applies the following heuristics:
+// whirlpoolOneSourceByDepthHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by depth
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *wasabi2OneSourceByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *whirlpoolOneSourceByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	return wasabi2OneSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+	return whirlpoolOnceSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
 }

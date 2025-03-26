@@ -131,11 +131,11 @@ func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Datab
 		return nil, err
 	}
 
-	originOutputDenominations := buildSourceAmounts(map[string]heuristics.HeuristicTransaction{uid: results[0]})
+	originOutputDenominations := buildDashSourceAmounts(map[string]heuristics.HeuristicTransaction{uid: results[0]})
 	var clusterFilteredDestinations []db.UIDNode
 	for _, tx := range destinations {
 		// check if the denominations of the destination transactions can be funded by the denomination of its cluster
-		if containsDenomination(getDenominationCounts(tx), originOutputDenominations[results[0].Cluster]) {
+		if containsDashDenomination(getDashDenominationCounts(tx), originOutputDenominations[results[0].Cluster]) {
 			clusterFilteredDestinations = append(clusterFilteredDestinations, db.UIDNode{UID: tx.UID})
 		}
 	}

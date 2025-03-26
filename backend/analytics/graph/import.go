@@ -300,8 +300,9 @@ func LoadBTCTransactionGraph(ctx context.Context, c external.Database, numTxToLo
 	}
 
 	info("Loading whirlpool origin nodes")
+	// need to get whirlpool origins with connections for peeling chain clustering
 	if err := loadTransactions(ctx, c, g, 50000, numTxToLoad,
-		constants.TypeWhirlpoolOrigin, true); err != nil {
+		constants.TypeWhirlpoolOrigin, false); err != nil {
 		return nil, err
 	}
 

@@ -15,22 +15,22 @@ import (
 	"time"
 )
 
-// wasabi2OneSourceByTimeHeuristic - see exec for description
-type wasabi2OneSourceByTimeHeuristic struct {
+// whirlpoolOneSourceByTimeHeuristic - see exec for description
+type whirlpoolOneSourceByTimeHeuristic struct {
 	heuristicType string
 	lookBackTime  time.Duration
 	c             heuristics.Options
 }
 
-func newWasabi2OneSourceByTimeHeuristic() heuristic {
-	return &wasabi2OneSourceByTimeHeuristic{heuristicType: heuristicTypeWasabi2OneSourceByTime}
+func newWhirlpoolOneSourceByTimeHeuristic() heuristic {
+	return &whirlpoolOneSourceByTimeHeuristic{heuristicType: heuristicTypeWhirlpoolOneSourceByTime}
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) getType() string {
+func (h *whirlpoolOneSourceByTimeHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolOneSourceByTimeHeuristic) setConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -50,15 +50,15 @@ func (h *wasabi2OneSourceByTimeHeuristic) setConfig(c heuristics.Options) error 
 	return nil
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolOneSourceByTimeHeuristic) getConfig() heuristics.Options {
 	return h.c
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) String() string {
+func (h *whirlpoolOneSourceByTimeHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
+func (h *whirlpoolOneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "One source by time",
 		Type:     h.heuristicType,
@@ -75,28 +75,24 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 			Description:  parameterDescriptionLookBack,
 			Type:         parameterTypeInt,
 		},
-		AllowedParents: constants.TransactionTypesWasabi2,
+		AllowedParents: constants.TransactionTypesWhirlpool,
 	}
 }
 
-// wasabi2OneSourceByTimeHeuristic applies the following heuristics:
+// whirlpoolOneSourceByTimeHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by lookBackTime
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *whirlpoolOneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
-	return wasabi2OneSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
+	return whirlpoolOnceSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
 }
 
-func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
+func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
 	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
-	if lookBackTime == 0 && depth == 0 {
+	if lookBackTime == 0 {
 		return nil, nil
-	}
-
-	if lookBackTime != 0 && depth != 0 {
-		return nil, serror.FromStr("both depth and look back time are set")
 	}
 
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
@@ -110,7 +106,7 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash.
-	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeWasabi2Mixing)
+	inputTransactions, err := getInputTransactions(ctx, dgraph, options.TransactionHash, constants.TypeWhirlpoolMixing)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +131,14 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
+	allTimeLimitedOriginsMap := map[string]heuristics.HeuristicTransaction{}
 	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins //nolint:prealloc
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			lookBackTime, depth, exclusions, attributions, options, constants.TypeWasabi2Mixing)
+			lookBackTime, depth, exclusions, attributions, options, constants.TypeWhirlpoolMixing)
 		if err != nil {
 			return nil, err
 		}
@@ -156,8 +153,27 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 		}
 
 		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)
+		for _, t := range timeLimitedOrigins {
+			allTimeLimitedOriginsMap[t.UID] = t
+		}
 
 		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
+	}
+
+	if err = mergePeelchainCluster(g, allTimeLimitedOriginsMap); err != nil {
+		return nil, err
+	}
+
+	// apply updated clusters from peelchains
+	for i := range allTimeLimitedOrigins {
+		allTimeLimitedOrigins[i].Cluster = allTimeLimitedOriginsMap[allTimeLimitedOrigins[i].UID].Cluster
+	}
+
+	// apply updated clusters from peelchains
+	for i := range allTxAndOrigins {
+		for y := range allTxAndOrigins[i].origins {
+			allTxAndOrigins[i].origins[y].Cluster = allTimeLimitedOriginsMap[allTxAndOrigins[i].origins[y].UID].Cluster
+		}
 	}
 
 	// mRemovableClusters holds all clusters which can be removed,
@@ -168,48 +184,37 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 	// for each input transaction to the destination transaction,
 	// inputClusters holds one map with all its occurring clusters
 	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
-
 	for _, t := range allTxAndOrigins {
-		var inputTxOutputSum int64 //nolint:prealloc
-		for _, output := range t.inputTransaction.Outputs {
-			// skip if output of was not used by destination transaction
-			if output.InputTransaction != options.TransactionHash {
-				continue
-			}
-			inputTxOutputSum += output.Amount
+		// get input denominations
+		nDenominations, denominationIndex, getErr := getNumberOfWhirlpoolDenominations(t.inputTransaction, options.TransactionHash)
+		if getErr != nil {
+			return nil, getErr
 		}
 
-		// add element inputClusters and set index of current element
+		oSource := countClusterWhirlpoolDenominations(t.origins, denominationIndex)
+
+		// add element inputSources and set index of current element
 		inputClusters = append(inputClusters, make(map[heuristics.ClusterUID]bool))
 		icIndex := len(inputClusters) - 1
 
-		// per input transaction, map clusters to their origins and
-		// mark them for removal if they don't have enough funds for the input transaction
-		clusterTransactionMap := mapClusterToTransactions(t.origins)
-		for clusterUID, clusterOrigins := range clusterTransactionMap {
-			var clusterOutputAmount int64
-			for _, origin := range clusterOrigins {
-				for _, output := range origin.Outputs {
-					clusterOutputAmount += output.Amount
-				}
-			}
-
-			clusters[clusterUID] = true
-			inputClusters[icIndex][clusterUID] = true
-
-			if clusterOutputAmount < inputTxOutputSum {
-				mRemovableClusters[clusterUID] = true
+		// Loop through all clusters of the current input transaction and mark
+		// the clusters which do not have enough denominations to fund all outputs of
+		// the input transaction which are used as inputs in the destination transaction
+		for k, v := range oSource.clusters {
+			clusters[k] = true
+			inputClusters[icIndex][k] = true
+			if v < nDenominations {
+				mRemovableClusters[k] = true
 			}
 		}
 	}
 
-	// Remove clusters which do not have enough denominations to
+	// Remove sources which do not have enough denominations to
 	// fund all input transaction to which they are connected
 	for k := range mRemovableClusters {
 		delete(clusters, k)
 	}
 
-	// create cluster->origin map
 	clusterTransactionMap := mapClusterToTransactions(allTimeLimitedOrigins)
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k := range clusters {

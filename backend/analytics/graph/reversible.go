@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/iterator"
+	"maps"
 	"reflect"
 )
 
@@ -20,6 +21,7 @@ var (
 // direction can be reversed for traversal.
 type ReversibleGraph struct {
 	reversed bool
+	directed bool
 	nodes    map[int64]graph.Node
 	from     map[int64]map[int64]graph.Edge
 	to       map[int64]map[int64]graph.Edge
@@ -29,10 +31,10 @@ type ReversibleGraph struct {
 func NewReversibleGraph(numNodesHint int) *ReversibleGraph {
 	return &ReversibleGraph{
 		reversed: false,
-
-		nodes: make(map[int64]graph.Node, numNodesHint),
-		from:  make(map[int64]map[int64]graph.Edge, numNodesHint),
-		to:    make(map[int64]map[int64]graph.Edge, numNodesHint),
+		directed: true,
+		nodes:    make(map[int64]graph.Node, numNodesHint),
+		from:     make(map[int64]map[int64]graph.Edge, numNodesHint),
+		to:       make(map[int64]map[int64]graph.Edge, numNodesHint),
 	}
 }
 
@@ -41,9 +43,19 @@ func (g *ReversibleGraph) IsReversed() bool {
 	return g.reversed
 }
 
-// SetReverse sets if the direction of the graph is reversed
+// SetReverse sets wether the direction of the graph is reversed
 func (g *ReversibleGraph) SetReverse(reversed bool) {
 	g.reversed = reversed
+}
+
+// IsDirected returns true if the graph is directed
+func (g *ReversibleGraph) IsDirected() bool {
+	return g.directed
+}
+
+// SetDirected sets wether the graph is directed
+func (g *ReversibleGraph) SetDirected(directed bool) {
+	g.directed = directed
 }
 
 // AddNode adds n to the graph. It panics if the added node ID matches an existing node ID.
@@ -62,6 +74,19 @@ func (g *ReversibleGraph) UpdateNode(n graph.Node) {
 // Edge returns the edge from u to v if such an edge exists and nil otherwise.
 // The node v must be directly reachable from u as defined by the From method.
 func (g *ReversibleGraph) Edge(uid, vid int64) graph.Edge {
+	if !g.directed {
+		edge, ok := g.from[uid][vid]
+		if !ok {
+			edge, ok := g.to[uid][vid]
+			if !ok {
+				return nil
+			}
+			return g.NewEdge(edge.To(), edge.From(), edge.(AddressEdge).AddressUIDs)
+		}
+
+		return edge
+	}
+
 	if g.reversed {
 		edge, ok := g.to[uid][vid]
 		if !ok {
@@ -96,6 +121,17 @@ func (g *ReversibleGraph) Edges() graph.Edges {
 // The returned graph.Nodes are only valid until the next mutation of
 // the receiver.
 func (g *ReversibleGraph) From(id int64) graph.Nodes {
+	if !g.directed {
+		edges := map[int64]graph.Edge{}
+		maps.Copy(edges, g.to[id])
+		maps.Copy(edges, g.from[id])
+		if len(edges) == 0 {
+			return graph.Empty
+		}
+
+		return iterator.NewNodesByEdge(g.nodes, edges)
+	}
+
 	if g.reversed {
 		if len(g.to[id]) == 0 {
 			return graph.Empty

@@ -105,9 +105,9 @@ func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Da
 		return nil, err
 	}
 
-	inputDenominationCounts := getDenominationCounts(transaction)
+	inputDenominationCounts := getDashDenominationCounts(transaction)
 
-	originAmounts := buildSourceAmounts(origins)
+	originAmounts := buildDashSourceAmounts(origins)
 
 	resultClusters := make(map[heuristics.ClusterUID][]db.UIDNode)
 	for k, o := range originAmounts {
