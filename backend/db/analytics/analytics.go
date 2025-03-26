@@ -939,3 +939,42 @@ func GetOutputCountsPerAddress(ctx context.Context, c external.Database, transac
 
 	return r.Counts, nil
 }
+
+// GetCollateralPaymentTimestamps returns for all collateral payment transations its timestamp and input timestamp
+func GetCollateralPaymentTimestamps(ctx context.Context, c external.Database) ([]CollateralPaymentTimestamps, error) {
+	query := `{
+		t as var(func: eq(Transaction.type, "` + constants.TypeDashCP + `"))@cascade{
+			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
+		}
+		
+		q(func: uid(t))@normalize{
+			txhash:txhash
+
+			~transactions{
+				ts:ts
+			}
+		
+			tx_inputs {
+				~tx_outputs{
+					~transactions{
+						input_ts:ts
+					}
+				}
+			}
+		}
+	}`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Counts []CollateralPaymentTimestamps `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return r.Counts, nil
+}
