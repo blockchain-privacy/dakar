@@ -420,7 +420,8 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			SelectorModified:         s.Modified,
 		}
 
-		if s.Type == TypeTxProp {
+		switch s.Type {
+		case TypeTxProp:
 			var opt TxPropOptions
 			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
 				err = serror.NewWithContext(err, "opt", s.Options)
@@ -428,14 +429,14 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			}
 
 			newNode.TxPropOptions = &opt
-		} else if s.Type == TypeTxGraph {
+		case TypeTxGraph:
 			var opt TxGraphOptions
 			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
 				err = serror.NewWithContext(err, "opt", s.Options)
 				return
 			}
 			newNode.TxGraphOptions = &opt
-		} else {
+		default:
 			err = serror.FromStr("invalid selector type")
 			return
 		}

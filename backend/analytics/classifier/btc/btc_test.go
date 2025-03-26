@@ -273,7 +273,7 @@ func Test_isWasabi2Mixing(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.EqualValues(t, !c.shouldFail, isWasabi2Mixing(c.tx))
+		require.Equal(t, !c.shouldFail, isWasabi2Mixing(c.tx))
 	}
 }
 
@@ -386,7 +386,7 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.EqualValues(t, !c.shouldFail, isWhirlpoolMixing(c.tx))
+		require.Equal(t, !c.shouldFail, isWhirlpoolMixing(c.tx))
 	}
 }
 
@@ -599,7 +599,7 @@ func Test_isWhirlpoolOrigin(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.EqualValues(t, !c.shouldFail, isWhirlpoolOrigin(c.tx))
+		require.Equal(t, !c.shouldFail, isWhirlpoolOrigin(c.tx))
 	}
 }
 

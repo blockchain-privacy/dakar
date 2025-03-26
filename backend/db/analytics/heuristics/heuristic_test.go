@@ -11,7 +11,7 @@ func TestCreateKeyHash(t *testing.T) {
 
 	hash2 := createKeyHash(map[string]bool{"a2": true, "a1111": true, "a33": true})
 	require.NotEmpty(t, hash2)
-	require.EqualValues(t, hash1, hash2, "same input elements should create same hash, no matter the order")
+	require.Equal(t, hash1, hash2, "same input elements should create same hash, no matter the order")
 
 	hash3 := createKeyHash(map[string]bool{"a1111": true, "a2": true})
 	require.NotEmpty(t, hash3)

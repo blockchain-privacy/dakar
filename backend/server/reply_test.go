@@ -207,7 +207,7 @@ func Test_getShortestTransactionPathReply(t *testing.T) {
 		reply, status := getShortestTransactionPathReply(dbHandle, tt.r)
 		require.Equal(t, tt.wantStatus, status)
 		if status == http.StatusOK || status == 0 {
-			require.Equal(t, len(tt.wantReply.Transactions), len(reply.Transactions))
+			require.Len(t, reply.Transactions, len(tt.wantReply.Transactions))
 		}
 	}
 }

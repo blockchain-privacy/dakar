@@ -553,7 +553,7 @@ func TestGetSelectorStatus(t *testing.T) {
 
 	status, err := GetSelectorStatus(ctx, dbHandle, selectorUID, workspaceUID, userUID)
 	require.NoError(t, err)
-	require.EqualValues(t, StatusWaiting, status)
+	require.Equal(t, StatusWaiting, status)
 }
 
 func TestDoGraphSelection(t *testing.T) {

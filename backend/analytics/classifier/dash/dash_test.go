@@ -195,7 +195,7 @@ func TestIsMixing(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.EqualValues(t, !c.shouldFail, isMixing(c.tx))
+		require.Equal(t, !c.shouldFail, isMixing(c.tx))
 	}
 }
 
@@ -271,7 +271,7 @@ func TestIsCollateralPayment(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.EqualValues(t, !c.shouldFail, isCollateralPayment(c.tx))
+		require.Equal(t, !c.shouldFail, isCollateralPayment(c.tx))
 	}
 }
 
@@ -480,7 +480,7 @@ func Test_isCollateralCreation(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.EqualValues(t, tt.want, got)
+			require.Equal(t, tt.want, got)
 		}
 	}
 }
@@ -532,7 +532,7 @@ func Test_isCollateralPayment(t *testing.T) {
 		{t: unclassifiedTx, want: false},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.want, isCollateralPayment(tt.t))
+		require.Equal(t, tt.want, isCollateralPayment(tt.t))
 	}
 }
 
@@ -586,7 +586,7 @@ func Test_isMixing(t *testing.T) {
 		{t: unclassifiedTx, want: false},
 	}
 	for _, tt := range tests {
-		require.EqualValues(t, tt.want, isMixing(tt.t))
+		require.Equal(t, tt.want, isMixing(tt.t))
 	}
 }
 
@@ -603,7 +603,7 @@ func Test_newMixingTransaction(t *testing.T) {
 	for _, tt := range tests {
 		tx := newMixingTransaction(tt.uid)
 		require.Equal(t, tt.want.UID, tx.UID)
-		require.EqualValues(t, tt.want.Type, tx.Type)
+		require.Equal(t, tt.want.Type, tx.Type)
 	}
 }
 

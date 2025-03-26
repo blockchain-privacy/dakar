@@ -126,7 +126,7 @@ func scoreMeans(rootMeans []int64, otherMeans []int64) (float64, error) {
 			distance = 0.000001
 		}
 
-		score += 1 / (math.Pow(distance, float64(1)/float64(4)) + 0.01*math.Pow(distance, 3))
+		score += 1 / (math.Pow(distance, float64(1)/float64(4)) + 0.01*distance*distance*distance)
 	}
 
 	return score, nil

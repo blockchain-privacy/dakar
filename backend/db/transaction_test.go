@@ -214,7 +214,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, txHash1, transaction[0].Hash)
 	require.Equal(t, blockHash, transaction[0].BlockHash)
 	require.Equal(t, int64(0), transaction[0].Fee)
-	require.Equal(t, "", transaction[0].Type)
+	require.Empty(t, transaction[0].Type)
 
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638"
@@ -224,7 +224,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, txHash2, transaction[0].Hash)
 	require.Equal(t, blockHash, transaction[0].BlockHash)
 	require.Equal(t, int64(100000), transaction[0].Fee)
-	require.Equal(t, "", transaction[0].Type)
+	require.Empty(t, transaction[0].Type)
 }
 
 func TestGetTransactionBlockID(t *testing.T) {

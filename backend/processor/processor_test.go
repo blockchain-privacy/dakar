@@ -150,7 +150,7 @@ func TestCreateOutputUid(t *testing.T) {
 	if len(outputUID) < 2 {
 		t.Fatal("output uid is too short:", outputUID)
 	}
-	require.EqualValues(t, "_:", outputUID[:2])
+	require.Equal(t, "_:", outputUID[:2])
 }
 
 func TestProcessAddresses(t *testing.T) {

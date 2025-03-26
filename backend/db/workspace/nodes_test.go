@@ -79,7 +79,7 @@ func TestCheckDuplicateAddress(t *testing.T) {
 	duplicateAddress, err := CheckDuplicateAddress(ctx, dbHandle,
 		[]string{addresses[0].UID}, addresses[1].UID)
 	require.NoError(t, err)
-	require.EqualValues(t, addresses[0].UID, duplicateAddress)
+	require.Equal(t, addresses[0].UID, duplicateAddress)
 
 	otherAddress, err := db.GetAddressUIDs(ctx, dbHandle, []string{"Xkti8tVmisBMzmRMAGKVDizk2zVjwWnhAt"})
 	require.NoError(t, err)
