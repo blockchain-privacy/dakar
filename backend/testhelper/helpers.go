@@ -7,7 +7,6 @@ import (
 	_ "embed"
 	"github.com/dgraph-io/dgo/v240"
 	"github.com/dgraph-io/dgo/v240/protos/api"
-	"google.golang.org/grpc"
 	"log"
 	"os"
 	"sync/atomic"
@@ -80,6 +79,11 @@ func (t *TestDB) NewTxn() *dgo.Txn {
 	return t.DB.NewTxn()
 }
 
+// Close shutdown down all the connections to the Dgraph Cluster.
+func (t *TestDB) Close() {
+	t.DB.Close()
+}
+
 func DoDBTests() bool {
 	_, ok := os.LookupEnv(EnvDBTests)
 	return ok
@@ -111,26 +115,25 @@ func SkipIfNoRPC(t testing.TB) {
 
 // setupGraphDB connects the given handel to the database.
 // The returned GRPC connection must be closed by the caller, after all tests are done.
-func setupGraphDB(packageDBHandle *TestDB) *grpc.ClientConn {
+func setupGraphDB(packageDBHandle *TestDB) {
 	dbName, ok := GetDBName()
 	if !ok {
 		log.Fatal("environment variable " + EnvDBHostname + " is not set")
 	}
 	// create dgraph client
-	graphDB, c, err := external.CreateClient(dbName + ":9080")
+	graphDB, err := external.CreateClient(dbName + ":9080")
 	if err != nil {
 		log.Panic(err)
-		return nil
+		return
 	}
 
 	if !external.WaitForDatabase(graphDB) {
 		log.Panic("Could not connect to database", err)
-		return nil
+		return
 	}
 
 	packageDBHandle.DB = graphDB
 	packageDBHandle.IsDirty.Store(true)
-	return c
 }
 
 func setupRPC(client *jsonrpc.BlockchainClient) {
@@ -169,13 +172,8 @@ func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
 // packageDBHandle should be set to the global db interface handle of the package module.
 func RunDgraphTests(m *testing.M, packageDBHandle *TestDB) {
 	if DoDBTests() {
-		c := setupGraphDB(packageDBHandle)
-		defer func(c *grpc.ClientConn) {
-			err := c.Close()
-			if err != nil {
-				log.Panic(err)
-			}
-		}(c)
+		setupGraphDB(packageDBHandle)
+		defer packageDBHandle.Close()
 	}
 
 	m.Run()
@@ -185,13 +183,8 @@ func RunDgraphTests(m *testing.M, packageDBHandle *TestDB) {
 // packageDBHandle should be set to the global db interface handle of the package module.
 func RunDgraphAndRPCTests(m *testing.M, packageDBHandle *TestDB, client *jsonrpc.BlockchainClient) {
 	if DoDBTests() {
-		c := setupGraphDB(packageDBHandle)
-		defer func(c *grpc.ClientConn) {
-			err := c.Close()
-			if err != nil {
-				log.Panic(err)
-			}
-		}(c)
+		setupGraphDB(packageDBHandle)
+		defer packageDBHandle.Close()
 	}
 
 	if DoRPCTests() {

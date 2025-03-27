@@ -178,16 +178,12 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
 	// create dgraph client
-	dgraph, c, err := external.CreateClient(newConfig.DBHost)
+	dgraph, err := external.CreateClient(newConfig.DBHost)
 	if err != nil {
 		warn(err)
 		return
 	}
-	defer func() {
-		if err = c.Close(); err != nil {
-			warn(err)
-		}
-	}()
+	defer dgraph.Close()
 
 	ctx := context.Background()
 

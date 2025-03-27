@@ -39,16 +39,22 @@ func (g *GraphDB) NewTxn() *dgo.Txn {
 	return g.Dgraph.NewTxn()
 }
 
+// Close shutdown down all the connections to the Dgraph Cluster.
+func (g *GraphDB) Close() {
+	g.Dgraph.Close()
+}
+
 // CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
+func CreateClient(endpoint string) (Database, error) {
+	dgraphClient, err := dgo.NewClient(endpoint,
+		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
+		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
 	if err != nil {
 		err = serror.New(err)
-		return nil, conn, err
+		return nil, err
 	}
 
-	return &GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
+	return &GraphDB{Dgraph: dgraphClient}, nil
 }
 
 // WaitForDatabase waits until the database is ready to receive requests

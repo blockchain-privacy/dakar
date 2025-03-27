@@ -206,16 +206,12 @@ func main() {
 
 	////// CONNECT TO DATABASE //////
 
-	graphDB, c, err := external.CreateClient(newConfig.Database.Host)
+	graphDB, err := external.CreateClient(newConfig.Database.Host)
 	if err != nil {
 		warn(err)
 		return
 	}
-	defer func() {
-		if err = c.Close(); err != nil {
-			warn(err)
-		}
-	}()
+	defer graphDB.Close()
 
 	// test if database is active
 	if !external.WaitForDatabase(graphDB) {

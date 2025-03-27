@@ -45,4 +45,6 @@ type Database interface {
 	Alter(ctx context.Context, op *api.Operation) error
 	// NewTxn creates a new transaction.
 	NewTxn() *dgo.Txn
+	// Close shutdown down all the connections to the Dgraph Cluster.
+	Close()
 }
