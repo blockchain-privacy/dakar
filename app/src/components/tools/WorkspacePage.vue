@@ -11,7 +11,6 @@
     >
       <v-btn
         v-if="workspaceList.length > 0"
-        v-model="showSearchField"
         variant="text"
         :icon="display.xs.value"
         @click="showAddWorkspaceDialogModel = true"
@@ -23,10 +22,10 @@
       </v-btn>
       <v-btn
         v-if="workspaceList.length > 0"
-        v-model="showSearchField"
+        :active="showSearchField"
         variant="text"
         icon
-        @click="showSearchButton = !showSearchField"
+        @click="showSearchField = !showSearchField"
       >
         <v-icon>{{ mdiMagnify }}</v-icon>
       </v-btn>
@@ -80,7 +79,7 @@
           hide-details
           autofocus
           style="max-width:800px"
-          @keydown.esc="showSearchButton = false"
+          @keydown.esc="search = ''; showSearchField = false"
         />
       </div>
     </fade-transition>
