@@ -836,6 +836,8 @@ export default class NodeGraph {
 				d3Select(this).attr('y', -(nodeRect.height / 2) - 2);
 			});
 
+		const noteMarkerIncrease = 20;
+
 		entityGroup.append('rect')
 			.classed('note', true)
 			.attr('rx', 3)
@@ -857,10 +859,10 @@ export default class NodeGraph {
 				}
 
 				d3Select(this.parentNode).append('rect')
-					.attr('width', d.width * 2)
-					.attr('height', d.height * 2)
-					.attr('x', -d.width)
-					.attr('y', -d.height)
+					.attr('width', d.width + noteMarkerIncrease)
+					.attr('height', d.height + noteMarkerIncrease)
+					.attr('x', -(d.width + noteMarkerIncrease) / 2)
+					.attr('y', -(d.height + noteMarkerIncrease) / 2)
 					.attr('rx', 3)
 					.attr('ry', 3)
 					.attr('fill', markerColor)
@@ -873,6 +875,7 @@ export default class NodeGraph {
 					.remove();
 			});
 
+		const noteHoverIncrease = 5;
 		const self = this;
 		// Set event handlers
 		entityGroup
@@ -898,10 +901,10 @@ export default class NodeGraph {
 
 				d3Select(this.parentNode).raise();
 				d3Select(this).select('.note').transition().duration(animationDuration)
-					.attr('width', d => d.width * 1.2)
-					.attr('height', d => d.height * 1.2)
-					.attr('x', d => -d.width * 1.2 / 2)
-					.attr('y', d => -d.height * 1.2 / 2);
+					.attr('width', d => d.width + noteHoverIncrease)
+					.attr('height', d => d.height + noteHoverIncrease)
+					.attr('x', d => -(d.width + noteHoverIncrease) / 2)
+					.attr('y', d => -(d.height + noteHoverIncrease) / 2);
 			})
 			.on('mouseleave', function () {
 				if (!self.enableInteractions) {
