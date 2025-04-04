@@ -371,7 +371,7 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 		})
 	}
 
-	if attributions == nil {
+	if len(attributions) == 0 {
 		return
 	}
 
