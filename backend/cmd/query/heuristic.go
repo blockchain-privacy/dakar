@@ -67,6 +67,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 
 	wrapper := graph.NewWrapper(ctx, dgraph)
 	wrapper.SetGraph(g)
+	wrapper.SetReadOnly(true)
 
 	lookbackDurations := []int{12, 24, 48}
 

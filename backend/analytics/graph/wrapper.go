@@ -36,6 +36,10 @@ type Wrapper struct {
 	// isLoading is true if the graph loading was started.
 	// It stays true even if the graphs are finished loading to prevent loading more than once.
 	isLoading bool
+	// isReadOnly is true if the transaction graph can not be modified anymore.
+	// Additionally, if the flag is true, the transactionGraphMutex is not used.
+	// Therefore, the direction of traversals should be the same for all queries.
+	isReadOnly bool
 
 	// transactionGraphMutex acts as a mutex for transactionGraph
 	transactionGraphMutex *sync.RWMutex
@@ -76,9 +80,17 @@ func (w *Wrapper) SetMaxBlocks(int64) {}
 
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded
 func (w *Wrapper) IsTransactionGraphLoaded() bool {
-	w.transactionGraphMutex.RLock()
-	defer w.transactionGraphMutex.RUnlock()
+	if !w.isReadOnly {
+		w.transactionGraphMutex.RLock()
+		defer w.transactionGraphMutex.RUnlock()
+	}
+
 	return w.transactionGraph != nil
+}
+
+// SetReadOnly sets the isReadOnly flag
+func (w *Wrapper) SetReadOnly(flag bool) {
+	w.isReadOnly = flag
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
@@ -87,8 +99,11 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration, maxDe
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
+
+	if !w.isReadOnly {
+		w.transactionGraphMutex.Lock()
+		defer w.transactionGraphMutex.Unlock()
+	}
 
 	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime, maxDepth, addressExclusions, excludeSpendingGaps)
 }
@@ -99,8 +114,10 @@ func (w *Wrapper) ForwardLookup(uid string, maxLookForwardTime time.Duration, ma
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
+	if !w.isReadOnly {
+		w.transactionGraphMutex.Lock()
+		defer w.transactionGraphMutex.Unlock()
+	}
 
 	return ForwardLookup(w.transactionGraph, uid, maxLookForwardTime, maxDepth,
 		addressExclusions, excludeSpendingGaps)
@@ -122,8 +139,10 @@ func (w *Wrapper) PartitionNodesByDirectConnections(nodes []string) ([][]string,
 	}
 
 	// need to write look, because the graph becomes undirected for a short time
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
+	if !w.isReadOnly {
+		w.transactionGraphMutex.Lock()
+		defer w.transactionGraphMutex.Unlock()
+	}
 
 	var partitions [][]string //nolint:prealloc
 	for n := range nodeSet {
@@ -150,21 +169,12 @@ func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, 0, serror.FromStr("transaction graph is not loaded yet")
 	}
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
+	if !w.isReadOnly {
+		w.transactionGraphMutex.Lock()
+		defer w.transactionGraphMutex.Unlock()
+	}
 
 	return SpendingFingerprint(w.transactionGraph, uid)
-}
-
-// GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
-func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
-	if !w.IsTransactionGraphLoaded() {
-		return nil, serror.FromStr("transaction graph is not loaded yet")
-	}
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
-
-	return GetInputTransactions(w.transactionGraph, uid)
 }
 
 // LoadGraphs loads the transaction graph into the wrapper

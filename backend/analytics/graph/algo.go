@@ -191,28 +191,6 @@ func ForwardLookup(g *ReversibleGraph, uid string, maxLookForwardTime time.Durat
 	return origins, err
 }
 
-// GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
-func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
-	// convert hex string to integer
-	nodeUID, err := ToInteger(uid)
-	if err != nil {
-		return nil, err
-	}
-
-	// check if node exists
-	if g.Node(nodeUID) == nil {
-		return nil, ErrNodeNotFound(nodeUID)
-	}
-
-	var uids []string
-	fromNodes := g.From(nodeUID)
-	for fromNodes.Next() {
-		uids = append(uids, fromNodes.Node().(TransactionNode).String())
-	}
-
-	return uids, nil
-}
-
 // getConnectedNodes returns all nodes (including itself) in nodeSet which
 // can be reached via nodeID in both traversal directions.
 func getConnectedNodes(g *ReversibleGraph, nodeUID int64, nodeSet map[int64]bool) ([]int64, error) {
