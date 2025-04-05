@@ -126,7 +126,6 @@ type HeuristicAnalysisModule struct {
 	Active          bool   `yaml:"active"`
 	Filename        string `yaml:"filename"`
 	TransactionType string `yaml:"transactionType"`
-	HeuristicType   string `yaml:"heuristicType"`
 	LookBackHours   int    `yaml:"lookBackHours"`
 }
 
@@ -327,7 +326,7 @@ func main() {
 
 	if cfg.HeuristicAnalysis.Active {
 		doHeuristicAnalysis(ctx, dgraph, g, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType,
-			cfg.HeuristicAnalysis.HeuristicType, cfg.HeuristicAnalysis.LookBackHours)
+			cfg.HeuristicAnalysis.LookBackHours)
 	}
 }
 

@@ -16,7 +16,7 @@ import (
 )
 
 func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
-	g *graph.ReversibleGraph, fileName string, transactionType string, heuristicType string, lookBackHours int) {
+	g *graph.ReversibleGraph, fileName string, transactionType string, lookBackHours int) {
 	info("heuristic analysis starting")
 	if fileName == "" {
 		warn(serror.FromStr("file name is empty"))
@@ -33,14 +33,18 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 		return
 	}
 
+	var txHeuristics []heuristics.Heuristic
 	var mixingTxType string
 	switch transactionType {
 	case constants.TypeDashDestination:
 		mixingTxType = constants.TypeDashMixing
+		txHeuristics = []heuristics.Heuristic{heuristics.NewReverseLookupHeuristic(), heuristics.NewOneSourceHeuristic()}
 	case constants.TypeWasabi2Destination:
 		mixingTxType = constants.TypeWasabi2Mixing
+		txHeuristics = []heuristics.Heuristic{heuristics.NewWasabi2ReverseLookupByTimeHeuristic(), heuristics.NewWasabi2OneSourceByTimeHeuristic()}
 	case constants.TypeWhirlpoolDestination:
 		mixingTxType = constants.TypeWhirlpoolMixing
+		txHeuristics = []heuristics.Heuristic{heuristics.NewWhirlpoolReverseLookupByTimeHeuristic(), heuristics.NewWhirlpoolOneSourceByTimeHeuristic()}
 	default:
 		warn(serror.FromStrWithContext("invalid transaction type", "type", transactionType))
 		return
@@ -67,14 +71,6 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 
 	wrapper := graph.NewWrapper(ctx, dgraph)
 	wrapper.SetGraph(g)
-
-	heuristicConstructor, ok := heuristics.ConstructorMap[heuristicType]
-	if !ok {
-		warn(serror.FromStrWithContext("invalid heuristic type", "type", heuristicType))
-		return
-	}
-
-	h := heuristicConstructor()
 
 	for i := 0; ; i += step {
 		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, i, transactionType)
@@ -106,28 +102,35 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 				sum += t.Amount
 			}
 
-			if err = h.SetConfig(dbh.Options{Parameter: strconv.Itoa(lookBackHours),
-				TransactionHash: destination.Hash}); err != nil {
-				warn(err)
-				return
-			}
-
-			clusters, err := h.Exec(ctx, dgraph, wrapper, "")
-			if err != nil {
-				return
-			}
-
-			var originCount int
-			for _, cluster := range clusters {
-				originCount += len(cluster.Results)
-			}
-
 			// column 1: transaction UID
 			// column 2: transaction timestamp
 			// column 3: input amount
-			// column 4: number of clusters
-			// column 5: number of origins
-			line := []string{destination.UID, ts.Format(time.RFC3339), strconv.FormatInt(sum, 10), strconv.Itoa(len(clusters)), strconv.Itoa(originCount)}
+			// column 4: number of clusters (reverse lookup)
+			// column 5: number of origins (reverse lookup)
+			// column 6: number of clusters (one source)
+			// column 7: number of origins (one source)
+			line := []string{destination.UID, ts.Format(time.RFC3339), strconv.FormatInt(sum, 10)}
+			for _, txHeuristic := range txHeuristics {
+				if err = txHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(lookBackHours),
+					TransactionHash: destination.Hash}); err != nil {
+					warn(err)
+					return
+				}
+
+				clusters, err := txHeuristic.Exec(ctx, dgraph, wrapper, destination.UID)
+				if err != nil {
+					warn(err)
+					return
+				}
+
+				var originCount int
+				for _, cluster := range clusters {
+					originCount += len(cluster.Results)
+				}
+
+				line = append(line, strconv.Itoa(len(clusters)), strconv.Itoa(originCount))
+			}
+
 			if err := w.Write(line); err != nil {
 				warn(err, "msg", "error writing record to file")
 				return

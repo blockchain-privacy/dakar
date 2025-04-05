@@ -147,7 +147,7 @@ type Heuristic interface {
 	fmt.Stringer
 	// Exec executes the heuristic and returns the altered set of origin uids
 	Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
+		parentUID string) ([]heuristics.HeuristicCluster, error)
 	// GetType returns the heuristic type
 	GetType() string
 	// SetConfig applies the provided configuration values

@@ -77,7 +77,7 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// reverseLookupHeuristic applies the following heuristics:
+// Exec of the reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *reverseLookupHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
