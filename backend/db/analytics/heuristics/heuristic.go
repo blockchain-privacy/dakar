@@ -14,47 +14,9 @@ import (
 	"sort"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
-var (
-	errInvalidDatabaseResponse = errors.New("error invalid response")
-)
-
-// DeleteAllHeuristics deletes all heuristics in the database
-func DeleteAllHeuristics(ctx context.Context, c external.Database) error {
-	const query = `
-		{
-			var(func: type(Heuristic)){
-				h as uid
-				hc as Heuristic.clusters{
-					hr as HeuristicCluster.results
-				}
-			}
-		}`
-
-	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .`),
-		}},
-		CommitNow: true,
-	}
-
-	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
-	if err != nil {
-		return err
-	}
-
-	if !db.HasMutationCost(resp) {
-		return serror.New(db.ErrNoMutationHappened)
-	}
-
-	return nil
-}
+var errInvalidDatabaseResponse = errors.New("error invalid response")
 
 // GetHeuristicTransactions returns the connected transactions of heuristic.
 // Only outputs connected to transactions with the given transaction types are included.
