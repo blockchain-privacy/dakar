@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
-	g *graph.ReversibleGraph, fileName string, transactionType string, lookBackHours int) {
+func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph.ReversibleGraph,
+	fileName string, transactionType string) {
 	info("heuristic analysis starting")
 	if fileName == "" {
 		warn(serror.FromStr("file name is empty"))
@@ -25,11 +25,6 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 
 	if transactionType == "" {
 		warn(serror.FromStr("transaction type is empty"))
-		return
-	}
-
-	if lookBackHours == 0 {
-		warn(serror.FromStr("lookback time is zero"))
 		return
 	}
 
@@ -72,7 +67,9 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 	wrapper := graph.NewWrapper(ctx, dgraph)
 	wrapper.SetGraph(g)
 
+	lookbackDurations := []int{12, 24, 48}
 	for i := 0; ; i += step {
+		now := time.Now()
 		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, i, transactionType)
 		if err != nil {
 			warn(err)
@@ -102,33 +99,43 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 				sum += t.Amount
 			}
 
-			// column 1: transaction UID
+			// column 1: transaction hash
 			// column 2: transaction timestamp
 			// column 3: input amount
-			// column 4: number of clusters (reverse lookup)
-			// column 5: number of origins (reverse lookup)
-			// column 6: number of clusters (one source)
-			// column 7: number of origins (one source)
-			line := []string{destination.UID, ts.Format(time.RFC3339), strconv.FormatInt(sum, 10)}
+			// column 4: number of clusters (reverse lookup 12h)
+			// column 5: number of origins (reverse lookup 12h)
+			// column 6: number of clusters (reverse lookup 24h)
+			// column 7: number of origins (reverse lookup 24h)
+			// column 8: number of clusters (reverse lookup 48h)
+			// column 9: number of origins (reverse lookup 48h)
+			// column 10: number of clusters (one source 12h)
+			// column 11: number of origins (one source 12h)
+			// column 12: number of clusters (one source 24h)
+			// column 13: number of origins (one source 24h)
+			// column 14: number of clusters (one source 48h)
+			// column 15: number of origins (one source 48h)
+			line := []string{destination.Hash, ts.Format(time.RFC3339), strconv.FormatInt(sum, 10)}
 			for _, txHeuristic := range txHeuristics {
-				if err = txHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(lookBackHours),
-					TransactionHash: destination.Hash}); err != nil {
-					warn(err)
-					return
-				}
+				for _, duration := range lookbackDurations {
+					if err = txHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
+						TransactionHash: destination.Hash}); err != nil {
+						warn(err)
+						return
+					}
 
-				clusters, err := txHeuristic.Exec(ctx, dgraph, wrapper, destination.UID)
-				if err != nil {
-					warn(err)
-					return
-				}
+					clusters, err := txHeuristic.Exec(ctx, dgraph, wrapper, destination.UID)
+					if err != nil {
+						warn(err)
+						return
+					}
 
-				var originCount int
-				for _, cluster := range clusters {
-					originCount += len(cluster.Results)
-				}
+					var originCount int
+					for _, cluster := range clusters {
+						originCount += len(cluster.Results)
+					}
 
-				line = append(line, strconv.Itoa(len(clusters)), strconv.Itoa(originCount))
+					line = append(line, strconv.Itoa(len(clusters)), strconv.Itoa(originCount))
+				}
 			}
 
 			if err := w.Write(line); err != nil {
@@ -136,6 +143,9 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database,
 				return
 			}
 		}
+
+		info("execution duration", "duration/transactions",
+			time.Since(now)/time.Duration(len(destinations)), "transaction count", len(destinations))
 
 		if len(destinations) < step {
 			break
