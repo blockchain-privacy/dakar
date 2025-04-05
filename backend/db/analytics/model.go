@@ -68,9 +68,19 @@ type ConnectedNode struct {
 	}
 }
 
-// Node holds data for the current node
+// Node holds data of a graph node
 type Node struct {
 	UID             string `json:"uid"`
+	TransactionType string `json:"Transaction.type"`
+	Block           []struct {
+		TS time.Time `json:"ts"`
+	} `json:"block"`
+}
+
+// NodeWithHash holds data of a graph node with transaction hash
+type NodeWithHash struct {
+	UID             string `json:"uid"`
+	Hash            string `json:"txhash"`
 	TransactionType string `json:"Transaction.type"`
 	Block           []struct {
 		TS time.Time `json:"ts"`

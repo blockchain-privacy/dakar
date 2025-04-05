@@ -122,6 +122,38 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 	return r.Q, nil
 }
 
+// GetPrivacyTransactionsWithHash gets the numNodes maxTx classified transactions from the database.
+// Include the transaction hashes.
+func GetPrivacyTransactionsWithHash(ctx context.Context, c external.Database,
+	numNodes int, offsetNodes int, transactionType string) ([]NodeWithHash, error) {
+	const query = `query Q($type:string,$first:int,$offset:int){
+				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
+					uid
+					txhash
+					Transaction.type
+					block:~transactions{
+						ts
+					}
+				}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
+		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
+	if err != nil {
+		return nil, err
+	}
+
+	var r struct {
+		Q []NodeWithHash `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return r.Q, nil
+}
+
 // GetDashTransactionTypeCount gets the number of transaction per dash transaction type
 func GetDashTransactionTypeCount(ctx context.Context, c external.Database) (mixingCount int,
 	originCount int, ccCount int, cpCount int,
