@@ -524,3 +524,49 @@ func GetInputAmounts(ctx context.Context, c external.Database, tx string,
 
 	return
 }
+
+// GetInputAmountsByUID gets the amounts of the inputs.
+// Only inputs produced by transactions with the given transaction types are included.
+func GetInputAmountsByUID(ctx context.Context, c external.Database, uid string,
+	allowedTransactionType string) (transaction HeuristicTransaction, err error) {
+	query := `query Q($uid:string,$type:string){
+				q(func: uid($uid)){
+					uid
+					tx_inputs@cascade{
+						amount
+						~tx_outputs@filter(eq(Transaction.type,$type))
+					}
+				}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": uid, "$type": allowedTransactionType})
+	if err != nil {
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	if len(r.Transaction) != 1 {
+		err = serror.New(errInvalidDatabaseResponse)
+		return
+	}
+
+	t := r.Transaction[0]
+	transaction = HeuristicTransaction{
+		UID:     t.UID,
+		Outputs: t.Outputs,
+	}
+
+	return
+}
