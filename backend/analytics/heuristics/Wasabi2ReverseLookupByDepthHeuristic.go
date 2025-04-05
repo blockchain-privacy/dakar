@@ -19,15 +19,15 @@ type wasabi2ReverseLookupByDepthHeuristic struct {
 	depth         int
 }
 
-func newWasabi2ReverseLookupByDepthHeuristic() heuristic {
+func NewWasabi2ReverseLookupByDepthHeuristic() Heuristic {
 	return &wasabi2ReverseLookupByDepthHeuristic{heuristicType: heuristicTypeWasabi2ReverseLookupByDepth}
 }
 
-func (h *wasabi2ReverseLookupByDepthHeuristic) getType() string {
+func (h *wasabi2ReverseLookupByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2ReverseLookupByDepthHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2ReverseLookupByDepthHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -47,7 +47,7 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) setConfig(c heuristics.Options) e
 	return nil
 }
 
-func (h *wasabi2ReverseLookupByDepthHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2ReverseLookupByDepthHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -73,9 +73,9 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2ReverseLookupByDepthHeuristic applies the following heuristics:
+// Exec of the wasabi2ReverseLookupByDepthHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *wasabi2ReverseLookupByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+func (h *wasabi2ReverseLookupByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	return reverseLookup(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c, constants.TypeWasabi2Mixing)
 }

@@ -22,15 +22,15 @@ type forwardAmountHeuristic struct {
 	lookForwardTime time.Duration
 }
 
-func newForwardAmountHeuristic() heuristic {
+func NewForwardAmountHeuristic() Heuristic {
 	return &forwardAmountHeuristic{heuristicType: heuristicTypeForwardAmount}
 }
 
-func (h *forwardAmountHeuristic) getType() string {
+func (h *forwardAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
+func (h *forwardAmountHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -50,7 +50,7 @@ func (h *forwardAmountHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *forwardAmountHeuristic) getConfig() heuristics.Options {
+func (h *forwardAmountHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -75,9 +75,9 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// forwardAmountHeuristic applies the following heuristic:
+// Exec of the forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *forwardAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *forwardAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil

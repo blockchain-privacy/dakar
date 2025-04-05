@@ -17,15 +17,15 @@ type wasabi2ReverseAmountHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWasabi2ReverseAmountHeuristic() heuristic {
+func NewWasabi2ReverseAmountHeuristic() Heuristic {
 	return &wasabi2ReverseAmountHeuristic{heuristicType: heuristicTypeWasabi2ReverseAmount}
 }
 
-func (h *wasabi2ReverseAmountHeuristic) getType() string {
+func (h *wasabi2ReverseAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2ReverseAmountHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2ReverseAmountHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -39,7 +39,7 @@ func (h *wasabi2ReverseAmountHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *wasabi2ReverseAmountHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2ReverseAmountHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -58,9 +58,9 @@ func (h *wasabi2ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2ReverseAmountHeuristic applies the following heuristic:
+// Exec of the wasabi2ReverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
-func (h *wasabi2ReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
+func (h *wasabi2ReverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

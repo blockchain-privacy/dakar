@@ -19,15 +19,15 @@ type wasabi2ForwardLookupByTimeHeuristic struct {
 	lookForwardTime time.Duration
 }
 
-func newWasabi2ForwardLookupByTimeHeuristic() heuristic {
+func NewWasabi2ForwardLookupByTimeHeuristic() Heuristic {
 	return &wasabi2ForwardLookupByTimeHeuristic{heuristicType: heuristicTypeWasabi2ForwardLookupByTime}
 }
 
-func (h *wasabi2ForwardLookupByTimeHeuristic) getType() string {
+func (h *wasabi2ForwardLookupByTimeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2ForwardLookupByTimeHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2ForwardLookupByTimeHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -47,7 +47,7 @@ func (h *wasabi2ForwardLookupByTimeHeuristic) setConfig(c heuristics.Options) er
 	return nil
 }
 
-func (h *wasabi2ForwardLookupByTimeHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2ForwardLookupByTimeHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -72,9 +72,9 @@ func (h *wasabi2ForwardLookupByTimeHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2ForwardLookupByTimeHeuristic finds all destination transactions connected the given
+// Exec of the wasabi2ForwardLookupByTimeHeuristic finds all destination transactions connected the given
 // transaction by traversing the mixing graph forward limited by time.
-func (h *wasabi2ForwardLookupByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+func (h *wasabi2ForwardLookupByTimeHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, h.lookForwardTime, 0, h.c)
 }

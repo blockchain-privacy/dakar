@@ -18,15 +18,15 @@ type denominationTypeHeuristic struct {
 	c             heuristics.Options
 }
 
-func newDenominationTypeHeuristic() heuristic {
+func NewDenominationTypeHeuristic() Heuristic {
 	return &denominationTypeHeuristic{heuristicType: heuristicTypeDenominationType}
 }
 
-func (h *denominationTypeHeuristic) getType() string {
+func (h *denominationTypeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *denominationTypeHeuristic) setConfig(c heuristics.Options) error {
+func (h *denominationTypeHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -40,7 +40,7 @@ func (h *denominationTypeHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *denominationTypeHeuristic) getConfig() heuristics.Options {
+func (h *denominationTypeHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -63,10 +63,10 @@ func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// denominationTypeHeuristic applies the following heuristic:
+// Exec of the denominationTypeHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations of types which do not occur in the
 //     denominations of the destination transaction
-func (h *denominationTypeHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
+func (h *denominationTypeHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

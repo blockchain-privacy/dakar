@@ -22,15 +22,15 @@ type whirlpoolOneSourceByTimeHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWhirlpoolOneSourceByTimeHeuristic() heuristic {
+func NewWhirlpoolOneSourceByTimeHeuristic() Heuristic {
 	return &whirlpoolOneSourceByTimeHeuristic{heuristicType: heuristicTypeWhirlpoolOneSourceByTime}
 }
 
-func (h *whirlpoolOneSourceByTimeHeuristic) getType() string {
+func (h *whirlpoolOneSourceByTimeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolOneSourceByTimeHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolOneSourceByTimeHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -50,7 +50,7 @@ func (h *whirlpoolOneSourceByTimeHeuristic) setConfig(c heuristics.Options) erro
 	return nil
 }
 
-func (h *whirlpoolOneSourceByTimeHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolOneSourceByTimeHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -79,12 +79,12 @@ func (h *whirlpoolOneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// whirlpoolOneSourceByTimeHeuristic applies the following heuristics:
+// Exec of the whirlpoolOneSourceByTimeHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by lookBackTime
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *whirlpoolOneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *whirlpoolOneSourceByTimeHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	return whirlpoolOnceSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
 }

@@ -19,15 +19,15 @@ type whirlpoolReverseLookupByDepthHeuristic struct {
 	depth         int
 }
 
-func newWhirlpoolReverseLookupByDepthHeuristic() heuristic {
+func NewWhirlpoolReverseLookupByDepthHeuristic() Heuristic {
 	return &whirlpoolReverseLookupByDepthHeuristic{heuristicType: heuristicTypeWhirlpoolReverseLookupByDepth}
 }
 
-func (h *whirlpoolReverseLookupByDepthHeuristic) getType() string {
+func (h *whirlpoolReverseLookupByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolReverseLookupByDepthHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolReverseLookupByDepthHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -47,7 +47,7 @@ func (h *whirlpoolReverseLookupByDepthHeuristic) setConfig(c heuristics.Options)
 	return nil
 }
 
-func (h *whirlpoolReverseLookupByDepthHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolReverseLookupByDepthHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -73,9 +73,9 @@ func (h *whirlpoolReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// whirlpoolReverseLookupByDepthHeuristic applies the following heuristics:
+// Exec of the whirlpoolReverseLookupByDepthHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *whirlpoolReverseLookupByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+func (h *whirlpoolReverseLookupByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	return reverseLookup(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c, constants.TypeWhirlpoolMixing)
 }

@@ -19,15 +19,15 @@ type whirlpoolReverseAmountHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWhirlpoolReverseAmountHeuristic() heuristic {
+func NewWhirlpoolReverseAmountHeuristic() Heuristic {
 	return &whirlpoolReverseAmountHeuristic{heuristicType: heuristicTypeWhirlpoolReverseAmount}
 }
 
-func (h *whirlpoolReverseAmountHeuristic) getType() string {
+func (h *whirlpoolReverseAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolReverseAmountHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolReverseAmountHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -41,7 +41,7 @@ func (h *whirlpoolReverseAmountHeuristic) setConfig(c heuristics.Options) error 
 	return nil
 }
 
-func (h *whirlpoolReverseAmountHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolReverseAmountHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -60,9 +60,9 @@ func (h *whirlpoolReverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// whirlpoolReverseAmountHeuristic applies the following heuristic:
+// Exec of the whirlpoolReverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
-func (h *whirlpoolReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *whirlpoolReverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

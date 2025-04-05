@@ -18,15 +18,15 @@ type reverseAmountHeuristic struct {
 	c             heuristics.Options
 }
 
-func newReverseAmountHeuristic() heuristic {
+func NewReverseAmountHeuristic() Heuristic {
 	return &reverseAmountHeuristic{heuristicType: heuristicTypeReverseAmount}
 }
 
-func (h *reverseAmountHeuristic) getType() string {
+func (h *reverseAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *reverseAmountHeuristic) setConfig(c heuristics.Options) error {
+func (h *reverseAmountHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -40,7 +40,7 @@ func (h *reverseAmountHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *reverseAmountHeuristic) getConfig() heuristics.Options {
+func (h *reverseAmountHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -58,9 +58,9 @@ func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// reverseAmountHeuristic applies the following heuristic:
+// Exec of the reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
-func (h *reverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
+func (h *reverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
 	if err != nil {

@@ -18,15 +18,15 @@ type wasabi2OneSourceByDepthHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWasabi2OneSourceByDepthHeuristic() heuristic {
+func NewWasabi2OneSourceByDepthHeuristic() Heuristic {
 	return &wasabi2OneSourceByDepthHeuristic{heuristicType: heuristicTypeWasabi2OneSourceByDepth}
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) getType() string {
+func (h *wasabi2OneSourceByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2OneSourceByDepthHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -46,7 +46,7 @@ func (h *wasabi2OneSourceByDepthHeuristic) setConfig(c heuristics.Options) error
 	return nil
 }
 
-func (h *wasabi2OneSourceByDepthHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2OneSourceByDepthHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -75,12 +75,12 @@ func (h *wasabi2OneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2OneSourceByDepthHeuristic applies the following heuristics:
+// Exec of the wasabi2OneSourceByDepthHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by depth
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *wasabi2OneSourceByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *wasabi2OneSourceByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	return wasabi2OneSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
 }

@@ -22,15 +22,15 @@ type wasabi2OneSourceByTimeHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWasabi2OneSourceByTimeHeuristic() heuristic {
+func NewWasabi2OneSourceByTimeHeuristic() Heuristic {
 	return &wasabi2OneSourceByTimeHeuristic{heuristicType: heuristicTypeWasabi2OneSourceByTime}
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) getType() string {
+func (h *wasabi2OneSourceByTimeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2OneSourceByTimeHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -50,7 +50,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) setConfig(c heuristics.Options) error 
 	return nil
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2OneSourceByTimeHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -79,12 +79,12 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2OneSourceByTimeHeuristic applies the following heuristics:
+// Exec of the wasabi2OneSourceByTimeHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by lookBackTime
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *wasabi2OneSourceByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *wasabi2OneSourceByTimeHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	return wasabi2OneSource(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c)
 }

@@ -20,15 +20,15 @@ type wasabi2ReverseLookupByTimeHeuristic struct {
 	lookBackTime  time.Duration
 }
 
-func newWasabi2ReverseLookupByTimeHeuristic() heuristic {
+func NewWasabi2ReverseLookupByTimeHeuristic() Heuristic {
 	return &wasabi2ReverseLookupByTimeHeuristic{heuristicType: heuristicTypeWasabi2ReverseLookupByTime}
 }
 
-func (h *wasabi2ReverseLookupByTimeHeuristic) getType() string {
+func (h *wasabi2ReverseLookupByTimeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2ReverseLookupByTimeHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2ReverseLookupByTimeHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -48,7 +48,7 @@ func (h *wasabi2ReverseLookupByTimeHeuristic) setConfig(c heuristics.Options) er
 	return nil
 }
 
-func (h *wasabi2ReverseLookupByTimeHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2ReverseLookupByTimeHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -74,9 +74,9 @@ func (h *wasabi2ReverseLookupByTimeHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2ReverseLookupByTimeHeuristic applies the following heuristics:
+// Exec of the wasabi2ReverseLookupByTimeHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h *wasabi2ReverseLookupByTimeHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+func (h *wasabi2ReverseLookupByTimeHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	return reverseLookup(ctx, dgraph, g, parentHeuristicUID, h.lookBackTime, 0, h.c, constants.TypeWasabi2Mixing)
 }

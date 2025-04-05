@@ -22,15 +22,15 @@ type oneSourceHeuristic struct {
 	c             heuristics.Options
 }
 
-func newOneSourceHeuristic() heuristic {
+func NewOneSourceHeuristic() Heuristic {
 	return &oneSourceHeuristic{heuristicType: heuristicTypeOneSource}
 }
 
-func (h *oneSourceHeuristic) getType() string {
+func (h *oneSourceHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
+func (h *oneSourceHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -50,7 +50,7 @@ func (h *oneSourceHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *oneSourceHeuristic) getConfig() heuristics.Options {
+func (h *oneSourceHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -84,12 +84,12 @@ type txAndOrigins struct {
 	origins          []heuristics.HeuristicTransaction
 }
 
-// oneSourceHeuristic applies the following heuristics:
+// Exec of the oneSourceHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by lookBackTime
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *oneSourceHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
+func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
 		return nil, nil

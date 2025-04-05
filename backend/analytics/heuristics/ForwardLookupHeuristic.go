@@ -21,15 +21,15 @@ type forwardHeuristic struct {
 	lookForwardTime time.Duration
 }
 
-func newForwardLookupHeuristic() heuristic {
+func NewForwardLookupHeuristic() Heuristic {
 	return &forwardHeuristic{heuristicType: heuristicTypeForwardLookup}
 }
 
-func (h *forwardHeuristic) getType() string {
+func (h *forwardHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *forwardHeuristic) setConfig(c heuristics.Options) error {
+func (h *forwardHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -49,7 +49,7 @@ func (h *forwardHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *forwardHeuristic) getConfig() heuristics.Options {
+func (h *forwardHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -74,9 +74,9 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// forwardLookupHeuristic finds all destination transactions connected the given
+// Exec of the forwardLookupHeuristic finds all destination transactions connected the given
 // transaction by traversing the mixing graph forward limited by time.
-func (h *forwardHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+func (h *forwardHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, h.lookForwardTime, 0, h.c)
 }
