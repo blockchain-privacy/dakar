@@ -95,20 +95,22 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 
 			// column 1: transaction hash
 			// column 2: transaction timestamp
-			// column 3: input amount
-			// column 4: number of clusters (reverse lookup 12h)
-			// column 5: number of origins (reverse lookup 12h)
-			// column 6: number of clusters (reverse lookup 24h)
-			// column 7: number of origins (reverse lookup 24h)
-			// column 8: number of clusters (reverse lookup 48h)
-			// column 9: number of origins (reverse lookup 48h)
-			// column 10: number of clusters (one source 12h)
-			// column 11: number of origins (one source 12h)
-			// column 12: number of clusters (one source 24h)
-			// column 13: number of origins (one source 24h)
-			// column 14: number of clusters (one source 48h)
-			// column 15: number of origins (one source 48h)
-			line := []string{destination.Hash, ts.Format(time.RFC3339), strconv.FormatInt(sum, 10)}
+			// column 3: input count (only mixing)
+			// column 4: input amount
+			// column 5: number of clusters (reverse lookup 12h)
+			// column 6: number of origins (reverse lookup 12h)
+			// column 7: number of clusters (reverse lookup 24h)
+			// column 8: number of origins (reverse lookup 24h)
+			// column 9: number of clusters (reverse lookup 48h)
+			// column 10: number of origins (reverse lookup 48h)
+			// column 11: number of clusters (one source 12h)
+			// column 12: number of origins (one source 12h)
+			// column 13: number of clusters (one source 24h)
+			// column 14: number of origins (one source 24h)
+			// column 15: number of clusters (one source 48h)
+			// column 16: number of origins (one source 48h)
+			line := []string{destination.Hash, ts.Format(time.RFC3339),
+				strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
 			for _, txHeuristic := range txHeuristics {
 				for _, duration := range lookbackDurations {
 					if err = txHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
