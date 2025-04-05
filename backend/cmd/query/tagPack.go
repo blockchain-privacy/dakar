@@ -5,8 +5,8 @@ import (
 	"backend/cmd/cliutil"
 	"backend/external"
 	"context"
+	"github.com/goccy/go-yaml"
 	"github.com/qrest/gomisc/serror"
-	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
 )

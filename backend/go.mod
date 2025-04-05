@@ -5,12 +5,12 @@ go 1.24.0
 require (
 	github.com/btcsuite/btcd v0.24.2
 	github.com/dgraph-io/dgo/v240 v240.2.0
+	github.com/goccy/go-yaml v1.17.1
 	github.com/prometheus/client_golang v1.21.1
-	github.com/qrest/gomisc v0.0.20
+	github.com/qrest/gomisc v0.0.21
 	github.com/stretchr/testify v1.10.0
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/grpc v1.71.1
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -38,6 +38,7 @@ require (
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250404141209-ee84b53bf3d0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
