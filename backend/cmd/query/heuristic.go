@@ -114,15 +114,17 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 				line := []string{destination.Hash, destination.Block[0].TS.Format(time.RFC3339),
 					strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
 				for _, txHeuristic := range txHeuristics {
+					// copy heuristic so goroutines don't change config of each other
+					thisHeuristic := txHeuristic
 					for _, duration := range lookbackDurations {
-						if err = txHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
+						if err = thisHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
 							TransactionHash: destination.Hash}); err != nil {
 							cancel()
 							warn(err)
 							return
 						}
 
-						clusters, err := txHeuristic.Exec(ctx, dgraph, wrapper, destination.UID)
+						clusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID)
 						if err != nil {
 							cancel()
 							warn(err)
