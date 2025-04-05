@@ -74,11 +74,13 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	workContext, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	const routineCount = 100
+
 	// work on jobs
-	jobs := make(chan analytics.NodeWithHash, 100)
-	results := make(chan []string, 100)
+	jobs := make(chan analytics.NodeWithHash, routineCount*10)
+	results := make(chan []string, routineCount*10)
 	wg := sync.WaitGroup{}
-	for range 15 {
+	for range routineCount {
 		wg.Add(1)
 		go func(jobs <-chan analytics.NodeWithHash, results chan<- []string) {
 			defer wg.Done()
