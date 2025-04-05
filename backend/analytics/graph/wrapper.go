@@ -221,19 +221,22 @@ func (w *Wrapper) LoadGraphs(config Config) error {
 	}
 
 	txGraph, err := LoadTransactionGraph(ctx, config, w.db, numTxToLoad)
-	if errors.Is(err, ErrDBContainsNoClassifiedTransactions) {
-		return nil
-	}
-
 	if err != nil {
+		if errors.Is(err, ErrDBContainsNoClassifiedTransactions) {
+			return nil
+		}
 		return err
 	}
 
+	w.SetGraph(txGraph)
+
+	return nil
+}
+
+func (w *Wrapper) SetGraph(txGraph *ReversibleGraph) {
 	w.transactionGraphMutex.Lock()
 	w.transactionGraph = txGraph
 	w.transactionGraphMutex.Unlock()
-
-	return nil
 }
 
 // ------------ Block Iterator interface methods ------------
