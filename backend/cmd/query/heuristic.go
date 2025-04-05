@@ -70,7 +70,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	lookbackDurations := []int{12, 24, 48}
 	for i := 0; ; i += step {
 		now := time.Now()
-		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, i, transactionType)
+		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, i, transactionType, mixingTxType)
 		if err != nil {
 			warn(err)
 			return
@@ -88,14 +88,8 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 				continue
 			}
 
-			tx, err := dbh.GetInputAmounts(ctx, dgraph, destination.Hash, mixingTxType)
-			if err != nil {
-				warn(err)
-				return
-			}
-
 			var sum int64
-			for _, t := range tx.Outputs {
+			for _, t := range destination.Outputs {
 				sum += t.Amount
 			}
 

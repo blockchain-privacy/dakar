@@ -123,10 +123,10 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 }
 
 // GetPrivacyTransactionsWithHash gets the numNodes maxTx classified transactions from the database.
-// Include the transaction hashes.
+// Includes the transaction hashes and input amounts connected .
 func GetPrivacyTransactionsWithHash(ctx context.Context, c external.Database,
-	numNodes int, offsetNodes int, transactionType string) ([]NodeWithHash, error) {
-	const query = `query Q($type:string,$first:int,$offset:int){
+	numNodes int, offsetNodes int, transactionType string, connectionTransactionType string) ([]NodeWithHash, error) {
+	const query = `query Q($type:string,$connectionType:string,$first:int,$offset:int){
 				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
 					uid
 					txhash
@@ -134,10 +134,15 @@ func GetPrivacyTransactionsWithHash(ctx context.Context, c external.Database,
 					block:~transactions{
 						ts
 					}
+					tx_inputs@cascade{
+						amount
+						~tx_outputs@filter(eq(Transaction.type,$connectionType))
+					}
 				}
 			  }`
 
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{
+		"$type": transactionType, "$connectionType": connectionTransactionType,
 		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
 	if err != nil {
 		return nil, err
