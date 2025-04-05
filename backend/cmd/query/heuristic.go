@@ -29,18 +29,18 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 		return
 	}
 
-	var txHeuristics []heuristics.Heuristic
+	var txHeuristics []heuristics.HeuristicConstructor
 	var mixingTxType string
 	switch transactionType {
 	case constants.TypeDashDestination:
 		mixingTxType = constants.TypeDashMixing
-		txHeuristics = []heuristics.Heuristic{heuristics.NewReverseLookupHeuristic(), heuristics.NewOneSourceHeuristic()}
+		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewReverseLookupHeuristic, heuristics.NewOneSourceHeuristic}
 	case constants.TypeWasabi2Destination:
 		mixingTxType = constants.TypeWasabi2Mixing
-		txHeuristics = []heuristics.Heuristic{heuristics.NewWasabi2ReverseLookupByTimeHeuristic(), heuristics.NewWasabi2OneSourceByTimeHeuristic()}
+		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewWasabi2ReverseLookupByTimeHeuristic, heuristics.NewWasabi2OneSourceByTimeHeuristic}
 	case constants.TypeWhirlpoolDestination:
 		mixingTxType = constants.TypeWhirlpoolMixing
-		txHeuristics = []heuristics.Heuristic{heuristics.NewWhirlpoolReverseLookupByTimeHeuristic(), heuristics.NewWhirlpoolOneSourceByTimeHeuristic()}
+		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewWhirlpoolReverseLookupByTimeHeuristic, heuristics.NewWhirlpoolOneSourceByTimeHeuristic}
 	default:
 		warn(serror.FromStrWithContext("invalid transaction type", "type", transactionType))
 		return
@@ -74,7 +74,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	workContext, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	const goroutineCount = 200
+	const goroutineCount = 100
 
 	// work on jobs
 	jobs := make(chan analytics.NodeWithHash, goroutineCount*10)
@@ -114,8 +114,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 				line := []string{destination.Hash, destination.Block[0].TS.Format(time.RFC3339),
 					strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
 				for _, txHeuristic := range txHeuristics {
-					// copy heuristic so goroutines don't change config of each other
-					thisHeuristic := txHeuristic
+					thisHeuristic := txHeuristic()
 					for _, duration := range lookbackDurations {
 						if err = thisHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
 							TransactionHash: destination.Hash}); err != nil {

@@ -20,9 +20,9 @@ import (
 	"time"
 )
 
-type heuristicConstructor func() Heuristic
+type HeuristicConstructor func() Heuristic
 
-var ConstructorMap = make(map[string]heuristicConstructor)
+var ConstructorMap = make(map[string]HeuristicConstructor)
 
 var (
 	errHeuristicNotValid = errors.New("error heuristics are not valid")
@@ -81,7 +81,7 @@ const (
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
-	var validHeuristicTypes = []heuristicConstructor{
+	var validHeuristicTypes = []HeuristicConstructor{
 		// Dash
 		NewOneSourceHeuristic,
 		NewReverseAmountHeuristic,
