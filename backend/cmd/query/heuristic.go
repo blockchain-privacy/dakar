@@ -77,7 +77,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	jobs := make(chan analytics.NodeWithHash, 100)
 	results := make(chan []string, 100)
 	wg := sync.WaitGroup{}
-	for range 7 {
+	for range 15 {
 		wg.Add(1)
 		go func(jobs <-chan analytics.NodeWithHash, results chan<- []string) {
 			defer wg.Done()
@@ -183,9 +183,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 			case <-workContext.Done():
 				return
 			case jobs <- destination:
-			default:
 			}
-
 		}
 
 		info("execution duration", "duration/transactions",
