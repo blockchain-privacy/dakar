@@ -77,8 +77,8 @@ func (h *forwardHeuristic) GetDescriptor() Descriptor {
 // Exec of the forwardLookupHeuristic finds all destination transactions connected the given
 // transaction by traversing the mixing graph forward limited by time.
 func (h *forwardHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, h.lookForwardTime, 0, h.c)
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return forwardLookup(ctx, dgraph, g, parentUID, h.lookForwardTime, 0, h.c)
 }
 
 func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,

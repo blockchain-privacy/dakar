@@ -123,7 +123,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 							return
 						}
 
-						clusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID)
+						clusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID, nil)
 						if err != nil {
 							cancel()
 							warn(err)

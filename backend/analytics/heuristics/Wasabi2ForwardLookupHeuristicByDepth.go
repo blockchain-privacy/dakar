@@ -74,6 +74,6 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) GetDescriptor() Descriptor {
 // Exec of the wasabi2ForwardLookupByDepthHeuristic finds all destination transactions connected the given
 // transaction by traversing the mixing graph forward limited by depth.
 func (h *wasabi2ForwardLookupByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return forwardLookup(ctx, dgraph, g, parentUID, 0, h.depth, h.c)
 }

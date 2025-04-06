@@ -76,6 +76,6 @@ func (h *whirlpoolReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 // Exec of the whirlpoolReverseLookupByDepthHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h *whirlpoolReverseLookupByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return reverseLookup(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c, constants.TypeWhirlpoolMixing)
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return reverseLookup(ctx, dgraph, g, parentUID, 0, h.depth, h.c, constants.TypeWhirlpoolMixing)
 }

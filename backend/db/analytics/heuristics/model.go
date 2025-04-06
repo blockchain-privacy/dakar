@@ -34,7 +34,7 @@ type HeuristicTransaction struct {
 	Timestamp time.Time `json:"ts,omitempty"`
 	// Cluster holds the cluster associated with this transaction.
 	// Depending on the context this could be the cluster of an input or an output
-	Cluster ClusterUID
+	Cluster ClusterUID `json:"-"`
 	// Outputs holds a slice of amounts.
 	// Depending on the context this could be the input or the output amounts.
 	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`

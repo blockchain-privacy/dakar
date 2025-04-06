@@ -62,9 +62,9 @@ func (h *perfectMatchHeuristic) String() string {
 // Exec of the perfectMatchHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations without a perfect match for the
 //     denominations of the destination transaction
-func (h *perfectMatchHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+func (h *perfectMatchHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentUID string,
+	_ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (h *perfectMatchHeuristic) Exec(ctx context.Context, dgraph external.Databa
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
 		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err

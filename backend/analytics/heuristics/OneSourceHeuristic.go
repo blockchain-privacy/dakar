@@ -89,13 +89,13 @@ type txAndOrigins struct {
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
-	[]heuristics.HeuristicCluster, error) {
+func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentUID string,
+	_ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
 	if h.lookBackTime == 0 {
 		return nil, nil
 	}
 
-	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
 	if err != nil {
 		return nil, err
 	}

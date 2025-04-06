@@ -74,7 +74,7 @@ func (h *wasabi2ForwardLookupByTimeHeuristic) GetDescriptor() Descriptor {
 
 // Exec of the wasabi2ForwardLookupByTimeHeuristic finds all destination transactions connected the given
 // transaction by traversing the mixing graph forward limited by time.
-func (h *wasabi2ForwardLookupByTimeHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, h.lookForwardTime, 0, h.c)
+func (h *wasabi2ForwardLookupByTimeHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentUID string,
+	_ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return forwardLookup(ctx, dgraph, g, parentUID, h.lookForwardTime, 0, h.c)
 }

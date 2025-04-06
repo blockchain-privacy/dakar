@@ -77,13 +77,13 @@ func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 
 // Exec of the forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *forwardAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
-	[]heuristics.HeuristicCluster, error) {
+func (h *forwardAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
 	if h.lookForwardTime == 0 {
 		return nil, nil
 	}
 
-	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
 	if err != nil {
 		return nil, err
 	}

@@ -67,8 +67,8 @@ func (h *denominationTypeHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of sources, which have denominations of types which do not occur in the
 //     denominations of the destination transaction
 func (h *denominationTypeHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (h *denominationTypeHeuristic) Exec(ctx context.Context, dgraph external.Da
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
 		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err

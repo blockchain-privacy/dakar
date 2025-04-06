@@ -80,7 +80,7 @@ func (h *wasabi2OneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *wasabi2OneSourceByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
-	[]heuristics.HeuristicCluster, error) {
-	return wasabi2OneSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+func (h *wasabi2OneSourceByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return wasabi2OneSource(ctx, dgraph, g, parentUID, 0, h.depth, h.c)
 }

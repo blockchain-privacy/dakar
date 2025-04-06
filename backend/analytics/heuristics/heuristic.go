@@ -145,9 +145,10 @@ type Descriptor struct {
 
 type Heuristic interface {
 	fmt.Stringer
-	// Exec executes the heuristic and returns the altered set of origin uids
-	Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-		parentUID string) ([]heuristics.HeuristicCluster, error)
+	// Exec executes the heuristic and returns the altered set of origin uids.
+	// If parentResults is unset, parentUID is used to access the results of the parent heuristic if applicable
+	Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentUID string,
+		parentResults []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error)
 	// GetType returns the heuristic type
 	GetType() string
 	// SetConfig applies the provided configuration values
@@ -461,7 +462,7 @@ func IsConfigValid(config heuristics.Options) error {
 
 // Run starts the execution of the given heuristic executor.
 func (hx Executor) Run(ctx context.Context, dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
-	heuristicClusters, err := hx.thisHeuristic.Exec(ctx, dgraph, g, hx.rootUID)
+	heuristicClusters, err := hx.thisHeuristic.Exec(ctx, dgraph, g, hx.rootUID, nil)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return nil, err
 	}
@@ -495,4 +496,29 @@ func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode,
 	}
 
 	return resultCluster
+}
+
+// getHeuristicTransactions returns the provided transactions with a cluster UID and their output amounts
+func getHeuristicTransactions(ctx context.Context, dgraph external.Database, clusters []heuristics.HeuristicCluster,
+	allowedTransactionType string) ([]heuristics.HeuristicTransaction, error) {
+	var txUIDs []string
+	uidToCluster := map[string]heuristics.ClusterUID{}
+	for i, cluster := range clusters {
+		cUID := heuristics.ClusterUID(strconv.Itoa(i))
+		for _, result := range cluster.Results {
+			txUIDs = append(txUIDs, result.UID)
+			uidToCluster[result.UID] = cUID
+		}
+	}
+
+	transactions, err := heuristics.GetHeuristicTransactionsOutputs(ctx, dgraph, txUIDs, allowedTransactionType)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, t := range transactions {
+		transactions[i].Cluster = uidToCluster[t.UID]
+	}
+
+	return transactions, nil
 }

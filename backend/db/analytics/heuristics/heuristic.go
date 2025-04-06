@@ -84,6 +84,37 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 	return
 }
 
+// GetHeuristicTransactionsOutputs returns the requested transaction with their output amounts
+func GetHeuristicTransactionsOutputs(ctx context.Context, c external.Database, txUIDs []string,
+	allowedTransactionType string) ([]HeuristicTransaction, error) {
+	query := `query Q($txUIDs:string,$type:string) {
+				q(func: uid($txUIDs)){
+					uid
+					tx_outputs@cascade{
+						amount
+						~tx_inputs@filter(eq(Transaction.type,$type))
+					}
+			  	}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txUIDs": db.CreateCommaArray(txUIDs),
+		"$type": allowedTransactionType})
+	if err != nil {
+		return nil, err
+	}
+
+	// json struct
+	var r struct {
+		Transactions []HeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return r.Transactions, nil
+}
+
 // GetInputTransactions returns the input mixing transactions of the given transaction.
 func GetInputTransactions(ctx context.Context, c external.Database,
 	tx string, allowedTransactionType string) (inputTransactions []HeuristicTransaction, err error) {
