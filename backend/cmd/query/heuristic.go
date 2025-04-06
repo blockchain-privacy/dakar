@@ -29,20 +29,9 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 		return
 	}
 
-	var txHeuristics []heuristics.HeuristicConstructor
-	var mixingTxType string
-	switch transactionType {
-	case constants.TypeDashDestination:
-		mixingTxType = constants.TypeDashMixing
-		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewReverseLookupHeuristic, heuristics.NewOneSourceHeuristic}
-	case constants.TypeWasabi2Destination:
-		mixingTxType = constants.TypeWasabi2Mixing
-		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewWasabi2ReverseLookupByTimeHeuristic, heuristics.NewWasabi2OneSourceByTimeHeuristic}
-	case constants.TypeWhirlpoolDestination:
-		mixingTxType = constants.TypeWhirlpoolMixing
-		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewWhirlpoolReverseLookupByTimeHeuristic, heuristics.NewWhirlpoolOneSourceByTimeHeuristic}
-	default:
-		warn(serror.FromStrWithContext("invalid transaction type", "type", transactionType))
+	txHeuristics, reverseAmountHeuristic, mixingTxType, err := getConstructors(transactionType)
+	if err != nil {
+		warn(err)
 		return
 	}
 
@@ -113,9 +102,16 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 				// column 16: number of origins (one source 48h)
 				line := []string{destination.Hash, destination.Block[0].TS.Format(time.RFC3339),
 					strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
+				amountHeuristic := reverseAmountHeuristic()
+				if err = amountHeuristic.SetConfig(dbh.Options{TransactionHash: destination.Hash}); err != nil {
+					cancel()
+					warn(err)
+					return
+				}
 				for _, txHeuristic := range txHeuristics {
 					thisHeuristic := txHeuristic()
 					for _, duration := range lookbackDurations {
+						// this heuristic
 						if err = thisHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
 							TransactionHash: destination.Hash}); err != nil {
 							cancel()
@@ -123,19 +119,33 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 							return
 						}
 
-						clusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID, nil)
+						thisClusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID, nil)
 						if err != nil {
 							cancel()
 							warn(err)
 							return
 						}
 
-						var originCount int
-						for _, cluster := range clusters {
-							originCount += len(cluster.Results)
+						var thisOriginCount int
+						for _, cluster := range thisClusters {
+							thisOriginCount += len(cluster.Results)
 						}
 
-						line = append(line, strconv.Itoa(len(clusters)), strconv.Itoa(originCount))
+						// reverse amount heuristic
+						amountClusters, err := amountHeuristic.Exec(ctx, dgraph, wrapper, "", thisClusters)
+						if err != nil {
+							cancel()
+							warn(err)
+							return
+						}
+
+						var amountOriginCount int
+						for _, cluster := range amountClusters {
+							amountOriginCount += len(cluster.Results)
+						}
+
+						line = append(line, strconv.Itoa(len(thisClusters)), strconv.Itoa(thisOriginCount),
+							strconv.Itoa(len(amountClusters)), strconv.Itoa(amountOriginCount))
 					}
 				}
 
@@ -205,4 +215,28 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	close(results)
 	// wait until all results got processed
 	<-done
+}
+
+func getConstructors(transactionType string) ([]heuristics.HeuristicConstructor, heuristics.HeuristicConstructor, string, error) {
+	var txHeuristics []heuristics.HeuristicConstructor
+	var reverseAmountHeuristic heuristics.HeuristicConstructor
+	var mixingTxType string
+	switch transactionType {
+	case constants.TypeDashDestination:
+		mixingTxType = constants.TypeDashMixing
+		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewReverseLookupHeuristic, heuristics.NewOneSourceHeuristic}
+		reverseAmountHeuristic = heuristics.NewReverseAmountHeuristic
+	case constants.TypeWasabi2Destination:
+		mixingTxType = constants.TypeWasabi2Mixing
+		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewWasabi2ReverseLookupByTimeHeuristic, heuristics.NewWasabi2OneSourceByTimeHeuristic}
+		reverseAmountHeuristic = heuristics.NewWasabi2ReverseAmountHeuristic
+	case constants.TypeWhirlpoolDestination:
+		mixingTxType = constants.TypeWhirlpoolMixing
+		txHeuristics = []heuristics.HeuristicConstructor{heuristics.NewWhirlpoolReverseLookupByTimeHeuristic, heuristics.NewWhirlpoolOneSourceByTimeHeuristic}
+		reverseAmountHeuristic = heuristics.NewWhirlpoolReverseAmountHeuristic
+	default:
+		return nil, nil, "", serror.FromStrWithContext("invalid transaction type", "type", transactionType)
+	}
+
+	return txHeuristics, reverseAmountHeuristic, mixingTxType, nil
 }
