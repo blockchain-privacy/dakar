@@ -9,7 +9,9 @@ import (
 	"backend/external"
 	"context"
 	"encoding/csv"
+	"errors"
 	"github.com/qrest/gomisc/serror"
+	"io"
 	"os"
 	"strconv"
 	"sync"
@@ -29,6 +31,12 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 		return
 	}
 
+	recoveredData, err := tryRecoverFromFile(fileName, 20)
+	if err != nil {
+		warn(err)
+		return
+	}
+
 	txHeuristics, reverseAmountHeuristic, mixingTxType, err := getConstructors(transactionType)
 	if err != nil {
 		warn(err)
@@ -44,12 +52,27 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	}(f)
 
 	if err != nil {
-		warn(err)
+		warn(serror.New(err))
 		return
 	}
 
 	w := csv.NewWriter(f)
 	defer w.Flush()
+
+	if recoveredData != nil {
+		info("recovered items", "count", len(recoveredData))
+	}
+
+	recoveredDestinations := make(map[string]bool, len(recoveredData))
+	for _, recLine := range recoveredData {
+		recoveredDestinations[recLine[0]] = true
+		if err := w.Write(recLine); err != nil {
+			warn(err, "msg", "error writing record to file")
+			return
+		}
+	}
+
+	w.Flush()
 
 	const step = 10000
 	minDate := time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -121,6 +144,11 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 			if destination.Block == nil {
 				warn(serror.FromStrWithContext("block is nil", "node", destination))
 				return
+			}
+
+			if recoveredDestinations[destination.Hash] {
+				// already in file
+				continue
 			}
 
 			ts := destination.Block[0].TS
@@ -255,4 +283,44 @@ func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *g
 	}
 
 	return line, nil
+}
+
+// tryRecoverFromFile checks if there is a file with results already and reads them
+func tryRecoverFromFile(fileName string, columnCount int) ([][]string, error) {
+	f, err := os.Open(fileName)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			warn(err)
+		}
+	}(f)
+
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	csvReader := csv.NewReader(f)
+	var data [][]string
+	for {
+		line, err := csvReader.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			continue
+		}
+
+		if len(line) != columnCount {
+			continue
+		}
+
+		data = append(data, line)
+	}
+
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	// remove last line, because it is often only partially flushed to the file
+	return data[:len(data)-1], nil
 }
