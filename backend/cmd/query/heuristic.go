@@ -56,7 +56,11 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 
 	wrapper := graph.NewWrapper(ctx, dgraph)
 	wrapper.SetGraph(g)
-	wrapper.SetReadOnly(true)
+
+	if transactionType != constants.TypeWhirlpoolDestination {
+		// for whirlpool the graph needs to be temporarly set to be undirected, which would collide with other goroutines
+		wrapper.SetReadOnly(true)
+	}
 
 	lookbackDurations := []int{24, 48}
 
