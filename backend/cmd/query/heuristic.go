@@ -44,17 +44,17 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	}
 
 	f, err := os.Create(fileName)
+	if err != nil {
+		warn(serror.New(err))
+		return
+	}
+
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
 			warn(err)
 		}
 	}(f)
-
-	if err != nil {
-		warn(serror.New(err))
-		return
-	}
 
 	w := csv.NewWriter(f)
 	defer w.Flush()
@@ -288,16 +288,17 @@ func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *g
 // tryRecoverFromFile checks if there is a file with results already and reads them
 func tryRecoverFromFile(fileName string, columnCount int) ([][]string, error) {
 	f, err := os.Open(fileName)
+	if err != nil {
+		// file may not exist, just return no data
+		return nil, nil
+	}
+
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
 			warn(err)
 		}
 	}(f)
-
-	if err != nil {
-		return nil, serror.New(err)
-	}
 
 	csvReader := csv.NewReader(f)
 	var data [][]string
