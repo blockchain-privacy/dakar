@@ -62,7 +62,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 		wrapper.SetReadOnly(true)
 	}
 
-	lookbackDurations := []int{24, 48}
+	lookbackDurations := []string{"24", "48"}
 
 	workContext, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -83,78 +83,11 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 					return
 				default:
 				}
-				var sum int64
-				for _, t := range destination.Outputs {
-					sum += t.Amount
-				}
-
-				// column 1: transaction hash
-				// column 2: transaction timestamp
-				// column 3: input count (only mixing)
-				// column 4: input amount
-				// column 5: number of clusters (reverse lookup 24h)
-				// column 6: number of origins (reverse lookup 24h)
-				// column 7: number of clusters (reverse amount for reverse lookup 24)
-				// column 8: number of origins (reverse amount for reverse lookup 24)
-				// column 9: number of clusters (reverse lookup 48h)
-				// column 10: number of origins (reverse lookup 48h)
-				// column 11: number of clusters (reverse amount for reverse lookup 48)
-				// column 12: number of origins (reverse amount for reverse lookup 48)
-				// column 13: number of clusters (one source 24h)
-				// column 14: number of origins (one source 24h)
-				// column 15: number of clusters (reverse amount for one source 24)
-				// column 16: number of origins (reverse amount for one source 24)
-				// column 17: number of clusters (one source 48h)
-				// column 18: number of origins (one source 48h)
-				// column 19: number of clusters (reverse amount for one source 48)
-				// column 20: number of origins (reverse amount for one source 48)
-				line := []string{destination.Hash, destination.Block[0].TS.Format(time.RFC3339),
-					strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
-				amountHeuristic := reverseAmountHeuristic()
-				if err = amountHeuristic.SetConfig(dbh.Options{TransactionHash: destination.Hash}); err != nil {
+				line, err := executeHeuristics(ctx, dgraph, wrapper, destination, lookbackDurations, txHeuristics, reverseAmountHeuristic)
+				if err != nil {
 					cancel()
 					warn(err)
 					return
-				}
-				for _, txHeuristic := range txHeuristics {
-					thisHeuristic := txHeuristic()
-					for _, duration := range lookbackDurations {
-						// this heuristic
-						if err = thisHeuristic.SetConfig(dbh.Options{Parameter: strconv.Itoa(duration),
-							TransactionHash: destination.Hash}); err != nil {
-							cancel()
-							warn(err)
-							return
-						}
-
-						thisClusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID, nil)
-						if err != nil {
-							cancel()
-							warn(err)
-							return
-						}
-
-						var thisOriginCount int
-						for _, cluster := range thisClusters {
-							thisOriginCount += len(cluster.Results)
-						}
-
-						// reverse amount heuristic
-						amountClusters, err := amountHeuristic.Exec(ctx, dgraph, wrapper, "", thisClusters)
-						if err != nil {
-							cancel()
-							warn(err)
-							return
-						}
-
-						var amountOriginCount int
-						for _, cluster := range amountClusters {
-							amountOriginCount += len(cluster.Results)
-						}
-
-						line = append(line, strconv.Itoa(len(thisClusters)), strconv.Itoa(thisOriginCount),
-							strconv.Itoa(len(amountClusters)), strconv.Itoa(amountOriginCount))
-					}
 				}
 
 				results <- line
@@ -247,4 +180,84 @@ func getConstructors(transactionType string) ([]heuristics.HeuristicConstructor,
 	}
 
 	return txHeuristics, reverseAmountHeuristic, mixingTxType, nil
+}
+
+func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *graph.Wrapper,
+	destination analytics.NodeWithHash, lookbackDurations []string, txHeuristics []heuristics.HeuristicConstructor,
+	reverseAmountHeuristic heuristics.HeuristicConstructor) ([]string, error) {
+	amountHeuristic := reverseAmountHeuristic()
+	if err := amountHeuristic.SetConfig(dbh.Options{TransactionHash: destination.Hash}); err != nil {
+		return nil, err
+	}
+
+	var sum int64
+	for _, t := range destination.Outputs {
+		sum += t.Amount
+	}
+
+	// column 1: transaction hash
+	// column 2: transaction timestamp
+	// column 3: input count (only mixing)
+	// column 4: input amount
+	// column 5: number of clusters (reverse lookup 24h)
+	// column 6: number of origins (reverse lookup 24h)
+	// column 7: number of clusters (reverse amount for reverse lookup 24)
+	// column 8: number of origins (reverse amount for reverse lookup 24)
+	// column 9: number of clusters (reverse lookup 48h)
+	// column 10: number of origins (reverse lookup 48h)
+	// column 11: number of clusters (reverse amount for reverse lookup 48)
+	// column 12: number of origins (reverse amount for reverse lookup 48)
+	// column 13: number of clusters (one source 24h)
+	// column 14: number of origins (one source 24h)
+	// column 15: number of clusters (reverse amount for one source 24)
+	// column 16: number of origins (reverse amount for one source 24)
+	// column 17: number of clusters (one source 48h)
+	// column 18: number of origins (one source 48h)
+	// column 19: number of clusters (reverse amount for one source 48)
+	// column 20: number of origins (reverse amount for one source 48)
+	line := []string{destination.Hash, destination.Block[0].TS.Format(time.RFC3339),
+		strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
+
+	for _, txHeuristic := range txHeuristics {
+		thisHeuristic := txHeuristic()
+		for _, duration := range lookbackDurations {
+			// this heuristic
+			if err := thisHeuristic.SetConfig(dbh.Options{Parameter: duration,
+				TransactionHash: destination.Hash}); err != nil {
+				return nil, err
+			}
+
+			thisClusters, err := thisHeuristic.Exec(ctx, dgraph, wrapper, destination.UID, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			var thisOriginCount int
+			for _, cluster := range thisClusters {
+				thisOriginCount += len(cluster.Results)
+			}
+
+			line = append(line, strconv.Itoa(len(thisClusters)), strconv.Itoa(thisOriginCount))
+
+			if len(thisClusters) == 0 {
+				line = append(line, "0", "0")
+				continue
+			}
+
+			// reverse amount heuristic
+			amountClusters, err := amountHeuristic.Exec(ctx, dgraph, wrapper, "", thisClusters)
+			if err != nil {
+				return nil, err
+			}
+
+			var amountOriginCount int
+			for _, cluster := range amountClusters {
+				amountOriginCount += len(cluster.Results)
+			}
+
+			line = append(line, strconv.Itoa(len(amountClusters)), strconv.Itoa(amountOriginCount))
+		}
+	}
+
+	return line, nil
 }
