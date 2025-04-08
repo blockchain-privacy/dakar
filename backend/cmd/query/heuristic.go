@@ -85,7 +85,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	workContext, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	const goroutineCount = 100
+	const goroutineCount = 50
 
 	// work on jobs
 	jobs := make(chan analytics.NodeWithHash, goroutineCount*10)
