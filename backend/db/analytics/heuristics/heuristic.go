@@ -276,6 +276,9 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 							}
 						}
 					}
+					~transactions{
+						id
+					}
 			   	}
 			  }`
 
@@ -297,6 +300,9 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 					Cluster []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 				} `json:"~addr_outputs,omitempty"`
 			} `json:"tx_inputs,omitempty"`
+			Block []struct {
+				ID *int `json:"id,omitempty"`
+			} `json:"~transactions,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -337,13 +343,19 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 	// holds all cluster IDs which are used by the generated HeuristicTransactions below
 	allUsedClusters := make(map[string]usedCluster)
 	for _, o := range r.Origins {
-		if o.Inputs == nil || o.Inputs[0].Address == nil || o.Inputs[0].Address[0].Cluster == nil {
+		var clusterUID string
+		if o.Inputs == nil && o.Block != nil && o.Block[0].ID != nil {
+			// coinbase transaction
+			clusterUID = "coinbase_" + strconv.Itoa(*o.Block[0].ID)
+		} else if o.Inputs != nil && o.Inputs[0].Address != nil && o.Inputs[0].Address[0].Cluster != nil {
+			clusterUID = o.Inputs[0].Address[0].Cluster[0].UID
+		} else {
 			err = serror.FromFormat("invalid cluster information for transaction %s", o.UID)
 			return
 		}
 
 		var cUID ClusterUID
-		clusterUID := o.Inputs[0].Address[0].Cluster[0].UID
+
 		if isSimpleClustering || !allClusters[clusterUID] {
 			// address of origin is only associated with multi-input clusters
 			cUID = ClusterUID(clusterUID)
