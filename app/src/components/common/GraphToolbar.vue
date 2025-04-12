@@ -44,8 +44,8 @@
       @click="showFilter = !showFilter"
     >
       <v-icon
+        start
         :icon="mdiCog"
-        class="me-1"
       />
       Filter Nodes
     </v-btn>
@@ -56,7 +56,7 @@
     >
       <v-icon
         :icon="mdiCached"
-        class="me-1"
+        start
       />
       Rearrange
     </v-btn>
@@ -67,7 +67,7 @@
     >
       <v-icon
         :icon="mdiImageFilterCenterFocus"
-        class="me-1"
+        start
       />
       Center
     </v-btn>
@@ -81,7 +81,7 @@
     >
       <v-icon
         :icon="mdiFilterPlus"
-        class="me-1"
+        start
       />
       Add Property Selector
     </v-btn>
@@ -108,7 +108,7 @@
       </v-tooltip>
       <v-icon
         :icon="mdiPlus"
-        class="me-1"
+        start
       />
       Add entities
     </v-btn>
@@ -121,7 +121,7 @@
     >
       <v-icon
         :icon="mdiDelete"
-        class="me-1"
+        start
       />
       {{ selectedItemCount }}
     </v-btn>
@@ -133,7 +133,7 @@
     >
       <v-icon
         :icon="mdiChartTimelineVariant"
-        class="me-1"
+        start
       />
       Shortest path
     </v-btn>

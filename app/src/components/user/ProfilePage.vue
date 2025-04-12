@@ -21,7 +21,7 @@
             <v-list-item-title class="d-flex align-center">
               <v-icon
                 color="red"
-                class="me-2"
+                start
               >
                 {{ mdiAlert }}
               </v-icon>

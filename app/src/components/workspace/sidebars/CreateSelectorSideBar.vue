@@ -95,7 +95,7 @@
               </div>
               <div class="d-flex justify-center mb-2 text-caption">
                 <v-icon
-                  class="me-1"
+                  start
                   :icon="mdiInformationOutline"
                 /> Maximum Range: 60 days
               </div>

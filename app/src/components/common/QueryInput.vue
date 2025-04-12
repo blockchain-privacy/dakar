@@ -37,7 +37,7 @@
       >
         <template #prepend>
           <v-icon
-            :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].logo"
+            :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
             :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
           />
         </template>
@@ -74,9 +74,6 @@ defineProps({
 	variant: {type: String, required: false, default: 'solo'},
 });
 
-// When the blockchain mode is switched and the current component is not reloaded,
-// the dakar client is in the wrong state. As a workaround, get all available dakar
-// clients and select the right one when doing a request.
 const dakarClients = getDakarClients();
 const isLoading = ref(false);
 const resultItems = ref([]);
@@ -177,7 +174,7 @@ function getResultNavigation(item, mode) {
 	switch (item.type) {
 		case 'tx': return {name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: item.payload[0].txhash, blockchainMode: mode}};
 		case 'block': return {name: ROUTE_NAME_BLOCK_PAGE, params: {id: item.payload.id, blockchainMode: mode}};
-		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.payload.id, blockchainMode: mode}};
+		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.payload.addresshash, blockchainMode: mode}};
 		default:
 			return {};
 	}

@@ -11,9 +11,8 @@
         <v-icon
           size="37"
           :color="color"
-        >
-          {{ icon }}
-        </v-icon>
+          :icon="icon"
+        />
       </div>
       <div class="d-flex justify-center pt-1">
         <div class="text-subtitle-2 title-text">

@@ -35,7 +35,7 @@
       >
         <v-icon
           :icon="mdiFingerprint"
-          class="me-2"
+          start
         />
         Fingerprint
       </v-chip>

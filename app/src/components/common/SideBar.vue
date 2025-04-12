@@ -12,9 +12,10 @@
         style="z-index: 10; background-color: rgb(var(--v-theme-surface))"
       >
         <v-card-title class="d-flex align-center py-0 mb-1">
-          <v-icon class="me-2">
-            {{ icon }}
-          </v-icon>
+          <v-icon
+            start
+            :icon="icon"
+          />
           <span class="shorten"> {{ title }}</span>
           <div class="ms-auto">
             <slot

@@ -40,11 +40,11 @@ export const LOCALSTORAGE_FIELD_SESSION = 'session';
 export const BLOCKCHAIN_DASH = 'dash';
 export const BLOCKCHAIN_BTC = 'btc';
 export const BLOCKCHAIN_ATTRIBUTES = {
-	[BLOCKCHAIN_DASH]: {
-		color: '#008CE4', title: 'Dash', logo: dashLogo, mode: BLOCKCHAIN_DASH,
-	},
 	[BLOCKCHAIN_BTC]: {
-		color: '#FF9315', title: 'Bitcoin', logo: bitcoinLogo, mode: BLOCKCHAIN_BTC,
+		color: '#FF9315', title: 'Bitcoin', icon: bitcoinLogo, mode: BLOCKCHAIN_BTC,
+	},
+	[BLOCKCHAIN_DASH]: {
+		color: '#008CE4', title: 'Dash', icon: dashLogo, mode: BLOCKCHAIN_DASH,
 	},
 };
 

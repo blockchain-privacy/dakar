@@ -7,7 +7,7 @@
     >
       <template #append>
         <v-icon
-          class="ms-1"
+          start
           :icon="mdiCloseCircle"
           @click="deleteExclusionDialog = true"
         />

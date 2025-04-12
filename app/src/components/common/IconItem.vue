@@ -3,17 +3,15 @@
     <template #prepend>
       <v-icon
         v-if="isColor"
+        :icon="icon"
         :class="{ 'green-icon': !isRed, 'red-icon': isRed }"
         size="xx-large"
-      >
-        {{ icon }}
-      </v-icon>
+      />
       <v-icon
         v-else
         size="xx-large"
-      >
-        {{ icon }}
-      </v-icon>
+        :icon="icon"
+      />
     </template>
     <div>
       <v-list-item-title>

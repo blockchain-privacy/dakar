@@ -14,7 +14,7 @@
     >
       <v-icon
         :icon="mdiIncognito"
-        class="me-2"
+        start
       />
       {{ transactionType }}
     </v-chip>
