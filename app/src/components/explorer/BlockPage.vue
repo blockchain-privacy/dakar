@@ -19,7 +19,9 @@
                   <icon-title
                     :title="`Block ${block.blockhash}`"
                     :icon="mdiCubeOutline"
-                  />
+                  >
+                    <mode-chip :blockchain-mode="route.params.blockchainMode" />
+                  </icon-title>
                   <v-card-text>
                     <v-row>
                       <v-col
@@ -154,6 +156,7 @@ import {storeToRefs} from 'pinia';
 import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local';
 import {getDakarClient} from '@/utilities';
+import ModeChip from '@/components/common/ModeChip.vue';
 
 const route = useRoute();
 const router = useRouter();

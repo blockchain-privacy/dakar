@@ -24,6 +24,7 @@
               :show-fingerprint-link="isPrivilegedOrHigher"
               show-title-bar
               show-details
+              show-mode
             />
           </fade-transition>
         </template>

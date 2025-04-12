@@ -16,6 +16,7 @@
             v-if="address"
             :address-data="address"
             show-title-bar
+            show-mode
           />
           <v-skeleton-loader
             v-else

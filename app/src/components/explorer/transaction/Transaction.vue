@@ -16,6 +16,11 @@
         :transaction-hash="tx.txhash"
         class="ms-2"
       />
+      <mode-chip
+        v-if="showMode"
+        class="ms-2"
+        :blockchain-mode="route.params.blockchainMode"
+      />
       <template
         v-if="showTitleLink"
         #title
@@ -332,6 +337,7 @@ import {
 } from 'vuetify/components';
 import AmountChart from '@/components/explorer/transaction/AmountChart.vue';
 import {useRoute} from 'vue-router';
+import ModeChip from '@/components/common/ModeChip.vue';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -339,6 +345,7 @@ const props = defineProps({
 	showFingerprintLink: {type: Boolean, required: true},
 	showDetails: {type: Boolean, required: false},
 	showTitleLink: {type: Boolean, required: false},
+	showMode: {type: Boolean, required: false},
 	embed: {type: Boolean, required: false},
 	showTitleBar: {type: Boolean, required: false},
 	highlightTransaction: {type: String, required: false, default: ''},

@@ -7,6 +7,11 @@
         :icon="mdiCardBulletedOutline"
       >
         <exclusion-chip :address-hash="addressHash" />
+        <mode-chip
+          v-if="showMode"
+          class="ms-2"
+          :blockchain-mode="route.params.blockchainMode"
+        />
       </icon-title>
       <v-card-text>
         <v-container>
@@ -207,10 +212,12 @@ import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
+import ModeChip from '@/components/common/ModeChip.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
 	showTitleBar: {type: Boolean, required: false},
+	showMode: {type: Boolean, required: false},
 });
 
 const route = useRoute();
