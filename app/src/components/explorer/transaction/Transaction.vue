@@ -448,6 +448,7 @@ function init() {
 // Once in that state it can not be reset. So switchting back to unfiltered outputs,
 // the infinite scroll would not work anymore.
 // As a workaround set the 'key' property on the output infinite scroll and change it to simulate a reset
+// eslint-disable-next-line no-warning-comments
 // todo: once https://github.com/vuetifyjs/vuetify/pull/20637 is merged, remove workaround and use reset method:
 // - remove key property from inifite scroll
 // - replace resetInfiniteScroll() with new reset function

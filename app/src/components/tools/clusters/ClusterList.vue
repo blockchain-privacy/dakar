@@ -11,9 +11,9 @@
         one-line
       >
         <v-menu location="bottom">
-          <template #activator="{ props }">
+          <template #activator="item">
             <v-btn
-              v-bind="props"
+              v-bind="item.props"
               icon
               variant="text"
             >
@@ -106,9 +106,9 @@
               {{ item.ts.toLocaleDateString() }}
             </v-list-item-subtitle>
             <v-menu location="bottom">
-              <template #activator="{ props }">
+              <template #activator="activatorItem">
                 <v-btn
-                  v-bind="props"
+                  v-bind="activatorItem.props"
                   icon
                   variant="plain"
                 >

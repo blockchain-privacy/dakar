@@ -18,9 +18,9 @@
                 </wiki-tooltip> allow linking external information to addresses.
               </p>
               <v-menu location="bottom">
-                <template #activator="{ props }">
+                <template #activator="item">
                   <v-btn
-                    v-bind="props"
+                    v-bind="item.props"
                     icon
                     variant="text"
                   >

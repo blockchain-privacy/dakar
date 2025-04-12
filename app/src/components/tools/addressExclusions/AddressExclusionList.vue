@@ -10,9 +10,9 @@
         one-line
       >
         <v-menu location="bottom">
-          <template #activator="{ props }">
+          <template #activator="item">
             <v-btn
-              v-bind="props"
+              v-bind="item.props"
               icon
               variant="text"
             >
@@ -106,9 +106,9 @@
             </div>
             <div class="align-self-center ml-auto">
               <v-menu location="bottom">
-                <template #activator="{ props }">
+                <template #activator="item">
                   <v-btn
-                    v-bind="props"
+                    v-bind="item.props"
                     icon
                     variant="plain"
                   >

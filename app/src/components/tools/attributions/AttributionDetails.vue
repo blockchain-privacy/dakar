@@ -10,9 +10,9 @@
         v-if="!attribution.isPublic || (attribution.isPublic && isAdmin)"
         location="bottom"
       >
-        <template #activator="{ props }">
+        <template #activator="item">
           <v-btn
-            v-bind="props"
+            v-bind="item.props"
             icon
             variant="plain"
           >

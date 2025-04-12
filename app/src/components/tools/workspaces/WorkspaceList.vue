@@ -35,9 +35,9 @@
         icon-color="primary"
       />
       <v-menu location="bottom">
-        <template #activator="{ props }">
+        <template #activator="item">
           <v-btn
-            v-bind="props"
+            v-bind="item.props"
             variant="text"
             icon
           >
