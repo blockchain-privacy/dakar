@@ -22,6 +22,8 @@
         :loading="isLoading"
         type="input"
         @update:model-value="queueSearch"
+        @click:append-inner="handleDirectSearch"
+        @keydown.enter="handleDirectSearch"
       />
     </template>
     <v-list v-if="!isLoading && resultItems.empty">
@@ -80,6 +82,7 @@ const resultItems = ref([]);
 const query = ref('');
 const label = 'Search for blocks, transactions and addresses';
 let searchTimer = null;
+let lastQuery = '';
 
 // Functions
 function isValidQueryInput(str) {
@@ -143,6 +146,8 @@ async function search(q) {
 		resultItems.value = {empty: true};
 	}
 
+	lastQuery = q;
+
 	isLoading.value = false;
 }
 
@@ -152,6 +157,24 @@ function queueSearch(q) {
 	}
 
 	searchTimer = setTimeout(search, 700, q);
+}
+
+async function handleDirectSearch() {
+	if (query.value !== lastQuery) {
+		// Results are not recent
+		if (searchTimer !== null) {
+			clearTimeout(searchTimer);
+		}
+
+		await search(query.value);
+	}
+
+	if (resultItems.value.empty || resultItems.value.length === 0) {
+		return;
+	}
+
+	const item = resultItems.value[0];
+	handleResultItemClick(item.response, item.mode);
 }
 
 function setWarningMessage(msg) {
