@@ -39,15 +39,15 @@ import {
 } from '@/constants/index.js';
 import {computed} from 'vue';
 import {getColorMap} from '@/utilities/index.js';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
+import {useRoute} from 'vue-router';
 
 const props = defineProps({
 	transactionType: {type: String, required: true},
 	size: {type: String, required: false, default: 'default'},
 });
-const {getSettings} = storeToRefs(useLocalStore());
-const colorMap = getColorMap(getSettings.value.blockchainMode);
+const route = useRoute();
+
+const colorMap = getColorMap(route.params.blockchainMode);
 
 const color = computed(() => colorMap.get(props.transactionType));
 

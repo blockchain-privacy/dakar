@@ -1,65 +1,15 @@
 import {defineStore} from 'pinia';
-import {RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION} from '@/constants';
 
 export const useExplorerStore = defineStore('explorer', {
 	state: () => ({
-		transaction: null,
-		searchResultType: null,
-		address: null,
-		block: null,
 		highlightWasabi2Denominations: false,
 	}),
 	getters: {
-		getTransaction: state => state.transaction,
-		getAddress: state => state.address,
-		getBlock: state => state.block,
-		getSearchResultType: state => state.searchResultType,
 		getHighlightWasabi2Denominations: state => state.highlightWasabi2Denominations,
 	},
 	actions: {
-		setTransaction(payload) {
-			this.transaction = payload;
-		},
-		setAddress(payload) {
-			this.address = payload;
-		},
-		setBlock(payload) {
-			this.block = payload;
-		},
 		setHighlightWasabi2Denominations(payload) {
 			this.highlightWasabi2Denominations = payload;
-		},
-		updateBlock(payload) {
-			this.searchResultType = RESPONSE_TYPE_BLOCK;
-			this.block = payload.block;
-		},
-		updateTransaction(payload) {
-			this.searchResultType = RESPONSE_TYPE_TRANSACTION;
-			this.transaction = payload.transactions;
-		},
-		updateAddress(payload) {
-			this.searchResultType = RESPONSE_TYPE_ADDRESS;
-			this.address = payload.address;
-		},
-		updateSearchResult(payload) {
-			this.searchResultType = payload.type;
-			switch (payload.type) {
-				case RESPONSE_TYPE_TRANSACTION:
-					this.transaction = payload.payload;
-					break;
-				case RESPONSE_TYPE_BLOCK:
-					this.block = payload.payload;
-					break;
-				case RESPONSE_TYPE_ADDRESS:
-					this.address = payload.payload;
-					break;
-				default:
-					// Something went wrong, let's reset state
-					this.searchResultType = null;
-					this.transaction = null;
-					this.block = null;
-					this.address = null;
-			}
 		},
 	},
 });

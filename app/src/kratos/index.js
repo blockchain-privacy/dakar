@@ -13,7 +13,7 @@ async function refreshFlow(onRefreshFlow) {
 async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 	switch (error.response.error.id) {
 		case 'session_already_available': // User is already signed in, let's redirect them home!
-			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: context.localStore.getSettings.blockchainMode}});
+			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE});
 			return true;
 		case 'session_aal2_required': // 2FA is enabled and enforced, but user did not perform 2fa yet!
 		case 'session_refresh_required': // We need to re-authenticate to perform this action

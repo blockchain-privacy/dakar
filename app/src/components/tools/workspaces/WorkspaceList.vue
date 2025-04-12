@@ -5,7 +5,7 @@
     max-width="1200"
   >
     <icon-title
-      title="Workspaces"
+      :title="`${title} Workspaces`"
       icon="$graphIcon"
       one-line
     >
@@ -93,8 +93,7 @@
     >
       <template #item.name="{ item }">
         <router-link
-          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE,
-                 params: { id: item.uid, blockchainMode: getSettings.blockchainMode }}"
+          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE, params: { id: item.uid, blockchainMode: blockchainMode }}"
         >
           {{ item.name }}
         </router-link>
@@ -179,26 +178,28 @@
 import {
 	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus, mdiRename, mdiHelpCircleOutline,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
-import {getDakarClient, handleError} from '@/utilities';
+import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants/index.js';
+import {getDakarClient, handleError} from '@/utilities/index.js';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {onMounted, ref, toRaw} from 'vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {useMsgStore} from '@/pinia/msg.js';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import {useDisplay} from 'vuetify';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
+
+const props = defineProps({
+	title: {type: String, required: true},
+	blockchainMode: {type: String, required: true},
+});
 
 const route = useRoute();
 const msgStore = useMsgStore();
 const display = useDisplay();
 const context = {addMessage: msgStore.addMessage, $route: route};
-const {getSettings} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(props.blockchainMode);
 
 const workspaceList = ref([]);
 const showDeleteAllDialog = ref(false);

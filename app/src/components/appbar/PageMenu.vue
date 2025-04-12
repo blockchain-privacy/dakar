@@ -5,14 +5,14 @@
       min-width="250px"
       max-width="350px"
     >
-      <div v-if="showTools">
+      <div>
         <v-row no-gutters>
           <v-col>
             <link-card
               title="Workspaces"
               icon="$graphIcon"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_WORKSPACES_PAGE, params:{blockchainMode:settings.blockchainMode} }"
+              :to="{ name: ROUTE_NAME_WORKSPACES_PAGE }"
             />
           </v-col>
           <v-col>
@@ -20,7 +20,7 @@
               title="Attributions"
               :icon="mdiTag"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_ATTRIBUTIONS, params:{blockchainMode:settings.blockchainMode} }"
+              :to="{ name: ROUTE_NAME_ATTRIBUTIONS }"
             />
           </v-col>
           <v-col>
@@ -28,7 +28,7 @@
               title="Custom Clusters"
               :icon="mdiMerge"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW, params:{blockchainMode:settings.blockchainMode}}"
+              :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
             />
           </v-col>
         </v-row>
@@ -38,7 +38,7 @@
               title="Address Exclusions"
               :icon="mdiPlaylistRemove"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS, params:{blockchainMode:settings.blockchainMode} }"
+              :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS}"
             />
           </v-col>
           <v-col>
@@ -46,7 +46,7 @@
               title="Server Status"
               :icon="mdiServer"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_STATUS_PAGE, params:{blockchainMode:settings.blockchainMode} }"
+              :to="{ name: ROUTE_NAME_STATUS_PAGE}"
             />
           </v-col>
           <v-col>
@@ -86,18 +86,17 @@ import {
 	ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS, ROUTE_NAME_WIKI_ROOT, ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import LinkCard from '../common/LinkCard.vue';
-import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {isAnyAdminIdentity} from '@/utilities';
 import {computed} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 
-const {session, settings} = storeToRefs(useLocalStore());
+const {session} = storeToRefs(useLocalStore());
 
 const iconColor = {default: 'primary', admin: 'red darken-3'};
 
 // Computed
-const showUserAdmin = computed(() => isAdminIdentity(session.value, settings.value.blockchainMode));
-const showTools = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode) || showUserAdmin.value);
+const showUserAdmin = computed(() => isAnyAdminIdentity(session.value));
 
 </script>
 

@@ -15,19 +15,18 @@ import {computed} from 'vue';
 import {
 	convertAmount, getCoinUnit, getColorMap, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
+import {useRoute} from 'vue-router';
 
 const props = defineProps({outputs: {type: Array, required: true}});
 const noTypeKey = 'no type';
 const notSpent = 'not spent';
-const {getSettings} = storeToRefs(useLocalStore());
-const colorMap = getColorMap(getSettings.value.blockchainMode);
+const route = useRoute();
+const colorMap = getColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, noTypeKey);
 colorMap.set(notSpent, 'lightgrey');
 
 // Computed
-const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
+const coinUnit = computed(() => getCoinUnit(route.params.blockchainMode));
 const amountsPerType = computed(() => {
 	if (!props.outputs) {
 		return [];

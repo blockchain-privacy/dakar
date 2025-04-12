@@ -215,7 +215,7 @@
               <workspace-link
                 style="max-width: 300px"
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                       params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
+                       params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
               >
                 {{ item.txhash }}
               </workspace-link>
@@ -271,18 +271,17 @@ import {
 	cashLeft, cashRight, sigmaLeft, sigmaRight, incognitoFilter,
 } from '@/customIcons/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
-import {useLocalStore} from '@/pinia/local.js';
-import {storeToRefs} from 'pinia';
 import SmallIconItem from '@/components/common/SmallIconItem.vue';
+import {useRoute} from 'vue-router';
 
 const props = defineProps({
 	selectorType: {type: String, required: true},
 	selectorData: {type: Object, required: true},
 });
 
-const {getSettings} = storeToRefs(useLocalStore());
+const route = useRoute();
 
-const colorMap = getColorMap(getSettings.value.blockchainMode);
+const colorMap = getColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
 const tableHeadersWithoutCluster = [

@@ -5,7 +5,7 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Import Attributions</span>
+        <span class="text-h5">Import {{ title }} Attributions</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
@@ -84,14 +84,18 @@ import {computed, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const localStore = useLocalStore();
 const msgStore = useMsgStore();
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+
+const props = defineProps({
+	title: {type: String, required: true},
+	blockchainMode: {type: String, required: true},
+});
+
+const dakar = getDakarClient(props.blockchainMode);
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['added']);
@@ -113,7 +117,7 @@ const separatorItems = [
 ];
 
 // Computed
-const isAdmin = computed(() => isAdminIdentity(localStore.getSession, localStore.getSettings.blockchainMode));
+const isAdmin = computed(() => isAdminIdentity(localStore.getSession, props.blockchainMode));
 
 // Functions
 // CodeToMsg returns a message for the given message code

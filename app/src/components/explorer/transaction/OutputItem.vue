@@ -11,7 +11,7 @@
             <workspace-link
               v-if="addressHash"
               style="max-width: 350px"
-              :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash, blockchainMode: getSettings.blockchainMode }}"
+              :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash, blockchainMode: route.params.blockchainMode }}"
             >
               {{ addressHash }}
             </workspace-link>
@@ -40,7 +40,7 @@
               <div class="flex-shrink-0">
                 <workspace-link
                   v-tooltip="{'text': txHash, 'open-delay': 400,'location':'top'}"
-                  :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
+                  :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: route.params.blockchainMode }}"
                 >
                   {{ isInput ? 'created' : 'spent' }}
                 </workspace-link>
@@ -136,8 +136,8 @@ import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {computed, ref} from 'vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import {useExplorerStore} from '@/pinia/explorer.js';
+import {useRoute} from 'vue-router';
 
 const props = defineProps({
 	isInput: {type: Boolean, required: true},
@@ -153,13 +153,13 @@ const props = defineProps({
 	highlight: {type: Boolean, required: false},
 });
 
-const {getSettings} = storeToRefs(useLocalStore());
+const route = useRoute();
 const {getHighlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 const expanded = ref(false);
 const showAscii = ref(false);
 
 // Computed
-const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
+const coinUnit = computed(() => getCoinUnit(route.params.blockchainMode));
 const isWasabi2Amount = computed(() => getHighlightWasabi2Denominations.value && isWasabi2Denomination(props.amount));
 
 // Functions

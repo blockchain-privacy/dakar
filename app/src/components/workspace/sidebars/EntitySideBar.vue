@@ -143,8 +143,6 @@ import {
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -162,9 +160,7 @@ const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
 const workspaceStore = useWorkspaceStore();
 
-const {getSettings} = storeToRefs(useLocalStore());
-
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
 const isLoading = ref(true);
 const entityData = ref();

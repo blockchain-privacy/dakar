@@ -136,7 +136,7 @@
                     v-if="item.inputTransactionHash"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.inputTransactionHash, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.inputTransactionHash, blockchainMode: route.params.blockchainMode }}"
                   >
                     {{ item.inputTransactionHash }}
                   </workspace-link>
@@ -146,7 +146,7 @@
                     v-if="item.outputTransactionHash"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.outputTransactionHash, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.outputTransactionHash, blockchainMode: route.params.blockchainMode }}"
                   >
                     {{ item.outputTransactionHash }}
                   </workspace-link>
@@ -215,8 +215,8 @@ const props = defineProps({
 
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const {session, getSettings} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const {session} = storeToRefs(useLocalStore());
+const dakar = getDakarClient(route.params.blockchainMode);
 
 const isLoading = ref(false);
 const tab = ref(null);
@@ -250,9 +250,9 @@ const table = ref({
 
 // Computed
 const offset = computed(() => (table.value.page * itemsPerPage) - itemsPerPage);
-const showAdvanced = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
-	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
-const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
+const showAdvanced = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
+	|| isAdminIdentity(session.value, route.params.blockchainMode));
+const coinUnit = computed(() => getCoinUnit(route.params.blockchainMode));
 
 // Hooks
 onMounted(() => {

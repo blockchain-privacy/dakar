@@ -5,7 +5,7 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Delete All Custom Clusters</span>
+        <span class="text-h5">Delete All Custom {{ title }} Clusters</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
@@ -39,18 +39,19 @@
 import {ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import {getDakarClient} from '@/utilities/index.js';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+
+const props = defineProps({
+	title: {type: String, required: true},
+	blockchainMode: {type: String, required: true},
+});
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['deleted']);
-
+const dakar = getDakarClient(props.blockchainMode);
 const isLoading = ref(false);
 
 // Functions

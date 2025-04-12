@@ -11,9 +11,9 @@
         lg="10"
         xl="8"
       >
-        <template v-if="tx">
+        <template v-if="transactions.length > 0">
           <fade-transition
-            v-for="t in tx"
+            v-for="t in transactions"
             :key="t.txhash+t.bid"
           >
             <!-- duplicate transaction hashes can exist -> loop through all results
@@ -38,43 +38,71 @@
 
 <script setup>
 import Transaction from './Transaction.vue';
-import {PAGE_TITLE} from '@/constants';
-import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {PAGE_TITLE, ROUTE_NAME_404_PAGE} from '@/constants';
 import {
-	computed, onMounted, onUpdated, watch,
+	getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
+} from '@/utilities';
+import {
+	computed, onMounted, ref, watch,
 } from 'vue';
 import {storeToRefs} from 'pinia';
-import {useExplorerStore} from '@/pinia/explorer';
 import {useLocalStore} from '@/pinia/local';
 import FadeTransition from '@/components/common/FadeTransition.vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg.js';
 
-const {transaction: tx} = storeToRefs(useExplorerStore());
-const {session, getSettings} = storeToRefs(useLocalStore());
+const {session} = storeToRefs(useLocalStore());
+const route = useRoute();
+const router = useRouter();
+const msgStore = useMsgStore();
+const dakar = getDakarClient(route.params.blockchainMode);
+
+const transactions = ref([]);
+const context = {$route: route, addMessage: msgStore.addMessage};
 
 // Computed
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
-	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
+	|| isAdminIdentity(session.value, route.params.blockchainMode));
 
 // Watchers
-watch(tx, () => {
+watch(route, async () => {
+	await pullInitialData();
 	setPageTitle();
 });
 
 // Hooks
-onMounted(() => {
-	setPageTitle();
-});
-onUpdated(() => {
+onMounted(async () => {
+	await pullInitialData();
 	setPageTitle();
 });
 
 // Functions
 function setPageTitle() {
 	let h = ' ';
-	if (tx.value && tx.value[0].txhash) {
-		h = ` ${tx.value[0].txhash} `;
+	if (transactions.value && transactions.value.length > 0 && transactions.value[0].txhash) {
+		h = ` ${transactions.value[0].txhash} `;
 	}
 
 	document.title = `Transaction${h}- ${PAGE_TITLE}`;
+}
+
+async function pullInitialData() {
+	if (route.params.id === undefined) {
+		return;
+	}
+
+	transactions.value = [];
+	try {
+		const response = await dakar.data.blockchainTransactionsHashGet({hash: route.params.id});
+		if (response.transactions) {
+			transactions.value = response.transactions;
+		}
+	} catch (e) {
+		if (e.cause?.status === 404) {
+			await router.push({name: ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}});
+		} else {
+			handleError(context, e);
+		}
+	}
 }
 </script>

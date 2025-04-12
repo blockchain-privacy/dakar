@@ -50,7 +50,7 @@
                   <workspace-link
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
                   >
                     {{ item.txhash }}
                   </workspace-link>
@@ -135,8 +135,6 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
@@ -150,8 +148,7 @@ const model = defineModel({type: Boolean});
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
-const {getSettings} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
 let oldConnection = null;
 const connectionSource = ref(null);

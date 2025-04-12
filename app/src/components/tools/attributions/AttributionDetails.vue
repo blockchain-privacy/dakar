@@ -30,7 +30,7 @@
       </v-menu>
     </v-card-title>
     <v-divider />
-    <v-list-item :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: attribution.address, blockchainMode: getSettings.blockchainMode }}">
+    <v-list-item :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: attribution.address, blockchainMode: blockchainMode }}">
       {{ attribution.address }}
     </v-list-item>
     <v-list-item v-if="attribution.description">
@@ -54,6 +54,8 @@
       :attribution-uid="deleteAttributionUid"
       :tag="deleteAttributionTag"
       :public="deleteAttributionPublic"
+      :blockchain-mode="blockchainMode"
+      :title="title"
       @deleted="repeatDeletionSignal"
     />
   </v-card>
@@ -69,9 +71,14 @@ import {computed, ref} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 
-const {session, getSettings} = storeToRefs(useLocalStore());
+const {session} = storeToRefs(useLocalStore());
 
-defineProps({attribution: {type: Object, required: true}});
+const props = defineProps({
+	attribution: {type: Object, required: true},
+	blockchainMode: {type: String, required: true},
+	title: {type: String, required: true},
+});
+
 const emit = defineEmits(['deleted']);
 
 const deleteAttributionDialogModel = ref(false);
@@ -80,7 +87,7 @@ const deleteAttributionUid = ref('');
 const deleteAttributionPublic = ref(false);
 
 // Computed
-const isAdmin = computed(() => isAdminIdentity(session.value, getSettings.value.blockchainMode));
+const isAdmin = computed(() => isAdminIdentity(session.value, props.blockchainMode));
 
 // Functions
 // Credit: https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url/43467144#43467144

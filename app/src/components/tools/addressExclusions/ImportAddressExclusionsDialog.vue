@@ -5,7 +5,7 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Import Address Exclusions</span>
+        <span class="text-h5">Import {{ title }} Address Exclusions</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
@@ -57,14 +57,17 @@ import {ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {fileRule, getDakarClient} from '@/utilities';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+
+const props = defineProps({
+	title: {type: String, required: true},
+	blockchainMode: {type: String, required: true},
+});
+
+const dakar = getDakarClient(props.blockchainMode);
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['added']);

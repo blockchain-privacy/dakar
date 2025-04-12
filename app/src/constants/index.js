@@ -1,4 +1,6 @@
 // Search responses
+import {bitcoinLogo, dashLogo} from '@/customIcons/index.js';
+
 export const RESPONSE_EMPTY = 'response_empty';
 export const RESPONSE_TYPE_TRANSACTION = 'tx';
 export const RESPONSE_TYPE_ADDRESS = 'addr';
@@ -37,6 +39,14 @@ export const LOCALSTORAGE_FIELD_SESSION = 'session';
 // Blockchain
 export const BLOCKCHAIN_DASH = 'dash';
 export const BLOCKCHAIN_BTC = 'btc';
+export const BLOCKCHAIN_ATTRIBUTES = {
+	[BLOCKCHAIN_DASH]: {
+		color: '#008CE4', title: 'Dash', logo: dashLogo, mode: BLOCKCHAIN_DASH,
+	},
+	[BLOCKCHAIN_BTC]: {
+		color: '#FF9315', title: 'Bitcoin', logo: bitcoinLogo, mode: BLOCKCHAIN_BTC,
+	},
+};
 
 // Cluster types
 export const CLUSTER_TYPE_FMI = 'fmi';

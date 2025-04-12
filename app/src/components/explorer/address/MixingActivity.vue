@@ -243,17 +243,14 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import GraphToolbar from '@/components/common/GraphToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
-const {getSettings} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
-const colorMap = getColorMap(getSettings.value.blockchainMode);
+const colorMap = getColorMap(route.params.blockchainMode);
 let svgBarChart = null;
 const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;

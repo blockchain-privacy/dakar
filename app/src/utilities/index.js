@@ -8,7 +8,7 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
-	DENOMINATIONS_WASABI2, RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS,
+	DENOMINATIONS_WASABI2,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -184,6 +184,14 @@ export function isAdminIdentity(session, mode) {
 	return isRole(session, mode, 'admin');
 }
 
+export function isAnyPrivilegedIdentity(session) {
+	return isPrivilegedIdentity(session, BLOCKCHAIN_BTC) || isPrivilegedIdentity(session, BLOCKCHAIN_DASH);
+}
+
+export function isAnyAdminIdentity(session) {
+	return isAdminIdentity(session, BLOCKCHAIN_BTC) || isAdminIdentity(session, BLOCKCHAIN_DASH);
+}
+
 // GetClusterTypeLabel translates the cluster shorthand of cluster types to a readable string
 export function getClusterTypeLabel(clusterType) {
 	switch (clusterType) {
@@ -285,34 +293,6 @@ export function isWasabi2Denomination(amount) {
 // IsUncommonWasabi2Denomination returns true if the given amount is a uncommon wasabi 2.0 denomination
 export function isUncommonWasabi2Denomination(amount) {
 	return amount % 5000 !== 0 && DENOMINATIONS_WASABI2.has(amount);
-}
-
-async function storeResult(promise, piniaAction) {
-	try {
-		const response = await promise;
-		piniaAction(response);
-	} catch (e) {
-		return e;
-	}
-
-	return undefined;
-}
-
-export async function handleQuery(q, explorerStore, client, type) {
-	explorerStore.setAddress(null);
-	explorerStore.setBlock(null);
-	explorerStore.setTransaction(null);
-
-	switch (type) {
-		case RESPONSE_TYPE_TRANSACTION:
-			return await storeResult(client.data.blockchainTransactionsHashGet({hash: q}), explorerStore.updateTransaction);
-		case RESPONSE_TYPE_BLOCK:
-			return await storeResult(client.data.blockchainBlocksHashGet({hash: q}), explorerStore.updateBlock);
-		case RESPONSE_TYPE_ADDRESS:
-			return await storeResult(client.data.blockchainAddressesHashGet({hash: q}), explorerStore.updateAddress);
-		default:
-			return await storeResult(client.data.blockchainSearchQueryGet({query: q}), explorerStore.updateSearchResult);
-	}
 }
 
 // Returns an array containing all bitcoin addresses and transaction hashes in text

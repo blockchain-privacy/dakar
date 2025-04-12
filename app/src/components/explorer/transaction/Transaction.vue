@@ -25,7 +25,7 @@
         <router-link
           class="shorten ms-1"
           style="color: inherit;"
-          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: getSettings.blockchainMode }}"
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: route.params.blockchainMode }}"
         >
           {{ tx.txhash }}
         </router-link>
@@ -43,7 +43,7 @@
                 :icon="mdiFormatListNumbered"
                 title="Block Height"
               >
-                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid, blockchainMode: getSettings.blockchainMode }}">
+                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid, blockchainMode: route.params.blockchainMode }}">
                   {{ tx.bid.toLocaleString() }}
                 </router-link>
               </icon-item>
@@ -75,7 +75,7 @@
                 :icon="mdiFormatHeaderPound"
                 title="Block"
               >
-                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash, blockchainMode: getSettings.blockchainMode }}">
+                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash, blockchainMode: route.params.blockchainMode }}">
                   {{ shortenHash(tx.bhash) }}
                 </router-link>
               </icon-item>
@@ -325,13 +325,13 @@ import IconTitle from '@/components/common/IconTitle.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import BarChart from '@/d3Documents/barChart.js';
 import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import {useExplorerStore} from '@/pinia/explorer.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import {
 	VRow, VCol, VTabsWindowItem, VTabsWindow,
 } from 'vuetify/components';
 import AmountChart from '@/components/explorer/transaction/AmountChart.vue';
+import {useRoute} from 'vue-router';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -345,7 +345,7 @@ const props = defineProps({
 	filterHighlightedOutputs: {type: Boolean, required: false},
 });
 
-const {getSettings} = storeToRefs(useLocalStore());
+const route = useRoute();
 const {highlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 
 const showTransactionDetails = toRef(props.showDetails);
@@ -353,7 +353,7 @@ const showTransactionDetails = toRef(props.showDetails);
 let svgInputGraph = null;
 let svgOutputGraph = null;
 let infiteScrollKey = 0;
-const colorMap = getColorMap(getSettings.value.blockchainMode);
+const colorMap = getColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
@@ -381,7 +381,7 @@ const displayedOutputs = computed(() => sortByTimestamp(allOutputs).slice(0, sho
 
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
-const isBTC = computed(() => isModeBTC(getSettings.value.blockchainMode));
+const isBTC = computed(() => isModeBTC(route.params.blockchainMode));
 const hasUncommonWasabi2Denomination = computed(() => isBTC.value
 	&& (props.tx.inputs?.some(i => isUncommonWasabi2Denomination(i.amount))
 	|| props.tx.outputs?.some(o => isUncommonWasabi2Denomination(o.amount))));
