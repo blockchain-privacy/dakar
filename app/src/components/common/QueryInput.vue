@@ -35,7 +35,7 @@
       <v-list-item
         v-for="(item, index) in resultItems"
         :key="index"
-        @click="handleResultItemClick(item.response,item.mode)"
+        @click="handleResultItemClick(item)"
       >
         <template #prepend>
           <v-icon
@@ -44,12 +44,12 @@
           />
         </template>
         <template #append>
-          <v-chip v-if="getResultType(item.response.type)">
-            {{ getResultType(item.response.type) }}
+          <v-chip v-if="getResultType(item.type)">
+            {{ getResultType(item.type) }}
           </v-chip>
         </template>
         <div class="shorten">
-          {{ getResultTitle(item.response) }}
+          {{ item.title }}
         </div>
       </v-list-item>
     </v-list>
@@ -60,15 +60,14 @@
 import {mdiMagnify} from '@mdi/js';
 import {
 	BLOCKCHAIN_ATTRIBUTES,
-	BLOCKCHAIN_BTC, BLOCKCHAIN_DASH, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
+	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants/index.js';
 import {getDakarClients} from '@/utilities/index.js';
 import {ref} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import {useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
 
 const router = useRouter();
-const route = useRoute();
 const msgStore = useMsgStore();
 
 defineProps({
@@ -113,42 +112,50 @@ async function search(q) {
 		return;
 	}
 
+	if (lastQuery === trimmed) {
+		return;
+	}
+
 	if (!isValidQueryInput(trimmed)) {
-		setWarningMessage('Query is not valid');
+		setNoResults();
 		return;
 	}
 
 	msgStore.resetMessages();
 
 	isLoading.value = true;
+
 	resultItems.value = [];
+	const searchResults = [];
+	const blockchainKeys = Object.keys(BLOCKCHAIN_ATTRIBUTES);
+	const resolved = await Promise.allSettled(blockchainKeys.map(chain => dakarClients[chain].data
+		.blockchainSearchQueryGet({query: trimmed})));
 
-	try {
-		const btcResponse = await dakarClients[BLOCKCHAIN_BTC].data.blockchainSearchQueryGet({query: trimmed});
-		resultItems.value.push({
-			mode: BLOCKCHAIN_BTC, response: btcResponse, value: q, title: q,
+	for (const [index, response] of resolved.entries()) {
+		if (response.status === 'rejected') {
+			// ignore error
+			continue;
+		}
+
+		searchResults.push({
+			mode: blockchainKeys[index], type: response.value.type, value: trimmed, title: trimmed,
 		});
-	} catch (_) {
-		// Just do nothing
 	}
 
-	try {
-		const dashResponse = await dakarClients[BLOCKCHAIN_DASH].data.blockchainSearchQueryGet({query: trimmed});
-		resultItems.value.push({
-			mode: BLOCKCHAIN_DASH, response: dashResponse, value: q, title: q,
-		});
-	} catch (_) {
-		// Just do nothing
-	}
-
-	if (resultItems.value.length === 0) {
+	if (searchResults.length === 0) {
 		// Both request returned not data
-		resultItems.value = {empty: true};
+		setNoResults();
+	} else {
+		resultItems.value = searchResults;
 	}
 
-	lastQuery = q;
+	lastQuery = trimmed;
 
 	isLoading.value = false;
+}
+
+function setNoResults() {
+	resultItems.value = {empty: true};
 }
 
 function queueSearch(q) {
@@ -160,7 +167,7 @@ function queueSearch(q) {
 }
 
 async function handleDirectSearch() {
-	if (query.value !== lastQuery) {
+	if (`${query.value.trim()}` !== lastQuery) {
 		// Results are not recent
 		if (searchTimer !== null) {
 			clearTimeout(searchTimer);
@@ -174,30 +181,14 @@ async function handleDirectSearch() {
 	}
 
 	const item = resultItems.value[0];
-	handleResultItemClick(item.response, item.mode);
+	handleResultItemClick(item);
 }
 
-function setWarningMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'warning', temporary: true, category: route.name,
-	});
-}
-
-function getResultTitle(item) {
+function getResultNavigation(item) {
 	switch (item.type) {
-		case 'tx': return item.payload[0].txhash;
-		case 'block': return item.payload.id;
-		case 'addr': return item.payload.addresshash;
-		default:
-			return '';
-	}
-}
-
-function getResultNavigation(item, mode) {
-	switch (item.type) {
-		case 'tx': return {name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: item.payload[0].txhash, blockchainMode: mode}};
-		case 'block': return {name: ROUTE_NAME_BLOCK_PAGE, params: {id: item.payload.id, blockchainMode: mode}};
-		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.payload.addresshash, blockchainMode: mode}};
+		case 'tx': return {name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: item.title, blockchainMode: item.mode}};
+		case 'block': return {name: ROUTE_NAME_BLOCK_PAGE, params: {id: item.title, blockchainMode: item.mode}};
+		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.title, blockchainMode: item.mode}};
 		default:
 			return {};
 	}
@@ -213,8 +204,8 @@ function getResultType(type) {
 	}
 }
 
-function handleResultItemClick(item, mode) {
-	router.push(getResultNavigation(item, mode));
+function handleResultItemClick(item) {
+	router.push(getResultNavigation(item));
 	query.value = '';
 	resultItems.value = [];
 }

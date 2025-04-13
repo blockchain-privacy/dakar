@@ -41,7 +41,7 @@
 import Transaction from './Transaction.vue';
 import {PAGE_TITLE, ROUTE_NAME_404_PAGE} from '@/constants';
 import {
-	getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
+	getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import {
 	computed, onMounted, ref, watch,
@@ -56,7 +56,7 @@ const {session} = storeToRefs(useLocalStore());
 const route = useRoute();
 const router = useRouter();
 const msgStore = useMsgStore();
-const dakar = getDakarClient(route.params.blockchainMode);
+const dakarClients = getDakarClients();
 
 const transactions = ref([]);
 const context = {$route: route, addMessage: msgStore.addMessage};
@@ -94,7 +94,8 @@ async function pullInitialData() {
 
 	transactions.value = [];
 	try {
-		const response = await dakar.data.blockchainTransactionsHashGet({hash: route.params.id});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainTransactionsHashGet({hash: route.params.id});
 		if (response.transactions) {
 			transactions.value = response.transactions;
 		}

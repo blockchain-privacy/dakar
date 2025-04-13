@@ -35,12 +35,12 @@ import AddressView from '@/components/explorer/address/Address.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
-import {getDakarClient, handleError} from '@/utilities/index.js';
+import {getDakarClients, handleError} from '@/utilities/index.js';
 
 const route = useRoute();
 const router = useRouter();
 const msgStore = useMsgStore();
-const dakar = getDakarClient(route.params.blockchainMode);
+const dakarClients = getDakarClients();
 
 const address = ref(null);
 const context = {$route: route, addMessage: msgStore.addMessage};
@@ -76,7 +76,8 @@ async function pullInitialData() {
 
 	address.value = null;
 	try {
-		const response = await dakar.data.blockchainAddressesHashGet({hash: route.params.id});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainAddressesHashGet({hash: route.params.id});
 		if (response.address) {
 			address.value = response.address;
 		}

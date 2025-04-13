@@ -215,22 +215,6 @@ function setInfoMessage(msg) {
 	});
 }
 
-async function loadWorkspaceList(mode) {
-	try {
-		const response = await dakarClients[mode].workspace.workspacesGet();
-
-		if (response.workspaces) {
-			return response.workspaces;
-		}
-
-		msgStore.resetMessages();
-	} catch (e) {
-		handleError(context, e);
-	}
-
-	return [];
-}
-
 async function renameWorkspace(workspace) {
 	const workspaceName = workspace;
 	if (workspaceName === '') {
@@ -306,37 +290,26 @@ async function refreshWorkspaceList() {
 	isLoading.value = true;
 
 	workspaceList.value = [];
-
-	const promises = [];
-	for (const blockchain of Object.values(BLOCKCHAIN_ATTRIBUTES)) {
-		promises.push(loadWorkspaceList(blockchain.mode));
-	}
-
-	const resolved = await Promise.all(promises);
-	const workspaces = [];
 	const blockchainKeys = Object.keys(BLOCKCHAIN_ATTRIBUTES);
+	const resolved = await Promise.allSettled(blockchainKeys.map(chain => dakarClients[chain].workspace.workspacesGet()));
+
+	const workspaces = [];
 	for (const [index, response] of resolved.entries()) {
-		workspaces.push(...response.map(w => {
+		if (response.status === 'rejected') {
+			handleError(context, response.reason);
+			continue;
+		}
+
+		workspaces.push(...response.value.workspaces.map(w => {
 			w.mode = blockchainKeys[index];
+			w.modTimeUnix = new Date(w.ts).getTime();
 			return w;
 		}));
 	}
 
 	workspaceList.value = workspaces;
-
 	isLoading.value = false;
-
 	search.value = '';
-
-	if (!workspaceList.value) {
-		return;
-	}
-
-	workspaceList.value = workspaceList.value.map(d => {
-		// Convert date to unix time, so it can be sorted in data table
-		d.modTimeUnix = new Date(d.ts).getTime();
-		return d;
-	});
 }
 
 async function deleteWorkspace() {

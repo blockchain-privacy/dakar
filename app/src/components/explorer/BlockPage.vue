@@ -141,6 +141,7 @@ import {
 	mdiFormatHeaderPound, mdiPound,
 } from '@mdi/js';
 import {
+	getDakarClients,
 	handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
 } from '@/utilities';
 import {PAGE_TITLE, ROUTE_NAME_404_PAGE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
@@ -155,7 +156,6 @@ import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local';
-import {getDakarClient} from '@/utilities';
 import ModeChip from '@/components/common/ModeChip.vue';
 
 const route = useRoute();
@@ -167,7 +167,7 @@ const block = ref(null);
 
 let offset = 0;
 
-const dakar = getDakarClient(route.params.blockchainMode);
+const dakarClients = getDakarClients();
 
 // Computed
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
@@ -211,7 +211,8 @@ async function pullInitialData() {
 
 	block.value = null;
 	try {
-		const response = await dakar.data.blockchainBlocksHashGet({hash: route.params.id});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainBlocksHashGet({hash: route.params.id});
 		if (response.block) {
 			block.value = response.block;
 		}
@@ -239,7 +240,8 @@ async function addNewData({done}) {
 	}
 
 	try {
-		const response = await dakar.data.blockchainBlocksHashGet({hash: block.value.blockhash, offset});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainBlocksHashGet({hash: block.value.blockhash, offset});
 
 		if (isResponseValid(response)) {
 			block.value.transactions = [...block.value.transactions, ...response.block.transactions];

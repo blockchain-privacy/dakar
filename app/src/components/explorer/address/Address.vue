@@ -196,7 +196,7 @@ import {
 } from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, getCoinUnit, getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
+	convertAmount, getCoinUnit, getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
@@ -223,7 +223,7 @@ const props = defineProps({
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
 const {session} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(route.params.blockchainMode);
+const dakarClients = getDakarClients();
 
 const isLoading = ref(false);
 const tab = ref(null);
@@ -315,17 +315,18 @@ async function getTableData() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.data.blockchainOutputsHashPost({
-			hash: addressHash.value,
-			options: {
-				offset: offset.value,
-				filter: sortAndFilterModel.value.filter,
-				order: sortAndFilterModel.value.order,
-			},
-		});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainOutputsHashPost({
+				hash: addressHash.value,
+				options: {
+					offset: offset.value,
+					filter: sortAndFilterModel.value.filter,
+					order: sortAndFilterModel.value.order,
+				},
+			});
 
-		if (response.payload?.outputs?.length > 0) {
-			dataToRef(response.payload);
+		if (response.address?.outputs?.length > 0) {
+			dataToRef(response.address);
 			emptyResponse.value = false;
 		} else {
 			emptyResponse.value = true;

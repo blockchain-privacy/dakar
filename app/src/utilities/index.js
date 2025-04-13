@@ -139,7 +139,7 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 
 export function handleError(context, error) {
 	let errMsg;
-	if (error.cause?.status === 500) {
+	if (error.cause?.status === 500 || error.cause?.status === 502) {
 		errMsg = 'Error requesting data from server. Please try again later.';
 	} else {
 		errMsg = error.message;
