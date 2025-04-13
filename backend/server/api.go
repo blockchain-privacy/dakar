@@ -91,10 +91,10 @@ func (s *Server) handlerTransaction() http.Handler {
 //	@Produce	json
 //	@Param		hash	path		string										true	"Address hash"
 //	@Param		options	body		server.getAddressOutputRangeReply.request	true	"query options"
-//	@Success	200		{object}	server.searchReply
-//	@Failure	400		{object}	server.searchReply
-//	@Failure	404		{object}	server.searchReply
-//	@Failure	500		{object}	server.searchReply
+//	@Success	200		{object}	server.addressReply
+//	@Failure	400		{object}	server.addressReply
+//	@Failure	404		{object}	server.addressReply
+//	@Failure	500		{object}	server.addressReply
 //	@Router		/blockchain/outputs/{hash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

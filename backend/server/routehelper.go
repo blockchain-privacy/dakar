@@ -8,10 +8,8 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/db/workspace"
-	"backend/external"
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/qrest/gomisc/serror"
 	"net/http"
 	"regexp"
@@ -76,19 +74,8 @@ func SendReply(w http.ResponseWriter, reply any, statusCode int) {
 	}
 }
 
-// isLikelyBlock returns true if the given query string is likely a block hash
-func isLikelyBlock(query string) bool {
-	return query[0:1] == "0"
-}
-
-// isLikelyAddress returns true if the given query string is likely an address hash
-func isLikelyAddress(query string) bool {
-	return query[0:1] == "X" || query[0:1] == "7"
-}
-
 type searchReply struct {
-	Type    queryResultType `json:"type,omitempty"`
-	Payload interface{}     `json:"payload,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 type metaReply struct {
@@ -152,76 +139,6 @@ type getWorkspaceReply struct {
 	Workspace *workspace.FrontendWorkspace `json:"workspace,omitempty"`
 	// Contains all available heuristic descriptors, which define the heuristic interface
 	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty"`
-}
-
-type queryResultType string
-
-const typeBlock queryResultType = "block"
-const typeAddr queryResultType = "addr"
-const typeTx queryResultType = "tx"
-const typeEmpty queryResultType = "response_empty"
-
-// SearchResult holds result data of a block, address or transaction search request
-type SearchResult struct {
-	resultType queryResultType
-	result     any
-}
-
-// GetBlock searches for the hash specified in query. If a block is found the returned bool is true
-func GetBlock(ctx context.Context, dgraph external.Database, query string) (SearchResult, bool, error) {
-	return GetBlockWithOptions(ctx, dgraph, query, 0)
-}
-
-// GetBlockWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
-// It supports an offset. A maximum of 5 transactions is returned.
-func GetBlockWithOptions(ctx context.Context, dgraph external.Database, query string, offset int) (SearchResult, bool, error) {
-	block, err := db.GetFrontendBlock(ctx, dgraph, query, offset)
-	if err != nil {
-		// only print error if it is not expected
-		if !errors.Is(err, db.ErrBlockNotFound) {
-			return SearchResult{}, false, err
-		}
-		return SearchResult{}, false, nil
-	}
-
-	return SearchResult{resultType: typeBlock, result: block}, true, nil
-}
-
-// GetTransaction searches for the hash specified in query. If a transaction is found the returned bool is true
-func GetTransaction(ctx context.Context, dgraph external.Database, query string) (SearchResult, bool, error) {
-	tx, err := db.GetFrontendTransaction(ctx, dgraph, query)
-	if err != nil {
-		// only print error if it is not expected
-		if !errors.Is(err, db.ErrTransactionNotFound) {
-			return SearchResult{}, false, err
-		}
-		return SearchResult{}, false, nil
-	}
-
-	return SearchResult{resultType: typeTx, result: tx}, true, nil
-}
-
-// GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
-// A maximum of 20 elements is returned.
-func GetAddress(ctx context.Context, dgraph external.Database, query string) (SearchResult, bool, error) {
-	return GetAddressWithOptions(ctx, dgraph, query, db.SortAscendingByOutputTime, 0, nil)
-}
-
-// GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
-// It supports sorting and setting an offset. For sorting use the constants defined in the db address module.
-// A maximum of 20 elements is returned.
-func GetAddressWithOptions(ctx context.Context, dgraph external.Database, query string, sortOrder int,
-	offset int, filters []int) (SearchResult, bool, error) {
-	addr, err := db.GetFrontendAddress(ctx, dgraph, query, sortOrder, offset, filters)
-	if err != nil {
-		// only print error if it is not expected
-		if !errors.Is(err, db.ErrAddressNotFound) {
-			return SearchResult{}, false, err
-		}
-		return SearchResult{}, false, nil
-	}
-
-	return SearchResult{resultType: typeAddr, result: addr}, true, nil
 }
 
 type tokenUser struct {

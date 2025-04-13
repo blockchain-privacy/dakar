@@ -32,50 +32,25 @@ import (
 )
 
 // getSearchReply searches for the given query in the database
-func getSearchReply(dgraph external.Database, r *http.Request) (searchReply, int) {
-	reply := searchReply{
-		Type:    typeEmpty,
-		Payload: nil,
-	}
-
+func getSearchReply(dgraph external.Database, r *http.Request) (reply searchReply, status int) {
 	query := r.PathValue("query")
 
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
 
-	type dataRetriever func(context.Context, external.Database, string) (SearchResult, bool, error)
-
-	searchOrder := []dataRetriever{GetTransaction, GetAddress, GetBlock}
-
-	if isLikelyBlock(query) {
-		searchOrder = []dataRetriever{GetBlock, GetTransaction, GetAddress}
-	} else if isLikelyAddress(query) {
-		searchOrder = []dataRetriever{GetAddress, GetTransaction, GetBlock}
+	queryType, err := db.Search(r.Context(), dgraph, query)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
 	}
 
-	status := http.StatusOK
-
-	// iterate over db access functions
-	for _, fn := range searchOrder {
-		data, ok, err := fn(r.Context(), dgraph, query)
-		if err != nil {
-			status = http.StatusInternalServerError
-			warn(err)
-			break
-		}
-		// nothing found -> next try
-		if !ok {
-			continue
-		}
-
-		reply.Payload = data.result
-		reply.Type = data.resultType
-		break
-	}
-
-	if reply.Type == typeEmpty {
+	if queryType == "" {
 		status = http.StatusNotFound
+		reply.Type = "response_empty"
+	} else {
+		reply.Type = queryType
 	}
 
 	return reply, status
@@ -164,12 +139,8 @@ func getTransactionReply(dgraph external.Database, r *http.Request) (reply trans
 }
 
 // getAddressOutputRangeReply searches for the given address hash in the database with the options stored in the request
-func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (searchReply, int) {
+func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (reply addressReply, status int) {
 	addressHash := r.PathValue("hash")
-	reply := searchReply{
-		Type:    typeEmpty,
-		Payload: nil,
-	}
 
 	type request struct {
 		Offset int   `json:"offset"`
@@ -178,7 +149,8 @@ func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (sear
 	}
 
 	if !isValid(addressHash) {
-		return reply, http.StatusBadRequest
+		status = http.StatusBadRequest
+		return
 	}
 
 	var addressRequest request
@@ -186,34 +158,41 @@ func getAddressOutputRangeReply(dgraph external.Database, r *http.Request) (sear
 	addressRequest.Order = -1
 
 	if decodeErr := json.NewDecoder(r.Body).Decode(&addressRequest); decodeErr != nil {
-		return reply, http.StatusBadRequest
+		status = http.StatusBadRequest
+		return
 	}
 
 	if !db.IsValidSortOrder(addressRequest.Order) {
-		return reply, http.StatusBadRequest
+		status = http.StatusBadRequest
+		return
 	}
 
 	if !db.IsValidFilter(addressRequest.Filter) {
-		return reply, http.StatusBadRequest
+		status = http.StatusBadRequest
+		return
 	}
 
 	if addressRequest.Offset < 0 {
-		return reply, http.StatusBadRequest
+		status = http.StatusBadRequest
+		return
 	}
 
-	status := http.StatusOK
-	data, ok, addrErr := GetAddressWithOptions(r.Context(), dgraph, addressHash,
+	data, err := db.GetFrontendAddress(r.Context(), dgraph, addressHash,
 		addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
-	if addrErr != nil {
+	if err != nil {
+		if errors.Is(err, db.ErrAddressNotFound) {
+			status = http.StatusNotFound
+			return
+		}
+
 		status = http.StatusInternalServerError
-	} else if ok {
-		reply.Payload = data.result
-		reply.Type = data.resultType
-	} else {
-		status = http.StatusNotFound
+		return
 	}
 
-	return reply, status
+	status = http.StatusOK
+	reply.Address = data
+
+	return
 }
 
 func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *http.Request) (reply metaReply, status int) {
