@@ -15,7 +15,6 @@ linters:
     - nilnil
     - perfsprint
     - prealloc
-    - protogetter
     - revive
     - sloglint
     - staticcheck
