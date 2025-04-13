@@ -151,10 +151,14 @@ import {
 import {
 	BLOCKCHAIN_ATTRIBUTES, PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE,
 } from '@/constants/index.js';
-import {getDakarClients, handleError} from '@/utilities/index.js';
+import {
+	getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
+} from '@/utilities/index.js';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {onMounted, ref, toRaw} from 'vue';
+import {
+	computed, onMounted, ref, toRaw,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
 import TextDialog from '@/components/common/TextDialog.vue';
@@ -162,10 +166,13 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import {useDisplay} from 'vuetify';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import BlockchainModeTextDialog from '@/components/tools/workspaces/BlockchainModeTextDialog.vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
 const route = useRoute();
 const msgStore = useMsgStore();
 const display = useDisplay();
+const {session} = storeToRefs(useLocalStore());
 const context = {addMessage: msgStore.addMessage, $route: route};
 const dakarClients = getDakarClients();
 
@@ -195,6 +202,10 @@ const headers = [
 ];
 
 const maxWorkspaceNameLength = 50;
+
+// Computed
+const authPerMode = computed(() => Object.values(BLOCKCHAIN_ATTRIBUTES).filter(m => isPrivilegedIdentity(session.value, m.mode)
+	|| isAdminIdentity(session.value, m.mode)));
 
 // Hooks
 onMounted(() => {
@@ -290,8 +301,7 @@ async function refreshWorkspaceList() {
 	isLoading.value = true;
 
 	workspaceList.value = [];
-	const blockchainKeys = Object.keys(BLOCKCHAIN_ATTRIBUTES);
-	const resolved = await Promise.allSettled(blockchainKeys.map(chain => dakarClients[chain].workspace.workspacesGet()));
+	const resolved = await Promise.allSettled(authPerMode.value.map(chain => dakarClients[chain.mode].workspace.workspacesGet()));
 
 	const workspaces = [];
 	for (const [index, response] of resolved.entries()) {
@@ -301,7 +311,7 @@ async function refreshWorkspaceList() {
 		}
 
 		workspaces.push(...response.value.workspaces.map(w => {
-			w.mode = blockchainKeys[index];
+			w.mode = authPerMode.value[index].mode;
 			w.modTimeUnix = new Date(w.ts).getTime();
 			return w;
 		}));
