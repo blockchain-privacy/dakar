@@ -132,12 +132,17 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 	}()
 
 	// create jobs
+	lastNodeUID := "0x0"
 	for i := 0; ; i += step {
 		now := time.Now()
-		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, i, transactionType, mixingTxType)
+		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, lastNodeUID, transactionType, mixingTxType)
 		if err != nil {
 			warn(err)
 			return
+		}
+
+		if len(destinations) > 0 {
+			lastNodeUID = destinations[len(destinations)-1].UID
 		}
 
 		for _, destination := range destinations {

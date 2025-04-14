@@ -44,10 +44,10 @@ import (
 
 // GetConnectedPrivacyTransactions gets the first numNodes classified transactions including their input transaction
 // from the database.
-func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, numNodes int, offsetNodes int,
+func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, numNodes int, afterNode string,
 	transactionType string) ([]ConnectedNode, error) {
-	const query = `query Q($type:string,$first:int,$offset:int){
-				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
+	const query = `query Q($type:string,$first:int,$after:string){
+				q(func: eq(Transaction.type,$type),first:$first,after:$after){
 					uid
 					Transaction.type
 					block:~transactions{
@@ -65,7 +65,7 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 			  }`
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
-		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
+		"$first": strconv.Itoa(numNodes), "$after": afterNode})
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +94,9 @@ func GetConnectedPrivacyTransactions(ctx context.Context, c external.Database, n
 
 // GetPrivacyTransactions gets the numNodes maxTx classified transactions from the database.
 func GetPrivacyTransactions(ctx context.Context, c external.Database,
-	numNodes int, offsetNodes int, transactionType string) ([]Node, error) {
-	const query = `query Q($type:string,$first:int,$offset:int){
-				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
+	numNodes int, afterNode string, transactionType string) ([]Node, error) {
+	const query = `query Q($type:string,$first:int,$after:string){
+				q(func: eq(Transaction.type,$type),first:$first,after:$after){
 					uid
 					Transaction.type
 					block:~transactions{
@@ -106,7 +106,7 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 			  }`
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$type": transactionType,
-		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
+		"$first": strconv.Itoa(numNodes), "$after": afterNode})
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +125,9 @@ func GetPrivacyTransactions(ctx context.Context, c external.Database,
 // GetPrivacyTransactionsWithHash gets the numNodes maxTx classified transactions from the database.
 // Includes the transaction hashes and input amounts connected .
 func GetPrivacyTransactionsWithHash(ctx context.Context, c external.Database,
-	numNodes int, offsetNodes int, transactionType string, connectionTransactionType string) ([]NodeWithHash, error) {
-	const query = `query Q($type:string,$connectionType:string,$first:int,$offset:int){
-				q(func: eq(Transaction.type,$type),first:$first,offset:$offset){
+	numNodes int, afterNode string, transactionType string, connectionTransactionType string) ([]NodeWithHash, error) {
+	const query = `query Q($type:string,$connectionType:string,$first:int,$after:string){
+				q(func: eq(Transaction.type,$type),first:$first,after:$after){
 					uid
 					txhash
 					Transaction.type
@@ -143,7 +143,7 @@ func GetPrivacyTransactionsWithHash(ctx context.Context, c external.Database,
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{
 		"$type": transactionType, "$connectionType": connectionTransactionType,
-		"$first": strconv.Itoa(numNodes), "$offset": strconv.Itoa(offsetNodes)})
+		"$first": strconv.Itoa(numNodes), "$after": afterNode})
 	if err != nil {
 		return nil, err
 	}

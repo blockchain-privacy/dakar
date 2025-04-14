@@ -156,32 +156,40 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 // loadSingleNodes: wether single nodes or edges are supposed to be loaded
 func loadTransactions(ctx context.Context, c external.Database, g *ReversibleGraph,
 	step int, maxTransactions int, transactionType string, loadSingleNodes bool) error {
+	lastNodeUID := "0x0"
 	for i := 0; ; i += step {
 		var numNodesLoaded int
 		if loadSingleNodes {
-			singleNodes, err := analytics.GetPrivacyTransactions(ctx, c, step, i, transactionType)
+			singleNodes, err := analytics.GetPrivacyTransactions(ctx, c, step, lastNodeUID, transactionType)
 			if err != nil {
 				return err
 			}
 
-			err = addSingleNodes(g, singleNodes)
-			if err != nil {
-				return err
+			if len(singleNodes) > 0 {
+				err = addSingleNodes(g, singleNodes)
+				if err != nil {
+					return err
+				}
+				lastNodeUID = singleNodes[len(singleNodes)-1].UID
 			}
+
 			numNodesLoaded = len(singleNodes)
 		} else {
 			// loading edges allocates a lot of memory, so run gc
 			if i/step > 10 && (i/step)%3 == 0 {
 				runtime.GC()
 			}
-			edges, err := analytics.GetConnectedPrivacyTransactions(ctx, c, step, i, transactionType)
+			edges, err := analytics.GetConnectedPrivacyTransactions(ctx, c, step, lastNodeUID, transactionType)
 			if err != nil {
 				return err
 			}
 
-			err = addEdges(g, edges)
-			if err != nil {
-				return err
+			if len(edges) > 0 {
+				err = addEdges(g, edges)
+				if err != nil {
+					return err
+				}
+				lastNodeUID = edges[len(edges)-1].UID
 			}
 
 			numNodesLoaded = len(edges)
