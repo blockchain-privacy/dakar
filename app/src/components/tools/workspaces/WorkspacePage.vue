@@ -126,7 +126,7 @@
       v-model="showAddWorkspaceDialogModel"
       title="New Workspace"
       submit-label="Create"
-      input-label="Name of the new workspace"
+      input-label="Workspace name"
       :maxlength="maxWorkspaceNameLength"
       show-mode-switch
       @submit="addWorkspace"

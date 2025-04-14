@@ -25,6 +25,9 @@
           autofocus
           @keydown.enter="submit"
         />
+        <p class="text-subtitle-2 mb-2">
+          Blockchain
+        </p>
         <v-btn-toggle
           v-if="showModeSwitch"
           v-model="modeSelection"
