@@ -42,7 +42,7 @@
               start
               :icon="chain.icon"
               :color="chain.color"
-              size="xx-large"
+              size="x-large"
             />
             <span>{{ chain.title }}</span>
           </v-btn>

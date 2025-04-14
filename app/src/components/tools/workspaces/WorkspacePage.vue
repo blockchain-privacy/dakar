@@ -73,7 +73,7 @@
             :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
             :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
             start
-            size="xx-large"
+            size="x-large"
           />
           {{ BLOCKCHAIN_ATTRIBUTES[item.mode].title }}
         </div>
