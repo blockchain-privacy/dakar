@@ -909,8 +909,8 @@ func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, s
 		} `json:"count,omitempty"`
 		Last    []db.UIDNode `json:"last,omitempty"`
 		Cluster []struct {
-			UID                string `json:"uid,omitempty"`
-			ClusterTransaction db.UIDNode
+			UID                string      `json:"uid,omitempty"`
+			ClusterTransaction *db.UIDNode `json:"Cluster.transaction,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -925,6 +925,10 @@ func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, s
 
 	uids := make(map[string]string, len(r.Cluster))
 	for _, cluster := range r.Cluster {
+		if cluster.ClusterTransaction == nil {
+			return nil, "", 0, serror.FromStrWithContext("cluster transaction was nil", "cluster uid", cluster.UID)
+		}
+
 		uids[cluster.UID] = cluster.ClusterTransaction.UID
 	}
 
