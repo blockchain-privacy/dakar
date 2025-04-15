@@ -419,10 +419,11 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 	}
 
 	for _, cluster := range clusters {
-		if len(cluster.Transaction) > 1 {
-			err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
-			return
-		}
+		// todo activate check after https://github.com/hypermodeinc/dgraph/pull/9380 has been released
+		//if len(cluster.Transaction) > 1 {
+		//	err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
+		//	return
+		//}
 
 		frontendCluster := FrontendCluster{
 			Type:         cluster.Type,
@@ -436,7 +437,7 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 			frontendCluster.UID = cluster.UID
 		}
 
-		// Transaction can be not set if the cluster was created by a user
+		// Transaction may not be set if the cluster was created by a user
 		if cluster.Transaction != nil {
 			frontendCluster.TransactionHash = cluster.Transaction[0].TransactionHash
 			frontendCluster.BlockID = cluster.Transaction[0].BlockID
