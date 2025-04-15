@@ -158,9 +158,9 @@ func TestCreateClient(t *testing.T) {
 	if !ok {
 		t.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
 	}
-	_, c, err := external.CreateClient(name + ":9080")
+	d, err := external.CreateClient(name + ":9080")
 	require.NoError(t, err)
-	require.NoError(t, c.Close())
+	defer d.Close()
 }
 
 func TestGetTypeByUID(t *testing.T) {
