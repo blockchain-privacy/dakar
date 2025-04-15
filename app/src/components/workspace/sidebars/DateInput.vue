@@ -15,24 +15,22 @@
         :error="error"
       />
     </template>
-    <v-card>
-      <v-date-picker
-        v-model="model"
-        hide-header
-        :allowed-dates="isDateAllowed"
-        show-adjacent-months
-        :first-day-of-week="firstDayOfWeek"
-      />
-      <v-card-actions>
+    <v-date-picker
+      v-model="model"
+      hide-header
+      :allowed-dates="isDateAllowed"
+      show-adjacent-months
+      :first-day-of-week="firstDayOfWeek"
+    >
+      <template #actions>
         <v-btn
-          class="ms-auto"
-          variant="text"
+          color="primary"
           @click="menuModel = false"
         >
           OK
         </v-btn>
-      </v-card-actions>
-    </v-card>
+      </template>
+    </v-date-picker>
   </v-menu>
 </template>
 <script setup>
