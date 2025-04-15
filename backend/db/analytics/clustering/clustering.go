@@ -850,7 +850,78 @@ func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) erro
 		CommitNow: true,
 	}
 
+	const query = `{
+				 q(func: eq(Cluster.type, "fmi")){
+					count(uid)
+				  }
+				}`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
+	if err != nil {
+		return err
+	}
+
+	var r struct {
+		Count []struct {
+			Count int64 `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		err = serror.New(err)
+		return err
+	}
+
 	return db.MutationWithRetry(ctx, c, req)
+}
+
+func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, step int, afterNode string) ([]string, string, int, error) {
+	const query = `query Q($step:int,$after:string){
+					var(func: has(Cluster.transaction), first: $step, after: $after){
+						a as count(Cluster.transaction)
+					}
+
+					count(func: uid(a)){
+						c:count(uid)
+					}
+
+					last(func: uid(a), first: -1){
+						uid
+					}
+					
+					q(func: uid(a))@filter(gt(val(a), 1)){
+						uid
+					}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$step": strconv.Itoa(step), "$after": afterNode})
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	var r struct {
+		Count []struct {
+			Count int `json:"c,omitempty"`
+		} `json:"count,omitempty"`
+		Last    []db.UIDNode `json:"last,omitempty"`
+		Cluster []db.UIDNode `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, "", 0, serror.New(err)
+	}
+
+	var last string
+	if len(r.Last) > 0 {
+		last = r.Last[0].UID
+	}
+
+	uids := make([]string, len(r.Cluster))
+	for i, cluster := range r.Cluster {
+		uids[i] = cluster.UID
+	}
+
+	return uids, last, r.Count[0].Count, nil
 }
 
 // GetClustersByBlockRange returns all cluster-address mappings of the given block range

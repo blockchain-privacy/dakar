@@ -116,6 +116,10 @@ type HeuristicAnalysisModule struct {
 	TransactionType string `yaml:"transactionType"`
 }
 
+type FixClusterTransactionModule struct {
+	Active bool `yaml:"active"`
+}
+
 type Config struct {
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
@@ -133,6 +137,7 @@ type Config struct {
 	Collaterals           CollateralsModule           `yaml:"collaterals"`
 	CollateralGap         CollateralGapModule         `yaml:"collateralGap"`
 	HeuristicAnalysis     HeuristicAnalysisModule     `yaml:"heuristicAnalysis"`
+	FixClusterTransaction FixClusterTransactionModule `yaml:"fixClusterTransaction"`
 }
 
 var defaultConfig = Config{
@@ -295,6 +300,40 @@ func main() {
 
 	if cfg.HeuristicAnalysis.Active {
 		doHeuristicAnalysis(ctx, dgraph, g, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType)
+	}
+
+	if cfg.FixClusterTransaction.Active {
+		info("starting fix cluster transaction")
+		lastNode := "0x0"
+		const step = 10000
+		var processedClusterCount int
+		for {
+			nodes, ln, numNodesLoaded, err := clustering.CheckClusterTransactionOverflow(ctx, dgraph, step, lastNode)
+			if err != nil {
+				warn(err)
+				return
+			}
+
+			if numNodesLoaded < step {
+				break
+			}
+
+			if ln == "" {
+				panic("last node was empty, prev last node: " + lastNode)
+			}
+
+			lastNode = ln
+
+			if len(nodes) > 0 {
+				info("received nodes", "count", nodes, "lastNode", lastNode)
+			}
+
+			processedClusterCount += numNodesLoaded
+
+			if processedClusterCount%1000000 == 0 {
+				info("processed clusters", "count", processedClusterCount, "lastNode", lastNode)
+			}
+		}
 	}
 }
 
