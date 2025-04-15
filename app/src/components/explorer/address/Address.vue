@@ -7,6 +7,11 @@
         :icon="mdiCardBulletedOutline"
       >
         <exclusion-chip :address-hash="addressHash" />
+        <mode-chip
+          v-if="showMode"
+          class="ms-2"
+          :blockchain-mode="route.params.blockchainMode"
+        />
       </icon-title>
       <v-card-text>
         <v-container>
@@ -136,7 +141,7 @@
                     v-if="item.inputTransactionHash"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.inputTransactionHash, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.inputTransactionHash, blockchainMode: route.params.blockchainMode }}"
                   >
                     {{ item.inputTransactionHash }}
                   </workspace-link>
@@ -146,7 +151,7 @@
                     v-if="item.outputTransactionHash"
                     style="max-width:200px"
                     :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                           params: { id: item.outputTransactionHash, blockchainMode: getSettings.blockchainMode }}"
+                           params: { id: item.outputTransactionHash, blockchainMode: route.params.blockchainMode }}"
                   >
                     {{ item.outputTransactionHash }}
                   </workspace-link>
@@ -191,7 +196,7 @@ import {
 } from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, getCoinUnit, getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
+	convertAmount, getCoinUnit, getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
@@ -207,16 +212,18 @@ import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
+import ModeChip from '@/components/common/ModeChip.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
 	showTitleBar: {type: Boolean, required: false},
+	showMode: {type: Boolean, required: false},
 });
 
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const {session, getSettings} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const {session} = storeToRefs(useLocalStore());
+const dakarClients = getDakarClients();
 
 const isLoading = ref(false);
 const tab = ref(null);
@@ -250,9 +257,9 @@ const table = ref({
 
 // Computed
 const offset = computed(() => (table.value.page * itemsPerPage) - itemsPerPage);
-const showAdvanced = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
-	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
-const coinUnit = computed(() => getCoinUnit(getSettings.value.blockchainMode));
+const showAdvanced = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
+	|| isAdminIdentity(session.value, route.params.blockchainMode));
+const coinUnit = computed(() => getCoinUnit(route.params.blockchainMode));
 
 // Hooks
 onMounted(() => {
@@ -308,17 +315,18 @@ async function getTableData() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.data.blockchainOutputsHashPost({
-			hash: addressHash.value,
-			options: {
-				offset: offset.value,
-				filter: sortAndFilterModel.value.filter,
-				order: sortAndFilterModel.value.order,
-			},
-		});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainOutputsHashPost({
+				hash: addressHash.value,
+				options: {
+					offset: offset.value,
+					filter: sortAndFilterModel.value.filter,
+					order: sortAndFilterModel.value.order,
+				},
+			});
 
-		if (response.payload?.outputs?.length > 0) {
-			dataToRef(response.payload);
+		if (response.address?.outputs?.length > 0) {
+			dataToRef(response.address);
 			emptyResponse.value = false;
 		} else {
 			emptyResponse.value = true;

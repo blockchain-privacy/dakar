@@ -38,7 +38,7 @@
             variant="text"
             size="small"
             color="red"
-            @click="logoutAndGoToPage({name: ROUTE_NAME_ENTRY_PAGE, params:{blockchainMode: localStore.getSettings.blockchainMode}})"
+            @click="logoutAndGoToPage({name: ROUTE_NAME_ENTRY_PAGE})"
           >
             Log out
           </v-btn>
@@ -154,7 +154,7 @@ function leave() {
 		return;
 	}
 
-	goToPage({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}});
+	goToPage({name: ROUTE_NAME_ENTRY_PAGE});
 }
 
 // Used to break login flow (when aal2 or higher is required) and go to a different page

@@ -248,18 +248,15 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSideBar.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
-const colorMap = getColorMap(getSettings.value.blockchainMode);
+const colorMap = getColorMap(route.params.blockchainMode);
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
 setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
 
@@ -406,7 +403,7 @@ watch(
 const transactionTypeLabels = computed(() => {
 	const labels = [];
 
-	getColorMap(getSettings.value.blockchainMode).forEach((v, k) => {
+	getColorMap(route.params.blockchainMode).forEach((v, k) => {
 		labels.push({text: k, color: v});
 	});
 

@@ -1,61 +1,87 @@
 <template>
-  <v-text-field
-    v-model="query"
-    hide-details
-    :append-inner-icon="mdiMagnify"
-    :variant="variant"
-    :density="density"
-    color="primary"
-    single-line
-    :label="label"
-    :rules="[isValidQuery]"
-    :loading="isLoading"
-    :disabled="isLoading"
-    @click:append-inner="handleInput(query)"
-    @keydown.enter="handleInput(query)"
-  />
+  <v-menu
+    open-on-click
+    open-on-focus
+    close-on-content-click
+    max-width="0"
+  >
+    <template #activator="{props}">
+      <v-text-field
+        v-model="query"
+        v-bind="props"
+        :class="$attrs.class"
+        :style="$attrs.style"
+        hide-details
+        :append-inner-icon="mdiMagnify"
+        :variant="variant"
+        :density="density"
+        color="primary"
+        single-line
+        :label="label"
+        :rules="[isValidQuery]"
+        :loading="isLoading"
+        type="input"
+        @update:model-value="queueSearch"
+        @click:append-inner="handleDirectSearch"
+        @keydown.enter="handleDirectSearch"
+      />
+    </template>
+    <v-list v-if="!isLoading && resultItems.empty">
+      <v-list-item title="No results" />
+    </v-list>
+    <v-list
+      v-else-if="!isLoading && resultItems.length > 0"
+    >
+      <v-list-item
+        v-for="(item, index) in resultItems"
+        :key="index"
+        @click="handleResultItemClick(item)"
+      >
+        <template #prepend>
+          <v-icon
+            :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
+            :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
+          />
+        </template>
+        <template #append>
+          <v-chip v-if="getResultType(item.type)">
+            {{ getResultType(item.type) }}
+          </v-chip>
+        </template>
+        <div class="shorten">
+          {{ item.title }}
+        </div>
+      </v-list-item>
+    </v-list>
+  </v-menu>
 </template>
 
 <script setup>
 import {mdiMagnify} from '@mdi/js';
 import {
-	RESPONSE_EMPTY, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION,
-	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
+	BLOCKCHAIN_ATTRIBUTES,
+	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants/index.js';
-import {
-	getDakarClients, handleError, handleQuery,
-} from '@/utilities/index.js';
-import {computed, ref} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
-import {useExplorerStore} from '@/pinia/explorer.js';
+import {getDakarClients} from '@/utilities/index.js';
+import {ref} from 'vue';
+import {useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
-import {useNavStore} from '@/pinia/nav.js';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
-const route = useRoute();
 const router = useRouter();
 const msgStore = useMsgStore();
-const {getSettings} = storeToRefs(useLocalStore());
-const explorerStore = useExplorerStore();
-const {pushFromUserInput} = storeToRefs(useNavStore());
-const context = {addMessage: msgStore.addMessage, $route: useRoute()};
 
 defineProps({
 	density: {type: String, required: false, default: undefined},
 	variant: {type: String, required: false, default: 'solo'},
 });
 
-// When the blockchain mode is switched and the current component is not reloaded,
-// the dakar client is in the wrong state. As a workaround, get all available dakar
-// clients and select the right one when doing a request.
 const dakarClients = getDakarClients();
-const query = ref('');
 const isLoading = ref(false);
+const resultItems = ref([]);
+const query = ref('');
 const label = 'Search for blocks, transactions and addresses';
-
-// Computed
-const searchResultType = computed(() => explorerStore.getSearchResultType);
+let searchTimer = null;
+let lastQuery = '';
 
 // Functions
 function isValidQueryInput(str) {
@@ -79,61 +105,109 @@ function isValidQuery(q) {
 	return trimmed.length === 0 ? true : isValidQueryInput(trimmed);
 }
 
-async function handleInput(q) {
+async function search(q) {
 	// Template string in case it is a number
 	const trimmed = `${q}`.trim();
 	if (!trimmed) {
 		return;
 	}
 
+	if (lastQuery === trimmed) {
+		return;
+	}
+
 	if (!isValidQueryInput(trimmed)) {
-		setWarningMessage('Query is not valid');
+		setNoResults();
 		return;
 	}
 
 	msgStore.resetMessages();
 
 	isLoading.value = true;
-	const err = await handleQuery(trimmed, explorerStore, dakarClients[getSettings.value.blockchainMode]);
-	isLoading.value = false;
-	query.value = '';
-	if (err) {
-		if (err.cause?.status === 404) {
-			await router.push({name: ROUTE_NAME_NO_RESULTS});
-		} else {
-			handleError(context, err);
+
+	resultItems.value = [];
+	const searchResults = [];
+	const blockchainKeys = Object.keys(BLOCKCHAIN_ATTRIBUTES);
+	const resolved = await Promise.allSettled(blockchainKeys.map(chain => dakarClients[chain].data
+		.blockchainSearchQueryGet({query: trimmed})));
+
+	for (const [index, response] of resolved.entries()) {
+		if (response.status === 'rejected') {
+			// ignore error
+			continue;
 		}
 
+		searchResults.push({
+			mode: blockchainKeys[index], type: response.value.type, value: trimmed, title: trimmed,
+		});
+	}
+
+	if (searchResults.length === 0) {
+		// Both request returned not data
+		setNoResults();
+	} else {
+		resultItems.value = searchResults;
+	}
+
+	lastQuery = trimmed;
+
+	isLoading.value = false;
+}
+
+function setNoResults() {
+	resultItems.value = {empty: true};
+}
+
+function queueSearch(q) {
+	if (searchTimer !== null) {
+		clearTimeout(searchTimer);
+	}
+
+	searchTimer = setTimeout(search, 700, q);
+}
+
+async function handleDirectSearch() {
+	if (`${query.value.trim()}` !== lastQuery) {
+		// Results are not recent
+		if (searchTimer !== null) {
+			clearTimeout(searchTimer);
+		}
+
+		await search(query.value);
+	}
+
+	if (resultItems.value.empty || resultItems.value.length === 0) {
 		return;
 	}
 
-	// Route to corresponding page
-	switch (searchResultType.value) {
-		case RESPONSE_EMPTY:
-			await router.push({name: ROUTE_NAME_NO_RESULTS});
-			break;
-		case RESPONSE_TYPE_ADDRESS:
-			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmed, blockchainMode: getSettings.value.blockchainMode}});
-			break;
-		case RESPONSE_TYPE_BLOCK:
-			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmed, blockchainMode: getSettings.value.blockchainMode}});
-			break;
-		case RESPONSE_TYPE_TRANSACTION:
-			pushFromUserInput.value = true;
-			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmed, blockchainMode: getSettings.value.blockchainMode}});
-			break;
+	const item = resultItems.value[0];
+	handleResultItemClick(item);
+}
+
+function getResultNavigation(item) {
+	switch (item.type) {
+		case 'tx': return {name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: item.title, blockchainMode: item.mode}};
+		case 'block': return {name: ROUTE_NAME_BLOCK_PAGE, params: {id: item.title, blockchainMode: item.mode}};
+		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.title, blockchainMode: item.mode}};
 		default:
-			await router.push({name: ROUTE_NAME_NO_RESULTS});
-			break;
+			return {};
 	}
 }
 
-function setWarningMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'warning', temporary: true, category: route.name,
-	});
+function getResultType(type) {
+	switch (type) {
+		case 'tx': return 'Transaction';
+		case 'block': return 'Block';
+		case 'addr': return 'Address';
+		default:
+			return '';
+	}
+}
+
+function handleResultItemClick(item) {
+	router.push(getResultNavigation(item));
+	query.value = '';
+	resultItems.value = [];
 }
 
 </script>

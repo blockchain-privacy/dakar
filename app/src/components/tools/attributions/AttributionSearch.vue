@@ -43,14 +43,17 @@ import {getDakarClient, handleError} from '@/utilities';
 import {ref, useTemplateRef} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+
+const props = defineProps({
+	title: {type: String, required: true},
+	blockchainMode: {type: String, required: true},
+});
+
+const dakar = getDakarClient(props.blockchainMode);
 
 const loading = ref(false);
 const query = ref('');

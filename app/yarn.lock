@@ -41,10 +41,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.64":
-  version: 1.1.64
-  resolution: "@blockchain/dakar@npm:1.1.64::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.64.tgz"
-  checksum: 10c0/70771ea609f33bf6b8d7d7a22ec6f8143db4715d151f4e9c441d58105584a9af11eef5d02db599f3a4c40c92b2de595cec24eb4f2e306b83a1a89911cf3440cc
+"@blockchain/dakar@npm:^1.1.66":
+  version: 1.1.66
+  resolution: "@blockchain/dakar@npm:1.1.66::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.66.tgz"
+  checksum: 10c0/0dabcb11d7a5685eb08f94cc8807250b11185f6fff8061fa515860a7cdb1688b7b8bef0635565d1e16215e0ba129c805e41d1c3b95d9acbf18189c2222148862
   languageName: node
   linkType: hard
 
@@ -445,10 +445,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.20.4":
-  version: 1.20.4
-  resolution: "@ory/client-fetch@npm:1.20.4"
-  checksum: 10c0/cf7426e81cdb7051c4f4ff02b6c6d5efb0cc119b85160ab92a9d69eecb16bd5db09021b72f15667299b3f5230a240718551b42ba16a0cd140b4d9045f78bc207
+"@ory/client-fetch@npm:^1.20.6":
+  version: 1.20.6
+  resolution: "@ory/client-fetch@npm:1.20.6"
+  checksum: 10c0/eb1f0ca7dd9e4fa8e1466a986fd6bb6a64e1721ee5f5e74637fdb406f088753b71ea5f712955b4fff85da383b3b3e0feb31ab5daa6d5e611f5ecb7d499891fd1
   languageName: node
   linkType: hard
 
@@ -1687,12 +1687,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.64"
+    "@blockchain/dakar": "npm:^1.1.66"
     "@fontsource/roboto": "npm:^5.2.5"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.36"
     "@neondark/wikiapi": "npm:^1.2.56"
-    "@ory/client-fetch": "npm:^1.20.4"
+    "@ory/client-fetch": "npm:^1.20.6"
     "@vitejs/plugin-vue": "npm:^5.2.3"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1706,9 +1706,9 @@ __metadata:
     eslint: "npm:^9.24.0"
     eslint-config-xo: "npm:^0.46.0"
     eslint-plugin-vue: "npm:^10.0.0"
-    pinia: "npm:^3.0.1"
+    pinia: "npm:^3.0.2"
     sass: "npm:^1.86.3"
-    vite: "npm:^6.2.5"
+    vite: "npm:^6.2.6"
     vite-plugin-vuetify: "npm:^2.1.1"
     vite-svg-loader: "npm:^5.1.0"
     vitest: "npm:^3.1.1"
@@ -3082,9 +3082,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pinia@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "pinia@npm:3.0.1"
+"pinia@npm:^3.0.2":
+  version: 3.0.2
+  resolution: "pinia@npm:3.0.2"
   dependencies:
     "@vue/devtools-api": "npm:^7.7.2"
   peerDependencies:
@@ -3093,7 +3093,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/f8ae89c6097ae894e0a63fac9f6a95ece76cea7630e8de0df3e955b4439f21473eaa7f0f5f14758a0fb4cd4256a0b1a64ca6d253c46d4855614f9317fc0f3456
+  checksum: 10c0/4c21412ddb32c48c1d9fb9fb47a2cd40bc4af9198e65392423ab97f6a9da31d0b880bc59b008967058643a988cb574025f885a1d0e4faf47bec25521933bb27f
   languageName: node
   linkType: hard
 
@@ -3747,9 +3747,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^6.2.5":
-  version: 6.2.5
-  resolution: "vite@npm:6.2.5"
+"vite@npm:^6.2.6":
+  version: 6.2.6
+  resolution: "vite@npm:6.2.6"
   dependencies:
     esbuild: "npm:^0.25.0"
     fsevents: "npm:~2.3.3"
@@ -3795,7 +3795,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/226bb3c1875e1982559007007580e8d083b81f5289f18e28841d622ba030599e1bd9926adccc8264879e319e9f9e4f48a38a0dc52a5dfcdf2a9cb7313bfc1816
+  checksum: 10c0/68a2ed3e61bdd654c59b817b4f3203065241c66d1739faa707499130f3007bc3a666c7a8320a4198e275e62b5e4d34d9b78a6533f69e321d366e76f5093b2071
   languageName: node
   linkType: hard
 

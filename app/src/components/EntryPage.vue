@@ -21,7 +21,6 @@
         </p>
         <div class="d-flex justify-center">
           <query-input
-            big
             class="my-6"
             style="max-width: 600px"
           />

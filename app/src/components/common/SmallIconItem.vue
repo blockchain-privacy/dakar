@@ -5,7 +5,7 @@
   >
     <v-icon
       :icon="icon"
-      class="me-1"
+      start
       size="large"
       style="opacity: var(--v-medium-emphasis-opacity)"
     />

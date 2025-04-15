@@ -17,7 +17,7 @@
         >
           <v-icon
             :icon="mdiOpenInNew"
-            class="me-2"
+            start
           />
           <div
             class="shorten"
@@ -41,7 +41,7 @@
         >
           <v-icon
             :icon="mdiPlus"
-            class="me-2"
+            start
           />
           Add to Workspace
         </v-btn>

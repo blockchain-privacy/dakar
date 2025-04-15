@@ -19,7 +19,9 @@
                   <icon-title
                     :title="`Block ${block.blockhash}`"
                     :icon="mdiCubeOutline"
-                  />
+                  >
+                    <mode-chip :blockchain-mode="route.params.blockchainMode" />
+                  </icon-title>
                   <v-card-text>
                     <v-row>
                       <v-col
@@ -56,7 +58,7 @@
                           <router-link
                             id="block-page-previous-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.prevblockhash, blockchainMode: getSettings.blockchainMode }}"
+                                   params: { id: block.prevblockhash, blockchainMode: route.params.blockchainMode }}"
                           >
                             {{ shortenHash(block.prevblockhash) }}
                           </router-link>
@@ -70,7 +72,7 @@
                           <router-link
                             id="block-page-next-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.nextblockhash, blockchainMode: getSettings.blockchainMode }}"
+                                   params: { id: block.nextblockhash, blockchainMode: route.params.blockchainMode }}"
                           >
                             {{ shortenHash(block.nextblockhash) }}
                           </router-link>
@@ -139,63 +141,59 @@ import {
 	mdiFormatHeaderPound, mdiPound,
 } from '@mdi/js';
 import {
+	getDakarClients,
 	handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
 } from '@/utilities';
-import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
+import {PAGE_TITLE, ROUTE_NAME_404_PAGE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from '../common/IconItem.vue';
 import Transaction from './transaction/Transaction.vue';
 import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {
-	computed, onMounted, onUpdated, watch,
+	computed, onMounted, ref, watch,
 } from 'vue';
-import {useRoute} from 'vue-router';
-import {useExplorerStore} from '@/pinia/explorer';
+import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local';
-import {getDakarClient} from '@/utilities';
+import ModeChip from '@/components/common/ModeChip.vue';
 
 const route = useRoute();
+const router = useRouter();
 const msgStore = useMsgStore();
 const context = {$route: route, addMessage: msgStore.addMessage};
-const {block} = storeToRefs(useExplorerStore());
-const {session, getSettings} = storeToRefs(useLocalStore());
+const {session} = storeToRefs(useLocalStore());
+const block = ref(null);
 
 let offset = 0;
 
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakarClients = getDakarClients();
 
 // Computed
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, getSettings.value.blockchainMode)
-	|| isAdminIdentity(session.value, getSettings.value.blockchainMode));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
+	|| isAdminIdentity(session.value, route.params.blockchainMode));
 
 // Watchers
-watch(route, () => {
+watch(route, async () => {
 	// If route gets changed the component could still be loaded but now with different data.
 	// Because of this the internal state has to be reset.
 	offset = 0;
-});
-
-watch(block, () => {
+	await pullInitialData();
 	setPageTitle();
 });
 
 // Hooks
-onMounted(() => {
+onMounted(async () => {
+	await pullInitialData();
 	setPageTitle();
 	// Register scroll handler
 	offset = 0;
 });
 
-onUpdated(() => {
-	setPageTitle();
-});
-
 // Functions
 function setPageTitle() {
 	let id = ' ';
-	if (block.value && block.value.id) {
+	if (block.value?.id) {
 		id = ` ${block.value.id} `;
 	}
 
@@ -204,6 +202,27 @@ function setPageTitle() {
 
 function isResponseValid(reponse) {
 	return !(!reponse.block || !reponse.block.transactions || reponse.block.transactions.length === 0);
+}
+
+async function pullInitialData() {
+	if (route.params.id === undefined) {
+		return;
+	}
+
+	block.value = null;
+	try {
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainBlocksHashGet({hash: route.params.id});
+		if (response.block) {
+			block.value = response.block;
+		}
+	} catch (e) {
+		if (e.cause?.status === 404) {
+			await router.push({name: ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}});
+		} else {
+			handleError(context, e);
+		}
+	}
 }
 
 async function addNewData({done}) {
@@ -221,7 +240,8 @@ async function addNewData({done}) {
 	}
 
 	try {
-		const response = await dakar.data.blockchainBlocksHashGet({hash: block.value.blockhash, offset});
+		const response = await dakarClients[route.params.blockchainMode].data
+			.blockchainBlocksHashGet({hash: block.value.blockhash, offset});
 
 		if (isResponseValid(response)) {
 			block.value.transactions = [...block.value.transactions, ...response.block.transactions];

@@ -18,9 +18,9 @@
                 </wiki-tooltip> allow linking external information to addresses.
               </p>
               <v-menu location="bottom">
-                <template #activator="{ props }">
+                <template #activator="item">
                   <v-btn
-                    v-bind="props"
+                    v-bind="item.props"
                     icon
                     variant="text"
                   >
@@ -59,10 +59,14 @@
       </v-card-text>
       <import-attribution-dialog
         v-model="addAttributionDialog"
+        :title="title"
+        :blockchain-mode="blockchainMode"
         @added="loadOverviewData"
       />
       <delete-all-attributions-dialog
         v-model="deleteAllAttributionsDialogModel"
+        :title="title"
+        :blockchain-mode="blockchainMode"
         @deleted="loadOverviewData"
       />
     </v-card>
@@ -78,6 +82,8 @@
           v-for="(item, i) in items"
           :key="i"
           :attribution="item"
+          :blockchain-mode="blockchainMode"
+          :title="title"
           @deleted="handleAttributionDeletion"
         />
       </div>
@@ -98,13 +104,16 @@ import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+
+const props = defineProps({
+	title: {type: String, required: true},
+	blockchainMode: {type: String, required: true},
+});
+
+const dakar = getDakarClient(props.blockchainMode);
 
 const isLoading = ref(false);
 const addAttributionDialog = ref(false);

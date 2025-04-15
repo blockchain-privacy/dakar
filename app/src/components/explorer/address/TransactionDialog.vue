@@ -8,7 +8,7 @@
         Transaction
         <workspace-link
           disable-select
-          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: route.params.blockchainMode }}"
           @clicked="model = false"
         >
           {{ txHash }}
@@ -35,7 +35,7 @@
             >
               <workspace-link
                 disable-select
-                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash, blockchainMode: getSettings.blockchainMode }}"
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash, blockchainMode: route.params.blockchainMode }}"
                 @clicked="model = false"
               >
                 {{ t.txhash }}
@@ -51,9 +51,7 @@
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
-const {getSettings} = storeToRefs(useLocalStore());
+import {useRoute} from 'vue-router';
 
 defineProps({
 	txHash: {type: String, required: true},
@@ -63,6 +61,7 @@ defineProps({
 });
 
 const model = defineModel({type: Boolean});
+const route = useRoute();
 </script>
 
 <style scoped>

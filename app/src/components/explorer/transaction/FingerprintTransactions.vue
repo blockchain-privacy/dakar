@@ -64,7 +64,7 @@
               <td class="transaction-hash">
                 <workspace-link
                   :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                         params: { id: item.txhash, blockchainMode: getSettings.blockchainMode }}"
+                         params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
                 >
                   {{ item.txhash }}
                 </workspace-link>
@@ -87,19 +87,18 @@
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {onMounted, onUpdated, ref} from 'vue';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import {getDakarClient} from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import {useRoute} from 'vue-router';
 
-const {getSettings} = storeToRefs(useLocalStore());
 const props = defineProps({
 	transactionHash: {type: String, required: true},
 });
 const emit = defineEmits(['receivedTransactions']);
+const route = useRoute();
 
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
 const isLoading = ref(false);
 const fingerprintScores = ref([]);

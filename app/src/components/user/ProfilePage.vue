@@ -21,7 +21,7 @@
             <v-list-item-title class="d-flex align-center">
               <v-icon
                 color="red"
-                class="me-2"
+                start
               >
                 {{ mdiAlert }}
               </v-icon>
@@ -245,7 +245,7 @@ async function deleteIdentity() {
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
-		await router.push({name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}});
+		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
 	} catch (e) {
 		handleError(context, e);
 	}

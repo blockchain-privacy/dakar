@@ -103,15 +103,12 @@ import TransactionItem from '@/components/common/TransactionItem.vue';
 import {onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 
 const model = defineModel({type: Boolean});
-const {getSettings} = storeToRefs(useLocalStore());
 const route = useRoute();
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
 const props = defineProps({
 	from: {type: String, required: true},

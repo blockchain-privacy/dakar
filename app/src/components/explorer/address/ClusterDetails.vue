@@ -11,7 +11,7 @@
         <v-list-item-subtitle>
           <workspace-link
             disable-select
-            :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: txHash, blockchainMode: getSettings.blockchainMode }}"
+            :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: txHash, blockchainMode: route.params.blockchainMode }}"
           >
             {{ txHash }}
           </workspace-link>
@@ -34,15 +34,14 @@
 <script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
-
-const {getSettings} = storeToRefs(useLocalStore());
+import {useRoute} from 'vue-router';
 
 defineProps({
 	txHash: {type: String, required: true},
 	timestamp: {type: String, required: true},
 });
+
+const route = useRoute();
 
 </script>
 

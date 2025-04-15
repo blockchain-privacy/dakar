@@ -8,7 +8,7 @@
     <router-link
       v-if="!minimize"
       id="app-logo"
-      :to="{name: ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: settings.blockchainMode}}"
+      :to="{name: ROUTE_NAME_ENTRY_PAGE}"
       class="ms-2"
     >
       <v-img
@@ -22,7 +22,7 @@
     </router-link>
     <router-link
       v-if="!minimize"
-      :to="{name: ROUTE_NAME_ENTRY_PAGE,params: {blockchainMode: settings.blockchainMode}}"
+      :to="{name: ROUTE_NAME_ENTRY_PAGE}"
       style="color: inherit; text-decoration: inherit"
     >
       <v-app-bar-title class="ms-2 d-none d-sm-flex">
@@ -43,7 +43,6 @@
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
     </v-btn>
-    <blockchain-mode-select />
     <v-menu v-if="session">
       <template #activator="{ props }">
         <v-btn
@@ -124,7 +123,9 @@ import {
 	ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
-import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {
+	isAnyAdminIdentity, isAnyPrivilegedIdentity,
+} from '@/utilities';
 import handleGetFlowError from '@/kratos';
 import {computed, inject} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
@@ -132,7 +133,6 @@ import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import DakarImg from '@/assets/dakar.svg?url';
-import BlockchainModeSelect from '@/components/appbar/BlockchainModeSelect.vue';
 
 const ory = inject('ory');
 const localStore = useLocalStore();
@@ -154,24 +154,15 @@ const session = computed({
 	},
 });
 
-const settings = computed({
-	get() {
-		return localStore.getSettings;
-	},
-	set(value) {
-		localStore.setSettings(value);
-	},
-});
-
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, settings.value.blockchainMode)
-	|| isAdminIdentity(session.value, settings.value.blockchainMode));
+const isPrivilegedOrHigher = computed(() => isAnyPrivilegedIdentity(session.value)
+	|| isAnyAdminIdentity(session.value));
 
 // Functions
 // GoToPage should receive a page name from ./constants
-function goToPage(pageName, params) {
+function goToPage(pageName) {
 	// Only change route if not already on page
-	if (route.name !== pageName || route.params !== params) {
-		router.push({name: pageName, params});
+	if (route.name !== pageName) {
+		router.push({name: pageName});
 	}
 }
 
@@ -184,7 +175,7 @@ async function initLogoutFlow() {
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
-		goToPage(ROUTE_NAME_ENTRY_PAGE, {blockchainMode: settings.value.blockchainMode});
+		goToPage(ROUTE_NAME_ENTRY_PAGE);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}

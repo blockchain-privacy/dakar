@@ -1,5 +1,5 @@
 import {createRouter, createWebHistory} from 'vue-router';
-import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {isAnyAdminIdentity, isAnyPrivilegedIdentity} from '@/utilities';
 import EntryPage from '../components/EntryPage.vue';
 import SettingsPage from '../components/user/SettingsPage.vue';
 import ProfilePage from '../components/user/ProfilePage.vue';
@@ -11,7 +11,7 @@ import AddressPage from '../components/explorer/address/AddressPage.vue';
 import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
 import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
-import WorkspacePage from '@/components/tools/WorkspacePage.vue';
+import WorkspacePage from '@/components/tools/workspaces/WorkspacePage.vue';
 import * as Constants from '../constants';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
 import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
@@ -25,7 +25,6 @@ import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import NoResultsImg from '@/assets/no_results.webp';
 import BugsImg from '@/assets/bugs.webp';
-import {BLOCKCHAIN_BTC, BLOCKCHAIN_DASH} from '../constants';
 
 let msgStore = null;
 let navStore = null;
@@ -39,11 +38,11 @@ export function setupStore() {
 }
 
 function isAdmin() {
-	return isAdminIdentity(localStore.getSession, localStore.getSettings.blockchainMode);
+	return isAnyAdminIdentity(localStore.getSession);
 }
 
 function isPrivileged() {
-	return isPrivilegedIdentity(localStore.getSession, localStore.getSettings.blockchainMode)
+	return isAnyPrivilegedIdentity(localStore.getSession)
 		|| isAdmin();
 }
 
@@ -54,7 +53,7 @@ function checkSession(to, fn) {
 	}
 
 	if ((fn) ? !fn() : false) {
-		return {name: Constants.ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}};
+		return {name: Constants.ROUTE_NAME_ENTRY_PAGE};
 	}
 
 	return null;
@@ -65,17 +64,11 @@ export const router = createRouter({
 	routes: [
 		{
 			path: '/',
-			redirect() {
-				return {name: Constants.ROUTE_NAME_ENTRY_PAGE, params: {blockchainMode: localStore.getSettings.blockchainMode}};
-			},
-		},
-		{
-			path: '/home/:blockchainMode',
 			name: Constants.ROUTE_NAME_ENTRY_PAGE,
 			component: EntryPage,
 		},
 		{
-			path: '/status/:blockchainMode',
+			path: '/status/',
 			name: Constants.ROUTE_NAME_STATUS_PAGE,
 			component: StatusPage,
 			meta: {limitToRole: 'privileged'},
@@ -138,7 +131,7 @@ export const router = createRouter({
 			],
 		},
 		{
-			path: '/tools/:blockchainMode',
+			path: '/tools/',
 			component: ToolsPage,
 			meta: {limitToRole: 'privileged'},
 			children: [
@@ -224,25 +217,7 @@ export const router = createRouter({
 	],
 });
 
-function persistBlockchainMode(mode) {
-	const set = localStore.getSettings;
-	set.blockchainMode = mode;
-	localStore.setSettings(set);
-}
-
 router.beforeEach((to, from) => {
-	if (to.params.blockchainMode) {
-		switch (to.params.blockchainMode) {
-			case BLOCKCHAIN_DASH:
-				persistBlockchainMode(to.params.blockchainMode);
-				break;
-			case BLOCKCHAIN_BTC:
-				persistBlockchainMode(to.params.blockchainMode);
-				break;
-			default: return {name: Constants.ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}};
-		}
-	}
-
 	// Check for role
 	if (to.meta.limitToRole) {
 		let fn = null;

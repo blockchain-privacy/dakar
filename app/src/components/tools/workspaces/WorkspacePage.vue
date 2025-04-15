@@ -34,37 +34,6 @@
         :icon="mdiHelpCircleOutline"
         icon-color="primary"
       />
-      <v-menu location="bottom">
-        <template #activator="{ props }">
-          <v-btn
-            v-bind="props"
-            variant="text"
-            icon
-          >
-            <v-icon>{{ mdiDotsVertical }}</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item
-            :disabled="isLoading"
-            @click="refreshWorkspaceList"
-          >
-            <template #prepend>
-              <v-icon>{{ mdiRefresh }}</v-icon>
-            </template>
-            <v-list-item-title>Refresh</v-list-item-title>
-          </v-list-item>
-          <v-list-item
-            :disabled="workspaceList.length === 0"
-            @click="showDeleteAllWorkspacesDialog"
-          >
-            <template #prepend>
-              <v-icon>{{ mdiDelete }}</v-icon>
-            </template>
-            <v-list-item-title>Delete All Workspaces</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
     </icon-title>
     <fade-transition>
       <div
@@ -93,11 +62,21 @@
     >
       <template #item.name="{ item }">
         <router-link
-          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE,
-                 params: { id: item.uid, blockchainMode: getSettings.blockchainMode }}"
+          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE, params: { id: item.uid, blockchainMode: item.mode }}"
         >
           {{ item.name }}
         </router-link>
+      </template>
+      <template #item.mode="{ item }">
+        <div class="d-flex align-center">
+          <v-icon
+            :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
+            :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
+            start
+            size="x-large"
+          />
+          {{ BLOCKCHAIN_ATTRIBUTES[item.mode].title }}
+        </div>
       </template>
       <template #item.modTimeUnix="{ item }">
         <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
@@ -105,7 +84,8 @@
       <template #[`item.actions`]="{ item }">
         <div class="d-flex">
           <v-icon
-            class="me-2 ms-auto"
+            start
+            class="ms-auto"
             @click="showRenameDialog(item)"
           >
             {{ mdiRename }}
@@ -129,37 +109,26 @@
       </v-btn>
     </div>
     <confirm-dialog
-      v-if="showDeleteAllDialog"
-      v-model="showDeleteAllDialog"
-      title="Delete All Workspaces"
-      confirm-label="Delete All"
-      confirm-color="red"
-      @confirm="deleteWorkspace(true)"
-    >
-      <p class="text-subtitle-1">
-        Are you sure you want to delete all of your workspaces?
-      </p>
-    </confirm-dialog>
-    <confirm-dialog
       v-if="showDeleteWorkspaceDialogModel"
       v-model="showDeleteWorkspaceDialogModel"
       title="Delete Workspace"
       confirm-label="Delete"
       confirm-color="red"
-      @confirm="deleteWorkspace(false)"
+      @confirm="deleteWorkspace"
     >
       <p class="text-subtitle-1">
         Workspace <code>{{ workspaceToDelete.name }}</code>
         will be deleted. Continue?
       </p>
     </confirm-dialog>
-    <text-dialog
+    <blockchain-mode-text-dialog
       v-if="showAddWorkspaceDialogModel"
       v-model="showAddWorkspaceDialogModel"
       title="New Workspace"
       submit-label="Create"
-      input-label="Name of the new workspace"
+      input-label="Workspace name"
       :maxlength="maxWorkspaceNameLength"
+      show-mode-switch
       @submit="addWorkspace"
     />
     <text-dialog
@@ -177,31 +146,37 @@
 
 <script setup>
 import {
-	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus, mdiRename, mdiHelpCircleOutline,
+	mdiDelete, mdiMagnify, mdiPlus, mdiRename, mdiHelpCircleOutline,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
-import {getDakarClient, handleError} from '@/utilities';
+import {
+	BLOCKCHAIN_ATTRIBUTES, PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE,
+} from '@/constants/index.js';
+import {
+	getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
+} from '@/utilities/index.js';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {onMounted, ref, toRaw} from 'vue';
+import {
+	computed, onMounted, ref, toRaw,
+} from 'vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {useMsgStore} from '@/pinia/msg.js';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import {useDisplay} from 'vuetify';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import BlockchainModeTextDialog from '@/components/tools/workspaces/BlockchainModeTextDialog.vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 
 const route = useRoute();
 const msgStore = useMsgStore();
 const display = useDisplay();
+const {session} = storeToRefs(useLocalStore());
 const context = {addMessage: msgStore.addMessage, $route: route};
-const {getSettings} = storeToRefs(useLocalStore());
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakarClients = getDakarClients();
 
 const workspaceList = ref([]);
-const showDeleteAllDialog = ref(false);
 const showDeleteWorkspaceDialogModel = ref(false);
 const showAddWorkspaceDialogModel = ref(false);
 const showRenameWorkspaceDialogModel = ref(false);
@@ -216,6 +191,9 @@ const headers = [
 		title: 'Name', key: 'name', align: 'start', sortable: false,
 	},
 	{
+		title: 'Blockchain', key: 'mode',
+	},
+	{
 		title: 'Last modification', key: 'modTimeUnix',
 	},
 	{
@@ -224,6 +202,10 @@ const headers = [
 ];
 
 const maxWorkspaceNameLength = 50;
+
+// Computed
+const authPerMode = computed(() => Object.values(BLOCKCHAIN_ATTRIBUTES).filter(m => isPrivilegedIdentity(session.value, m.mode)
+	|| isAdminIdentity(session.value, m.mode)));
 
 // Hooks
 onMounted(() => {
@@ -244,28 +226,8 @@ function setInfoMessage(msg) {
 	});
 }
 
-async function loadWorkspaceList() {
-	isLoading.value = true;
-	try {
-		const response = await dakar.workspace.workspacesGet();
-
-		if (response.workspaces) {
-			workspaceList.value = response.workspaces;
-		} else {
-			workspaceList.value = [];
-		}
-
-		msgStore.resetMessages();
-	} catch (e) {
-		handleError(context, e);
-	}
-
-	isLoading.value = false;
-}
-
 async function renameWorkspace(workspace) {
 	const workspaceName = workspace;
-	const workspaceUID = renamedWorkspace.value.uid;
 	if (workspaceName === '') {
 		setErrorMessage('workspace name must not be empty');
 		return;
@@ -276,6 +238,15 @@ async function renameWorkspace(workspace) {
 		return;
 	}
 
+	const {mode} = renamedWorkspace.value;
+
+	if (mode === '') {
+		setErrorMessage('workspace mode is empty');
+		return;
+	}
+
+	const workspaceUID = renamedWorkspace.value.uid;
+
 	if (workspaceUID === '') {
 		setErrorMessage('workspace UID is not set');
 		return;
@@ -284,7 +255,7 @@ async function renameWorkspace(workspace) {
 	isLoading.value = true;
 
 	try {
-		await dakar.workspace.workspacesRenamePost({
+		await dakarClients[mode].workspace.workspacesRenamePost({
 			workspace: {name: workspaceName, workspaceUID},
 		});
 		msgStore.resetMessages();
@@ -296,7 +267,7 @@ async function renameWorkspace(workspace) {
 	isLoading.value = false;
 }
 
-async function addWorkspace(name) {
+async function addWorkspace(name, mode) {
 	showAddWorkspaceDialogModel.value = false;
 	const workspaceName = name.trim();
 	if (workspaceName === '') {
@@ -309,9 +280,14 @@ async function addWorkspace(name) {
 		return;
 	}
 
+	if (!mode) {
+		setErrorMessage('workspace mode is empty');
+		return;
+	}
+
 	isLoading.value = true;
 	try {
-		await dakar.workspace.workspacesNamePost({name: workspaceName});
+		await dakarClients[mode].workspace.workspacesNamePost({name: workspaceName});
 		msgStore.resetMessages();
 		await refreshWorkspaceList();
 	} catch (e) {
@@ -322,46 +298,53 @@ async function addWorkspace(name) {
 }
 
 async function refreshWorkspaceList() {
-	await loadWorkspaceList();
+	isLoading.value = true;
 
+	workspaceList.value = [];
+	const resolved = await Promise.allSettled(authPerMode.value.map(chain => dakarClients[chain.mode].workspace.workspacesGet()));
+
+	const workspaces = [];
+	for (const [index, response] of resolved.entries()) {
+		if (response.status === 'rejected') {
+			handleError(context, response.reason);
+			continue;
+		}
+
+		workspaces.push(...response.value.workspaces.map(w => {
+			w.mode = authPerMode.value[index].mode;
+			w.modTimeUnix = new Date(w.ts).getTime();
+			return w;
+		}));
+	}
+
+	workspaceList.value = workspaces;
+	isLoading.value = false;
 	search.value = '';
+}
 
-	if (!workspaceList.value) {
+async function deleteWorkspace() {
+	if (!workspaceToDelete.value.mode) {
+		setErrorMessage('workspace mode must not be empty');
 		return;
 	}
 
-	workspaceList.value = workspaceList.value.map(d => {
-		// Convert date to unix time, so it can be sorted in data table
-		d.modTimeUnix = new Date(d.ts).getTime();
-		return d;
-	});
-}
+	if (!workspaceToDelete.value.uid) {
+		setErrorMessage('workspace iod must not be empty');
+		return;
+	}
 
-async function deleteWorkspace(all) {
 	isLoading.value = true;
 
-	if (all) {
-		try {
-			const response = await dakar.workspace.workspacesDelete();
-			if (response.msg) {
-				setInfoMessage(response.msg);
-			}
-
-			await refreshWorkspaceList();
-		} catch (e) {
-			setErrorMessage(e);
+	try {
+		const response = await dakarClients[workspaceToDelete.value.mode].workspace
+			.workspacesUidDelete({uid: workspaceToDelete.value.uid});
+		if (response.msg) {
+			setInfoMessage(response.msg);
 		}
-	} else {
-		try {
-			const response = await dakar.workspace.workspacesUidDelete({uid: workspaceToDelete.value.uid});
-			if (response.msg) {
-				setInfoMessage(response.msg);
-			}
 
-			await refreshWorkspaceList();
-		} catch (e) {
-			setErrorMessage(e);
-		}
+		await refreshWorkspaceList();
+	} catch (e) {
+		setErrorMessage(e);
 	}
 
 	isLoading.value = false;
@@ -384,14 +367,6 @@ function showDeleteWorkspaceDialog(workspace) {
 
 	showDeleteWorkspaceDialogModel.value = true;
 	workspaceToDelete.value = workspace;
-}
-
-function showDeleteAllWorkspacesDialog() {
-	if (isLoading.value) {
-		return;
-	}
-
-	showDeleteAllDialog.value = true;
 }
 
 </script>

@@ -12,7 +12,7 @@
           </wiki-tooltip>
           are attached to this address. New clusters can be created at the
           <router-link
-            :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW, params: {blockchainMode: getSettings.blockchainMode}}"
+            :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
             class="d-inline-block"
           >
             custom clusters
@@ -120,7 +120,7 @@
                 <template #item.addresshash="{ item }">
                   <workspace-link
                     disable-select
-                    :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash, blockchainMode: getSettings.blockchainMode }}"
+                    :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash, blockchainMode: route.params.blockchainMode }}"
                   >
                     {{ item.addresshash }}
                   </workspace-link>
@@ -138,14 +138,16 @@
       v-model="deleteClusterDialogModel.show"
       :cluster-uid="deleteClusterDialogModel.uid"
       :num-addresses="deleteClusterDialogModel.size"
-      @deleted="doLookup"
+      :blockchain-mode="route.params.blockchainMode"
+      :title="BLOCKCHAIN_ATTRIBUTES[route.params.blockchainMode].title"
+      @deleted="doLookup(true)"
     />
   </div>
 </template>
 
 <script setup>
 import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
-import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
+import {BLOCKCHAIN_ATTRIBUTES, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
 import {
 	getClusterTypeLabel, getCurrentDate, getDakarClient, handleError,
 } from '@/utilities';
@@ -157,13 +159,10 @@ import {onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {useLocalStore} from '@/pinia/local.js';
-import {storeToRefs} from 'pinia';
 
 const route = useRoute();
-const {getSettings} = storeToRefs(useLocalStore());
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const dakar = getDakarClient(getSettings.value.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
 const props = defineProps({addressHash: {type: String, required: true}});
 
@@ -195,8 +194,8 @@ onUpdated(() => {
 });
 
 // Functions
-async function doLookup() {
-	if (!props.addressHash || props.addressHash === oldAddressHash) {
+async function doLookup(force = false) {
+	if (!force && (!props.addressHash || props.addressHash === oldAddressHash)) {
 		return;
 	}
 

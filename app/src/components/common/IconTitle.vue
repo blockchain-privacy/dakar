@@ -4,9 +4,10 @@
       class="d-flex align-center text-h6 ma-2"
       style="white-space: nowrap"
     >
-      <v-icon class="me-2">
-        {{ icon }}
-      </v-icon>
+      <v-icon
+        start
+        :icon="icon"
+      />
       <template v-if="slots.title">
         <slot name="title" />
       </template>

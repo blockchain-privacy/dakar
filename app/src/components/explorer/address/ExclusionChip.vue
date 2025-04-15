@@ -7,7 +7,7 @@
     >
       <template #append>
         <v-icon
-          class="ms-1"
+          start
           :icon="mdiCloseCircle"
           @click="deleteExclusionDialog = true"
         />
@@ -40,7 +40,7 @@ const props = defineProps({addressHash: {type: String, required: true}});
 const route = useRoute();
 const localStore = useLocalStore();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-const dakar = getDakarClient(localStore.getSettings.blockchainMode);
+const dakar = getDakarClient(route.params.blockchainMode);
 
 const deleteExclusionDialog = ref(false);
 const showExclusionChip = ref(false);
@@ -57,8 +57,8 @@ const session = computed({
 	},
 });
 
-const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, localStore.getSettings.blockchainMode)
-	|| isAdminIdentity(session.value, localStore.getSettings.blockchainMode));
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
+	|| isAdminIdentity(session.value, route.params.blockchainMode));
 
 // Hooks
 onMounted(() => {
