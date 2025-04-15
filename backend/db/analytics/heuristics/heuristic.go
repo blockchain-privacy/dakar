@@ -14,47 +14,9 @@ import (
 	"sort"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
-var (
-	errInvalidDatabaseResponse = errors.New("error invalid response")
-)
-
-// DeleteAllHeuristics deletes all heuristics in the database
-func DeleteAllHeuristics(ctx context.Context, c external.Database) error {
-	const query = `
-		{
-			var(func: type(Heuristic)){
-				h as uid
-				hc as Heuristic.clusters{
-					hr as HeuristicCluster.results
-				}
-			}
-		}`
-
-	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .`),
-		}},
-		CommitNow: true,
-	}
-
-	resp, err := db.MutationWithRetryAndResponse(ctx, c, req)
-	if err != nil {
-		return err
-	}
-
-	if !db.HasMutationCost(resp) {
-		return serror.New(db.ErrNoMutationHappened)
-	}
-
-	return nil
-}
+var errInvalidDatabaseResponse = errors.New("error invalid response")
 
 // GetHeuristicTransactions returns the connected transactions of heuristic.
 // Only outputs connected to transactions with the given transaction types are included.
@@ -120,6 +82,37 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 	}
 
 	return
+}
+
+// GetHeuristicTransactionsOutputs returns the requested transaction with their output amounts
+func GetHeuristicTransactionsOutputs(ctx context.Context, c external.Database, txUIDs []string,
+	allowedTransactionType string) ([]HeuristicTransaction, error) {
+	query := `query Q($txUIDs:string,$type:string) {
+				q(func: uid($txUIDs)){
+					uid
+					tx_outputs@cascade{
+						amount
+						~tx_inputs@filter(eq(Transaction.type,$type))
+					}
+			  	}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$txUIDs": db.CreateCommaArray(txUIDs),
+		"$type": allowedTransactionType})
+	if err != nil {
+		return nil, err
+	}
+
+	// json struct
+	var r struct {
+		Transactions []HeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	return r.Transactions, nil
 }
 
 // GetInputTransactions returns the input mixing transactions of the given transaction.
@@ -283,6 +276,9 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 							}
 						}
 					}
+					~transactions{
+						id
+					}
 			   	}
 			  }`
 
@@ -304,6 +300,9 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 					Cluster []db.UIDNode `json:"~Cluster.addresses,omitempty"`
 				} `json:"~addr_outputs,omitempty"`
 			} `json:"tx_inputs,omitempty"`
+			Block []struct {
+				ID *int `json:"id,omitempty"`
+			} `json:"~transactions,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -344,13 +343,19 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 	// holds all cluster IDs which are used by the generated HeuristicTransactions below
 	allUsedClusters := make(map[string]usedCluster)
 	for _, o := range r.Origins {
-		if o.Inputs == nil || o.Inputs[0].Address == nil || o.Inputs[0].Address[0].Cluster == nil {
+		var clusterUID string
+		if o.Inputs == nil && o.Block != nil && o.Block[0].ID != nil {
+			// coinbase transaction
+			clusterUID = "coinbase_" + strconv.Itoa(*o.Block[0].ID)
+		} else if o.Inputs != nil && o.Inputs[0].Address != nil && o.Inputs[0].Address[0].Cluster != nil {
+			clusterUID = o.Inputs[0].Address[0].Cluster[0].UID
+		} else {
 			err = serror.FromFormat("invalid cluster information for transaction %s", o.UID)
 			return
 		}
 
 		var cUID ClusterUID
-		clusterUID := o.Inputs[0].Address[0].Cluster[0].UID
+
 		if isSimpleClustering || !allClusters[clusterUID] {
 			// address of origin is only associated with multi-input clusters
 			cUID = ClusterUID(clusterUID)

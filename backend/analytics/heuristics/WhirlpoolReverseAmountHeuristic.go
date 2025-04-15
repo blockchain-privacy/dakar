@@ -19,15 +19,15 @@ type whirlpoolReverseAmountHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWhirlpoolReverseAmountHeuristic() heuristic {
+func NewWhirlpoolReverseAmountHeuristic() Heuristic {
 	return &whirlpoolReverseAmountHeuristic{heuristicType: heuristicTypeWhirlpoolReverseAmount}
 }
 
-func (h *whirlpoolReverseAmountHeuristic) getType() string {
+func (h *whirlpoolReverseAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolReverseAmountHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolReverseAmountHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -41,7 +41,7 @@ func (h *whirlpoolReverseAmountHeuristic) setConfig(c heuristics.Options) error 
 	return nil
 }
 
-func (h *whirlpoolReverseAmountHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolReverseAmountHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -60,29 +60,38 @@ func (h *whirlpoolReverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// whirlpoolReverseAmountHeuristic applies the following heuristic:
+// Exec of the whirlpoolReverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not create enough output denominations to fund the destination transaction
-func (h *whirlpoolReverseAmountHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
-	[]heuristics.HeuristicCluster, error) {
-	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
-	if err != nil {
-		return nil, err
-	}
-	// heuristic is only allowed to be connected to another heuristic
-	if !parentHeuristicSet {
-		return nil, serror.New(errHeuristicNotValid)
-	}
+func (h *whirlpoolReverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentUID string, parentResults []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	var results []heuristics.HeuristicTransaction
+	var attributionMap map[heuristics.ClusterUID][]string
+	var err error
+	if parentResults == nil {
+		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
+		if err != nil {
+			return nil, err
+		}
+		// heuristic is only allowed to be connected to another heuristic
+		if !parentHeuristicSet {
+			return nil, serror.New(errHeuristicNotValid)
+		}
 
-	// get origins from parent heuristic
-	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
-		constants.TypeWhirlpoolMixing)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(results) == 0 {
-		return nil, serror.New(errNoOriginsAtStart)
+		// get origins from parent heuristic
+		// attributionMap maps a clusterUID to a slice of attribution UIDs
+		results, attributionMap, err = heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
+			constants.TypeWhirlpoolMixing)
+		if err != nil {
+			return nil, err
+		}
+		if len(results) == 0 {
+			return nil, serror.New(errNoOriginsAtStart)
+		}
+	} else {
+		results, err = getHeuristicTransactions(ctx, dgraph, parentResults, constants.TypeWhirlpoolMixing)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	transaction, err := heuristics.GetInputAmounts(ctx, dgraph, h.c.TransactionHash, constants.TypeWhirlpoolMixing)

@@ -78,6 +78,7 @@ func (w *Wrapper) SetMaxBlocks(int64) {}
 func (w *Wrapper) IsTransactionGraphLoaded() bool {
 	w.transactionGraphMutex.RLock()
 	defer w.transactionGraphMutex.RUnlock()
+
 	return w.transactionGraph != nil
 }
 
@@ -87,6 +88,7 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration, maxDe
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
+
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
@@ -99,6 +101,7 @@ func (w *Wrapper) ForwardLookup(uid string, maxLookForwardTime time.Duration, ma
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
+
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
@@ -150,21 +153,11 @@ func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, 0, serror.FromStr("transaction graph is not loaded yet")
 	}
+
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
 	return SpendingFingerprint(w.transactionGraph, uid)
-}
-
-// GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
-func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
-	if !w.IsTransactionGraphLoaded() {
-		return nil, serror.FromStr("transaction graph is not loaded yet")
-	}
-	w.transactionGraphMutex.Lock()
-	defer w.transactionGraphMutex.Unlock()
-
-	return GetInputTransactions(w.transactionGraph, uid)
 }
 
 // LoadGraphs loads the transaction graph into the wrapper
@@ -221,19 +214,22 @@ func (w *Wrapper) LoadGraphs(config Config) error {
 	}
 
 	txGraph, err := LoadTransactionGraph(ctx, config, w.db, numTxToLoad)
-	if errors.Is(err, ErrDBContainsNoClassifiedTransactions) {
-		return nil
-	}
-
 	if err != nil {
+		if errors.Is(err, ErrDBContainsNoClassifiedTransactions) {
+			return nil
+		}
 		return err
 	}
 
+	w.SetGraph(txGraph)
+
+	return nil
+}
+
+func (w *Wrapper) SetGraph(txGraph *ReversibleGraph) {
 	w.transactionGraphMutex.Lock()
 	w.transactionGraph = txGraph
 	w.transactionGraphMutex.Unlock()
-
-	return nil
 }
 
 // ------------ Block Iterator interface methods ------------

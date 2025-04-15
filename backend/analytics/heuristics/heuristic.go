@@ -20,9 +20,9 @@ import (
 	"time"
 )
 
-type heuristicConstructor func() heuristic
+type HeuristicConstructor func() Heuristic
 
-var ConstructorMap = make(map[string]heuristicConstructor)
+var ConstructorMap = make(map[string]HeuristicConstructor)
 
 var (
 	errHeuristicNotValid = errors.New("error heuristics are not valid")
@@ -81,33 +81,33 @@ const (
 func init() {
 	// validHeuristicTypes contains all heuristics which are possible to receive from the frontend.
 	// New heuristics must be added here
-	var validHeuristicTypes = []heuristicConstructor{
+	var validHeuristicTypes = []HeuristicConstructor{
 		// Dash
-		newOneSourceHeuristic,
-		newReverseAmountHeuristic,
-		newPerfectMatchHeuristic,
-		newDenominationTypeHeuristic,
-		newReverseLookupHeuristic,
-		newForwardAmountHeuristic,
-		newForwardLookupHeuristic,
+		NewOneSourceHeuristic,
+		NewReverseAmountHeuristic,
+		NewPerfectMatchHeuristic,
+		NewDenominationTypeHeuristic,
+		NewReverseLookupHeuristic,
+		NewForwardAmountHeuristic,
+		NewForwardLookupHeuristic,
 		// Wasabi 2.0
-		newWasabi2ReverseLookupByTimeHeuristic,
-		newWasabi2ReverseLookupByDepthHeuristic,
-		newWasabi2OneSourceByTimeHeuristic,
-		newWasabi2OneSourceByDepthHeuristic,
-		newWasabi2ReverseAmountHeuristic,
-		newWasabi2ForwardLookupByTimeHeuristic,
-		newWasabi2ForwardLookupByDepthHeuristic,
+		NewWasabi2ReverseLookupByTimeHeuristic,
+		NewWasabi2ReverseLookupByDepthHeuristic,
+		NewWasabi2OneSourceByTimeHeuristic,
+		NewWasabi2OneSourceByDepthHeuristic,
+		NewWasabi2ReverseAmountHeuristic,
+		NewWasabi2ForwardLookupByTimeHeuristic,
+		NewWasabi2ForwardLookupByDepthHeuristic,
 		// Whirlpool
-		newWhirlpoolReverseLookupByTimeHeuristic,
-		newWhirlpoolReverseLookupByDepthHeuristic,
-		newWhirlpoolOneSourceByTimeHeuristic,
-		newWhirlpoolOneSourceByDepthHeuristic,
-		newWhirlpoolReverseAmountHeuristic,
+		NewWhirlpoolReverseLookupByTimeHeuristic,
+		NewWhirlpoolReverseLookupByDepthHeuristic,
+		NewWhirlpoolOneSourceByTimeHeuristic,
+		NewWhirlpoolOneSourceByDepthHeuristic,
+		NewWhirlpoolReverseAmountHeuristic,
 	}
 
 	for _, h := range validHeuristicTypes {
-		ConstructorMap[h().getType()] = h
+		ConstructorMap[h().GetType()] = h
 	}
 }
 
@@ -143,17 +143,18 @@ type Descriptor struct {
 	AllowedParents []string `json:"allowedParents,omitempty"`
 }
 
-type heuristic interface {
+type Heuristic interface {
 	fmt.Stringer
-	// exec executes the heuristic and returns the altered set of origin uids
-	exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
-	// getType returns the heuristic type
-	getType() string
-	// setConfig applies the provided configuration values
-	setConfig(heuristics.Options) error
-	// getConfig returns the configuration of the heuristic
-	getConfig() heuristics.Options
+	// Exec executes the heuristic and returns the altered set of origin uids.
+	// If parentResults is unset, parentUID is used to access the results of the parent heuristic if applicable
+	Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentUID string,
+		parentResults []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error)
+	// GetType returns the heuristic type
+	GetType() string
+	// SetConfig applies the provided configuration values
+	SetConfig(heuristics.Options) error
+	// GetConfig returns the configuration of the heuristic
+	GetConfig() heuristics.Options
 	// GetDescriptor returns the description of the heuristic and its expected parameter for the frontend
 	GetDescriptor() Descriptor
 }
@@ -406,7 +407,7 @@ func isParentAHeuristic(ctx context.Context, c external.Database, parentUID stri
 // Executor holds information for executing on heuristic and its children
 type Executor struct {
 	rootUID       string
-	thisHeuristic heuristic
+	thisHeuristic Heuristic
 }
 
 // ConstructExecutors creates executors based on heuristics
@@ -422,7 +423,7 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 	c := config
 	c.UserUID = userUID
 
-	if err = clonedHeuristic.setConfig(c); err != nil {
+	if err = clonedHeuristic.SetConfig(c); err != nil {
 		return
 	}
 
@@ -456,12 +457,12 @@ func IsConfigValid(config heuristics.Options) error {
 		}
 	}
 
-	return clonedHeuristic.setConfig(c)
+	return clonedHeuristic.SetConfig(c)
 }
 
 // Run starts the execution of the given heuristic executor.
 func (hx Executor) Run(ctx context.Context, dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
-	heuristicClusters, err := hx.thisHeuristic.exec(ctx, dgraph, g, hx.rootUID)
+	heuristicClusters, err := hx.thisHeuristic.Exec(ctx, dgraph, g, hx.rootUID, nil)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return nil, err
 	}
@@ -495,4 +496,29 @@ func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode,
 	}
 
 	return resultCluster
+}
+
+// getHeuristicTransactions returns the provided transactions with a cluster UID and their output amounts
+func getHeuristicTransactions(ctx context.Context, dgraph external.Database, clusters []heuristics.HeuristicCluster,
+	allowedTransactionType string) ([]heuristics.HeuristicTransaction, error) {
+	var txUIDs []string
+	uidToCluster := map[string]heuristics.ClusterUID{}
+	for i, cluster := range clusters {
+		cUID := heuristics.ClusterUID(strconv.Itoa(i))
+		for _, result := range cluster.Results {
+			txUIDs = append(txUIDs, result.UID)
+			uidToCluster[result.UID] = cUID
+		}
+	}
+
+	transactions, err := heuristics.GetHeuristicTransactionsOutputs(ctx, dgraph, txUIDs, allowedTransactionType)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, t := range transactions {
+		transactions[i].Cluster = uidToCluster[t.UID]
+	}
+
+	return transactions, nil
 }

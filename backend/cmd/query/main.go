@@ -15,6 +15,7 @@ import (
 	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -121,6 +122,12 @@ type CollateralGapModule struct {
 	Filename string `yaml:"filename"`
 }
 
+type HeuristicAnalysisModule struct {
+	Active          bool   `yaml:"active"`
+	Filename        string `yaml:"filename"`
+	TransactionType string `yaml:"transactionType"`
+}
+
 type Config struct {
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
@@ -138,6 +145,7 @@ type Config struct {
 	Stats                 StatsModule                 `yaml:"stats"`
 	Collaterals           CollateralsModule           `yaml:"collaterals"`
 	CollateralGap         CollateralGapModule         `yaml:"collateralGap"`
+	HeuristicAnalysis     HeuristicAnalysisModule     `yaml:"heuristicAnalysis"`
 }
 
 var defaultConfig = Config{
@@ -169,8 +177,8 @@ func main() {
 		return
 	}
 
-	var newConfig Config
-	if err := config.ReadConfig(filePath, &newConfig); err != nil {
+	var cfg Config
+	if err := config.ReadConfig(filePath, &cfg); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -178,7 +186,7 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
 	// create dgraph client
-	dgraph, err := external.CreateClient(newConfig.DBHost)
+	dgraph, err := external.CreateClient(cfg.DBHost)
 	if err != nil {
 		warn(err)
 		return
@@ -187,23 +195,24 @@ func main() {
 
 	ctx := context.Background()
 
-	if newConfig.PrivacyCharts.Active {
-		exportTransactionData(ctx, dgraph, newConfig.PrivacyCharts.Directory)
+	if cfg.PrivacyCharts.Active {
+		exportTransactionData(ctx, dgraph, cfg.PrivacyCharts.Directory)
 	}
 
-	if newConfig.UniqueAddresses.Active {
-		doUniqueAddressAnalysis(ctx, dgraph, newConfig.UniqueAddresses.Option, "uniqueAddresses")
+	if cfg.UniqueAddresses.Active {
+		doUniqueAddressAnalysis(ctx, dgraph, cfg.UniqueAddresses.Option, "uniqueAddresses")
 	}
 
 	var g *graph.ReversibleGraph
 
-	if newConfig.TimestampAnalytics.ExportMixingTransactions ||
-		newConfig.TimestampAnalytics.ExportDestinationTransactions ||
-		newConfig.TimestampAnalytics.ExportReverseLookup.Active ||
-		newConfig.ExclusionSimulations.Active ||
-		newConfig.OriginGap.Active ||
-		newConfig.DestinationCount.Active ||
-		newConfig.DestinationCount2.Active {
+	if cfg.TimestampAnalytics.ExportMixingTransactions ||
+		cfg.TimestampAnalytics.ExportDestinationTransactions ||
+		cfg.TimestampAnalytics.ExportReverseLookup.Active ||
+		cfg.ExclusionSimulations.Active ||
+		cfg.OriginGap.Active ||
+		cfg.DestinationCount.Active ||
+		cfg.DestinationCount2.Active ||
+		cfg.HeuristicAnalysis.Active {
 		meta, err := status.GetMeta(ctx, dgraph)
 		if err != nil {
 			warn(err)
@@ -221,78 +230,101 @@ func main() {
 			return
 		}
 
-		g, err = graph.LoadTransactionGraph(ctx, graphConfig, dgraph, 0)
+		numTxToLoad := 0
+
+		if graphLimit, ok := os.LookupEnv("DEV_GRAPH_LIMIT"); ok {
+			numGraphLimit, err := strconv.Atoi(graphLimit)
+			if err != nil {
+				warn(serror.FromFormat("DEV_GRAPH_LIMIT is not a number: %w", err))
+				return
+			}
+			if numGraphLimit < 0 {
+				info("DEV_GRAPH_LIMIT environment variable is negative. Exiting ...")
+				return
+			} else if numGraphLimit == 0 {
+				info("DEV_GRAPH_LIMIT environment variable is set to zero. Ignoring ...")
+			} else {
+				info(fmt.Sprintf("DEV_GRAPH_LIMIT environment variable is set. Limiting in-memory mixing graph to %d transactions", numGraphLimit))
+				numTxToLoad = numGraphLimit
+			}
+		}
+
+		g, err = graph.LoadTransactionGraph(ctx, graphConfig, dgraph, numTxToLoad)
 		if err != nil && !errors.Is(err, graph.ErrDBContainsNoClassifiedTransactions) {
 			warn(err)
 			return
 		}
 	}
 
-	if newConfig.TimestampAnalytics.ExportDestinationTransactions {
+	if cfg.TimestampAnalytics.ExportDestinationTransactions {
 		doDestinationTimestampAnalysis(g)
 	}
 
-	if newConfig.TimestampAnalytics.ExportMixingTransactions {
+	if cfg.TimestampAnalytics.ExportMixingTransactions {
 		exportMixingTimestamps(g, true)
 	}
 
-	if newConfig.TimestampAnalytics.ExportReverseLookup.Active {
-		exportReverseLookup(g, newConfig.TimestampAnalytics.ExportReverseLookup.NodeID,
-			newConfig.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours,
+	if cfg.TimestampAnalytics.ExportReverseLookup.Active {
+		exportReverseLookup(g, cfg.TimestampAnalytics.ExportReverseLookup.NodeID,
+			cfg.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours,
 			nil, false, false)
 	}
 
-	if newConfig.ExclusionSimulations.Active {
-		doSimulation(ctx, dgraph, g, newConfig.ExclusionSimulations.NodeID,
-			newConfig.ExclusionSimulations.UserUID, newConfig.ExclusionSimulations.LookBackTimeHours)
+	if cfg.ExclusionSimulations.Active {
+		doSimulation(ctx, dgraph, g, cfg.ExclusionSimulations.NodeID,
+			cfg.ExclusionSimulations.UserUID, cfg.ExclusionSimulations.LookBackTimeHours)
 	}
 
-	if newConfig.OriginGap.Active {
-		doOriginGapAnalysis(g, time.Hour*time.Duration(newConfig.OriginGap.MinGapHours), newConfig.OriginGap.Filename)
+	if cfg.OriginGap.Active {
+		doOriginGapAnalysis(g, time.Hour*time.Duration(cfg.OriginGap.MinGapHours), cfg.OriginGap.Filename)
 	}
 
-	if newConfig.ExportBlocks.Active {
-		doExportBlocks(ctx, dgraph, newConfig.ExportBlocks.Filename,
-			newConfig.ExportBlocks.StartBlock, newConfig.ExportBlocks.EndBlock)
+	if cfg.ExportBlocks.Active {
+		doExportBlocks(ctx, dgraph, cfg.ExportBlocks.Filename,
+			cfg.ExportBlocks.StartBlock, cfg.ExportBlocks.EndBlock)
 	}
 
-	if newConfig.ExportTransactions.Active {
-		doExportTransactions(ctx, dgraph, newConfig.ExportTransactions.Filename,
-			newConfig.ExportTransactions.StartBlock, newConfig.ExportTransactions.EndBlock,
-			newConfig.ExportTransactions.TransactionTypes)
+	if cfg.ExportTransactions.Active {
+		doExportTransactions(ctx, dgraph, cfg.ExportTransactions.Filename,
+			cfg.ExportTransactions.StartBlock, cfg.ExportTransactions.EndBlock,
+			cfg.ExportTransactions.TransactionTypes)
 	}
 
-	if newConfig.ExportPrivacyGraph.Active {
-		doExportPrivacyGraph(ctx, dgraph, newConfig.ExportPrivacyGraph.Filename,
-			newConfig.ExportPrivacyGraph.StartTransaction)
+	if cfg.ExportPrivacyGraph.Active {
+		doExportPrivacyGraph(ctx, dgraph, cfg.ExportPrivacyGraph.Filename,
+			cfg.ExportPrivacyGraph.StartTransaction)
 	}
 
-	if newConfig.DestinationCount.Active {
-		doDestinationCountAnalysis(ctx, dgraph, g, newConfig.DestinationCount.Filename, newConfig.DestinationCount.TransactionType)
+	if cfg.DestinationCount.Active {
+		doDestinationCountAnalysis(ctx, dgraph, g, cfg.DestinationCount.Filename, cfg.DestinationCount.TransactionType)
 	}
 
-	if newConfig.DestinationCount2.Active {
-		doDestinationCountAnalysis2(ctx, dgraph, g, newConfig.DestinationCount2.Filename, newConfig.DestinationCount2.TransactionType)
+	if cfg.DestinationCount2.Active {
+		doDestinationCountAnalysis2(ctx, dgraph, g, cfg.DestinationCount2.Filename, cfg.DestinationCount2.TransactionType)
 	}
 
-	if newConfig.ExportClusterActivity.Active {
-		doExportClusterActivity(ctx, dgraph, newConfig.ExportClusterActivity.Filename)
+	if cfg.ExportClusterActivity.Active {
+		doExportClusterActivity(ctx, dgraph, cfg.ExportClusterActivity.Filename)
 	}
 
-	if newConfig.Stats.Active {
-		doStats(ctx, dgraph, newConfig.Stats.Filename, newConfig.Stats.ExcludeTransactionType)
+	if cfg.Stats.Active {
+		doStats(ctx, dgraph, cfg.Stats.Filename, cfg.Stats.ExcludeTransactionType)
 	}
 
-	if newConfig.TagPackInserter.Active {
-		doInsertTagPacks(ctx, dgraph, newConfig.TagPackInserter.Directory)
+	if cfg.TagPackInserter.Active {
+		doInsertTagPacks(ctx, dgraph, cfg.TagPackInserter.Directory)
 	}
 
-	if newConfig.Collaterals.Active {
-		doCollateralAnalysis(ctx, dgraph, newConfig.Collaterals.CpFilename, newConfig.Collaterals.CcFilename)
+	if cfg.Collaterals.Active {
+		doCollateralAnalysis(ctx, dgraph, cfg.Collaterals.CpFilename, cfg.Collaterals.CcFilename)
 	}
 
-	if newConfig.CollateralGap.Active {
-		doCollateralGapAnalysis(ctx, dgraph, newConfig.CollateralGap.Filename)
+	if cfg.CollateralGap.Active {
+		doCollateralGapAnalysis(ctx, dgraph, cfg.CollateralGap.Filename)
+	}
+
+	if cfg.HeuristicAnalysis.Active {
+		doHeuristicAnalysis(ctx, dgraph, g, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType)
 	}
 }
 

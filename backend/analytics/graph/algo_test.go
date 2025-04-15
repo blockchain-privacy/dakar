@@ -477,42 +477,6 @@ func TestReverseLookup(t *testing.T) {
 	}
 }
 
-func TestGetInputTransactions(t *testing.T) {
-	graph := newTestGraph()
-	tests := []struct {
-		uid     string
-		want    []string
-		wantErr bool
-	}{
-		{
-			uid:     ToHex(11),
-			want:    []string{ToHex(8), ToHex(9)},
-			wantErr: false,
-		},
-		{
-			uid:     ToHex(12),
-			want:    []string{ToHex(10)},
-			wantErr: false,
-		},
-		{
-			uid:     "a",
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		results, err := GetInputTransactions(graph, tt.uid)
-		if tt.wantErr {
-			require.Error(t, err)
-		} else {
-			require.NoError(t, err)
-			// sort results so order stays the same
-			slices.Sort(results)
-			require.Equal(t, tt.want, results)
-		}
-	}
-}
-
 func TestForwardLookup(t *testing.T) {
 	graph := newTestGraph()
 	type args struct {

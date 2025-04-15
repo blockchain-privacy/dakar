@@ -18,15 +18,15 @@ type perfectMatchHeuristic struct {
 	c             heuristics.Options
 }
 
-func newPerfectMatchHeuristic() heuristic {
+func NewPerfectMatchHeuristic() Heuristic {
 	return &perfectMatchHeuristic{heuristicType: heuristicTypePerfect}
 }
 
-func (h *perfectMatchHeuristic) getType() string {
+func (h *perfectMatchHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *perfectMatchHeuristic) setConfig(c heuristics.Options) error {
+func (h *perfectMatchHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -40,7 +40,7 @@ func (h *perfectMatchHeuristic) setConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *perfectMatchHeuristic) getConfig() heuristics.Options {
+func (h *perfectMatchHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -59,12 +59,12 @@ func (h *perfectMatchHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Parameter: %v", h.heuristicType, h.c)
 }
 
-// perfectMatchHeuristic applies the following heuristic:
+// Exec of the perfectMatchHeuristic applies the following heuristic:
 //   - filter all origins of sources, which have denominations without a perfect match for the
 //     denominations of the destination transaction
-func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentHeuristicUID)
+func (h *perfectMatchHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentUID string,
+	_ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (h *perfectMatchHeuristic) exec(ctx context.Context, dgraph external.Databa
 
 	// get origins from parent heuristic
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentHeuristicUID,
+	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
 		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err

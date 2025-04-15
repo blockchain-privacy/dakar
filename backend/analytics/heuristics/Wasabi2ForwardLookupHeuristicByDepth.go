@@ -18,15 +18,15 @@ type wasabi2ForwardLookupByDepthHeuristic struct {
 	depth         int
 }
 
-func newWasabi2ForwardLookupByDepthHeuristic() heuristic {
+func NewWasabi2ForwardLookupByDepthHeuristic() Heuristic {
 	return &wasabi2ForwardLookupByDepthHeuristic{heuristicType: heuristicTypeWasabi2ForwardLookupByDepth}
 }
 
-func (h *wasabi2ForwardLookupByDepthHeuristic) getType() string {
+func (h *wasabi2ForwardLookupByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2ForwardLookupByDepthHeuristic) setConfig(c heuristics.Options) error {
+func (h *wasabi2ForwardLookupByDepthHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -46,7 +46,7 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) setConfig(c heuristics.Options) e
 	return nil
 }
 
-func (h *wasabi2ForwardLookupByDepthHeuristic) getConfig() heuristics.Options {
+func (h *wasabi2ForwardLookupByDepthHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -71,9 +71,9 @@ func (h *wasabi2ForwardLookupByDepthHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// wasabi2ForwardLookupByDepthHeuristic finds all destination transactions connected the given
+// Exec of the wasabi2ForwardLookupByDepthHeuristic finds all destination transactions connected the given
 // transaction by traversing the mixing graph forward limited by depth.
-func (h *wasabi2ForwardLookupByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
-	return forwardLookup(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+func (h *wasabi2ForwardLookupByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return forwardLookup(ctx, dgraph, g, parentUID, 0, h.depth, h.c)
 }

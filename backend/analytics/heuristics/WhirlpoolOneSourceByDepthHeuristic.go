@@ -18,15 +18,15 @@ type whirlpoolOneSourceByDepthHeuristic struct {
 	c             heuristics.Options
 }
 
-func newWhirlpoolOneSourceByDepthHeuristic() heuristic {
+func NewWhirlpoolOneSourceByDepthHeuristic() Heuristic {
 	return &whirlpoolOneSourceByDepthHeuristic{heuristicType: heuristicTypeWhirlpoolOneSourceByDepth}
 }
 
-func (h *whirlpoolOneSourceByDepthHeuristic) getType() string {
+func (h *whirlpoolOneSourceByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolOneSourceByDepthHeuristic) setConfig(c heuristics.Options) error {
+func (h *whirlpoolOneSourceByDepthHeuristic) SetConfig(c heuristics.Options) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -46,7 +46,7 @@ func (h *whirlpoolOneSourceByDepthHeuristic) setConfig(c heuristics.Options) err
 	return nil
 }
 
-func (h *whirlpoolOneSourceByDepthHeuristic) getConfig() heuristics.Options {
+func (h *whirlpoolOneSourceByDepthHeuristic) GetConfig() heuristics.Options {
 	return h.c
 }
 
@@ -75,12 +75,12 @@ func (h *whirlpoolOneSourceByDepthHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-// whirlpoolOneSourceByDepthHeuristic applies the following heuristics:
+// Exec of the whirlpoolOneSourceByDepthHeuristic applies the following heuristics:
 //   - filter all origins, which are not created in the time span defined by depth
 //   - filter all origins of clusters, which do not have enough denominations to fund all of their respective
 //     outputs of input transaction which are used as inputs in the destination transaction
 //   - filter all origins of clusters, which do not occur in all sets of input transaction origins
-func (h *whirlpoolOneSourceByDepthHeuristic) exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string) (
-	[]heuristics.HeuristicCluster, error) {
-	return whirlpoolOnceSource(ctx, dgraph, g, parentHeuristicUID, 0, h.depth, h.c)
+func (h *whirlpoolOneSourceByDepthHeuristic) Exec(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
+	parentUID string, _ []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
+	return whirlpoolOnceSource(ctx, dgraph, g, parentUID, 0, h.depth, h.c)
 }

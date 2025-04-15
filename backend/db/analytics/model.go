@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/db/analytics/heuristics"
 	"github.com/qrest/gomisc/serror"
 	"time"
 )
@@ -68,13 +69,24 @@ type ConnectedNode struct {
 	}
 }
 
-// Node holds data for the current node
+// Node holds data of a graph node
 type Node struct {
 	UID             string `json:"uid"`
 	TransactionType string `json:"Transaction.type"`
 	Block           []struct {
 		TS time.Time `json:"ts"`
 	} `json:"block"`
+}
+
+// NodeWithHash holds data of a graph node with transaction hash
+type NodeWithHash struct {
+	UID             string `json:"uid"`
+	Hash            string `json:"txhash"`
+	TransactionType string `json:"Transaction.type"`
+	Block           []struct {
+		TS time.Time `json:"ts"`
+	} `json:"block"`
+	Outputs []heuristics.HeuristicOutput `json:"tx_inputs,omitempty"`
 }
 
 // AddressNode can hold data for an address or transaction
