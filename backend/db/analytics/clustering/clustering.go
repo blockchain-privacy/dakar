@@ -850,52 +850,30 @@ func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) erro
 		CommitNow: true,
 	}
 
-	const query = `{
-				 q(func: eq(Cluster.type, "fmi")){
-					count(uid)
-				  }
-				}`
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
-	if err != nil {
-		return err
-	}
-
-	var r struct {
-		Count []struct {
-			Count int64 `json:"count,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return err
-	}
-
 	return db.MutationWithRetry(ctx, c, req)
 }
 
 func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, step int, afterNode string) (map[string]string, string, int, error) {
 	const query = `query Q($step:int,$after:string){
-					var(func: has(Cluster.transaction), first: $step, after: $after){
-						a as count(Cluster.transaction)
-					}
+				var(func: has(Cluster.transaction), first: $step, after: $after){
+					a as count(Cluster.transaction)
+				}
 
-					count(func: uid(a)){
-						c:count(uid)
-					}
+				count(func: uid(a)){
+					c:count(uid)
+				}
 
-					last(func: uid(a), first: -1){
+				last(func: uid(a), first: -1){
+					uid
+				}
+				
+				q(func: uid(a))@filter(gt(val(a), 1)){
+					uid
+					Cluster.transaction{
 						uid
+						txhash
 					}
-					
-					q(func: uid(a))@filter(gt(val(a), 1)){
-						uid
-						Cluster.transaction{
-							uid
-							txhash
-						}
-					}
+				}
 			  }`
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$step": strconv.Itoa(step), "$after": afterNode})
