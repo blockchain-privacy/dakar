@@ -325,7 +325,7 @@ func main() {
 			lastNode = ln
 
 			if len(nodes) > 0 {
-				info("received nodes", "count", nodes, "lastNode", lastNode)
+				info("received nodes", "nodes", nodes, "lastNode", lastNode)
 			}
 
 			processedClusterCount += numNodesLoaded

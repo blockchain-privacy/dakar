@@ -875,7 +875,7 @@ func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) erro
 	return db.MutationWithRetry(ctx, c, req)
 }
 
-func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, step int, afterNode string) ([]string, string, int, error) {
+func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, step int, afterNode string) (map[string]string, string, int, error) {
 	const query = `query Q($step:int,$after:string){
 					var(func: has(Cluster.transaction), first: $step, after: $after){
 						a as count(Cluster.transaction)
@@ -891,6 +891,10 @@ func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, s
 					
 					q(func: uid(a))@filter(gt(val(a), 1)){
 						uid
+						Cluster.transaction{
+							uid
+							txhash
+						}
 					}
 			  }`
 
@@ -904,7 +908,10 @@ func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, s
 			Count int `json:"c,omitempty"`
 		} `json:"count,omitempty"`
 		Last    []db.UIDNode `json:"last,omitempty"`
-		Cluster []db.UIDNode `json:"q,omitempty"`
+		Cluster []struct {
+			UID                string `json:"uid,omitempty"`
+			ClusterTransaction db.UIDNode
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
@@ -916,9 +923,9 @@ func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, s
 		last = r.Last[0].UID
 	}
 
-	uids := make([]string, len(r.Cluster))
-	for i, cluster := range r.Cluster {
-		uids[i] = cluster.UID
+	uids := make(map[string]string, len(r.Cluster))
+	for _, cluster := range r.Cluster {
+		uids[cluster.UID] = cluster.ClusterTransaction.UID
 	}
 
 	return uids, last, r.Count[0].Count, nil
