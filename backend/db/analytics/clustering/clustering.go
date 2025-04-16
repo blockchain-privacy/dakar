@@ -419,11 +419,10 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 	}
 
 	for _, cluster := range clusters {
-		// todo activate check after https://github.com/hypermodeinc/dgraph/pull/9380 has been released
-		//if len(cluster.Transaction) > 1 {
-		//	err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
-		//	return
-		//}
+		if len(cluster.Transaction) > 1 {
+			err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
+			return
+		}
 
 		frontendCluster := FrontendCluster{
 			Type:         cluster.Type,
