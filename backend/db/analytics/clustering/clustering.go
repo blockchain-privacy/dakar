@@ -853,6 +853,31 @@ func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) erro
 	return db.MutationWithRetry(ctx, c, req)
 }
 
+func SetClusterTransactions(ctx context.Context, c external.Database, clusterToTransaction map[string]string) error {
+	if len(clusterToTransaction) == 0 {
+		return serror.FromStr("received empty map")
+	}
+
+	var nquad string
+	for cluster, transaction := range clusterToTransaction {
+		if cluster == "" || transaction == "" {
+			return serror.FromStrWithContext("map entry is empty",
+				"cluster", cluster, "transaction", transaction)
+		}
+
+		nquad += fmt.Sprintf("<%s> Cluster.transaction <%s> .\n", cluster, transaction)
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetNquads: []byte(nquad),
+		}},
+		CommitNow: true,
+	}
+
+	return db.MutationWithRetry(ctx, c, req)
+}
+
 func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, step int, afterNode string) (map[string]string, string, int, error) {
 	const query = `query Q($step:int,$after:string){
 				var(func: has(Cluster.transaction), first: $step, after: $after){

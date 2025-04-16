@@ -10,11 +10,12 @@ import (
 	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
-// SchemaVersion is the identifier for the schema defined in SetupSchema.
-// If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
+// SchemaVersion is the version of the schema defined in SetupSchema.
+// If SchemaVersion is higher than Meta.schemaVersion (which is stored in the db, see schema below),
 // then a database upgrade is required.
-// Use status.SetSchemaVersion to increase the schema version.
-const SchemaVersion = 12
+// Use status.SetSchemaVersion to increase the schema version directly,
+// or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
+const SchemaVersion = 13
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {

@@ -6,6 +6,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/status"
+	"backend/db/upgrades"
 	"backend/external"
 	"context"
 	"errors"
@@ -304,35 +305,10 @@ func main() {
 
 	if cfg.FixClusterTransaction.Active {
 		info("starting fix cluster transaction")
-		lastNode := "0x0"
-		const step = 10000
-		var processedClusterCount int
-		for {
-			nodes, ln, numNodesLoaded, err := clustering.CheckClusterTransactionOverflow(ctx, dgraph, step, lastNode)
-			if err != nil {
-				warn(err)
-				return
-			}
-
-			if numNodesLoaded < step {
-				break
-			}
-
-			if ln == "" {
-				panic("last node was empty, prev last node: " + lastNode)
-			}
-
-			lastNode = ln
-
-			if len(nodes) > 0 {
-				info("received nodes", "nodes", nodes, "lastNode", lastNode)
-			}
-
-			processedClusterCount += numNodesLoaded
-
-			if processedClusterCount%1000000 == 0 {
-				info("processed clusters", "count", processedClusterCount, "lastNode", lastNode)
-			}
+		err := upgrades.FixClusterTransaction(dgraph)
+		if err != nil {
+			warn(err)
+			return
 		}
 	}
 }
