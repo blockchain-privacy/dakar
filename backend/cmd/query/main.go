@@ -6,7 +6,6 @@ import (
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/status"
-	"backend/db/upgrades"
 	"backend/external"
 	"context"
 	"errors"
@@ -117,10 +116,6 @@ type HeuristicAnalysisModule struct {
 	TransactionType string `yaml:"transactionType"`
 }
 
-type FixClusterTransactionModule struct {
-	Active bool `yaml:"active"`
-}
-
 type Config struct {
 	DBHost                string                      `yaml:"host"`
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
@@ -138,7 +133,6 @@ type Config struct {
 	Collaterals           CollateralsModule           `yaml:"collaterals"`
 	CollateralGap         CollateralGapModule         `yaml:"collateralGap"`
 	HeuristicAnalysis     HeuristicAnalysisModule     `yaml:"heuristicAnalysis"`
-	FixClusterTransaction FixClusterTransactionModule `yaml:"fixClusterTransaction"`
 }
 
 var defaultConfig = Config{
@@ -301,15 +295,6 @@ func main() {
 
 	if cfg.HeuristicAnalysis.Active {
 		doHeuristicAnalysis(ctx, dgraph, g, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType)
-	}
-
-	if cfg.FixClusterTransaction.Active {
-		info("starting fix cluster transaction")
-		err := upgrades.FixClusterTransaction(dgraph)
-		if err != nil {
-			warn(err)
-			return
-		}
 	}
 }
 
