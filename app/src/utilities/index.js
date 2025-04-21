@@ -3,8 +3,6 @@ import {
 	BLOCKCHAIN_DASH,
 	CLUSTER_TYPE_CUSTOM,
 	CLUSTER_TYPE_FMI,
-	LOCALSTORAGE_FIELD_SESSION,
-	LOCALSTORAGE_FIELD_SETTINGS,
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
@@ -12,34 +10,21 @@ import {
 } from '@/constants';
 import {inject} from 'vue';
 
-export function setLocalSession(sessionData) {
-	localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
+export function setLocalstorageData(key, settingsData) {
+	localStorage.setItem(key, JSON.stringify(settingsData));
 }
 
-export function deleteLocalSession() {
-	localStorage.removeItem(LOCALSTORAGE_FIELD_SESSION);
-}
-
-export function getLocalSession() {
-	let localStorageSessionData = localStorage.getItem(LOCALSTORAGE_FIELD_SESSION);
-	if (localStorageSessionData !== null) {
-		localStorageSessionData = JSON.parse(localStorageSessionData);
+export function getLocalstorageData(key) {
+	let localStorageData = localStorage.getItem(key);
+	if (localStorageData !== null) {
+		localStorageData = JSON.parse(localStorageData);
 	}
 
-	return localStorageSessionData;
+	return localStorageData;
 }
 
-export function setLocalSettings(settingsData) {
-	localStorage.setItem(LOCALSTORAGE_FIELD_SETTINGS, JSON.stringify(settingsData));
-}
-
-export function getLocalSettings() {
-	let localStorageSettingsData = localStorage.getItem(LOCALSTORAGE_FIELD_SETTINGS);
-	if (localStorageSettingsData !== null) {
-		localStorageSettingsData = JSON.parse(localStorageSettingsData);
-	}
-
-	return localStorageSettingsData;
+export function deleteLocalstorageData(key) {
+	localStorage.removeItem(key);
 }
 
 export function getCoinUnit(mode) {

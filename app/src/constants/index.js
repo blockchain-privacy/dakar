@@ -35,6 +35,7 @@ export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const LOCALSTORAGE_FIELD_SESSION = 'session';
+export const LOCALSTORAGE_FIELD_SEARCH_HISTORY = 'searchHistory';
 
 // Blockchain
 export const BLOCKCHAIN_DASH = 'dash';

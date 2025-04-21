@@ -1,8 +1,8 @@
 <template>
   <v-menu
-    open-on-click
+    :open-on-click="false"
     open-on-focus
-    close-on-content-click
+    scroll-strategy="none"
     max-width="0"
   >
     <template #activator="{props}">
@@ -12,7 +12,6 @@
         :class="$attrs.class"
         :style="$attrs.style"
         hide-details
-        :append-inner-icon="mdiMagnify"
         :variant="variant"
         :density="density"
         color="primary"
@@ -26,38 +25,63 @@
         @keydown.enter="handleDirectSearch"
       />
     </template>
-    <v-list v-if="!isLoading && resultItems.empty">
-      <v-list-item title="No results" />
-    </v-list>
-    <v-list
-      v-else-if="!isLoading && resultItems.length > 0"
-    >
-      <v-list-item
-        v-for="(item, index) in resultItems"
-        :key="index"
-        @click="handleResultItemClick(item)"
+    <template v-if="!isLoading">
+      <template v-if="!query && !hideHistory && getSearchHistory.length > 0">
+        <v-list>
+          <v-list-item
+            v-for="(item, index) in getSearchHistory"
+            :key="index"
+            @click="handleResultItemClick(item)"
+          >
+            <template #prepend>
+              <v-icon
+                :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
+                :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
+              />
+            </template>
+            <template #append>
+              <v-chip v-if="getResultType(item.type)">
+                {{ getResultType(item.type) }}
+              </v-chip>
+            </template>
+            <div class="shorten">
+              {{ item.title }}
+            </div>
+          </v-list-item>
+        </v-list>
+      </template>
+      <v-list v-else-if="resultItems.empty">
+        <v-list-item title="No results" />
+      </v-list>
+      <v-list
+        v-else-if="resultItems.length > 0"
       >
-        <template #prepend>
-          <v-icon
-            :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
-            :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
-          />
-        </template>
-        <template #append>
-          <v-chip v-if="getResultType(item.type)">
-            {{ getResultType(item.type) }}
-          </v-chip>
-        </template>
-        <div class="shorten">
-          {{ item.title }}
-        </div>
-      </v-list-item>
-    </v-list>
+        <v-list-item
+          v-for="(item, index) in resultItems"
+          :key="index"
+          @click="handleResultItemClick(item)"
+        >
+          <template #prepend>
+            <v-icon
+              :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
+              :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
+            />
+          </template>
+          <template #append>
+            <v-chip v-if="getResultType(item.type)">
+              {{ getResultType(item.type) }}
+            </v-chip>
+          </template>
+          <div class="shorten">
+            {{ item.title }}
+          </div>
+        </v-list-item>
+      </v-list>
+    </template>
   </v-menu>
 </template>
 
 <script setup>
-import {mdiMagnify} from '@mdi/js';
 import {
 	BLOCKCHAIN_ATTRIBUTES,
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
@@ -66,7 +90,11 @@ import {getDakarClients} from '@/utilities/index.js';
 import {ref} from 'vue';
 import {useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local.js';
 
+const localStore = useLocalStore();
+const {getSearchHistory} = storeToRefs(localStore);
 const router = useRouter();
 const msgStore = useMsgStore();
 
@@ -78,6 +106,7 @@ defineProps({
 const dakarClients = getDakarClients();
 const isLoading = ref(false);
 const resultItems = ref([]);
+const hideHistory = ref(false);
 const query = ref('');
 const label = 'Search for blocks, transactions and addresses';
 let searchTimer = null;
@@ -116,6 +145,8 @@ async function search(q) {
 		return;
 	}
 
+	lastQuery = trimmed;
+
 	if (!isValidQueryInput(trimmed)) {
 		setNoResults();
 		return;
@@ -148,8 +179,6 @@ async function search(q) {
 	} else {
 		resultItems.value = searchResults;
 	}
-
-	lastQuery = trimmed;
 
 	isLoading.value = false;
 }
@@ -205,6 +234,16 @@ function getResultType(type) {
 }
 
 function handleResultItemClick(item) {
+	// The menu should be hidden by removing focus (blur()) from the text field.
+	// However, when calling blur it shows the history list for a split second.
+	// To workaround this set a flag to false and set it to true shortly after
+	hideHistory.value = true;
+	setTimeout(() => {
+		hideHistory.value = false;
+	}, 500);
+
+	document.activeElement.blur();
+	localStore.addSearchHistoryItem(item);
 	router.push(getResultNavigation(item));
 	query.value = '';
 	resultItems.value = [];

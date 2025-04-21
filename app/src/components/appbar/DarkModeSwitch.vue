@@ -12,11 +12,12 @@
 </template>
 
 <script setup>
-import {getLocalSettings} from '@/utilities';
+import {getLocalstorageData} from '@/utilities';
 import {mdiWeatherNight, mdiWeatherSunny} from '@mdi/js';
 import {onBeforeMount, ref} from 'vue';
 import {useTheme} from 'vuetify';
 import {useLocalStore} from '@/pinia/local';
+import {LOCALSTORAGE_FIELD_SETTINGS} from '@/constants/index.js';
 
 const localStore = useLocalStore();
 const theme = useTheme();
@@ -25,7 +26,7 @@ const darkModeEnabled = ref(false);
 
 // Hooks
 onBeforeMount(() => {
-	const localSettings = getLocalSettings();
+	const localSettings = getLocalstorageData(LOCALSTORAGE_FIELD_SETTINGS);
 	darkModeEnabled.value = localSettings.dark;
 });
 

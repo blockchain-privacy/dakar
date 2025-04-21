@@ -4,11 +4,20 @@
       v-if="name"
       class="d-flex align-center d-inline-block"
     >
-      <v-icon
-        class="mx-3"
-        icon="$graphIcon"
-        size="32"
-      />
+      <div class="position-relative">
+        <v-icon
+          class="mx-3"
+          icon="$graphIcon"
+          size="32"
+        />
+        <v-icon
+          class="position-absolute"
+          :icon="BLOCKCHAIN_ATTRIBUTES[route.params.blockchainMode].icon"
+          :color="BLOCKCHAIN_ATTRIBUTES[route.params.blockchainMode].color"
+          size="20"
+          style="left: calc(100% - 20px); bottom: -5px"
+        />
+      </div>
       <p
         v-tooltip="{'text': 'Name of the Workspace', 'location':'top', 'open-delay': 400}"
         class="text-h6 my-2 workspace-name"
@@ -188,6 +197,10 @@ import {
 import {onMounted, onUnmounted, ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import SearchDialog from '@/components/common/SearchDialog.vue';
+import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
+import {useRoute} from 'vue-router';
+
+const route = useRoute();
 
 const emit = defineEmits([
 	'isSelectionEnabled',
