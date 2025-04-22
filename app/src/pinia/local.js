@@ -1,10 +1,26 @@
 import {defineStore} from 'pinia';
-import {deleteLocalstorageData, getLocalstorageData, setLocalstorageData} from '@/utilities';
 import {
 	LOCALSTORAGE_FIELD_SEARCH_HISTORY,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
 } from '@/constants/index.js';
+
+function setLocalstorageData(key, settingsData) {
+	localStorage.setItem(key, JSON.stringify(settingsData));
+}
+
+function getLocalstorageData(key) {
+	let localStorageData = localStorage.getItem(key);
+	if (localStorageData !== null) {
+		localStorageData = JSON.parse(localStorageData);
+	}
+
+	return localStorageData;
+}
+
+function deleteLocalstorageData(key) {
+	localStorage.removeItem(key);
+}
 
 // InsertLocalData inserts session and settings data, which is
 // stored in LocalStorage, into the store. This is not done

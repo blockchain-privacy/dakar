@@ -10,23 +10,6 @@ import {
 } from '@/constants';
 import {inject} from 'vue';
 
-export function setLocalstorageData(key, settingsData) {
-	localStorage.setItem(key, JSON.stringify(settingsData));
-}
-
-export function getLocalstorageData(key) {
-	let localStorageData = localStorage.getItem(key);
-	if (localStorageData !== null) {
-		localStorageData = JSON.parse(localStorageData);
-	}
-
-	return localStorageData;
-}
-
-export function deleteLocalstorageData(key) {
-	localStorage.removeItem(key);
-}
-
 export function getCoinUnit(mode) {
 	switch (mode) {
 		case BLOCKCHAIN_DASH: return 'Dash';
