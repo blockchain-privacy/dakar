@@ -3,44 +3,12 @@ import {
 	BLOCKCHAIN_DASH,
 	CLUSTER_TYPE_CUSTOM,
 	CLUSTER_TYPE_FMI,
-	LOCALSTORAGE_FIELD_SESSION,
-	LOCALSTORAGE_FIELD_SETTINGS,
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
 	DENOMINATIONS_WASABI2,
 } from '@/constants';
 import {inject} from 'vue';
-
-export function setLocalSession(sessionData) {
-	localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
-}
-
-export function deleteLocalSession() {
-	localStorage.removeItem(LOCALSTORAGE_FIELD_SESSION);
-}
-
-export function getLocalSession() {
-	let localStorageSessionData = localStorage.getItem(LOCALSTORAGE_FIELD_SESSION);
-	if (localStorageSessionData !== null) {
-		localStorageSessionData = JSON.parse(localStorageSessionData);
-	}
-
-	return localStorageSessionData;
-}
-
-export function setLocalSettings(settingsData) {
-	localStorage.setItem(LOCALSTORAGE_FIELD_SETTINGS, JSON.stringify(settingsData));
-}
-
-export function getLocalSettings() {
-	let localStorageSettingsData = localStorage.getItem(LOCALSTORAGE_FIELD_SETTINGS);
-	if (localStorageSettingsData !== null) {
-		localStorageSettingsData = JSON.parse(localStorageSettingsData);
-	}
-
-	return localStorageSettingsData;
-}
 
 export function getCoinUnit(mode) {
 	switch (mode) {

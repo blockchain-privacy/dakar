@@ -1,14 +1,10 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-row
       align="center"
       justify="center"
     >
-      <v-col
-        cols="12"
-        sm="12"
-        xl="9"
-      >
+      <v-col cols="12">
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -19,49 +15,7 @@
           class="my-10 elevation-4"
         >
           <template #top>
-            <v-toolbar
-              flat
-              class="hidden-sm-and-up"
-            >
-              <v-toolbar-title>Identities</v-toolbar-title>
-            </v-toolbar>
-            <v-toolbar
-              flat
-              class="hidden-sm-and-up"
-            >
-              <v-text-field
-                v-model="search"
-                class="ms-3"
-                :append-inner-icon="mdiMagnify"
-                label="Filter users"
-                single-line
-                hide-details
-                style="max-width: 500px"
-              />
-              <v-spacer />
-              <v-btn
-                variant="outlined"
-                class="me-3"
-                :disabled="isLoading"
-                @click="refreshUsers"
-              >
-                <v-icon>{{ mdiRefresh }}</v-icon>
-              </v-btn>
-              <v-btn
-                variant="outlined"
-                class="me-3"
-                @click="showCreateDialog"
-              >
-                <v-icon>{{ mdiAccountPlus }}</v-icon>
-                <div class="ml-2 hidden-sm-and-down">
-                  Create Identity
-                </div>
-              </v-btn>
-            </v-toolbar>
-            <v-toolbar
-              flat
-              class="d-none d-sm-flex"
-            >
+            <v-toolbar flat>
               <v-toolbar-title>Identities</v-toolbar-title>
               <v-spacer />
               <v-text-field
@@ -74,7 +28,7 @@
               />
               <v-spacer />
               <v-btn
-                class="me-3"
+                class="me-2"
                 variant="outlined"
                 :disabled="isLoading"
                 @click="refreshUsers"
@@ -86,7 +40,6 @@
               </v-btn>
               <v-btn
                 variant="outlined"
-                class="me-3"
                 @click="showCreateDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
@@ -146,28 +99,7 @@
           class="my-10 elevation-4"
         >
           <template #top>
-            <v-toolbar
-              flat
-              class="hidden-sm-and-up"
-            >
-              <v-toolbar-title>Sessions</v-toolbar-title>
-            </v-toolbar>
-            <v-toolbar
-              flat
-              class="hidden-sm-and-up"
-            >
-              <v-text-field
-                v-model="searchSessions"
-                :append-inner-icon="mdiMagnify"
-                label="Filter sessions"
-                single-line
-                hide-details
-              />
-            </v-toolbar>
-            <v-toolbar
-              flat
-              class="d-none d-sm-flex"
-            >
+            <v-toolbar flat>
               <v-toolbar-title>Sessions</v-toolbar-title>
               <v-spacer />
               <v-text-field

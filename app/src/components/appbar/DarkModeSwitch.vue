@@ -12,7 +12,6 @@
 </template>
 
 <script setup>
-import {getLocalSettings} from '@/utilities';
 import {mdiWeatherNight, mdiWeatherSunny} from '@mdi/js';
 import {onBeforeMount, ref} from 'vue';
 import {useTheme} from 'vuetify';
@@ -25,8 +24,7 @@ const darkModeEnabled = ref(false);
 
 // Hooks
 onBeforeMount(() => {
-	const localSettings = getLocalSettings();
-	darkModeEnabled.value = localSettings.dark;
+	darkModeEnabled.value = localStore.getSettings.dark;
 });
 
 // Functions

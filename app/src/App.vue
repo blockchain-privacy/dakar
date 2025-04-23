@@ -72,11 +72,6 @@ onBeforeMount(() => {
 	checkSessionExpiration();
 	setDarkTheme();
 
-	const mode = route.params.blockchainMode;
-	if (mode !== undefined) {
-		persistBlockchainMode(mode);
-	}
-
 	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
 		persistDarkTheme(e.matches);
 		setDarkTheme();
@@ -88,12 +83,6 @@ onBeforeMount(() => {
 function persistDarkTheme(isDark) {
 	const set = settings.value;
 	set.dark = isDark;
-	settings.value = set;
-}
-
-function persistBlockchainMode(mode) {
-	const set = settings.value;
-	set.blockchainMode = mode;
 	settings.value = set;
 }
 
