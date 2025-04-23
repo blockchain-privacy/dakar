@@ -236,7 +236,7 @@ func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *g
 	// column 1: transaction hash
 	// column 2: transaction timestamp
 	// column 3: input count (only mixing)
-	// column 4. output count
+	// column 4: output count
 	// column 5: input amount
 	// column 6: input timestamp spread (in seconds, only mixing)
 	// column 7: number of clusters (reverse lookup 24h)
@@ -342,4 +342,111 @@ func tryRecoverFromFile(fileName string, columnCount int) ([][]string, error) {
 
 	// remove last line, because it is often only partially flushed to the file
 	return data[:len(data)-1], nil
+}
+
+func addMisssingData(ctx context.Context, dgraph external.Database, fileName string, transactionType string) {
+	info("add missing heuristic data starting")
+	if fileName == "" {
+		warn(serror.FromStr("file name is empty"))
+		return
+	}
+
+	if transactionType == "" {
+		warn(serror.FromStr("transaction type is empty"))
+		return
+	}
+
+	recoveredData, err := tryRecoverFromFile(fileName, 20)
+	if err != nil {
+		warn(err)
+		return
+	}
+
+	_, _, mixingTxType, err := getConstructors(transactionType)
+	if err != nil {
+		warn(err)
+		return
+	}
+
+	if recoveredData == nil {
+		warn(serror.FromStr("no items"))
+		return
+	}
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		warn(serror.New(err))
+		return
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			warn(err)
+		}
+	}(f)
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	info("recovered items", "count", len(recoveredData))
+	recoveredDestinations := make(map[string][]string, len(recoveredData))
+	for _, recLine := range recoveredData {
+		recoveredDestinations[recLine[0]] = recLine
+	}
+
+	const step = 10000
+	// create jobs
+	lastNodeUID := "0x0"
+	for i := 0; ; i += step {
+		now := time.Now()
+		destinations, err := analytics.GetPrivacyTransactionsWithHash(ctx, dgraph, step, lastNodeUID, transactionType, mixingTxType)
+		if err != nil {
+			warn(err)
+			return
+		}
+
+		if len(destinations) > 0 {
+			lastNodeUID = destinations[len(destinations)-1].UID
+		}
+
+		for _, destination := range destinations {
+			line, ok := recoveredDestinations[destination.Hash]
+			if !ok {
+				continue
+			}
+
+			slices.SortFunc(destination.Inputs, func(a, b struct {
+				Amount int64     `json:"amount,omitempty"`
+				TS     time.Time `json:"ts"`
+			}) int {
+				return a.TS.Compare(b.TS)
+			})
+
+			inputSpread := destination.Inputs[len(destination.Inputs)-1].TS.Sub(destination.Inputs[0].TS)
+
+			line = slices.Insert(line, 3, strconv.Itoa(destination.OutputCount))
+			line = slices.Insert(line, 5, strconv.FormatFloat(inputSpread.Seconds(), 'f', 2, 64))
+			err := w.Write(line)
+			if err != nil {
+				warn(serror.NewWithContext(err, "line", line))
+				return
+			}
+
+			recoveredDestinations[destination.Hash] = line
+		}
+
+		info("execution duration", "duration/transactions",
+			time.Since(now)/time.Duration(len(destinations)), "transaction count", len(destinations))
+
+		if len(destinations) < step {
+			break
+		}
+	}
+
+	for _, l := range recoveredDestinations {
+		if len(l) != 22 {
+			info("wrong length", "length", len(l), "line", l)
+		}
+	}
 }

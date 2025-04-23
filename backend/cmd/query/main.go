@@ -324,7 +324,8 @@ func main() {
 	}
 
 	if cfg.HeuristicAnalysis.Active {
-		doHeuristicAnalysis(ctx, dgraph, g, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType)
+		//doHeuristicAnalysis(ctx, dgraph, g, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType)
+		addMisssingData(ctx, dgraph, cfg.HeuristicAnalysis.Filename, cfg.HeuristicAnalysis.TransactionType)
 	}
 }
 
