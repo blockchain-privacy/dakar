@@ -13,6 +13,7 @@ import (
 	"github.com/qrest/gomisc/serror"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -219,32 +220,44 @@ func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *g
 	}
 
 	var sum int64
-	for _, t := range destination.Outputs {
+	for _, t := range destination.Inputs {
 		sum += t.Amount
 	}
+
+	slices.SortFunc(destination.Inputs, func(a, b struct {
+		Amount int64     `json:"amount,omitempty"`
+		TS     time.Time `json:"ts"`
+	}) int {
+		return a.TS.Compare(b.TS)
+	})
+
+	inputSpread := destination.Inputs[len(destination.Inputs)-1].TS.Sub(destination.Inputs[0].TS)
 
 	// column 1: transaction hash
 	// column 2: transaction timestamp
 	// column 3: input count (only mixing)
-	// column 4: input amount
-	// column 5: number of clusters (reverse lookup 24h)
-	// column 6: number of origins (reverse lookup 24h)
-	// column 7: number of clusters (reverse amount for reverse lookup 24)
-	// column 8: number of origins (reverse amount for reverse lookup 24)
-	// column 9: number of clusters (reverse lookup 48h)
-	// column 10: number of origins (reverse lookup 48h)
-	// column 11: number of clusters (reverse amount for reverse lookup 48)
-	// column 12: number of origins (reverse amount for reverse lookup 48)
-	// column 13: number of clusters (one source 24h)
-	// column 14: number of origins (one source 24h)
-	// column 15: number of clusters (reverse amount for one source 24)
-	// column 16: number of origins (reverse amount for one source 24)
-	// column 17: number of clusters (one source 48h)
-	// column 18: number of origins (one source 48h)
-	// column 19: number of clusters (reverse amount for one source 48)
-	// column 20: number of origins (reverse amount for one source 48)
-	line := []string{destination.Hash, destination.Block[0].TS.Format(time.RFC3339),
-		strconv.Itoa(len(destination.Outputs)), strconv.FormatInt(sum, 10)}
+	// column 4. output count
+	// column 5: input amount
+	// column 6: input timestamp spread (in seconds, only mixing)
+	// column 7: number of clusters (reverse lookup 24h)
+	// column 8: number of origins (reverse lookup 24h)
+	// column 9: number of clusters (reverse amount for reverse lookup 24)
+	// column 10: number of origins (reverse amount for reverse lookup 24)
+	// column 11: number of clusters (reverse lookup 48h)
+	// column 12: number of origins (reverse lookup 48h)
+	// column 13: number of clusters (reverse amount for reverse lookup 48)
+	// column 14: number of origins (reverse amount for reverse lookup 48)
+	// column 15: number of clusters (one source 24h)
+	// column 16: number of origins (one source 24h)
+	// column 17: number of clusters (reverse amount for one source 24)
+	// column 18: number of origins (reverse amount for one source 24)
+	// column 19: number of clusters (one source 48h)
+	// column 20: number of origins (one source 48h)
+	// column 21: number of clusters (reverse amount for one source 48)
+	// column 22: number of origins (reverse amount for one source 48)
+	line := []string{destination.Hash, destination.Block[0].TS.UTC().Format(time.RFC3339),
+		strconv.Itoa(len(destination.Inputs)), strconv.Itoa(destination.OutputCount),
+		strconv.FormatInt(sum, 10), strconv.FormatFloat(inputSpread.Seconds(), 'f', 2, 64)}
 
 	for _, txHeuristic := range txHeuristics {
 		thisHeuristic := txHeuristic()

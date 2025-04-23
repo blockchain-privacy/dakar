@@ -134,10 +134,15 @@ func GetPrivacyTransactionsWithHash(ctx context.Context, c external.Database,
 					block:~transactions{
 						ts
 					}
-					tx_inputs@cascade{
-						amount
-						~tx_outputs@filter(eq(Transaction.type,$connectionType))
+					tx_inputs@cascade@normalize{
+						amount:amount
+						~tx_outputs@filter(eq(Transaction.type,$connectionType)){
+							block:~transactions{
+								ts:ts
+							}
+						}
 					}
+					oc:count(tx_outputs)
 				}
 			  }`
 
