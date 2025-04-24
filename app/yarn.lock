@@ -285,10 +285,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.25.0":
-  version: 9.25.0
-  resolution: "@eslint/js@npm:9.25.0"
-  checksum: 10c0/4a03e2b218e086af89465563151610f30c1ff38e53a4b09fa71d2e7d1f1b37d72e3aacaf2ccb949544b6fcbc12b118162f5edb6e7deee9b3bfd816745fe74dfa
+"@eslint/js@npm:9.25.1":
+  version: 9.25.1
+  resolution: "@eslint/js@npm:9.25.1"
+  checksum: 10c0/87d86b512ab109bfd3b9317ced3220ea3d444ac3bfa7abd853ca7f724d72c36e213062f9def16a632365d97dc29e0094312e3682a9767590ee6f43b3d5d873fd
   languageName: node
   linkType: hard
 
@@ -389,10 +389,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@neondark/wikiapi@npm:^1.2.56":
-  version: 1.2.56
-  resolution: "@neondark/wikiapi@npm:1.2.56::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F39181089%2Fpackages%2Fnpm%2F%40neondark%2Fwikiapi%2F-%2F%40neondark%2Fwikiapi-1.2.56.tgz"
-  checksum: 10c0/70171b076fd29496784eecdc923705e05ee0c191c5bf0d37d14c94506717c3d54d2a8896ed7fcbc70974acc65cf501ab00f898a103e60ae344c176749c2bc8de
+"@neondark/wikiapi@npm:^1.2.57":
+  version: 1.2.57
+  resolution: "@neondark/wikiapi@npm:1.2.57::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F39181089%2Fpackages%2Fnpm%2F%40neondark%2Fwikiapi%2F-%2F%40neondark%2Fwikiapi-1.2.57.tgz"
+  checksum: 10c0/d841c82651960f4919ec5d9498982fc7d2413da785b3af8c640f73b40c36b95c628619f7d59a5738f2ef647342e225c7bf18146372b101e1b3de9d9bdbe022b1
   languageName: node
   linkType: hard
 
@@ -445,10 +445,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.20.7":
-  version: 1.20.7
-  resolution: "@ory/client-fetch@npm:1.20.7"
-  checksum: 10c0/f2f4ebd1c28d6adc601a0034cc158e3b1bc79c80d9a8aa7d176d2f8ed9ce46b09784a1ef8d8a3bfb2cc2f169a0bf32b0adb3bc298161e53d1cc93745da96ea7b
+"@ory/client-fetch@npm:^1.20.8":
+  version: 1.20.8
+  resolution: "@ory/client-fetch@npm:1.20.8"
+  checksum: 10c0/9c119219599088c6ce894629b9d8f083985dd768000e38530f10b5c02e7e4a4907f2a4b48fe17fbb378a22eadfe8d3ff12e11e1b7d0f1c069025319b88df4f4c
   languageName: node
   linkType: hard
 
@@ -1838,8 +1838,8 @@ __metadata:
     "@fontsource/roboto": "npm:^5.2.5"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.36"
-    "@neondark/wikiapi": "npm:^1.2.56"
-    "@ory/client-fetch": "npm:^1.20.7"
+    "@neondark/wikiapi": "npm:^1.2.57"
+    "@ory/client-fetch": "npm:^1.20.8"
     "@vitejs/plugin-vue": "npm:^5.2.3"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1850,12 +1850,12 @@ __metadata:
     d3-selection: "npm:^3.0.0"
     d3-time: "npm:^3.1.0"
     d3-zoom: "npm:^3.0.0"
-    eslint: "npm:^9.25.0"
+    eslint: "npm:^9.25.1"
     eslint-config-xo: "npm:^0.46.0"
     eslint-plugin-vue: "npm:^10.0.0"
     pinia: "npm:^3.0.2"
-    sass: "npm:^1.86.3"
-    vite: "npm:^6.3.2"
+    sass: "npm:^1.87.0"
+    vite: "npm:^6.3.3"
     vite-plugin-vuetify: "npm:^2.1.1"
     vite-svg-loader: "npm:^5.1.0"
     vitest: "npm:^3.1.2"
@@ -2182,9 +2182,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.25.0":
-  version: 9.25.0
-  resolution: "eslint@npm:9.25.0"
+"eslint@npm:^9.25.1":
+  version: 9.25.1
+  resolution: "eslint@npm:9.25.1"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.12.1"
@@ -2192,7 +2192,7 @@ __metadata:
     "@eslint/config-helpers": "npm:^0.2.1"
     "@eslint/core": "npm:^0.13.0"
     "@eslint/eslintrc": "npm:^3.3.1"
-    "@eslint/js": "npm:9.25.0"
+    "@eslint/js": "npm:9.25.1"
     "@eslint/plugin-kit": "npm:^0.2.8"
     "@humanfs/node": "npm:^0.16.6"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
@@ -2228,7 +2228,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/eb984c0bad4f42ab02f5275fc02ebba98ff29dcecf1995065ec0a642e9c47a9b86a1407efa76fcdc1f096d09473160122a91a4acc18c54eb36a91cb36bffae20
+  checksum: 10c0/3bb1997ae994253d441e56aba2fc64a71b3b8dce32756de3dedae5e85416ba33eb07e19ede94a6fa8ce7ef3a0a3b0dd8b6836f41be46a3ab52e5345ad59a553f
   languageName: node
   linkType: hard
 
@@ -2365,18 +2365,6 @@ __metadata:
   dependencies:
     reusify: "npm:^1.0.4"
   checksum: 10c0/1095f16cea45fb3beff558bb3afa74ca7a9250f5a670b65db7ed585f92b4b48381445cd328b3d87323da81e43232b5d5978a8201bde84e0cd514310f1ea6da34
-  languageName: node
-  linkType: hard
-
-"fdir@npm:^6.4.3":
-  version: 6.4.3
-  resolution: "fdir@npm:6.4.3"
-  peerDependencies:
-    picomatch: ^3 || ^4
-  peerDependenciesMeta:
-    picomatch:
-      optional: true
-  checksum: 10c0/d13c10120e9625adf21d8d80481586200759928c19405a816b77dd28eaeb80e7c59c5def3e2941508045eb06d34eb47fad865ccc8bf98e6ab988bb0ed160fb6f
   languageName: node
   linkType: hard
 
@@ -3543,9 +3531,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.86.3":
-  version: 1.86.3
-  resolution: "sass@npm:1.86.3"
+"sass@npm:^1.87.0":
+  version: 1.87.0
+  resolution: "sass@npm:1.87.0"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     chokidar: "npm:^4.0.0"
@@ -3556,7 +3544,7 @@ __metadata:
       optional: true
   bin:
     sass: sass.js
-  checksum: 10c0/ba819a0828f732adf7a94cd8ca017bce92bc299ffb878836ed1da80a30612bfbbf56a5e42d6dff3ad80d919c2025afb42948fc7b54a7bc61a9a2d58e1e0c558a
+  checksum: 10c0/bd245faf14e4783dc547765350cf05817edaac0d6d6f6e4da8ab751f3eb3cc3873afd563c0ce416a24aa6c9c4e9023b05096447fc006660a01f76adffb54fbc6
   languageName: node
   linkType: hard
 
@@ -3804,16 +3792,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tinyglobby@npm:^0.2.12":
-  version: 0.2.12
-  resolution: "tinyglobby@npm:0.2.12"
-  dependencies:
-    fdir: "npm:^6.4.3"
-    picomatch: "npm:^4.0.2"
-  checksum: 10c0/7c9be4fd3625630e262dcb19015302aad3b4ba7fc620f269313e688f2161ea8724d6cb4444baab5ef2826eb6bed72647b169a33ec8eea37501832a2526ff540f
-  languageName: node
-  linkType: hard
-
 "tinyglobby@npm:^0.2.13":
   version: 0.2.13
   resolution: "tinyglobby@npm:0.2.13"
@@ -4013,17 +3991,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^6.3.2":
-  version: 6.3.2
-  resolution: "vite@npm:6.3.2"
+"vite@npm:^6.3.3":
+  version: 6.3.3
+  resolution: "vite@npm:6.3.3"
   dependencies:
     esbuild: "npm:^0.25.0"
-    fdir: "npm:^6.4.3"
+    fdir: "npm:^6.4.4"
     fsevents: "npm:~2.3.3"
     picomatch: "npm:^4.0.2"
     postcss: "npm:^8.5.3"
     rollup: "npm:^4.34.9"
-    tinyglobby: "npm:^0.2.12"
+    tinyglobby: "npm:^0.2.13"
   peerDependencies:
     "@types/node": ^18.0.0 || ^20.0.0 || >=22.0.0
     jiti: ">=1.21.0"
@@ -4064,7 +4042,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/08681e83e8338f3915cee729d8296bb9cfd53f71d6796816445d58cd84a8387396a3f5f3e179c52b09e98ccf7247ec3fabb50b95b0e7f3289a619ef8bf71bd8a
+  checksum: 10c0/7ea27d2c80a9e0b7ccf6cbd6c251455501286568160e8b632984e5332440f21a6d05f9236408212ba7653f7d2d4790f848956d8a620bbf4dd2ecb792a2fe1ab1
   languageName: node
   linkType: hard
 
