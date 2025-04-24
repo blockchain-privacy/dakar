@@ -1707,29 +1707,6 @@ func getDeleteWorkspaceReply(dgraph external.Database, r *http.Request) (reply m
 	return
 }
 
-func getDeleteAllWorkspacesReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	if err := dbwork.DeleteAllWorkspaces(r.Context(), dgraph, tUser.ID); err != nil {
-		if errors.Is(err, db.ErrNoMutationHappened) {
-			reply.Msg = "No data was deleted. The user might not have any workspaces."
-			status = http.StatusNotFound
-		} else {
-			reply.Msg = "could not delete data"
-			status = http.StatusInternalServerError
-			warn(err)
-		}
-		return
-	}
-
-	return
-}
-
 func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (reply workspaceConnectionReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {

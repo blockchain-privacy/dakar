@@ -214,11 +214,6 @@ func GetFrontendWorkspace(ctx context.Context, c external.Database, uid string, 
 	return &decodedWorkspace, nil
 }
 
-// DeleteAllWorkspaces deletes a user's workspaces and their heuristics
-func DeleteAllWorkspaces(ctx context.Context, c external.Database, userUID string) error {
-	return DeleteWorkspace(ctx, c, userUID, "")
-}
-
 // DeleteWorkspace deletes a user's workspace including all their selectors.
 // If the workspace UID is not set, all workspaces of the user are deleted.
 func DeleteWorkspace(ctx context.Context, c external.Database, userUID string, workspaceUID string) error {
