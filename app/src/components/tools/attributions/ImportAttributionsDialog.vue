@@ -40,13 +40,6 @@
               :disabled="isLoading"
               class="me-2"
             />
-            <v-checkbox
-              v-if="isAdmin"
-              v-model="areAttributionsPublic"
-              label="Public attributions"
-              :disabled="isLoading"
-              class="me-2"
-            />
             <v-select
               v-model="csv.separator"
               :items="separatorItems"
@@ -79,15 +72,13 @@
 </template>
 
 <script setup>
-import {fileRule, getDakarClient, isAdminIdentity} from '@/utilities';
-import {computed, ref} from 'vue';
+import {fileRule, getDakarClient} from '@/utilities';
+import {ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useLocalStore} from '@/pinia/local';
 import {useMsgStore} from '@/pinia/msg';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 const route = useRoute();
-const localStore = useLocalStore();
 const msgStore = useMsgStore();
 
 const props = defineProps({
@@ -103,7 +94,6 @@ const emit = defineEmits(['added']);
 // Template ref
 const csvForm = ref(null);
 const isLoading = ref(false);
-const areAttributionsPublic = ref(false);
 const csv = ref({
 	valid: false,
 	file: undefined,
@@ -115,9 +105,6 @@ const separatorItems = [
 	{text: 'Colon (,)', value: ','},
 	{text: 'Semicolon (;)', value: ';'},
 ];
-
-// Computed
-const isAdmin = computed(() => isAdminIdentity(localStore.getSession, props.blockchainMode));
 
 // Functions
 // CodeToMsg returns a message for the given message code
@@ -170,11 +157,7 @@ async function handleCSVUpload() {
 	};
 
 	try {
-		if (areAttributionsPublic.value) {
-			await dakar.attribution.attributionsPublicPost(attributionData);
-		} else {
-			await dakar.attribution.attributionsPost(attributionData);
-		}
+		await dakar.attribution.attributionsPost(attributionData);
 
 		setSuccessMessage('import was successful');
 		emit('added');
