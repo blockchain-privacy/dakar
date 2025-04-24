@@ -852,7 +852,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 	return
 }
 
-func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic bool) (reply msgReply, status int) {
+func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -950,7 +950,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 		return
 	}
 
-	if err := analytics.ImportAttribution(r.Context(), dgraph, attributions, tUser.ID, isPublic); err != nil {
+	if err := analytics.ImportAttribution(r.Context(), dgraph, attributions, tUser.ID); err != nil {
 		switch {
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses

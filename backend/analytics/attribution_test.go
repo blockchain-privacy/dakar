@@ -48,7 +48,6 @@ func TestImportAttribution(t *testing.T) {
 		dgraph       external.Database
 		attributions []Attribution
 		userID       string
-		isPublic     bool
 	}
 	tests := []struct {
 		args    args
@@ -59,7 +58,6 @@ func TestImportAttribution(t *testing.T) {
 				dgraph:       dbHandle,
 				attributions: attributions,
 				userID:       "",
-				isPublic:     false,
 			},
 			wantErr: true,
 		},
@@ -68,7 +66,6 @@ func TestImportAttribution(t *testing.T) {
 				dgraph:       dbHandle,
 				attributions: nil,
 				userID:       userUID,
-				isPublic:     false,
 			},
 			wantErr: true,
 		},
@@ -77,7 +74,6 @@ func TestImportAttribution(t *testing.T) {
 				dgraph:       dbHandle,
 				attributions: attributions,
 				userID:       userUID,
-				isPublic:     false,
 			},
 			wantErr: false,
 		},
@@ -86,14 +82,12 @@ func TestImportAttribution(t *testing.T) {
 				dgraph:       dbHandle,
 				attributions: attributions,
 				userID:       userUID,
-				isPublic:     true,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
-		err := ImportAttribution(t.Context(), tt.args.dgraph, tt.args.attributions,
-			tt.args.userID, tt.args.isPublic)
+		err := ImportAttribution(t.Context(), tt.args.dgraph, tt.args.attributions, tt.args.userID)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -113,7 +107,6 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 		attributions []Attribution
 		userID       string
 		hashToUID    map[string]string
-		isPublic     bool
 	}
 	tests := []struct {
 		args      args
@@ -124,7 +117,6 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 				attributions: nil,
 				userID:       "",
 				hashToUID:    nil,
-				isPublic:     false,
 			},
 			wantEmpty: true,
 		},
@@ -133,13 +125,12 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 				attributions: attributions,
 				userID:       "some_user_uid",
 				hashToUID:    hashToUID,
-				isPublic:     false,
 			},
 			wantEmpty: false,
 		},
 	}
 	for _, tt := range tests {
-		got := buildDatabaseAttributions(tt.args.attributions, tt.args.userID, tt.args.hashToUID, tt.args.isPublic)
+		got := buildDatabaseAttributions(tt.args.attributions, tt.args.userID, tt.args.hashToUID)
 		if tt.wantEmpty {
 			require.Empty(t, got)
 		} else {

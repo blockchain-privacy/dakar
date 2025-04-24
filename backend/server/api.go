@@ -257,28 +257,7 @@ func (s *Server) handlerAttributionList() http.Handler {
 //	@Router		/attributions/ [post]
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddAttributionReply(s.db, r, false)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Add Public Attribution godoc
-//
-//	@Summary	Create a new attribution which is visible to all users
-//	@Tags		attribution
-//	@Produce	text/csv
-//	@Param		separator	formData	string	true	"separator of the CSV file"
-//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skipped"
-//	@Param		file		formData	file	true	"the CSV file"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	401			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
-//	@Router		/attributions/public/ [post]
-func (s *Server) handlerAddPublicAttribution() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddAttributionReply(s.db, r, true)
+		reply, status := getAddAttributionReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -841,8 +820,6 @@ func (s *Server) setupHandlers() {
 	// Attributions
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributions, ""),
 		s.adapt(s.handlerAddPrivateAttribution(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributionsPublic, ""),
-		s.adapt(s.handlerAddPublicAttribution(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributions, ""),
 		s.adapt(s.handlerAttributionList(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, "uid"),
