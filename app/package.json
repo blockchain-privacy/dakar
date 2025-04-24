@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.66",
+    "@blockchain/dakar": "^1.1.68",
     "@fontsource/roboto": "^5.2.5",
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.36",
