@@ -1,7 +1,6 @@
 package analytics
 
 import (
-	"backend/db/analytics/heuristics"
 	"github.com/qrest/gomisc/serror"
 	"time"
 )
@@ -86,7 +85,11 @@ type NodeWithHash struct {
 	Block           []struct {
 		TS time.Time `json:"ts"`
 	} `json:"block"`
-	Outputs []heuristics.HeuristicOutput `json:"tx_inputs,omitempty"`
+	Inputs []struct {
+		Amount int64     `json:"amount,omitempty"`
+		TS     time.Time `json:"ts"`
+	} `json:"tx_inputs,omitempty"`
+	OutputCount int `json:"oc,omitempty"`
 }
 
 // AddressNode can hold data for an address or transaction
