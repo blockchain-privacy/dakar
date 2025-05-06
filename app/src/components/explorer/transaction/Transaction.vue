@@ -391,7 +391,7 @@ const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + 
 const isBTC = computed(() => isModeBTC(route.params.blockchainMode));
 const hasUncommonWasabi2Denomination = computed(() => isBTC.value
 	&& (props.tx.inputs?.some(i => isUncommonWasabi2Denomination(i.amount))
-	|| props.tx.outputs?.some(o => isUncommonWasabi2Denomination(o.amount))));
+		|| props.tx.outputs?.some(o => isUncommonWasabi2Denomination(o.amount))));
 
 const outputFrameComponent = computed(() => isTabMode.value ? VTabsWindow : VRow);
 const outputFrameComponentColumn = computed(() => isTabMode.value ? VTabsWindowItem : VCol);

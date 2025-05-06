@@ -202,21 +202,21 @@ onUpdated(async () => {
 		if (
 		// Cluster <-> cluster
 			(connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+				&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			// Cluster <-> transaction
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_SELECTOR
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+				&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_SELECTOR)
+				&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_SELECTOR)
 			// Cluster <-> transaction
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
+				&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_CLUSTER)
 			|| (connectionSource.value.type === WORKSPACE_NODE_TYPE_CLUSTER
-			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
+				&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION)
 		) {
 			await getConnectionData();
 		} else if (connectionSource.value.type === WORKSPACE_NODE_TYPE_TRANSACTION
-		&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
+			&& connectionTarget.value.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
 			await getTransactionData();
 		} else {
 			showEmptyText.value = true;
