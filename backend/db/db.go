@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v240"
+	"github.com/dgraph-io/dgo/v250"
 	"github.com/qrest/gomisc/serror"
 	"log"
 	"log/slog"
@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgraph-io/dgo/v240/protos/api"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -152,20 +152,6 @@ func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
 	return resp, err
 }
 
-// DropAll drops ALL data from the database, schema included
-func DropAll(db external.Database) error {
-	ctx, cancel := GetTaskContext()
-	defer cancel()
-	err := db.Alter(ctx, &api.Operation{
-		DropAll: true,
-	})
-	if err != nil {
-		return serror.New(err)
-	}
-
-	return nil
-}
-
 // CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph.
 // // Example: 0x123,0x1a1d
 func CreateCommaList(uids []string) string {
@@ -216,7 +202,7 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 	defer cancel()
 
 	// reset db
-	require.NoError(t, DropAll(database))
+	require.NoError(t, database.DropAllNamespaces(ctx))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))
@@ -248,8 +234,10 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 // SetupDBWithoutData returns the database to its initial state:
 // drops ALL data and sets up the schema
 func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
+	ctx, cancel := GetTaskContext()
+	defer cancel()
 	// reset db
-	require.NoError(t, DropAll(database))
+	require.NoError(t, database.DropAllNamespaces(ctx))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))

@@ -102,7 +102,7 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) erro
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	if err := db.DropAll(database); err != nil {
+	if err := database.DropAllNamespaces(ctx); err != nil {
 		return err
 	}
 	info("Dropped all data.")

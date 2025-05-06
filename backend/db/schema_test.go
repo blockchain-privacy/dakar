@@ -13,8 +13,11 @@ func TestSetupSchema(t *testing.T) {
 
 func TestIsSchemaSet(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
+	ctx, cancel := GetTaskContext()
+	defer cancel()
+
 	// first drop schema
-	require.NoError(t, DropAll(dbHandle))
+	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
 
 	// should return false because schema is not set
 	isSet, err := IsSchemaSet(dbHandle)

@@ -5,8 +5,8 @@ import (
 	"backend/testhelper"
 	"context"
 	"errors"
-	"github.com/dgraph-io/dgo/v240"
-	"github.com/dgraph-io/dgo/v240/protos/api"
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -145,11 +145,6 @@ func TestCreateCommaArray(t *testing.T) {
 	for _, c := range cases {
 		require.Equal(t, c.result, CreateCommaArray(c.uids))
 	}
-}
-
-func TestDropAll(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	require.NoError(t, DropAll(dbHandle))
 }
 
 func TestCreateClient(t *testing.T) {

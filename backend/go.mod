@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/btcsuite/btcd v0.24.2
-	github.com/dgraph-io/dgo/v240 v240.2.0
+	github.com/dgraph-io/dgo/v250 v250.0.0-preview1
 	github.com/goccy/go-yaml v1.18.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/qrest/gomisc v0.0.22
@@ -27,7 +27,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.64.0 // indirect

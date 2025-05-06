@@ -2,8 +2,8 @@ package external
 
 import (
 	"context"
-	"github.com/dgraph-io/dgo/v240"
-	"github.com/dgraph-io/dgo/v240/protos/api"
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,14 +26,6 @@ func (g *GraphDB) Query(ctx context.Context, q string, vars map[string]string) (
 	return g.Dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
 }
 
-// Alter can be used to do the following by setting various fields of api.Operation:
-//  1. Modify the schema.
-//  2. Drop a predicate.
-//  3. Drop the database.
-func (g *GraphDB) Alter(ctx context.Context, op *api.Operation) error {
-	return g.Dgraph.Alter(ctx, op)
-}
-
 // NewTxn creates a new transaction.
 func (g *GraphDB) NewTxn() *dgo.Txn {
 	return g.Dgraph.NewTxn()
@@ -42,6 +34,21 @@ func (g *GraphDB) NewTxn() *dgo.Txn {
 // Close shutdown down all the connections to the Dgraph Cluster.
 func (g *GraphDB) Close() {
 	g.Dgraph.Close()
+}
+
+// DropAllNamespaces removes all data including schemas of all namespaces
+func (g *GraphDB) DropAllNamespaces(ctx context.Context) error {
+	return g.Dgraph.DropAllNamespaces(ctx)
+}
+
+// DropPredicate dops the predicate of the specified namespace
+func (g *GraphDB) DropPredicate(ctx context.Context, nsName, predicate string) error {
+	return g.Dgraph.DropPredicate(ctx, nsName, predicate)
+}
+
+// SetSchema sets the schema of the specified namespace
+func (g *GraphDB) SetSchema(ctx context.Context, nsName string, schema string) error {
+	return g.Dgraph.SetSchema(ctx, nsName, schema)
 }
 
 // CreateClient create a new dgraph client connecting to the specified host and port
