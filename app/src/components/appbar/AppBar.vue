@@ -37,7 +37,7 @@
       variant="outlined"
     />
     <v-btn
-      v-if="isPrivilegedOrHigher"
+      v-if="session"
       icon
     >
       <v-icon>{{ mdiDotsGrid }}</v-icon>
@@ -123,9 +123,6 @@ import {
 	ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
-import {
-	isAnyAdminIdentity, isAnyPrivilegedIdentity,
-} from '@/utilities';
 import handleGetFlowError from '@/kratos';
 import {computed, inject} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
@@ -153,9 +150,6 @@ const session = computed({
 		localStore.setSession(value);
 	},
 });
-
-const isPrivilegedOrHigher = computed(() => isAnyPrivilegedIdentity(session.value)
-	|| isAnyAdminIdentity(session.value));
 
 // Functions
 // GoToPage should receive a page name from ./constants

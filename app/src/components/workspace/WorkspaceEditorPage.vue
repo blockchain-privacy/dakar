@@ -313,7 +313,7 @@ const nodeActions = ref([
 		color: 'primary',
 		icon: blenderPlus,
 		show: () => isHeuristicNode(nodeGraph.getContextNode())
-		|| isCoinJoinTransactionNode(nodeGraph.getContextNode()),
+			|| isCoinJoinTransactionNode(nodeGraph.getContextNode()),
 		action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
 		disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 	},
@@ -322,8 +322,8 @@ const nodeActions = ref([
 		color: 'primary',
 		icon: mdiFilterPlus,
 		show: () => isTxPropNode(nodeGraph.getContextNode())
-		|| isTxGraphNode(nodeGraph.getContextNode())
-		|| isHeuristicNode(nodeGraph.getContextNode()),
+			|| isTxGraphNode(nodeGraph.getContextNode())
+			|| isHeuristicNode(nodeGraph.getContextNode()),
 		action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode()),
 		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
 	},

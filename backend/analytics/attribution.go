@@ -44,8 +44,7 @@ func PublicAttributionImport(ctx context.Context, dgraph external.Database, attr
 }
 
 // ImportAttribution writes the given address relations into the database
-func ImportAttribution(ctx context.Context, dgraph external.Database,
-	attributions []Attribution, userID string, isPublic bool) error {
+func ImportAttribution(ctx context.Context, dgraph external.Database, attributions []Attribution, userID string) error {
 	if userID == "" {
 		return serror.FromStr("user ID is not set")
 	}
@@ -59,13 +58,13 @@ func ImportAttribution(ctx context.Context, dgraph external.Database,
 		return err
 	}
 
-	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID, isPublic)
+	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID)
 
 	return attribution.AddAttributions(ctx, dgraph, dbAttributions)
 }
 
-func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string,
-	isPublic bool) []attribution.Attribution {
+func buildDatabaseAttributions(attributions []Attribution, userID string,
+	hashToUID map[string]string) []attribution.Attribution {
 	attributionTimestamp := time.Now().UTC().Format(time.RFC3339)
 
 	dbAttributions := make([]attribution.Attribution, len(attributions))
@@ -78,11 +77,8 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 			Source:      a.Source,
 			Category:    a.Category,
 			Timestamp:   attributionTimestamp,
-			IsPublic:    isPublic,
-		}
-
-		if !isPublic {
-			attr.User = &db.UIDNode{UID: userID}
+			IsPublic:    false,
+			User:        &db.UIDNode{UID: userID},
 		}
 
 		attr.SetDType()

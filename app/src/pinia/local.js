@@ -33,10 +33,6 @@ function insertLocalData(state) {
 		if (localSettings.dark !== undefined) {
 			state.settings.dark = localSettings.dark;
 		}
-
-		if (localSettings.hideBitcoinAlert !== undefined) {
-			state.settings.hideBitcoinAlert = localSettings.hideBitcoinAlert;
-		}
 	}
 
 	const localSession = getLocalstorageData(LOCALSTORAGE_FIELD_SESSION);
@@ -58,7 +54,6 @@ const initialState = {
 	settings: {
 		// Set dark to be not initialized, so initial value can be set from media query
 		dark: null,
-		hideBitcoinAlert: false,
 	},
 	searchHistory: [],
 };

@@ -7,7 +7,7 @@
         {{ attribution.ts.toLocaleDateString() }}
       </div>
       <v-menu
-        v-if="!attribution.isPublic || (attribution.isPublic && isAdmin)"
+        v-if="!attribution.isPublic"
         location="bottom"
       >
         <template #activator="item">
@@ -66,14 +66,9 @@ import {mdiDelete, mdiDotsVertical} from '@mdi/js';
 import {ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import DeleteAttributionDialog from './DeleteAttributionDialog.vue';
 import AttributionTag from './AttributionTag.vue';
-import {isAdminIdentity} from '@/utilities';
-import {computed, ref} from 'vue';
-import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local';
+import {ref} from 'vue';
 
-const {session} = storeToRefs(useLocalStore());
-
-const props = defineProps({
+defineProps({
 	attribution: {type: Object, required: true},
 	blockchainMode: {type: String, required: true},
 	title: {type: String, required: true},
@@ -85,9 +80,6 @@ const deleteAttributionDialogModel = ref(false);
 const deleteAttributionTag = ref('');
 const deleteAttributionUid = ref('');
 const deleteAttributionPublic = ref(false);
-
-// Computed
-const isAdmin = computed(() => isAdminIdentity(session.value, props.blockchainMode));
 
 // Functions
 // Credit: https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url/43467144#43467144

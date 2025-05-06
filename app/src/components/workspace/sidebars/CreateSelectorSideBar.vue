@@ -403,12 +403,12 @@ const heuristicRules = computed(() => {
 	if (heuristicTypeModel.value.parameter.type === 'int') {
 		if (heuristicTypeModel.value.parameter.minimum) {
 			rules.push(v => parseInt(v, 10) >= heuristicTypeModel.value.parameter.minimum
-			|| `Minimum: ${heuristicTypeModel.value.parameter.minimum}`);
+				|| `Minimum: ${heuristicTypeModel.value.parameter.minimum}`);
 		}
 
 		if (heuristicTypeModel.value.parameter.maximum) {
 			rules.push(v => parseInt(v, 10) <= heuristicTypeModel.value.parameter.maximum
-			|| `Maximum: ${heuristicTypeModel.value.parameter.maximum}`);
+				|| `Maximum: ${heuristicTypeModel.value.parameter.maximum}`);
 		}
 	}
 

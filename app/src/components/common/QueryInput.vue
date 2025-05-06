@@ -253,4 +253,11 @@ function handleResultItemClick(item) {
 
 <style scoped>
 
+/*
+VMenu makes the input have the wrong cursor
+*/
+:deep( .v-field__input ) {
+  cursor: text !important;
+}
+
 </style>
