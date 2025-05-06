@@ -793,25 +793,6 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 	})
 }
 
-// Delete All Workspace godoc
-//
-//	@Summary	Deletes all workspaces of the current user
-//	@Tags		workspace
-//	@Produce	json
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	404	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/workspaces/ [delete]
-func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAllWorkspacesReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
@@ -908,8 +889,6 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerUpdateWorkspace(), s.authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, "uid"),
 		s.adapt(s.handlerDeleteWorkspace(), s.authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, ""),
-		s.adapt(s.handlerDeleteAllWorkspaces(), s.authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesConnection, ""),
 		s.adapt(s.handlerWorkspaceConnection(), s.authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorResults, ""),
