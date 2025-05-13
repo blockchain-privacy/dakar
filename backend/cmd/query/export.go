@@ -2,7 +2,6 @@ package main
 
 import (
 	mgraph "backend/analytics/graph"
-	"backend/constants"
 	"backend/db"
 	"backend/db/analytics"
 	"backend/external"
@@ -10,8 +9,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/traverse"
 	"os"
 	"strconv"
 	"time"
@@ -24,30 +21,20 @@ type exportTransaction struct {
 }
 
 // doDestinationTimestampAnalysis writes all destination transactions to a CSV file
-func doDestinationTimestampAnalysis(g *mgraph.ReversibleGraph) {
-	info("export of destination transactions starting")
-	dstTransactions := getDestinationTransactions(g)
-	info(fmt.Sprintf("number of destination transactions in graph %d", len(dstTransactions)))
+func doDestinationTimestampAnalysis(g *mgraph.ReversibleGraph, transactionType string, filename string) {
+	info(fmt.Sprintf("export of '%s' transactions starting", transactionType))
+	graphTransactions := getGraphTransactions(g, transactionType)
+	info(fmt.Sprintf("number of '%s' transactions in graph %d", transactionType, len(graphTransactions)))
 
-	writeTxToCSV("destination_transactions", dstTransactions)
+	if len(graphTransactions) == 0 {
+		return
+	}
 
-	info("done")
-}
-
-// doDestinationTimestampAnalysis writes all mixing transactions to a CSV file
-func exportMixingTimestamps(g *mgraph.ReversibleGraph, getInputs bool) {
-	info("export of mixing transactions starting")
-
-	mixingTransactions := getMixingTransactions(g, getInputs)
-	info(fmt.Sprintf("number of mixing transactions in graph %d", len(mixingTransactions)))
-
-	writeTxToCSV("mixing_transactions", mixingTransactions)
-
-	info("done")
+	writeTxToCSV(filename, graphTransactions)
 }
 
 func writeTxToCSV(fileName string, txs []exportTransaction) {
-	f, err := os.Create(fileName + ".csv")
+	f, err := os.Create(fileName)
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
@@ -64,8 +51,9 @@ func writeTxToCSV(fileName string, txs []exportTransaction) {
 	defer w.Flush()
 
 	for _, t := range txs {
-		// first column is destination id
-		// second column is timestamp of this transaction
+		// column 1: destination uid
+		// column 2: destination timestamp
+		// column 3-n: input timestamps
 		line := []string{mgraph.ToHex(t.id), strconv.FormatInt(t.ts.Unix(), 10)}
 		for _, t := range t.outputTimestamps {
 			line = append(line, strconv.FormatInt(t.Unix(), 10))
@@ -78,181 +66,40 @@ func writeTxToCSV(fileName string, txs []exportTransaction) {
 	}
 }
 
-func getDestinationTransactions(g *mgraph.ReversibleGraph) []exportTransaction {
-	var destinations []exportTransaction
-
-	nodes := g.Nodes()
-	for nodes.Next() {
-		node := nodes.Node()
-		if g.To(node.ID()).Len() == 0 {
-			txNode, ok := node.(mgraph.TransactionNode)
-			if !ok {
-				continue
-			}
-
-			fromNodes := g.From(node.ID())
-
-			var timestamps []time.Time
-
-			for fromNodes.Next() {
-				timestamps = append(timestamps, fromNodes.Node().(mgraph.TransactionNode).TS)
-			}
-
-			destinations = append(destinations, exportTransaction{
-				outputTimestamps: timestamps,
-				id:               node.ID(),
-				ts:               txNode.TS,
-			})
-		}
-	}
-	return destinations
-}
-
-// getMixingTransactions returns all mixing transaction in the graph.
-// Depending on the getInputs flag, either the input or
-// output timestamps are included
-func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTransaction {
-	year2016, err := time.Parse("2006-01-02", "2016-01-01")
+func getGraphTransactions(g *mgraph.ReversibleGraph, transactionType string) []exportTransaction {
+	year2018, err := time.Parse("2006-01-02", "2018-01-01")
 	if err != nil {
 		warn(err, "msg", "error while creating date")
 		return nil
 	}
 
+	var destinations []exportTransaction
+
 	nodes := g.Nodes()
-	mixingTransactions := make([]exportTransaction, 0, nodes.Len())
 	for nodes.Next() {
-		txNode, ok := nodes.Node().(mgraph.TransactionNode)
-		if !ok || txNode.Type != constants.TypeDashMixing || txNode.TS.Before(year2016) {
+		node := nodes.Node()
+
+		txNode, ok := node.(mgraph.TransactionNode)
+		if !ok || txNode.Type != transactionType || txNode.TS.Before(year2018) {
 			continue
 		}
 
-		var reachableNodes graph.Nodes
-		if getInputs {
-			reachableNodes = g.To(txNode.ID())
-		} else {
-			reachableNodes = g.From(txNode.ID())
+		fromNodes := g.From(node.ID())
+		timestamps := make([]time.Time, fromNodes.Len())
+		i := 0
+		for fromNodes.Next() {
+			timestamps[i] = fromNodes.Node().(mgraph.TransactionNode).TS
+			i++
 		}
 
-		var timestamps []time.Time
-
-		for reachableNodes.Next() {
-			timestamps = append(timestamps, reachableNodes.Node().(mgraph.TransactionNode).TS)
-		}
-
-		mixingTransactions = append(mixingTransactions, exportTransaction{
+		destinations = append(destinations, exportTransaction{
 			outputTimestamps: timestamps,
-			id:               txNode.ID(),
+			id:               node.ID(),
 			ts:               txNode.TS,
 		})
 	}
-	return mixingTransactions
-}
 
-// exportReverseLookup writes the mixing transactions including their timestamps to a CSV-file
-func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
-	maxLookBackTime int, addressExclusions []string, getInputs bool, checkSpendingGaps bool) {
-	nodeID, err := mgraph.ToInteger(nodeIDStr)
-	if err != nil {
-		warn(err)
-		return
-	}
-
-	node := g.Node(nodeID)
-	if node == nil {
-		warn(mgraph.ErrNodeNotFound(nodeID))
-	}
-
-	nodeTS := node.(mgraph.TransactionNode).TS
-
-	isReversed := g.IsReversed()
-
-	exclusionsMap := make(map[int64]bool, len(addressExclusions))
-
-	for _, e := range addressExclusions {
-		integer, err := mgraph.ToInteger(e)
-		if err != nil {
-			warn(err)
-			return
-		}
-
-		exclusionsMap[integer] = true
-	}
-
-	spendingGapCounter := 0
-
-	w := traverse.BreadthFirst{
-		Traverse: func(e graph.Edge) bool {
-			if !mgraph.CheckAddressExclusions(exclusionsMap, e.(mgraph.AddressEdge)) {
-				return false
-			}
-
-			if checkSpendingGaps && !mgraph.HasSpendingGap(g, e.(mgraph.AddressEdge)) {
-				spendingGapCounter++
-				return false
-			}
-
-			// get node to which the edge leads
-			toNode := g.Node(e.To().ID()).(mgraph.TransactionNode)
-
-			// if a maximum look back time is set check the timestamp
-			if maxLookBackTime > 0 {
-				// isReversed is true if it is a forward lookup: default case is a reverse
-				// lookup so if the graph is reversed a forward lookup is happening
-				if isReversed {
-					if toNode.TS.Sub(nodeTS) > time.Duration(maxLookBackTime) {
-						return false
-					}
-				} else if nodeTS.Sub(toNode.TS) > time.Duration(maxLookBackTime) {
-					return false
-				}
-			}
-
-			// if it is not a mixing transaction save it and stop following that edge
-			if toNode.Type != constants.TypeDashMixing {
-				return false
-			}
-
-			// true: follow this link
-			// false: do not follow this link
-			return true
-		},
-	}
-
-	var exportTransactions []exportTransaction
-
-	w.Walk(g, node, func(n graph.Node, _ int) bool {
-		var reachableNodes graph.Nodes
-		if getInputs {
-			reachableNodes = g.To(n.ID())
-		} else {
-			reachableNodes = g.From(n.ID())
-		}
-
-		// collect mixing nodes start
-		txNode, ok := n.(mgraph.TransactionNode)
-		if !ok || txNode.Type != constants.TypeDashMixing {
-			return false
-		}
-
-		var timestamps []time.Time
-		for reachableNodes.Next() {
-			timestamps = append(timestamps, reachableNodes.Node().(mgraph.TransactionNode).TS)
-		}
-
-		exportTransactions = append(exportTransactions, exportTransaction{
-			outputTimestamps: timestamps,
-			id:               n.ID(),
-			ts:               txNode.TS,
-		})
-		// collect mixing nodes end
-
-		// true: stop traversing nodes
-		// false: do not stop traversing nodes
-		return false
-	})
-	info(fmt.Sprintf("number of edges not traversed due to spending gap: %d", spendingGapCounter))
-
-	writeTxToCSV(mgraph.ToHex(nodeID)+"_mixing_transactions", exportTransactions)
+	return destinations
 }
 
 func doExportBlocks(ctx context.Context, dgraph external.Database, fileName string, startBlock int, endBlock int) {
