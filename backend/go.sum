@@ -44,8 +44,8 @@ github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1/go.mod h1:hyedUtir6IdtD/7lIxGeC
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 h1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0/go.mod h1:ZXNYxsqcloTdSy/rNShjYzMhyjf0LaoftYK0p+A3h40=
 github.com/decred/dcrd/lru v1.0.0/go.mod h1:mxKOwFd7lFjN2GZYsiz/ecgqR6kkYAl+0pz0tEMk218=
-github.com/dgraph-io/dgo/v250 v250.0.0-preview1 h1:JTFydsQHtGmD0BUpdBVU406f27Di/jRz8IljIuNPhsU=
-github.com/dgraph-io/dgo/v250 v250.0.0-preview1/go.mod h1:h1cPCTmI0GZWc770q608FkWEdQfC4iiWYAgvQGnvQ9A=
+github.com/dgraph-io/dgo/v250 v250.0.0-preview2 h1:kvUMN5dizaIrgNbp+KU8gIOA794EDTORVZ+yQOMTLCU=
+github.com/dgraph-io/dgo/v250 v250.0.0-preview2/go.mod h1:m5zwXW3OyxYK4asn97VxPRcQBn+dYj0uzT2MIu2R4is=
 github.com/dgraph-io/ristretto/v2 v2.2.0 h1:bkY3XzJcXoMuELV8F+vS8kzNgicwQFAaGINAEJdWGOM=
 github.com/dgraph-io/ristretto/v2 v2.2.0/go.mod h1:RZrm63UmcBAaYWC1DotLYBmTvgkrs0+XhBd7Npn7/zI=
 github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da h1:aIftn67I1fkbMa512G+w+Pxci9hJPB8oMnkcP3iZF38=
