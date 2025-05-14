@@ -1,6 +1,6 @@
 services:
   bulk:
-    image: dgraph/dgraph:v25.0.0-preview1
+    image: dgraph/dgraph:v25.0.0-preview2
     container_name: bulk
     volumes:
       - ${BULK_PATH}:/dgraph
