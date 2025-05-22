@@ -80,7 +80,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 		}
 
 		dist := calcChamferDistance(g, rootTx, txNode)
-		// only consider average distances of less or euqal than 24h
+		// only consider average distances of less or equal than 24h
 		if dist > 86400 {
 			continue
 		}
