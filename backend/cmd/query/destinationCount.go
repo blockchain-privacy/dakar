@@ -57,7 +57,7 @@ func doDestinationCountAnalysis(ctx context.Context, dgraph external.Database, g
 			defer wg.Done()
 			for spender := range jobs {
 				for _, destination := range spender.Destinations {
-					fingerprints, err := graph.SpendingFingerprint(g, destination.UID)
+					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID)
 					if err != nil {
 						warn(err)
 						return
@@ -137,7 +137,7 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 			defer wg.Done()
 			for spender := range jobs {
 				for _, destination := range spender.Destinations {
-					fingerprints, err := graph.SpendingFingerprint(g, destination.UID)
+					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID)
 					if err != nil {
 						warn(err)
 						return

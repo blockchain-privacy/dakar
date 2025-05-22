@@ -8,6 +8,75 @@ import (
 	"time"
 )
 
+func Test_splitTimestampsIntoSessions(t *testing.T) {
+	tests := []struct {
+		timestamps         []int64
+		wantNumberSessions int
+	}{
+		{
+			timestamps:         nil,
+			wantNumberSessions: 0,
+		},
+		{
+			timestamps:         []int64{},
+			wantNumberSessions: 0,
+		},
+		{
+			timestamps:         []int64{time.Now().Unix()},
+			wantNumberSessions: 1,
+		},
+		{
+			timestamps:         []int64{time.Now().Unix(), time.Now().AddDate(0, 0, -5).Unix()},
+			wantNumberSessions: 2,
+		},
+		{
+			timestamps: []int64{time.Now().Unix(), time.Now().AddDate(0, 0, -5).Unix(),
+				time.Now().AddDate(0, 0, 2).Unix()},
+			wantNumberSessions: 3,
+		},
+		{
+			timestamps: []int64{time.Now().Unix(), time.Now().Add(time.Hour * 2).Unix(),
+				time.Now().Add(time.Hour * 3).Unix(), time.Now().Add(time.Hour * 4).Unix(),
+				time.Now().Add(time.Hour * 5).Unix()},
+			wantNumberSessions: 1,
+		},
+		{
+			timestamps:         []int64{1531235575, 1531181371, 1531183888, 1531193372, 1531205321, 1530574495, 1531135657},
+			wantNumberSessions: 3,
+		},
+		{
+			timestamps: []int64{1531212600, 1531218784, 1531181024, 1531193674, 1531176993, 1531199139, 1531207215,
+				1531184567, 1531214700, 1531214043, 1531204878, 1531201698, 1531189758, 1531203632, 1531182759,
+				1531195844, 1531202944, 1531210485, 1531178947},
+			wantNumberSessions: 1,
+		},
+	}
+	for _, tt := range tests {
+		require.Len(t, splitTimestampsIntoSessions(tt.timestamps), tt.wantNumberSessions)
+	}
+}
+
+func Test_getSessionCount(t *testing.T) {
+	g := newDestinationGraph(t)
+	tests := []struct {
+		tx            TransactionNode
+		sesssionCount int
+	}{
+		// node does not exist in graph -> no results
+		{
+			tx:            TransactionNode{id: 55555},
+			sesssionCount: 0,
+		},
+		{
+			tx:            TransactionNode{id: 1},
+			sesssionCount: 2,
+		},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.sesssionCount, getSessionCount(g, tt.tx))
+	}
+}
+
 // newDestinationGraph creates a new graph with the following destination transaction timestamps:
 // - 2020-01-01 10:00 - 11:00, 2020-01-02 15:00 - 17:00 - set 1
 // - 2020-01-01 08:00 - 09:00, 2020-01-02 13:00 - 16:00 - set 1
@@ -138,51 +207,60 @@ func TestSpendingFingerprint(t *testing.T) {
 	tests := []struct {
 		uid             string
 		wantFingerprint []string
+		wantNumSessions int
 		wantErr         bool
 	}{
 		{
 			uid:             "",
 			wantFingerprint: nil,
+			wantNumSessions: 0,
 			wantErr:         true,
 		},
 		{
 			uid:             ToHex(1),
 			wantFingerprint: []string{ToHex(2)},
+			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(2),
 			wantFingerprint: []string{ToHex(1)},
+			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(3),
 			wantFingerprint: []string{ToHex(4)},
+			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(4),
 			wantFingerprint: []string{ToHex(3)},
+			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(5),
 			wantFingerprint: []string{},
+			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		// transaction does not exist in graph
 		{
 			uid:             ToHex(100),
 			wantFingerprint: []string{},
+			wantNumSessions: 2,
 			wantErr:         true,
 		},
 	}
 	for _, tt := range tests {
-		fingerprints, err := SpendingFingerprint(g, tt.uid)
+		fingerprints, i, err := SpendingFingerprint(g, tt.uid)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
+			require.Equal(t, tt.wantNumSessions, i)
 			fingerprintUIDs := make([]string, len(fingerprints))
 			for j, f := range fingerprints {
 				fingerprintUIDs[j] = f.TransactionUID

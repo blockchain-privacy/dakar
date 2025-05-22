@@ -36,7 +36,7 @@ type FingerPrint struct {
 
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
 // and the number of mixing sessions of this transactions. Uses the Chamfer distance as a similarity measure.
-func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) {
+func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, error) {
 	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
 	// of the root transaction and the timestamp of the compared transaction
 	// 2 days = 60 * 60 * 24 * 2 = 172800 seconds
@@ -44,22 +44,22 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	rootNode := g.Node(nodeUID)
 	if rootNode == nil {
-		return nil, serror.FromStr(uid + " not in graph")
+		return nil, -1, serror.FromStr(uid + " not in graph")
 	}
 
 	rootTx, ok := rootNode.(TransactionNode)
 	if !ok || !constants.IsDestinationTransaction(rootTx.Type) {
-		return nil, serror.FromStr(uid + " is not a destination transaction")
+		return nil, -1, serror.FromStr(uid + " is not a destination transaction")
 	}
 
 	earliestInputTimestamp, err := getEarliestTimestamp(g, rootTx)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	const maxNumberOfScoreResults = 30
@@ -99,7 +99,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 		}
 	}
 
-	return fingerprints, err
+	return fingerprints, getSessionCount(g, rootTx), err
 }
 
 func getFloatTimestamps(g *ReversibleGraph, node TransactionNode) []float64 {
@@ -147,4 +147,60 @@ func chamferDistanceOneSided(arr1, arr2 []float64) float64 {
 	}
 
 	return totalDistance / float64(len(arr1))
+}
+
+// getSessionCount splits the input timestamps into groups and returns for each group its mean
+func getSessionCount(g *ReversibleGraph, tx TransactionNode) int {
+	rootInputs := g.From(tx.ID())
+	if rootInputs.Len() == 0 {
+		return 0
+	}
+
+	var timestamps []int64
+	for rootInputs.Next() {
+		node, ok := rootInputs.Node().(TransactionNode)
+		if !ok {
+			continue
+		}
+		timestamps = append(timestamps, node.TS.Unix())
+	}
+
+	return len(splitTimestampsIntoSessions(timestamps))
+}
+
+// splitTimestampsIntoSessions splits the given timestamps into groups
+// based on the duration between them. The groups are ordered increasing by time.
+func splitTimestampsIntoSessions(timestamps []int64) [][]int64 {
+	if len(timestamps) == 0 {
+		return nil
+	}
+
+	// sort timestamps
+	sort.Slice(timestamps, func(i, j int) bool {
+		return timestamps[i] < timestamps[j]
+	})
+
+	// number of seconds in 12 hours
+	const splitDuration = 60 * 60 * 12
+
+	var sessions [][]int64
+	var session []int64 //nolint:prealloc
+	for i, t := range timestamps {
+		session = append(session, t)
+
+		if i+1 == len(timestamps) {
+			break
+		}
+
+		if timestamps[i+1]-t > splitDuration {
+			sessions = append(sessions, session)
+			session = []int64{}
+		}
+	}
+
+	if len(session) > 0 {
+		sessions = append(sessions, session)
+	}
+
+	return sessions
 }
