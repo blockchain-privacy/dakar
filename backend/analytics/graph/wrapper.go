@@ -157,7 +157,7 @@ func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	return SpendingFingerprint(w.transactionGraph, uid)
+	return SpendingFingerprint(w.transactionGraph, uid, 30)
 }
 
 // LoadGraphs loads the transaction graph into the wrapper

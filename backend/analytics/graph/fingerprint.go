@@ -34,9 +34,10 @@ type FingerPrint struct {
 	SessionCount   int
 }
 
-// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
-// and the number of mixing sessions of this transactions. Uses the Chamfer distance as a similarity measure.
-func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, error) {
+// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern and the number
+// of mixing sessions of this transactions. Uses the Chamfer distance as a similarity measure.
+// Limits the number of results by maxResults
+func SpendingFingerprint(g *ReversibleGraph, uid string, maxResults int) ([]FingerPrint, int, error) {
 	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
 	// of the root transaction and the timestamp of the compared transaction
 	// 2 days = 60 * 60 * 24 * 2 = 172800 seconds
@@ -62,7 +63,6 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 		return nil, -1, err
 	}
 
-	const maxNumberOfScoreResults = 30
 	var fingerprints []FingerPrint
 	nodes := g.Nodes()
 	for nodes.Next() {
@@ -94,7 +94,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 		})
 
 		// remove the first element (which has the lowest score)
-		if len(fingerprints) > maxNumberOfScoreResults {
+		if len(fingerprints) > maxResults {
 			fingerprints = fingerprints[1:]
 		}
 	}

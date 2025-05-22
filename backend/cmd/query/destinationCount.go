@@ -57,7 +57,7 @@ func doDestinationCountAnalysis(ctx context.Context, dgraph external.Database, g
 			defer wg.Done()
 			for spender := range jobs {
 				for _, destination := range spender.Destinations {
-					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID)
+					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID, 20)
 					if err != nil {
 						warn(err)
 						return
@@ -125,7 +125,10 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 		"included destination transactions", includedDestinationCount,
 		"excluded because of cluster size", excludedBecauseOfClusterSizeCount)
 
-	var foundCount atomic.Int64
+	var foundCountTop30 atomic.Int64
+	var foundCountTop20 atomic.Int64
+	var foundCountTop10 atomic.Int64
+	var foundCountTop5 atomic.Int64
 
 	jobs := make(chan analytics.SpenderTransaction, len(spenders))
 
@@ -137,27 +140,82 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 			defer wg.Done()
 			for spender := range jobs {
 				for _, destination := range spender.Destinations {
-					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID)
+					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID, 30)
 					if err != nil {
 						warn(err)
 						return
 					}
 
-					// create map with all fingerprint
-					mapFingerprints := map[string]bool{}
-					for _, fingerprint := range fingerprints {
-						mapFingerprints[fingerprint.TransactionUID] = true
+					foundAny := false
+
+					// create map with all fingerprints
+					mapFingerprintsTop5 := map[string]bool{}
+					for _, fingerprint := range fingerprints[:5] {
+						mapFingerprintsTop5[fingerprint.TransactionUID] = true
 					}
 
 					// check if one of the fingerprints is one of the other destination transactions
 					if slices.ContainsFunc(spender.Destinations, func(transaction db.Transaction) bool {
-						return mapFingerprints[transaction.UID]
+						return mapFingerprintsTop5[transaction.UID]
 					}) {
 						// found matching fingerprint for one of the
 						// other destination transactions, therefore increase the count
-						foundCount.Add(1)
+						foundCountTop30.Add(1)
+						foundAny = true
+					}
+
+					// create map with all fingerprints
+					mapFingerprintsTop10 := map[string]bool{}
+					for _, fingerprint := range fingerprints[:10] {
+						mapFingerprintsTop10[fingerprint.TransactionUID] = true
+					}
+
+					// check if one of the fingerprints is one of the other destination transactions
+					if slices.ContainsFunc(spender.Destinations, func(transaction db.Transaction) bool {
+						return mapFingerprintsTop10[transaction.UID]
+					}) {
+						// found matching fingerprint for one of the
+						// other destination transactions, therefore increase the count
+						foundCountTop10.Add(1)
+						foundAny = true
+					}
+
+					// create map with all fingerprints
+					mapFingerprintsTop20 := map[string]bool{}
+					for _, fingerprint := range fingerprints[:20] {
+						mapFingerprintsTop20[fingerprint.TransactionUID] = true
+					}
+
+					// check if one of the fingerprints is one of the other destination transactions
+					if slices.ContainsFunc(spender.Destinations, func(transaction db.Transaction) bool {
+						return mapFingerprintsTop20[transaction.UID]
+					}) {
+						// found matching fingerprint for one of the
+						// other destination transactions, therefore increase the count
+						foundCountTop20.Add(1)
+						foundAny = true
+					}
+
+					// create map with all fingerprints
+					mapFingerprintsTop30 := map[string]bool{}
+					for _, fingerprint := range fingerprints {
+						mapFingerprintsTop30[fingerprint.TransactionUID] = true
+					}
+
+					// check if one of the fingerprints is one of the other destination transactions
+					if slices.ContainsFunc(spender.Destinations, func(transaction db.Transaction) bool {
+						return mapFingerprintsTop30[transaction.UID]
+					}) {
+						// found matching fingerprint for one of the
+						// other destination transactions, therefore increase the count
+						foundCountTop30.Add(1)
+						foundAny = true
+					}
+
+					if foundAny {
 						break
 					}
+
 				}
 			}
 		}(jobs)
@@ -172,8 +230,15 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 
 	info("fingerprint analysis",
 		"Spender count", len(spenders),
-		"Successful fingerprint count", foundCount.Load(),
-		"Percent", float64(foundCount.Load())/float64(len(spenders)))
+		"Successful fingerprint count top 30", foundCountTop30.Load(),
+		"Percent", float64(foundCountTop30.Load())/float64(len(spenders)),
+		"Successful fingerprint count top 20", foundCountTop20.Load(),
+		"Percent", float64(foundCountTop20.Load())/float64(len(spenders)),
+		"Successful fingerprint count top 10", foundCountTop10.Load(),
+		"Percent", float64(foundCountTop10.Load())/float64(len(spenders)),
+		"Successful fingerprint count top 5", foundCountTop5.Load(),
+		"Percent", float64(foundCountTop5.Load())/float64(len(spenders)),
+	)
 
 	writeSpendersToCSV(fileName, spenders)
 }

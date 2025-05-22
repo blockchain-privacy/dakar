@@ -255,7 +255,7 @@ func TestSpendingFingerprint(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		fingerprints, i, err := SpendingFingerprint(g, tt.uid)
+		fingerprints, i, err := SpendingFingerprint(g, tt.uid, 30)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
