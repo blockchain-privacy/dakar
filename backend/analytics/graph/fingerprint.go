@@ -81,11 +81,14 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 
 		dist := calcChamferDistance(g, rootTx, txNode)
 		// only consider average distances of less or equal than 24h
-		if dist > 24 {
+		if dist > 86400 {
 			continue
 		}
 
-		fingerprints = append(fingerprints, FingerPrint{TransactionUID: txNode.String(), Score: dist})
+		fingerprints = append(fingerprints, FingerPrint{
+			TransactionUID: txNode.String(),
+			Score:          dist,
+		})
 		sort.Slice(fingerprints, func(i, j int) bool {
 			return fingerprints[i].Score > fingerprints[j].Score
 		})
@@ -140,8 +143,7 @@ func chamferDistanceOneSided(arr1, arr2 []float64) float64 {
 				minDistance = distance
 			}
 		}
-
-		totalDistance += math.Tanh(minDistance/3600/2-2) + 1
+		totalDistance += minDistance
 	}
 
 	return totalDistance / float64(len(arr1))
