@@ -20,6 +20,7 @@
         :rules="[isValidQuery]"
         :loading="isLoading"
         type="input"
+        :append-inner-icon="mdiMagnify"
         @update:model-value="queueSearch"
         @click:append-inner="handleDirectSearch"
         @keydown.enter="handleDirectSearch"
@@ -92,6 +93,7 @@ import {useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import {mdiMagnify} from '@mdi/js';
 
 const localStore = useLocalStore();
 const {getSearchHistory} = storeToRefs(localStore);
