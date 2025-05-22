@@ -29,49 +29,44 @@
       >
         {{ errorMsg }}
       </v-alert>
-      <v-row class="mt-2">
-        <v-col>
-          <p
-            v-if="sessionCount !== -1"
-            class="text-caption"
+      <p
+        v-if="sessionCount !== -1"
+        class="text-caption"
+      >
+        Number of mixing time frames: {{ sessionCount.toLocaleString() }}
+      </p>
+      <v-table
+        class="mt-2"
+        density="compact"
+      >
+        <thead>
+          <tr>
+            <th>
+              Transaction
+            </th>
+            <th style="max-width: 0px">
+              Avg. Min. Distance (h)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in fingerprintScores"
+            :key="item.txhash"
           >
-            Number of mixing time frames: {{ sessionCount.toLocaleString() }}
-          </p>
-        </v-col>
-        <v-col>
-          <div class="d-flex align-center justify-space-between">
-            <div class="text-caption text-center">
-              More similar
-            </div>
-            <div class="gradient" />
-            <div class="text-caption text-center">
-              Less similar
-            </div>
-          </div>
-        </v-col>
-      </v-row>
-      <v-table class="mt-2">
-        <template #default>
-          <tbody>
-            <tr
-              v-for="item in fingerprintScores"
-              :key="item.txhash"
-            >
-              <td
-                :style="{background: scoreToColor(item.score),
-                         width: '20px', padding: '0px 0px 0px 0px'}"
-              />
-              <td class="transaction-hash">
-                <workspace-link
-                  :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
-                         params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
-                >
-                  {{ item.txhash }}
-                </workspace-link>
-              </td>
-            </tr>
-          </tbody>
-        </template>
+            <td class="transaction-hash">
+              <workspace-link
+                :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
+                       params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
+              >
+                {{ item.txhash }}
+              </workspace-link>
+            </td>
+            <td>
+              {{ (item.score / 3600).toFixed(2) }}
+            </td>
+          </tr>
+        </tbody>
       </v-table>
     </div>
     <div
@@ -107,29 +102,14 @@ const errorMsg = ref('');
 
 let oldTransaction = '';
 
-// Functions
-function scoreToColor(scaleNum) {
-	if (scaleNum <= 0.6) {
-		return '#E53935';
-	}
-
-	if (scaleNum <= 0.8) {
-		return '#EF5350';
-	}
-
-	if (scaleNum <= 1.1) {
-		return '#66BB6A';
-	}
-
-	return '#388E3C';
-}
-
+// Hooks
 onUpdated(() => {
 	searchForSimilarTransactions();
 });
 
 onMounted(() => searchForSimilarTransactions());
 
+// Functions
 async function searchForSimilarTransactions() {
 	if (props.transactionHash === '' || props.transactionHash === oldTransaction) {
 		return;
@@ -147,7 +127,7 @@ async function searchForSimilarTransactions() {
 
 		if (response.fingerprint_scores) {
 			fingerprintScores.value = response.fingerprint_scores
-				.sort((item1, item2) => item2.score - item1.score);
+				.sort((item1, item2) => item1.score - item2.score);
 		}
 
 		emit('receivedTransactions', fingerprintScores.value.map(d => d.txhash));
@@ -173,12 +153,5 @@ async function searchForSimilarTransactions() {
   text-overflow: ellipsis;
   max-width: 200px;
   white-space: nowrap;
-}
-
-.gradient {
-  width: 160px;
-  height: 10px;
-  margin: 0 5px 0 5px;
-  background: linear-gradient(to left, #E53935 0%, #EF5350 33%, #66BB6A 66%, #388E3C 100%);
 }
 </style>
