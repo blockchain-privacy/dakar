@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/btcsuite/btcd v0.24.2
-	github.com/dgraph-io/dgo/v250 v250.0.0-preview1
+	github.com/dgraph-io/dgo/v250 v250.0.0-preview4
 	github.com/goccy/go-yaml v1.18.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/qrest/gomisc v0.0.22
