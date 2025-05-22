@@ -7,7 +7,7 @@ default:
 
 variables:
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
-  DGRAPH_VERSION: v25.0.0-preview2
+  DGRAPH_VERSION: v25.0.0-preview4
   SWAGGO_VERSION: 1.16.6
   BITCOIND_VERSION: v28.0
   OPEN_API_GENERATOR_VERSION: v7.14.0
