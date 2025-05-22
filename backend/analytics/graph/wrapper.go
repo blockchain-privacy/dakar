@@ -149,9 +149,9 @@ func (w *Wrapper) PartitionNodesByDirectConnections(nodes []string) ([][]string,
 
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
 // and the number of mixing sessions of this transactions
-func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
+func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, 0, serror.FromStr("transaction graph is not loaded yet")
+		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
 
 	w.transactionGraphMutex.Lock()

@@ -108,7 +108,6 @@ type fingerprintScore struct {
 
 type spendingFingerprintReply struct {
 	Msg               string             `json:"msg,omitempty"`
-	SessionCount      int                `json:"session_count"`
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores"`
 }
 

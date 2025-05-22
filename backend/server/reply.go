@@ -1324,7 +1324,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 		return
 	}
 
-	similarTransactions, sessionCount, err := graphWrapper.SpendingFingerprint(uid)
+	similarTransactions, err := graphWrapper.SpendingFingerprint(uid)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1367,8 +1367,6 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 		fingerprint.Txhash = tx.Hash
 		reply.FingerprintScores = append(reply.FingerprintScores, fingerprint)
 	}
-
-	reply.SessionCount = sessionCount
 
 	return
 }

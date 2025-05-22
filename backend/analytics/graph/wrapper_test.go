@@ -206,7 +206,7 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
-	_, _, err := w.SpendingFingerprint("")
+	_, err := w.SpendingFingerprint("")
 	require.Error(t, err)
 
 	w.transactionGraph = newDestinationGraph(t)
@@ -214,60 +214,51 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 	tests := []struct {
 		uid             string
 		wantFingerprint []string
-		wantNumSessions int
 		wantErr         bool
 	}{
 		{
 			uid:             "",
 			wantFingerprint: nil,
-			wantNumSessions: 0,
 			wantErr:         true,
 		},
 		{
 			uid:             ToHex(1),
 			wantFingerprint: []string{ToHex(2)},
-			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(2),
 			wantFingerprint: []string{ToHex(1)},
-			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(3),
 			wantFingerprint: []string{ToHex(4)},
-			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(4),
 			wantFingerprint: []string{ToHex(3)},
-			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		{
 			uid:             ToHex(5),
 			wantFingerprint: []string{},
-			wantNumSessions: 2,
 			wantErr:         false,
 		},
 		// transaction does not exist in graph
 		{
 			uid:             ToHex(100),
 			wantFingerprint: []string{},
-			wantNumSessions: 2,
 			wantErr:         true,
 		},
 	}
 	for _, tt := range tests {
-		fingerprints, i, err := w.SpendingFingerprint(tt.uid)
+		fingerprints, err := w.SpendingFingerprint(tt.uid)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.Equal(t, tt.wantNumSessions, i)
 			fingerprintUIDs := make([]string, len(fingerprints))
 			for j, f := range fingerprints {
 				fingerprintUIDs[j] = f.TransactionUID
@@ -285,13 +276,12 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 	type response struct {
 		err          error
 		fingerprints []FingerPrint
-		numSessions  int
 	}
 	responses := make(chan response, numGoroutines)
 	for range numGoroutines {
 		go func() {
-			fingerprints, sessionCount, err := w.SpendingFingerprint(tt.uid)
-			responses <- response{err: err, fingerprints: fingerprints, numSessions: sessionCount}
+			fingerprints, err := w.SpendingFingerprint(tt.uid)
+			responses <- response{err: err, fingerprints: fingerprints}
 		}()
 	}
 
@@ -301,7 +291,6 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.Equal(t, tt.wantNumSessions, r.numSessions)
 			fingerprintUIDs := make([]string, len(r.fingerprints))
 			for j, f := range r.fingerprints {
 				fingerprintUIDs[j] = f.TransactionUID
