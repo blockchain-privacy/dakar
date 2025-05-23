@@ -128,7 +128,6 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 	var foundCountTop30 atomic.Int64
 	var foundCountTop20 atomic.Int64
 	var foundCountTop10 atomic.Int64
-	var foundCountTop5 atomic.Int64
 
 	jobs := make(chan analytics.SpenderTransaction, len(spenders))
 
@@ -147,24 +146,6 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 					}
 
 					foundAny := false
-
-					if len(fingerprints) >= 5 {
-						// create map with all fingerprints
-						mapFingerprintsTop5 := map[string]bool{}
-						for _, fingerprint := range fingerprints[:5] {
-							mapFingerprintsTop5[fingerprint.TransactionUID] = true
-						}
-
-						// check if one of the fingerprints is one of the other destination transactions
-						if slices.ContainsFunc(spender.Destinations, func(transaction db.Transaction) bool {
-							return mapFingerprintsTop5[transaction.UID]
-						}) {
-							// found matching fingerprint for one of the
-							// other destination transactions, therefore increase the count
-							foundCountTop30.Add(1)
-							foundAny = true
-						}
-					}
 
 					if len(fingerprints) >= 10 {
 						// create map with all fingerprints
@@ -241,8 +222,6 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 		"Percent", float64(foundCountTop20.Load())/float64(len(spenders)),
 		"Successful fingerprint count top 10", foundCountTop10.Load(),
 		"Percent", float64(foundCountTop10.Load())/float64(len(spenders)),
-		"Successful fingerprint count top 5", foundCountTop5.Load(),
-		"Percent", float64(foundCountTop5.Load())/float64(len(spenders)),
 	)
 
 	writeSpendersToCSV(fileName, spenders)
