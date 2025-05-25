@@ -99,7 +99,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string, maxResults int) ([]Fing
 		}
 	}
 
-	return fingerprints, getSessionCount(g, rootTx), err
+	return fingerprints, getSessionCount(g, rootTx.ID()), err
 }
 
 func getFloatTimestamps(g *ReversibleGraph, node TransactionNode) []float64 {
@@ -149,9 +149,9 @@ func chamferDistanceOneSided(arr1, arr2 []float64) float64 {
 	return totalDistance / float64(len(arr1))
 }
 
-// getSessionCount splits the input timestamps into groups and returns for each group its mean
-func getSessionCount(g *ReversibleGraph, tx TransactionNode) int {
-	rootInputs := g.From(tx.ID())
+// getSessionCount returns the number of mixing session the node with the provided ID has
+func getSessionCount(g *ReversibleGraph, id int64) int {
+	rootInputs := g.From(id)
 	if rootInputs.Len() == 0 {
 		return 0
 	}
