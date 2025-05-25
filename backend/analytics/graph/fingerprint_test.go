@@ -73,7 +73,7 @@ func Test_getSessionCount(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.Equal(t, tt.sesssionCount, GetSessionCount(g, tt.txID))
+		require.Equal(t, tt.sesssionCount, getSessionCount(g, tt.txID))
 	}
 }
 

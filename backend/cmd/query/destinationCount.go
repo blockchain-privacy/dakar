@@ -120,40 +120,10 @@ func doDestinationCountAnalysis2(ctx context.Context, dgraph external.Database, 
 		return
 	}
 
-	removedTransactions := map[string]bool{}
-	x := 0
-	for _, cluster := range spenders {
-		y := 0
-		for _, d := range cluster.Destinations {
-			nodeID, err := graph.ToInteger(d.UID)
-			if err != nil {
-				warn(err)
-				return
-			}
-
-			if graph.GetSessionCount(g, nodeID) >= 2 {
-				cluster.Destinations[y] = d
-				y++
-			} else {
-				removedTransactions[d.UID] = true
-			}
-		}
-
-		cluster.Destinations = cluster.Destinations[:y]
-
-		if len(cluster.Destinations) > 1 {
-			spenders[x] = cluster
-			x++
-		}
-	}
-
-	spenders = spenders[:x]
-
 	info("destination counts",
 		"global destination count", globalDestinationCount,
-		"included destination transactions", includedDestinationCount-len(removedTransactions),
-		"excluded because of cluster size", excludedBecauseOfClusterSizeCount,
-		"excluded because of session size", len(removedTransactions))
+		"included destination transactions", includedDestinationCount,
+		"excluded because of cluster size", excludedBecauseOfClusterSizeCount)
 
 	var foundCountTop30 atomic.Int64
 	var foundCountTop20 atomic.Int64
