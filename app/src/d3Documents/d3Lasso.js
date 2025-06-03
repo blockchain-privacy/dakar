@@ -62,7 +62,12 @@ export default function lasso() {
 	let hoverSelect = true;
 	let dragFilter = null;
 	let targetArea;
-	const on = {start() {}, draw() {}, end() {}};
+	const on = {
+		start() {
+		}, draw() {
+		}, end() {
+		},
+	};
 
 	// Function to execute on call
 	function lasso(_this) {
