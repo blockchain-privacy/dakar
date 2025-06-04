@@ -79,7 +79,10 @@ func SpendingFingerprint(g *ReversibleGraph, uid string, maxResults int) ([]Fing
 			continue
 		}
 
-		dist := calcChamferDistance(g, rootTx, txNode)
+		dist, err := calcChamferDistance(g, rootTx, txNode)
+		if err != nil {
+			return nil, 0, err
+		}
 		// only consider average distances of less or equal than 24h
 		if dist > 86400 {
 			continue
@@ -121,7 +124,7 @@ func getFloatTimestamps(g *ReversibleGraph, node TransactionNode) []float64 {
 	return timestamps
 }
 
-func calcChamferDistance(g *ReversibleGraph, node1 TransactionNode, node2 TransactionNode) float64 {
+func calcChamferDistance(g *ReversibleGraph, node1 TransactionNode, node2 TransactionNode) (float64, error) {
 	node1Timestamps := getFloatTimestamps(g, node1)
 	node2Timestamps := getFloatTimestamps(g, node2)
 
@@ -129,14 +132,15 @@ func calcChamferDistance(g *ReversibleGraph, node1 TransactionNode, node2 Transa
 }
 
 // chamferDistanceOneSided calculates the one sided Chamfer distance between two 1D arrays.
-func chamferDistanceOneSided(arr1, arr2 []float64) float64 {
+func chamferDistanceOneSided(arr1, arr2 []float64) (float64, error) {
 	if len(arr1) == 0 || len(arr2) == 0 {
-		return math.Inf(1) // Return infinity if either array is empty
+		return 0, serror.FromStr("empty timestamp array")
 	}
 
 	totalDistance := 0.0
 	for _, a1 := range arr1 {
-		minDistance := math.Inf(1) // Start with infinity
+		// start with first distance
+		minDistance := math.Abs(a1 - arr2[0])
 		for _, a2 := range arr2 {
 			distance := math.Abs(a1 - a2)
 			if distance < minDistance {
@@ -146,7 +150,7 @@ func chamferDistanceOneSided(arr1, arr2 []float64) float64 {
 		totalDistance += minDistance
 	}
 
-	return totalDistance / float64(len(arr1))
+	return totalDistance / float64(len(arr1)), nil
 }
 
 // getSessionCount returns the number of mixing session the node with the provided ID has
