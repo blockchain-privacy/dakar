@@ -313,7 +313,6 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 		}
 	}
 }
-
 func TestWrapper_LoadGraphs(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 

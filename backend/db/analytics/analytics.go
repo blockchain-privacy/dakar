@@ -697,10 +697,6 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 		destinations as var(func: eq(Transaction.type,"` + transactionType + `"))@cascade{
 			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
 		}
-
-		c(func: uid(destinations)){
-			count:count(uid)
-		}
 		
 		q(func: uid(destinations)){
 			uid
@@ -721,9 +717,6 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 		return
 	}
 	var r struct {
-		DestinationCount []struct {
-			Count int `json:"count,omitempty"`
-		} `json:"c,omitempty"`
 		Transactions []struct {
 			UID             string `json:"uid,omitempty"`
 			TransactionHash string `json:"txhash,omitempty"`
@@ -781,7 +774,7 @@ func GetDestinationTransactionClusterSpenders(ctx context.Context, c external.Da
 		})
 	}
 
-	globalDestinationCount = r.DestinationCount[0].Count
+	globalDestinationCount = len(r.Transactions)
 	includedDestinationCount = len(includedTransactions)
 	return
 }

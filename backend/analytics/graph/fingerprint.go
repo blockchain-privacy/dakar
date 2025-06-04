@@ -7,31 +7,165 @@ import (
 	"sort"
 )
 
-// getSessionsFromTransaction splits the input timestamps into groups and returns for each group its mean
-func getSessionsFromTransaction(g *ReversibleGraph, tx TransactionNode) []int64 {
+func getEarliestTimestamp(g *ReversibleGraph, tx TransactionNode) (int64, error) {
 	rootInputs := g.From(tx.ID())
 	if rootInputs.Len() == 0 {
-		return nil
+		return 0, serror.FromStrWithContext("transaction has not timestamps", "tx", tx)
 	}
 
-	timestampMap := map[int64]bool{}
-
+	var lowestTimestamp int64
 	for rootInputs.Next() {
 		node, ok := rootInputs.Node().(TransactionNode)
 		if !ok {
 			continue
 		}
-		timestampMap[node.TS.Unix()] = true
+
+		ts := node.TS.Unix()
+		if lowestTimestamp == 0 || ts < lowestTimestamp {
+			lowestTimestamp = ts
+		}
+	}
+	return lowestTimestamp, nil
+}
+
+type FingerPrint struct {
+	TransactionUID string
+	Score          float64
+	SessionCount   int
+}
+
+// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern and the number
+// of mixing sessions of this transactions. Uses the Chamfer distance as a similarity measure.
+// Limits the number of results by maxResults
+func SpendingFingerprint(g *ReversibleGraph, uid string, maxResults int) ([]FingerPrint, int, error) {
+	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
+	// of the root transaction and the timestamp of the compared transaction
+	// 2 days = 60 * 60 * 24 * 2 = 172800 seconds
+	const maximumDistance = 172800
+
+	nodeUID, err := ToInteger(uid)
+	if err != nil {
+		return nil, -1, err
 	}
 
-	timestamps := make([]int64, len(timestampMap))
-	i := 0
-	for k := range timestampMap {
-		timestamps[i] = k
-		i++
+	rootNode := g.Node(nodeUID)
+	if rootNode == nil {
+		return nil, -1, serror.FromStr(uid + " not in graph")
 	}
 
-	return getSessionMeans(splitTimestampsIntoSessions(timestamps))
+	rootTx, ok := rootNode.(TransactionNode)
+	if !ok || !constants.IsDestinationTransaction(rootTx.Type) {
+		return nil, -1, serror.FromStr(uid + " is not a destination transaction")
+	}
+
+	earliestInputTimestamp, err := getEarliestTimestamp(g, rootTx)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	var fingerprints []FingerPrint
+	nodes := g.Nodes()
+	for nodes.Next() {
+		node := nodes.Node()
+
+		// do not compare with itself
+		if node.ID() == nodeUID {
+			continue
+		}
+
+		txNode, ok := node.(TransactionNode)
+		// filter for exact transaction type, so we don't match transactions from different coinjoin types
+		if !ok || txNode.Type != rootTx.Type || earliestInputTimestamp-txNode.TS.Unix() > maximumDistance {
+			continue
+		}
+
+		dist := calcChamferDistance(g, rootTx, txNode)
+		// only consider average distances of less or equal than 24h
+		if dist > 86400 {
+			continue
+		}
+
+		fingerprints = append(fingerprints, FingerPrint{
+			TransactionUID: txNode.String(),
+			Score:          dist,
+		})
+		sort.Slice(fingerprints, func(i, j int) bool {
+			return fingerprints[i].Score > fingerprints[j].Score
+		})
+
+		// remove the first element (which has the lowest score)
+		if len(fingerprints) > maxResults {
+			fingerprints = fingerprints[1:]
+		}
+	}
+
+	return fingerprints, getSessionCount(g, rootTx.ID()), err
+}
+
+func getFloatTimestamps(g *ReversibleGraph, node TransactionNode) []float64 {
+	rootInputs := g.From(node.ID())
+	if rootInputs.Len() == 0 {
+		return nil
+	}
+
+	var timestamps []float64
+	for rootInputs.Next() {
+		node, ok := rootInputs.Node().(TransactionNode)
+		if !ok {
+			continue
+		}
+
+		timestamps = append(timestamps, float64(node.TS.Unix()))
+	}
+
+	return timestamps
+}
+
+func calcChamferDistance(g *ReversibleGraph, node1 TransactionNode, node2 TransactionNode) float64 {
+	node1Timestamps := getFloatTimestamps(g, node1)
+	node2Timestamps := getFloatTimestamps(g, node2)
+
+	return chamferDistanceOneSided(node1Timestamps, node2Timestamps)
+}
+
+// chamferDistanceOneSided calculates the one sided Chamfer distance between two 1D arrays.
+func chamferDistanceOneSided(arr1, arr2 []float64) float64 {
+	if len(arr1) == 0 || len(arr2) == 0 {
+		return math.Inf(1) // Return infinity if either array is empty
+	}
+
+	totalDistance := 0.0
+	for _, a1 := range arr1 {
+		minDistance := math.Inf(1) // Start with infinity
+		for _, a2 := range arr2 {
+			distance := math.Abs(a1 - a2)
+			if distance < minDistance {
+				minDistance = distance
+			}
+		}
+		totalDistance += minDistance
+	}
+
+	return totalDistance / float64(len(arr1))
+}
+
+// getSessionCount returns the number of mixing session the node with the provided ID has
+func getSessionCount(g *ReversibleGraph, id int64) int {
+	rootInputs := g.From(id)
+	if rootInputs.Len() == 0 {
+		return 0
+	}
+
+	var timestamps []int64
+	for rootInputs.Next() {
+		node, ok := rootInputs.Node().(TransactionNode)
+		if !ok {
+			continue
+		}
+		timestamps = append(timestamps, node.TS.Unix())
+	}
+
+	return len(splitTimestampsIntoSessions(timestamps))
 }
 
 // splitTimestampsIntoSessions splits the given timestamps into groups
@@ -69,147 +203,4 @@ func splitTimestampsIntoSessions(timestamps []int64) [][]int64 {
 	}
 
 	return sessions
-}
-
-// getSessionMeans returns for each session the mean
-func getSessionMeans(sessions [][]int64) []int64 {
-	means := make([]int64, len(sessions))
-	for i, session := range sessions {
-		var sessionMean int64
-
-		for _, timestamp := range session {
-			sessionMean += timestamp
-		}
-		// don't care about float cutoff, 1 second more or less does not matter
-		means[i] = sessionMean / int64(len(session))
-	}
-	return means
-}
-
-// getShortestDistances returns all distances for each closest sessions pair
-func getShortestDistances(sessionMeans1 []int64, sessionMeans2 []int64) []int64 {
-	smallestDistances := make([]int64, len(sessionMeans1))
-
-	// for each mean in sessionsMeans1 find the mean in sessionMeans2 which has the shortest distance
-	for i, mean1 := range sessionMeans1 {
-		var smallestDistance = int64(-1)
-
-		for _, mean2 := range sessionMeans2 {
-			distance := mean1 - mean2
-			if distance < 0 {
-				distance *= -1
-			}
-
-			if smallestDistance == int64(-1) || distance < smallestDistance {
-				smallestDistance = distance
-			}
-		}
-		smallestDistances[i] = smallestDistance
-	}
-
-	return smallestDistances
-}
-
-// scoreMeans calculates the score based on the distances between the means
-func scoreMeans(rootMeans []int64, otherMeans []int64) (float64, error) {
-	distances := getShortestDistances(rootMeans, otherMeans)
-	if len(distances) == 0 {
-		return -1, serror.FromStr("no distances found")
-	}
-
-	var score float64
-
-	for _, d := range distances {
-		// seconds to hours
-		distance := float64(d) / 60 / 60
-		if distance == 0 {
-			distance = 0.000001
-		}
-
-		score += 1 / (math.Pow(distance, float64(1)/float64(4)) + 0.01*distance*distance*distance)
-	}
-
-	return score, nil
-}
-
-type FingerPrint struct {
-	TransactionUID string
-	Score          float64
-	SessionCount   int
-}
-
-// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
-// and the number of mixing sessions of this transactions
-func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, error) {
-	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
-	// of the root transaction and the timestamp of the compared transaction
-	// 2 days = 60 * 60 * 24 * 2 = 172800 seconds
-	const maximumDistance = 172800
-
-	nodeUID, err := ToInteger(uid)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	rootNode := g.Node(nodeUID)
-	if rootNode == nil {
-		return nil, 0, serror.FromStr(uid + " not in graph")
-	}
-
-	rootTx, ok := rootNode.(TransactionNode)
-	if !ok || !constants.IsDestinationTransaction(rootTx.Type) {
-		return nil, 0, serror.FromStr(uid + " is not a destination transaction")
-	}
-
-	rootMeans := getSessionsFromTransaction(g, rootTx)
-	if len(rootMeans) == 0 {
-		return nil, 0, serror.FromStr(uid + " has no session means")
-	}
-	earliestInputTimestamp := rootMeans[0]
-	numSessions := len(rootMeans)
-	numSessionsFloat := float64(numSessions)
-	const maxNumberOfScoreResults = 30
-	var fingerprints []FingerPrint
-	nodes := g.Nodes()
-	for nodes.Next() {
-		node := nodes.Node()
-
-		// do not compare with itself
-		if node.ID() == nodeUID {
-			continue
-		}
-
-		txNode, ok := node.(TransactionNode)
-		// filter for exact transaction type, so we don't match transactions from different coinjoin types
-		if !ok || txNode.Type != rootTx.Type || earliestInputTimestamp-txNode.TS.Unix() > maximumDistance {
-			continue
-		}
-
-		txMeans := getSessionsFromTransaction(g, txNode)
-		if len(txMeans) == 0 {
-			continue
-		}
-
-		// calculate score and check if score is high enough
-		score, err := scoreMeans(rootMeans, txMeans)
-		if err != nil || score < 0.7 || score/numSessionsFloat < 0.5 {
-			continue
-		}
-
-		fingerprints = append(fingerprints, FingerPrint{
-			TransactionUID: txNode.String(),
-			Score:          score / numSessionsFloat,
-			SessionCount:   numSessions,
-		})
-		sort.Slice(fingerprints, func(i, j int) bool {
-			return fingerprints[i].Score < fingerprints[j].Score
-		})
-
-		// remove the first element (which has the lowest score)
-		if len(fingerprints) > maxNumberOfScoreResults {
-			fingerprints = fingerprints[1:]
-		}
-	}
-
-	return fingerprints, numSessions, err
 }

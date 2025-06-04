@@ -151,13 +151,13 @@ func (w *Wrapper) PartitionNodesByDirectConnections(nodes []string) ([][]string,
 // and the number of mixing sessions of this transactions
 func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, 0, serror.FromStr("transaction graph is not loaded yet")
+		return nil, -1, serror.FromStr("transaction graph is not loaded yet")
 	}
 
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	return SpendingFingerprint(w.transactionGraph, uid)
+	return SpendingFingerprint(w.transactionGraph, uid, 30)
 }
 
 // LoadGraphs loads the transaction graph into the wrapper
