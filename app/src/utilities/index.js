@@ -6,7 +6,7 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
-	DENOMINATIONS_WASABI2,
+	DENOMINATIONS_WASABI2, PRIVACY_TYPE_WHIRLPOOL_DESTINATION,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -174,7 +174,8 @@ export function getClusterTypeLabel(clusterType) {
 
 // Returns true if the provided transaction type is destination
 export function isDestination(type) {
-	return type === PRIVACY_TYPE_DESTINATION || type === PRIVACY_TYPE_WASABI_2_DESTINATION;
+	return type === PRIVACY_TYPE_DESTINATION || type === PRIVACY_TYPE_WASABI_2_DESTINATION
+		|| type === PRIVACY_TYPE_WHIRLPOOL_DESTINATION;
 }
 
 // Returns true if the provided argument is a function
