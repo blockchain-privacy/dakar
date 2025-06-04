@@ -50,16 +50,10 @@ type StatsModule struct {
 	ExcludeTransactionType string `yaml:"excludeTransactionType"`
 }
 
-type ExportReverseLookupModule struct {
-	Active            bool   `yaml:"active"`
-	LookBackTimeHours int    `yaml:"lookBackTimeHours"`
-	NodeID            string `yaml:"nodeID"`
-}
-
 type TimestampAnalyticsModule struct {
-	ExportDestinationTransactions bool                      `yaml:"exportDestinationTransactions"`
-	ExportMixingTransactions      bool                      `yaml:"exportMixingTransactions"`
-	ExportReverseLookup           ExportReverseLookupModule `yaml:"exportReverseLookup"`
+	Active          bool   `yaml:"active"`
+	Filename        string `yaml:"filename"`
+	TransactionType string `yaml:"transactionType"`
 }
 
 type OriginGapModule struct {
@@ -205,9 +199,7 @@ func main() {
 
 	var g *graph.ReversibleGraph
 
-	if cfg.TimestampAnalytics.ExportMixingTransactions ||
-		cfg.TimestampAnalytics.ExportDestinationTransactions ||
-		cfg.TimestampAnalytics.ExportReverseLookup.Active ||
+	if cfg.TimestampAnalytics.Active ||
 		cfg.ExclusionSimulations.Active ||
 		cfg.OriginGap.Active ||
 		cfg.DestinationCount.Active ||
@@ -256,18 +248,8 @@ func main() {
 		}
 	}
 
-	if cfg.TimestampAnalytics.ExportDestinationTransactions {
-		doDestinationTimestampAnalysis(g)
-	}
-
-	if cfg.TimestampAnalytics.ExportMixingTransactions {
-		exportMixingTimestamps(g, true)
-	}
-
-	if cfg.TimestampAnalytics.ExportReverseLookup.Active {
-		exportReverseLookup(g, cfg.TimestampAnalytics.ExportReverseLookup.NodeID,
-			cfg.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours,
-			nil, false, false)
+	if cfg.TimestampAnalytics.Active {
+		doDestinationTimestampAnalysis(g, cfg.TimestampAnalytics.TransactionType, cfg.TimestampAnalytics.Filename)
 	}
 
 	if cfg.ExclusionSimulations.Active {
