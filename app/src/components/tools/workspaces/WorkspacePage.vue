@@ -310,11 +310,13 @@ async function refreshWorkspaceList() {
 			continue;
 		}
 
-		workspaces.push(...response.value.workspaces.map(w => {
-			w.mode = authPerMode.value[index].mode;
-			w.modTimeUnix = new Date(w.ts).getTime();
-			return w;
-		}));
+		if (response.value?.workspaces) {
+			workspaces.push(...response.value.workspaces.map(w => {
+				w.mode = authPerMode.value[index].mode;
+				w.modTimeUnix = new Date(w.ts).getTime();
+				return w;
+			}));
+		}
 	}
 
 	workspaceList.value = workspaces;
