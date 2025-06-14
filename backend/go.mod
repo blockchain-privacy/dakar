@@ -7,7 +7,7 @@ require (
 	github.com/dgraph-io/dgo/v240 v240.2.0
 	github.com/goccy/go-yaml v1.18.0
 	github.com/prometheus/client_golang v1.22.0
-	github.com/qrest/gomisc v0.0.21
+	github.com/qrest/gomisc v0.0.22
 	github.com/stretchr/testify v1.10.0
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/grpc v1.73.0
