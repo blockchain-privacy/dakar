@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -908,7 +909,8 @@ func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Data
 
 	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
 	if err != nil {
-		if isDeadlineExceeded(err) {
+		// no type or var available for edge limit error, so we can only do a string comparision
+		if isDeadlineExceeded(err) || strings.Contains(err.Error(), "Exceeded query edge limit") {
 			return nil, nil
 		}
 
