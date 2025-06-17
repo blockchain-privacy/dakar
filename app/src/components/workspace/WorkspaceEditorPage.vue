@@ -1122,9 +1122,9 @@ async function doAutoSave() {
 		});
 	} catch (e) {
 		setErrorMessage(e);
+	} finally {
+		isAutoSaving.value = false;
 	}
-
-	isAutoSaving.value = false;
 }
 
 async function whenMounted() {
