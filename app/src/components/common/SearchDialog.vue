@@ -4,7 +4,7 @@
     max-width="600"
   >
     <v-card
-      title="Add entities"
+      title="Add Entities"
       :prepend-icon="mdiPlus"
     >
       <v-card-text>
