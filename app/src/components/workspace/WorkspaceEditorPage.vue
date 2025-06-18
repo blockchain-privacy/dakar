@@ -649,13 +649,13 @@ async function addMultipleNodes(nodes) {
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
 		} else if (response.duplicateNodeUID) {
-			let defaultText = 'Node already in workspace';
+			let defaultText = 'Node is already in the workspace';
 			const n = nodeGraph.getNode(response.duplicateNodeUID);
 			if (n !== undefined) {
 				n.showMarker = true;
 				nodeGraph.addNode(n);
 				if (n.nodeDisplayTitle && n.type) {
-					defaultText = `${capitalize(n.type)} ${n.nodeDisplayTitle} already in workspace`;
+					defaultText = `${capitalize(n.type)} ${n.nodeDisplayTitle} is already in the workspace`;
 				}
 
 				nodeGraph.centerOnNode(n);
