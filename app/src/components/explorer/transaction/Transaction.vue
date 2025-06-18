@@ -132,7 +132,7 @@
                 <p class="text-subtitle-1 text-center">
                   Input Timeline
                 </p>
-                <svg :id="`transaction_inputs_canvas_${tx.txhash}`" />
+                <svg :id="`transaction_inputs_canvas_${tx.txhash}_${componentID}`" />
               </div>
             </div>
             <div style="flex: 1 1 500px">
@@ -149,7 +149,7 @@
                 <p class="text-subtitle-1 text-center">
                   Output Timeline
                 </p>
-                <svg :id="`transaction_outputs_canvas_${tx.txhash}`" />
+                <svg :id="`transaction_outputs_canvas_${tx.txhash}_${componentID}`" />
               </div>
             </div>
           </div>
@@ -323,7 +323,8 @@ import {
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef, isRef, onUpdated, onMounted, watch, nextTick, useTemplateRef, onUnmounted,
+	computed, isProxy, ref, toRaw, toRef, isRef, onUpdated, onMounted,
+	watch, nextTick, useTemplateRef, onUnmounted, useId,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
@@ -351,7 +352,7 @@ const props = defineProps({
 	highlightTransaction: {type: String, required: false, default: ''},
 	filterHighlightedOutputs: {type: Boolean, required: false},
 });
-
+const componentID = useId();
 const route = useRoute();
 const {highlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 
@@ -469,7 +470,7 @@ function updateInputGraph() {
 		return;
 	}
 
-	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}`, 600, 150);
+	svgInputGraph = new BarChart(`transaction_inputs_canvas_${props.tx.txhash}_${componentID}`, 600, 150);
 	svgInputGraph.drawStacked(props.tx.inputs, colorMap);
 	enoughDataForInputGraph.value = !svgInputGraph.empty;
 }
@@ -480,7 +481,7 @@ function updateOutputGraph() {
 		return;
 	}
 
-	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}`, 600, 150);
+	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}_${componentID}`, 600, 150);
 	svgOutputGraph.drawStacked(props.tx.outputs, colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
 }
