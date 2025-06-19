@@ -1,7 +1,7 @@
 import {isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
-import {zoom} from 'd3-zoom';
+import {zoom, zoomTransform} from 'd3-zoom';
 import {forceCollide, forceLink, forceSimulation} from 'd3-force';
 import {abbreviateNumber, reduceX, reduceY} from '@/d3Documents/util';
 import {mdiExclamationThick} from '@mdi/js';
@@ -591,31 +591,16 @@ export default class NodeGraph {
 		}
 	}
 
-	getCenterOfNodes() {
-		let xMin;
-		let xMax;
-		let yMin;
-		let yMax;
+	// Returns the coordinates of the current center of the visible SVG area
+	getCenterOfView() {
+		const svgNode = this.#rootSvg.node();
+		const bbox = svgNode.getBoundingClientRect();
+		const transform = zoomTransform(svgNode);
 
-		this.#filteredNodeMap.forEach(d => {
-			if (d.x < xMin || xMin === undefined) {
-				xMin = d.x;
-			}
-
-			if (d.x > xMax || xMax === undefined) {
-				xMax = d.x;
-			}
-
-			if (d.y < yMin || yMin === undefined) {
-				yMin = d.y;
-			}
-
-			if (d.y > yMax || yMax === undefined) {
-				yMax = d.y;
-			}
-		});
-
-		return {x: xMin + ((xMax - xMin) / 2), y: yMin + ((yMax - yMin) / 2)};
+		return {
+			x: ((bbox.width / 2) - transform.x) / transform.k,
+			y: ((bbox.height / 2) - transform.y) / transform.k,
+		};
 	}
 
 	// Adds the given node. If a node with the
@@ -634,7 +619,7 @@ export default class NodeGraph {
 			node.x = mapNode.x;
 			node.y = mapNode.y;
 		} else if (node.x === undefined) {
-			const centerPosition = this.getCenterOfNodes();
+			const centerPosition = this.getCenterOfView();
 			if (centerPosition.x !== undefined) {
 				node.x = centerPosition.x;
 				node.y = centerPosition.y;
