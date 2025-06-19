@@ -5,7 +5,6 @@ import xo from 'eslint-config-xo';
 
 // Since v0.47 xo sets the list of allowed files and does not include .vue, so we have to inject it ourselves
 xo[0].files.push('**/*.vue');
-
 export default [
 	...pluginVue.configs['flat/base'],
 	...pluginVue.configs['flat/recommended'],
@@ -26,6 +25,7 @@ export default [
 			globals: {
 				...globals.browser,
 			},
+			ecmaVersion: 2025,
 		},
 		linterOptions: {
 			reportUnusedInlineConfigs: 'error',
