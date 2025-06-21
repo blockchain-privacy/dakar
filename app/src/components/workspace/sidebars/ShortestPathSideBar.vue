@@ -5,6 +5,7 @@
     :icon="mdiChartTimelineVariant"
     max-width="648px"
     title-one-line
+    disable-full-screen
   >
     <template #actions />
     <template #body>

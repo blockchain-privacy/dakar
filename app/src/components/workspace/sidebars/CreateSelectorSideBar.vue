@@ -5,6 +5,7 @@
     :icon="icon"
     max-width="330px"
     title-one-line
+    disable-full-screen
   >
     <template #body>
       <v-form

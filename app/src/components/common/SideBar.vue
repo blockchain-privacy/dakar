@@ -4,7 +4,7 @@
       v-show="model"
       class="sidebar"
       elevation="4"
-      :style="`max-width:min(${maxWidth}, 100vw); min-width:${minWidth}`"
+      :style="sheetStyle"
     >
       <!-- need z-index so slot is not above sticky header -->
       <div
@@ -22,6 +22,15 @@
               v-if="titleOneLine"
               name="actions"
             />
+            <v-btn
+              v-if="!disableFullScreen"
+              icon
+              variant="text"
+              color="grey"
+              @click="isFullScreen = !isFullScreen"
+            >
+              <v-icon :icon="isFullScreen?mdiFullscreenExit:mdiFullscreen" />
+            </v-btn>
             <v-btn
               icon
               variant="text"
@@ -58,19 +67,23 @@
 </template>
 
 <script setup>
-import {mdiCloseCircle} from '@mdi/js';
-import {onMounted, onUnmounted, useSlots} from 'vue';
+import {mdiCloseCircle, mdiFullscreen, mdiFullscreenExit} from '@mdi/js';
+import {
+	computed,	onMounted, onUnmounted, ref, useSlots,
+} from 'vue';
 
-defineProps({
+const props = defineProps({
 	title: {type: String, required: true},
 	icon: {type: String, required: true},
 	maxWidth: {type: String, required: false, default: '600px'},
 	minWidth: {type: String, required: false, default: '300px'},
 	titleOneLine: {type: Boolean, required: false},
+	disableFullScreen: {type: Boolean, required: false},
 });
 
 const model = defineModel({type: Boolean});
 const slots = useSlots();
+const isFullScreen = ref(false);
 
 // Hooks
 onMounted(() => {
@@ -79,6 +92,21 @@ onMounted(() => {
 
 onUnmounted(() => {
 	window.removeEventListener('keydown', keyListener);
+});
+
+// Computed
+const sheetStyle = computed(() => {
+	const ret = {
+		'min-width': `${props.minWidth}`,
+	};
+
+	if (isFullScreen.value) {
+		ret.width = '100vw';
+	} else {
+		ret['max-width'] = `min(${props.maxWidth}, 100vw)`;
+	}
+
+	return ret;
 });
 
 // Functions
