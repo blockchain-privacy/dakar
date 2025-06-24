@@ -27,7 +27,6 @@
           <v-list-group
             v-if="fileItem.items"
             v-model="fileItem.active"
-            fluid
           >
             <template #activator="{props}">
               <v-list-item
@@ -36,12 +35,14 @@
                 :prepend-icon="mdiFolder"
               />
             </template>
+            <!-- manually set padding of child item, as vuetify default is too large -->
             <v-list-item
               v-for="child in fileItem.items"
               :key="child.title"
               :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
               :title="child.name"
               :prepend-icon="mdiFileDocument"
+              style="padding-left: 30px !important"
             />
           </v-list-group>
           <v-list-item
