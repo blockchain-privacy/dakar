@@ -4,29 +4,42 @@ CoinJoin heuristics are analytical tools used to identify potential senders and 
 
 ## Types
 
-Depending on the transaction type, some of the following heuristic types are available.
+Depending on the transaction type, different kinds of CoinJoin heuristics are available.
 
 ### Lookup Direction: Reverse
 
-#### Wasabi 2.0
+#### Wasabi 2.0 and Whirlpool
+
+- One source by time
+- One source by depth
+- Reverse lookup by time
+- Reverse lookup by depth
+- Reverse amount
+
+#### Dash
 
 - Denomination type
 - One source by time
-- One source by depth
 - Perfect match
 - Reverse amount
 - Reverse lookup by time
-- Reverse lookup by depth
 
 ### Lookup Direction: Forward
 
+#### Wasabi 2.0 and Whirlpool
+
+- Forward lookup by time
+- Forward lookup by depth
+
+#### Dash
+
+- Forward lookup by time
 - Forward amount
-- Forward lookup
 
 ## Modifiers
 
 The behavior of each heuristic can be modified by the following options:
 
-- Use custom clusters: Use predefined defined custom clusters in combination with multi-input clusters when executing the heuristic
+- Use custom clusters: Use a predefined list of custom clusters in combination with multi-input clusters when executing the heuristic
 - Use address exclusion list: Do not traverse outputs belonging to the predefined address exclusion list
-- Exclude spending gaps: Do not traverse output which have a spending gap
+- Exclude spending gaps: Do not traverse outputs which have a spending gap
