@@ -35,7 +35,7 @@
       @click="emitAddNodes"
     >
       <div class="d-flex align-center">
-        Add entities
+        Add Entities
         <v-badge
           inline
           color="primary"

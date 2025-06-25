@@ -119,7 +119,7 @@
         :icon="mdiPlus"
         start
       />
-      Add entities
+      Add Entities
     </v-btn>
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
