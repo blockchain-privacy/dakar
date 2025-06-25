@@ -76,9 +76,6 @@ export default createVuetify({
 		VSlider: {
 			color: 'primary',
 		},
-		VRangeSlider: {
-			color: 'primary',
-		},
 		VRadioGroup: {
 			color: 'primary',
 		},

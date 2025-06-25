@@ -639,4 +639,12 @@ updateSvgData(true);
 :deep(.v-slider-track__tick) {
   background-color: rgb(var(--v-theme-primary-lighten-2));
 }
+
+:deep(.v-slider-thumb__ripple) {
+  color: rgb(var(--v-theme-primary));
+}
+:deep(.v-slider-thumb__surface) {
+  color: rgb(var(--v-theme-primary));
+}
+
 </style>
