@@ -179,11 +179,14 @@
           title-class="text-subtitle-1"
           :vertical-margin="0"
         />
-        <svg
-          id="selector_details_canvas"
-          class="mt-3"
-          :class="{'hide':!enoughDataForGraph}"
-        />
+        <div class="d-flex align-center justify-center">
+          <svg
+            id="selector_details_canvas"
+            class="mt-3"
+            style="max-width: 900px"
+            :class="{'hide':!enoughDataForGraph}"
+          />
+        </div>
         <v-card-title
           v-if="!enoughDataForGraph"
           class="text-h5"
