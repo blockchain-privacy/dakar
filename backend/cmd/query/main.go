@@ -83,12 +83,6 @@ type DestinationCountModule struct {
 	TransactionType string `yaml:"transactionType"`
 }
 
-type DestinationCount2Module struct {
-	Active          bool   `yaml:"active"`
-	Filename        string `yaml:"filename"`
-	TransactionType string `yaml:"transactionType"`
-}
-
 type ExportPrivacyGraphModule struct {
 	Active           bool   `yaml:"active"`
 	Filename         string `yaml:"filename"`
@@ -133,7 +127,6 @@ type Config struct {
 	ExportTransactions    ExportTransactionsModule    `yaml:"exportTransactions"`
 	ExportPrivacyGraph    ExportPrivacyGraphModule    `yaml:"exportPrivacyGraph"`
 	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
-	DestinationCount2     DestinationCount2Module     `yaml:"destinationCount2"`
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
 	TagPackInserter       TagPackInserterModule       `yaml:"tagPackInserter"`
 	Stats                 StatsModule                 `yaml:"stats"`
@@ -203,7 +196,6 @@ func main() {
 		cfg.ExclusionSimulations.Active ||
 		cfg.OriginGap.Active ||
 		cfg.DestinationCount.Active ||
-		cfg.DestinationCount2.Active ||
 		cfg.HeuristicAnalysis.Active {
 		meta, err := status.GetMeta(ctx, dgraph)
 		if err != nil {
@@ -279,10 +271,6 @@ func main() {
 
 	if cfg.DestinationCount.Active {
 		doDestinationCountAnalysis(ctx, dgraph, g, cfg.DestinationCount.Filename, cfg.DestinationCount.TransactionType)
-	}
-
-	if cfg.DestinationCount2.Active {
-		doDestinationCountAnalysis2(ctx, dgraph, g, cfg.DestinationCount2.Filename, cfg.DestinationCount2.TransactionType)
 	}
 
 	if cfg.ExportClusterActivity.Active {
