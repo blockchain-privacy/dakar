@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import SortSelect from '@/components/explorer/transaction/SortSelect.vue';
+import SortSelect from '@/components/common/SortSelect.vue';
 import {ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
