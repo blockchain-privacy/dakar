@@ -209,6 +209,7 @@
           value="inputs"
         />
         <v-menu
+          v-if="tx.inputs?.length > 1"
           :close-on-content-click="false"
           eager
         >
@@ -229,6 +230,7 @@
           value="outputs"
         />
         <v-menu
+          v-if="tx.outputs?.length > 1"
           :close-on-content-click="false"
           eager
         >
@@ -409,8 +411,8 @@ const isTabMode = ref(false);
 const tabs = ref(null);
 let resizeObserver;
 // Computed
-const inputTransactionTypes = computed(() => [...getFilterColorMap(props.tx.inputs)].map(d => ({text: d[0], color: d[1]})));
-const outputTransactionTypes = computed(() => [...getFilterColorMap(props.tx.outputs)].map(d => ({text: d[0], color: d[1]})));
+const inputTransactionTypes = computed(() => getTransactionFilter(props.tx.inputs));
+const outputTransactionTypes = computed(() => getTransactionFilter(props.tx.outputs));
 
 const allInputs = computed(() => filterOutputs(props.tx.inputs, inputSortAndFilterModel));
 const allOutputs = computed(() => filterOutputs(props.tx.outputs, outputSortAndFilterModel));
@@ -492,6 +494,10 @@ function init() {
 }
 
 function filterOutputs(outputs, sortAndFilter) {
+	if (!outputs) {
+		return [];
+	}
+
 	let filtered = outputs;
 	if (props.filterHighlightedOutputs) {
 		filtered = filtered.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash));
@@ -499,6 +505,10 @@ function filterOutputs(outputs, sortAndFilter) {
 
 	if (sortAndFilter.value.filter) {
 		filtered = filtered.filter(i => sortAndFilter.value.filter.includes(i.txtype) || (!i.txtype && sortAndFilter.value.filter.includes('other')));
+	}
+
+	if (filtered.length < 2) {
+		return filtered;
 	}
 
 	if (!sortAndFilter.value.sortValue || sortAndFilter.value.sortValue === 'Time') {
@@ -528,10 +538,13 @@ function filterOutputs(outputs, sortAndFilter) {
 	});
 }
 
-// Returns a color map only containing the transaction types present in outputs
-function getFilterColorMap(outputs) {
-	const colorMap = getColorMap(route.params.blockchainMode);
+// Returns an array only containing the transaction types present in outputs
+function getTransactionFilter(outputs) {
+	if (!outputs) {
+		return [];
+	}
 
+	const colorMap = getColorMap(route.params.blockchainMode);
 	const filteredColorMap = new Map();
 
 	outputs.forEach(o => {
@@ -542,7 +555,7 @@ function getFilterColorMap(outputs) {
 		}
 	});
 
-	return filteredColorMap;
+	return [...filteredColorMap].map(d => ({text: d[0], color: d[1]}));
 }
 
 // When filtering the outputs, the infinite scroll would normaly send 'empty'.
