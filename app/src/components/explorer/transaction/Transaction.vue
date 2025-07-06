@@ -511,17 +511,17 @@ function filterOutputs(outputs, sortAndFilter) {
 		return filtered;
 	}
 
-	if (!sortAndFilter.value.sortValue || sortAndFilter.value.sortValue === 'Time') {
+	if (!sortAndFilter.value.sortValue || sortAndFilter.value.sortValue.value === 'time') {
 		return filtered.toSorted((a, b) => {
 			if (!a.ts || !b.ts) {
 				return 0;
 			}
 
 			if (sortAndFilter.value.sortDescending) {
-				return new Date(a.ts) - new Date(b.ts);
+				return new Date(b.ts) - new Date(a.ts);
 			}
 
-			return new Date(b.ts) - new Date(a.ts);
+			return new Date(a.ts) - new Date(b.ts);
 		});
 	}
 
