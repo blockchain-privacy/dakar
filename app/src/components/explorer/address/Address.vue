@@ -113,11 +113,14 @@
             </v-alert>
             <sort-and-filter
               v-else-if="outputCount > 1"
-              v-model="sortAndFilterModel"
-              :loading="isLoading"
+              v-model:sort="sort"
+              v-model:direction="direction"
+              v-model:filter="filter"
               :output-count="outputCount"
               :input-count="inputCount"
-              @change="handleFilterOrSortChange"
+              @update:sort="handleFilterOrSortChange"
+              @update:direction="handleFilterOrSortChange"
+              @update:filter="handleFilterOrSortChange"
             />
             <v-sheet
               v-if="!isLoading && !emptyResponse"
@@ -240,10 +243,11 @@ const isOutputManipulationSupported = ref(false);
 const itemsPerPage = 20;
 // EmptyResponse is only used for data loaded after the initial data load
 const emptyResponse = ref(false);
-const sortAndFilterModel = ref({
-	filter: [],
-	order: 0,
-});
+
+const sort = ref({value: 0, title: 'Output date'});
+const direction = ref(false);
+const filter = ref([]);
+
 const table = ref({
 	page: 1,
 	headers: [
@@ -297,14 +301,14 @@ function handleFilterOrSortChange() {
 }
 
 function resetSorting() {
-	if (sortAndFilterModel.value.order === 0 && sortAndFilterModel.value.filter.length === 0) {
+	if (sort.value.value === 0 && direction.value === false && filter.value.length === 0) {
 		return;
 	}
 
-	sortAndFilterModel.value = {
-		filter: [],
-		order: 0,
-	};
+	sort.value.value = 0;
+	sort.value.title = 'Output date';
+	direction.value = false;
+	filter.value = [];
 }
 
 async function getTableData() {
@@ -314,14 +318,20 @@ async function getTableData() {
 
 	isLoading.value = true;
 
+	// Map sorting and direction to order index
+	let order = sort.value.value * 2;
+	if (direction.value) {
+		order += 1;
+	}
+
 	try {
 		const response = await dakarClients[route.params.blockchainMode].data
 			.blockchainOutputsHashPost({
 				hash: addressHash.value,
 				options: {
 					offset: offset.value,
-					filter: sortAndFilterModel.value.filter,
-					order: sortAndFilterModel.value.order,
+					filter: filter.value,
+					order,
 				},
 			});
 

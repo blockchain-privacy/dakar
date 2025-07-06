@@ -5,6 +5,7 @@
       :items="items"
       label="Sort by"
       hide-details
+      return-object
     />
     <v-btn
       :icon="direction?mdiSortDescending:mdiSortAscending"
@@ -18,7 +19,7 @@
 <script setup>
 import {mdiSortAscending, mdiSortDescending} from '@mdi/js';
 
-const sort = defineModel('sort', {type: String});
+const sort = defineModel('sort', {type: Object});
 const direction = defineModel('direction', {type: Boolean});
 defineProps({
 	items: {type: Array, required: true},

@@ -32,7 +32,7 @@ const props = defineProps({
 	transactionTypes: {type: Array, required: true},
 });
 
-const sortItems = ['Amount', 'Time'];
+const sortItems = [{value: 'amount', title: 'Amount'}, {value: 'time', title: 'Time'}];
 const sortValue = ref(sortItems[1]); // Sort by time by default
 const sortDescending = ref(false); // Sort by ascending by default
 
