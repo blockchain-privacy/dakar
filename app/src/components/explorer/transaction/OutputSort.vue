@@ -1,26 +1,19 @@
 <template>
-  <v-card
-    min-width="250px"
-    max-width="400px"
-  >
-    <v-card-text>
-      <sort-select
-        v-model:sort="sortValue"
-        v-model:direction="sortDescending"
-        :items="sortItems"
-        @update:sort="handleModelUpdate"
-        @update:direction="handleModelUpdate"
-      />
-      <chip-filter
-        v-model="chipFilterModel"
-        class="mt-2"
-        :items="transactionTypes"
-        label="Filter"
-        mandatory
-        @update:model-value="handleModelUpdate"
-      />
-    </v-card-text>
-  </v-card>
+  <sort-select
+    v-model:sort="sortValue"
+    v-model:direction="sortDescending"
+    :items="sortItems"
+    @update:sort="handleModelUpdate"
+    @update:direction="handleModelUpdate"
+  />
+  <chip-filter
+    v-model="chipFilterModel"
+    class="mt-2"
+    :items="transactionTypes"
+    label="Filter"
+    mandatory
+    @update:model-value="handleModelUpdate"
+  />
 </template>
 
 <script setup>
@@ -32,7 +25,7 @@ const props = defineProps({
 	transactionTypes: {type: Array, required: true},
 });
 
-const sortItems = [{value: 'amount', title: 'Amount'}, {value: 'time', title: 'Time'}];
+const sortItems = [{value: 'amount', title: 'Amount'}, {value: 'time', title: 'Time'}, {value: 'txtype', title: 'Transaction type'}];
 const sortValue = ref(sortItems[1]); // Sort by time by default
 const sortDescending = ref(false); // Sort by ascending by default
 

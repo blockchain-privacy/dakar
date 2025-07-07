@@ -210,6 +210,7 @@
         />
         <v-menu
           v-if="tx.inputs?.length > 1"
+          v-model="inputSortMenuModel"
           :close-on-content-click="false"
           eager
         >
@@ -220,10 +221,22 @@
               v-bind="activator.props"
             />
           </template>
-          <output-sort
-            v-model="inputSortAndFilterModel"
-            :transaction-types="inputTransactionTypes"
-          />
+          <v-card>
+            <v-card-text>
+              <output-sort
+                v-model="inputSortAndFilterModel"
+                :transaction-types="inputTransactionTypes"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-btn
+                class="ms-auto"
+                @click="inputSortMenuModel = false"
+              >
+                Close
+              </v-btn>
+            </v-card-actions>
+          </v-card>
         </v-menu>
         <v-tab
           :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
@@ -231,6 +244,7 @@
         />
         <v-menu
           v-if="tx.outputs?.length > 1"
+          v-model="outputSortMenuModel"
           :close-on-content-click="false"
           eager
         >
@@ -241,10 +255,22 @@
               v-bind="activator.props"
             />
           </template>
-          <output-sort
-            v-model="outputSortAndFilterModel"
-            :transaction-types="outputTransactionTypes"
-          />
+          <v-card>
+            <v-card-text>
+              <output-sort
+                v-model="outputSortAndFilterModel"
+                :transaction-types="outputTransactionTypes"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-btn
+                class="ms-auto"
+                @click="outputSortMenuModel = false"
+              >
+                Close
+              </v-btn>
+            </v-card-actions>
+          </v-card>
         </v-menu>
       </v-tabs>
       <component
@@ -403,6 +429,8 @@ const showMaxOutputs = ref(3);
 
 const inputSortAndFilterModel = ref({});
 const outputSortAndFilterModel = ref({});
+const inputSortMenuModel = ref(false);
+const outputSortMenuModel = ref(false);
 
 const outputContainerRef = useTemplateRef('outputContainer');
 
@@ -511,7 +539,9 @@ function filterOutputs(outputs, sortAndFilter) {
 		return filtered;
 	}
 
-	if (!sortAndFilter.value.sortValue || sortAndFilter.value.sortValue.value === 'time') {
+	const sortBy = sortAndFilter.value.sortValue ? sortAndFilter.value.sortValue.value : 'time'; // Fallback to time
+
+	if (sortBy === 'time') {
 		return filtered.toSorted((a, b) => {
 			if (!a.ts || !b.ts) {
 				return 0;
@@ -525,16 +555,30 @@ function filterOutputs(outputs, sortAndFilter) {
 		});
 	}
 
+	if (sortBy === 'amount') {
+		return filtered.toSorted((a, b) => {
+			if (a.amount === undefined || b.amount === undefined) {
+				return 0;
+			}
+
+			if (sortAndFilter.value.sortDescending) {
+				return b.amount - a.amount;
+			}
+
+			return a.amount - b.amount;
+		});
+	}
+
 	return filtered.toSorted((a, b) => {
-		if (a.amount === undefined || b.amount === undefined) {
-			return 0;
-		}
+		console.log(a.txtype);
+		const txType1 = a.txtype || 'other';
+		const txType2 = b.txtype || 'other';
 
 		if (sortAndFilter.value.sortDescending) {
-			return b.amount - a.amount;
+			return txType2.localeCompare(txType1);
 		}
 
-		return a.amount - b.amount;
+		return txType1.localeCompare(txType2);
 	});
 }
 
