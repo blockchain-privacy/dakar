@@ -66,7 +66,7 @@ function setDarkTheme() {
 		persistDarkTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
 	}
 
-	theme.global.name.value = settings.value.dark ? 'dark' : 'light';
+	theme.change(settings.value.dark ? 'dark' : 'light');
 }
 
 // CheckSessionExpiration removes the stored session if it expired
