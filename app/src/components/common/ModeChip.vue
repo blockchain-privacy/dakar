@@ -4,7 +4,6 @@
     :text="mode.title"
     :color="mode.color"
     rounded
-    size="large"
   />
 </template>
 
