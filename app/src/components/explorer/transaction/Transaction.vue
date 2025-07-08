@@ -570,7 +570,6 @@ function filterOutputs(outputs, sortAndFilter) {
 	}
 
 	return filtered.toSorted((a, b) => {
-		console.log(a.txtype);
 		const txType1 = a.txtype || 'other';
 		const txType2 = b.txtype || 'other';
 
