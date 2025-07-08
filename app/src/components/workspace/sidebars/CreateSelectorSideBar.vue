@@ -35,16 +35,11 @@
               hide-details
               @update:model-value="heuristicOptions.type = heuristicTypeModel.type"
             >
-              <template #item="i">
+              <template #subheader="i">
                 <named-divider
-                  v-if="i.item.raw.divider !== undefined"
-                  :title="i.item.raw.title"
+                  :title="i.props.title"
                   :vertical-margin="0"
                   title-class="text-caption"
-                />
-                <v-list-item
-                  v-else
-                  v-bind="i.props"
                 />
               </template>
             </v-select>
@@ -454,10 +449,10 @@ function getHeuristicTypes() {
 			return comparedCategory;
 		})
 		.forEach(d => {
-		// Insert dividers
+		// Insert subheaders
 			if (d.category !== lastCategory) {
 				lastCategory = d.category;
-				selectorItems.push({divider: true, title: d.category});
+				selectorItems.push({title: d.category, type: 'subheader'});
 			}
 
 			selectorItems.push(d);
@@ -497,7 +492,7 @@ function getInitialHeuristicTypeModel(oldHeuristicTypeObject, newHeuristicTypes)
 		}
 	}
 
-	return newHeuristicTypes.find(d => !d.divider && !d.disabled);
+	return newHeuristicTypes.find(d => d.type !== 'subheader' && !d.disabled);
 }
 
 function buildHeuristicOptions() {
