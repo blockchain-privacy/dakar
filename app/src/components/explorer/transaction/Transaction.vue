@@ -203,75 +203,25 @@
         :hide-slider="!isTabMode"
         mandatory
       >
+        <output-sort
+          v-if="tx.inputs?.length > 1"
+          v-model="inputSortAndFilterModel"
+          :transaction-types="inputTransactionTypes"
+        />
         <v-tab
           :disabled="!allInputs?.length"
           :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
           value="inputs"
         />
-        <v-menu
-          v-if="tx.inputs?.length > 1"
-          v-model="inputSortMenuModel"
-          :close-on-content-click="false"
-          eager
-        >
-          <template #activator="activator">
-            <v-btn
-              :icon="mdiFilter"
-              variant="text"
-              v-bind="activator.props"
-            />
-          </template>
-          <v-card>
-            <v-card-text>
-              <output-sort
-                v-model="inputSortAndFilterModel"
-                :transaction-types="inputTransactionTypes"
-              />
-            </v-card-text>
-            <v-card-actions>
-              <v-btn
-                class="ms-auto"
-                @click="inputSortMenuModel = false"
-              >
-                Close
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-menu>
+        <output-sort
+          v-if="tx.outputs?.length > 1"
+          v-model="outputSortAndFilterModel"
+          :transaction-types="outputTransactionTypes"
+        />
         <v-tab
           :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
           value="outputs"
         />
-        <v-menu
-          v-if="tx.outputs?.length > 1"
-          v-model="outputSortMenuModel"
-          :close-on-content-click="false"
-          eager
-        >
-          <template #activator="activator">
-            <v-btn
-              :icon="mdiFilter"
-              variant="text"
-              v-bind="activator.props"
-            />
-          </template>
-          <v-card>
-            <v-card-text>
-              <output-sort
-                v-model="outputSortAndFilterModel"
-                :transaction-types="outputTransactionTypes"
-              />
-            </v-card-text>
-            <v-card-actions>
-              <v-btn
-                class="ms-auto"
-                @click="outputSortMenuModel = false"
-              >
-                Close
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-menu>
       </v-tabs>
       <component
         :is="outputFrameComponent"
@@ -364,7 +314,7 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp, mdiFilter, mdiFormatHeaderPound,
+	mdiChevronUp, mdiFormatHeaderPound,
 	mdiFormatListNumbered,
 	mdiPickaxe, mdiSigma,
 	mdiTransfer,
@@ -433,8 +383,6 @@ const showMaxOutputs = ref(3);
 
 const inputSortAndFilterModel = ref({});
 const outputSortAndFilterModel = ref({});
-const inputSortMenuModel = ref(false);
-const outputSortMenuModel = ref(false);
 
 const outputContainerRef = useTemplateRef('outputContainer');
 
