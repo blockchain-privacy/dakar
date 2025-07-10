@@ -455,8 +455,15 @@ async function removeGraphNodes(nodes) {
 	}
 
 	if (nodes.some(d => d.loading)) {
+		setErrorMessage('can not delete loading nodes');
 		return;
 	}
+
+	if (isModifyingWorkspace.value) {
+		return;
+	}
+
+	await lockAutosave();
 
 	try {
 		const response = await dakar.workspace.workspacesNodeDelete({
@@ -470,6 +477,8 @@ async function removeGraphNodes(nodes) {
 	} catch (e) {
 		setErrorMessage(e);
 	}
+
+	releaseAutosaveLock();
 }
 
 async function removeContextNode() {
