@@ -203,25 +203,33 @@
         :hide-slider="!isTabMode"
         mandatory
       >
-        <output-sort
-          v-if="tx.inputs?.length > 1"
-          v-model="inputSortAndFilterModel"
-          :transaction-types="inputTransactionTypes"
-        />
-        <v-tab
-          :disabled="!allInputs?.length"
-          :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
-          value="inputs"
-        />
-        <output-sort
-          v-if="tx.outputs?.length > 1"
-          v-model="outputSortAndFilterModel"
-          :transaction-types="outputTransactionTypes"
-        />
-        <v-tab
-          :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
-          value="outputs"
-        />
+        <v-row>
+          <v-col class="d-flex">
+            <output-sort
+              v-if="tx.inputs?.length > 1"
+              v-model="inputSortAndFilterModel"
+              :transaction-types="inputTransactionTypes"
+            />
+            <v-tab
+              class="flex-grow-1"
+              :disabled="!allInputs?.length"
+              :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
+              value="inputs"
+            />
+          </v-col>
+          <v-col class="d-flex">
+            <output-sort
+              v-if="tx.outputs?.length > 1"
+              v-model="outputSortAndFilterModel"
+              :transaction-types="outputTransactionTypes"
+            />
+            <v-tab
+              class="flex-grow-1"
+              :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
+              value="outputs"
+            />
+          </v-col>
+        </v-row>
       </v-tabs>
       <component
         :is="outputFrameComponent"
@@ -263,6 +271,9 @@
               <!-- needed so no scrollbars appear -->
               <p style="height: 3px" />
             </template>
+            <template #loading>
+              <!-- empty -->
+            </template>
           </v-infinite-scroll>
         </component>
         <!-- empty col if no inputs exist -->
@@ -301,6 +312,9 @@
             <template #empty>
               <!-- needed so no scrollbars appear -->
               <p style="height: 3px" />
+            </template>
+            <template #loading>
+              <!-- empty -->
             </template>
           </v-infinite-scroll>
         </component>
@@ -378,8 +392,10 @@ setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
 
-const showMaxInputs = ref(3);
-const showMaxOutputs = ref(3);
+const maxOutputCountDefault = 3;
+
+const showMaxInputs = ref(maxOutputCountDefault);
+const showMaxOutputs = ref(maxOutputCountDefault);
 
 const inputSortAndFilterModel = ref({});
 const outputSortAndFilterModel = ref({});
@@ -456,22 +472,32 @@ watch(allInputs, newVal => {
 });
 
 watch(() => props.filterHighlightedOutputs, () => {
-	inputScroll.value?.reset();
-	outputScroll.value?.reset();
+	resetInputs();
+	resetOutputs();
 });
 
 watch(() => inputSortAndFilterModel.value, () => {
-	inputScroll.value?.reset();
+	resetInputs();
 });
 
 watch(() => outputSortAndFilterModel.value, () => {
-	outputScroll.value?.reset();
+	resetOutputs();
 });
 
 // Functions
 function init() {
 	updateInputGraph();
 	updateOutputGraph();
+}
+
+function resetInputs() {
+	inputScroll.value?.reset();
+	showMaxInputs.value = maxOutputCountDefault;
+}
+
+function resetOutputs() {
+	outputScroll.value?.reset();
+	showMaxOutputs.value = maxOutputCountDefault;
 }
 
 function filterOutputs(outputs, sortAndFilter) {
