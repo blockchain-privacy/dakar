@@ -106,13 +106,7 @@
         open-delay="400"
       >
         <div class="d-flex align-center">
-          <div class="kbb">
-            Control
-          </div>
-          +
-          <div class="kbb">
-            k
-          </div>
+          <v-hotkey keys="cmd+k" />
         </div>
       </v-tooltip>
       <v-icon
@@ -194,11 +188,13 @@ import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
 	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
-import {onMounted, onUnmounted, ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import SearchDialog from '@/components/common/SearchDialog.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import {useRoute} from 'vue-router';
+import {useHotkey} from 'vuetify/framework';
+import {VHotkey} from 'vuetify/labs/VHotkey';
 
 const route = useRoute();
 
@@ -236,11 +232,7 @@ const queryDialogModel = ref(false);
 
 // Hooks
 onMounted(() => {
-	document.addEventListener('keydown', handleKeyPress, false);
-});
-
-onUnmounted(() => {
-	document.removeEventListener('keydown', handleKeyPress);
+	useHotkey('cmd+k', openSearchDialog);
 });
 
 // Functions
@@ -264,14 +256,12 @@ function onAddSelector() {
 	emit('addSelector');
 }
 
-function handleKeyPress(e) {
-	// Don't trigger delete event when editing an <input /> element such as text boxes
-	if (e.target instanceof HTMLInputElement || !e.ctrlKey || e.key !== 'k' || !props.showSearchButton) {
+function openSearchDialog() {
+	if (!props.showSearchButton) {
 		return;
 	}
 
 	queryDialogModel.value = true;
-	e.preventDefault();
 }
 
 </script>
