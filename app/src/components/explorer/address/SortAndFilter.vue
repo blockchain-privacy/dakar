@@ -1,39 +1,22 @@
 <template>
   <v-row>
     <v-col>
-      <v-select
-        v-model="model.order"
-        :disabled="loading"
-        :loading="loading?'primary':false"
-        style="max-width: 300px; min-width: 200px;"
+      <sort-select
+        v-model:sort="sort"
+        v-model:direction="direction"
         :items="sortItems"
-        item-value="id"
-        item-title="text"
-        label="Sort"
-        @update:model-value="handleSortAndFilter"
-      >
-        <template #item="item">
-          <v-divider v-if="item.item?.raw?.divider !== undefined" />
-          <v-list-item
-            v-else
-            v-bind="item.props"
-            :value="item.item.raw.id"
-            :title="item.item?.raw?.text"
-          />
-        </template>
-      </v-select>
+        style="max-width: 300px; min-width: 200px;"
+        @update:sort="handleSortAndFilter"
+        @update:direction="handleSortAndFilter"
+      />
     </v-col>
     <v-col>
       <v-select
-        v-model="model.filter"
-        :disabled="loading"
-        :loading="loading?'primary':false"
-        style="max-width: 300px; min-width: 200px;"
+        v-model="filter"
         :items="filterItems"
-        item-value="id"
-        item-title="text"
         label="Filter"
         multiple
+        style="max-width: 300px; min-width: 200px;"
         @update:model-value="handleSortAndFilter"
       >
         <template #selection="{ item }">
@@ -56,38 +39,30 @@
 
 <script setup>
 import {computed, onMounted, ref} from 'vue';
+import SortSelect from '@/components/common/SortSelect.vue';
 
 const props = defineProps({
-	loading: {type: Boolean, required: false},
 	outputCount: {type: Number, required: true},
 	inputCount: {type: Number, required: true},
 });
-const model = defineModel({type: Object});
-const emit = defineEmits(['update:modelValue', 'change']);
+
+const sort = defineModel('sort', {type: Object});
+const direction = defineModel('direction', {type: Boolean});
+const filter = defineModel('filter', {type: Array});
 
 const sortItems = ref([
-	{id: 0, text: 'Ascending by output date', disabled: false},
-	{id: 1, text: 'Descending by output date', disabled: false},
-	{divider: true},
-	{id: 2, text: 'Ascending by input date', disabled: false},
-	{id: 3, text: 'Descending by input date', disabled: false},
-	{divider: true},
-	{id: 4, text: 'Ascending by amount', disabled: false},
-	{id: 5, text: 'Descending by amount', disabled: false},
+	{value: 0, title: 'Output date'},
+	{value: 1, title: 'Input date'},
+	{value: 2, title: 'Amount'},
 ]);
 
 const filterItems = ref([
-	{
-		id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
-	},
-	{
-		id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
-	},
+	{value: 0, title: 'Only show coinbase outputs', chip: 'Coinbase outputs'},
+	{value: 1, title: 'Only show unspent outputs', chip: 'Unspent outputs'},
 ]);
 
 // Computed
-
-const isSortingByInput = computed(() => model.value.order === 2 || model.value.order === 3);
+const isSortingByInput = computed(() => sort.value.value === 1);
 
 // Hooks
 onMounted(() => {
@@ -99,7 +74,6 @@ onMounted(() => {
 function handleSortAndFilter() {
 	updateSortState();
 	updateFilterState();
-	emit('change');
 }
 
 function updateSortState() {
@@ -108,7 +82,7 @@ function updateSortState() {
 	if (props.inputCount === 0) {
 		isUnspentFilterSelected = true;
 	} else {
-		for (const s of model.value.filter) {
+		for (const s of filter.value) {
 			if (s === 1) {
 				isUnspentFilterSelected = true;
 				break;
@@ -117,21 +91,17 @@ function updateSortState() {
 	}
 
 	sortItems.value.forEach(d => {
-		if (d.id === 2 || d.id === 3) {
-			d.disabled = isUnspentFilterSelected;
+		if (d.value === 1) {
+			d.props ??= {};
+			d.props.disabled = isUnspentFilterSelected;
 		}
 	});
 }
 
 function updateFilterState() {
 	let disableUnspentFilter = false;
-	if (props.outputCount - props.inputCount === 0) {
+	if (props.outputCount - props.inputCount === 0 || sort.value.value === 1) {
 		disableUnspentFilter = true;
-	} else {
-		const selection = model.value.order;
-		if (selection === 2 || selection === 3) {
-			disableUnspentFilter = true;
-		}
 	}
 
 	let disableCoinbaseFilter = false;
@@ -140,10 +110,12 @@ function updateFilterState() {
 	}
 
 	filterItems.value.forEach(d => {
-		if (d.id === 0) {
-			d.disabled = disableCoinbaseFilter;
-		} else if (d.id === 1) {
-			d.disabled = disableUnspentFilter;
+		if (d.value === 0) {
+			d.props ??= {};
+			d.props.disabled = disableCoinbaseFilter;
+		} else if (d.value === 1) {
+			d.props ??= {};
+			d.props.disabled = disableUnspentFilter;
 		}
 	});
 }

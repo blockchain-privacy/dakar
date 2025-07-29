@@ -208,10 +208,70 @@
           :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
           value="inputs"
         />
+        <v-menu
+          v-if="tx.inputs?.length > 1"
+          v-model="inputSortMenuModel"
+          :close-on-content-click="false"
+          eager
+        >
+          <template #activator="activator">
+            <v-btn
+              :icon="mdiFilter"
+              variant="text"
+              v-bind="activator.props"
+            />
+          </template>
+          <v-card>
+            <v-card-text>
+              <output-sort
+                v-model="inputSortAndFilterModel"
+                :transaction-types="inputTransactionTypes"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-btn
+                class="ms-auto"
+                @click="inputSortMenuModel = false"
+              >
+                Close
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
         <v-tab
           :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
           value="outputs"
         />
+        <v-menu
+          v-if="tx.outputs?.length > 1"
+          v-model="outputSortMenuModel"
+          :close-on-content-click="false"
+          eager
+        >
+          <template #activator="activator">
+            <v-btn
+              :icon="mdiFilter"
+              variant="text"
+              v-bind="activator.props"
+            />
+          </template>
+          <v-card>
+            <v-card-text>
+              <output-sort
+                v-model="outputSortAndFilterModel"
+                :transaction-types="outputTransactionTypes"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-btn
+                class="ms-auto"
+                @click="outputSortMenuModel = false"
+              >
+                Close
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
       </v-tabs>
       <component
         :is="outputFrameComponent"
@@ -255,10 +315,7 @@
           </v-infinite-scroll>
         </component>
         <!-- empty col if no inputs exist -->
-        <v-col
-          v-else
-          class="emptyCol"
-        />
+        <v-col v-else />
         <component
           :is="outputFrameComponentColumn"
           value="outputs"
@@ -306,7 +363,7 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp, mdiFormatHeaderPound,
+	mdiChevronUp, mdiFilter, mdiFormatHeaderPound,
 	mdiFormatListNumbered,
 	mdiPickaxe, mdiSigma,
 	mdiTransfer,
@@ -323,7 +380,7 @@ import {
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import {
-	computed, isProxy, ref, toRaw, toRef, isRef, onUpdated, onMounted,
+	computed, ref, toRef, onUpdated, onMounted,
 	watch, nextTick, useTemplateRef, onUnmounted, useId,
 } from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
@@ -339,6 +396,7 @@ import {
 import AmountChart from '@/components/explorer/transaction/AmountChart.vue';
 import {useRoute} from 'vue-router';
 import ModeChip from '@/components/common/ModeChip.vue';
+import OutputSort from '@/components/explorer/transaction/OutputSort.vue';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -369,6 +427,11 @@ const enoughDataForOutputGraph = ref(true);
 const showMaxInputs = ref(3);
 const showMaxOutputs = ref(3);
 
+const inputSortAndFilterModel = ref({});
+const outputSortAndFilterModel = ref({});
+const inputSortMenuModel = ref(false);
+const outputSortMenuModel = ref(false);
+
 const outputContainerRef = useTemplateRef('outputContainer');
 
 const isTabMode = ref(false);
@@ -376,16 +439,14 @@ const isTabMode = ref(false);
 const tabs = ref(null);
 let resizeObserver;
 // Computed
-const filteredInputs = computed(() => props.tx.inputs
-	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
-const filteredOutputs = computed(() => props.tx.outputs
-	.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash)));
+const inputTransactionTypes = computed(() => getTransactionFilter(props.tx.inputs));
+const outputTransactionTypes = computed(() => getTransactionFilter(props.tx.outputs));
 
-const allInputs = computed(() => props.filterHighlightedOutputs ? filteredInputs.value : props.tx.inputs);
-const allOutputs = computed(() => props.filterHighlightedOutputs ? filteredOutputs.value : props.tx.outputs);
+const allInputs = computed(() => filterOutputs(props.tx.inputs, inputSortAndFilterModel));
+const allOutputs = computed(() => filterOutputs(props.tx.outputs, outputSortAndFilterModel));
 
-const displayedInputs = computed(() => sortByTimestamp(allInputs).slice(0, showMaxInputs.value));
-const displayedOutputs = computed(() => sortByTimestamp(allOutputs).slice(0, showMaxOutputs.value));
+const displayedInputs = computed(() => allInputs.value.slice(0, showMaxInputs.value));
+const displayedOutputs = computed(() => allOutputs.value.slice(0, showMaxOutputs.value));
 
 const inputSum = computed(() => props.tx.inputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
 const outputSum = computed(() => props.tx.outputs?.reduce((sum, input) => sum + input.amount, 0) || 0);
@@ -446,10 +507,98 @@ watch(() => props.filterHighlightedOutputs, () => {
 	resetInfiniteScroll();
 });
 
+watch(() => inputSortAndFilterModel.value, () => {
+	resetInfiniteScroll();
+});
+
+watch(() => outputSortAndFilterModel.value, () => {
+	resetInfiniteScroll();
+});
+
 // Functions
 function init() {
 	updateInputGraph();
 	updateOutputGraph();
+}
+
+function filterOutputs(outputs, sortAndFilter) {
+	if (!outputs) {
+		return [];
+	}
+
+	let filtered = outputs;
+	if (props.filterHighlightedOutputs) {
+		filtered = filtered.filter(i => Boolean(i.highlight) || (Boolean(props.highlightTransaction) && props.highlightTransaction === i.txhash));
+	}
+
+	if (sortAndFilter.value.filter) {
+		filtered = filtered.filter(i => sortAndFilter.value.filter.includes(i.txtype) || (!i.txtype && sortAndFilter.value.filter.includes('other')));
+	}
+
+	if (filtered.length < 2) {
+		return filtered;
+	}
+
+	const sortBy = sortAndFilter.value.sortValue ? sortAndFilter.value.sortValue.value : 'time'; // Fallback to time
+
+	if (sortBy === 'time') {
+		return filtered.toSorted((a, b) => {
+			if (!a.ts || !b.ts) {
+				return 0;
+			}
+
+			if (sortAndFilter.value.sortDescending) {
+				return new Date(b.ts) - new Date(a.ts);
+			}
+
+			return new Date(a.ts) - new Date(b.ts);
+		});
+	}
+
+	if (sortBy === 'amount') {
+		return filtered.toSorted((a, b) => {
+			if (a.amount === undefined || b.amount === undefined) {
+				return 0;
+			}
+
+			if (sortAndFilter.value.sortDescending) {
+				return b.amount - a.amount;
+			}
+
+			return a.amount - b.amount;
+		});
+	}
+
+	return filtered.toSorted((a, b) => {
+		const txType1 = a.txtype || 'other';
+		const txType2 = b.txtype || 'other';
+
+		if (sortAndFilter.value.sortDescending) {
+			return txType2.localeCompare(txType1);
+		}
+
+		return txType1.localeCompare(txType2);
+	});
+}
+
+// Returns an array only containing the transaction types present in outputs
+function getTransactionFilter(outputs) {
+	if (!outputs) {
+		return [];
+	}
+
+	const colorMap = getColorMap(route.params.blockchainMode);
+	const filteredColorMap = new Map();
+
+	outputs.forEach(o => {
+		if (o.txtype) {
+			filteredColorMap.set(o.txtype, colorMap.get(o.txtype));
+		} else {
+			setUndefinedTransactionColor(filteredColorMap, 'other');
+		}
+	});
+
+	return [...filteredColorMap].map(d => ({text: d[0], color: d[1]}));
 }
 
 // When filtering the outputs, the infinite scroll would normaly send 'empty'.
@@ -484,31 +633,6 @@ function updateOutputGraph() {
 	svgOutputGraph = new BarChart(`transaction_outputs_canvas_${props.tx.txhash}_${componentID}`, 600, 150);
 	svgOutputGraph.drawStacked(props.tx.outputs, colorMap);
 	enoughDataForOutputGraph.value = !svgOutputGraph.empty;
-}
-
-function sortByTimestamp(outputs) {
-	if (!outputs) {
-		return [];
-	}
-
-	let copiedOutputs;
-
-	if (isProxy(outputs)) {
-		copiedOutputs = structuredClone(toRaw(outputs));
-	} else if (isRef(outputs)) {
-		// If 'outputs' is a computed value we need to convert each array element from proxy to raw
-		copiedOutputs = structuredClone(outputs.value.map(toRaw));
-	} else {
-		copiedOutputs = structuredClone(outputs);
-	}
-
-	return copiedOutputs.sort((a, b) => {
-		if (!a.ts || !b.ts) {
-			return true;
-		}
-
-		return new Date(a.ts) - new Date(b.ts);
-	});
 }
 
 function isCoinBaseTx(tx) {
