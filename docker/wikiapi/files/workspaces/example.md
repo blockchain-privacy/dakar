@@ -37,20 +37,20 @@ Note: Due to ongoing address clustering the number found transactions or address
 
 ![reverse amount heuristic](img/workspace_example_reverse_amount.webp)
 
-### 7. Extract CoinJoin heuristic results
+### 8. Extract CoinJoin heuristic results
 Click on the *Reverse amount* heuristic to show the heuristic details side bar. Select two the transactions in the table and click on *Add Entities*. The selected transactions will appear in the workspace afterwards. In this example two transactions, that belong to the same cluster (see cluster index in table), have been chosen. 
 
 Because both of the transactions are results of both of the heuristics, connections between them are shown in the workspace editor.
 
 ![coinjoin heuristic details](img/workspace_example_coinjoin_heuristic_details.webp)
 
-### 8. Add an address cluster
+### 9. Add an address cluster
 Click on one of the added transactions to open the transaction side bar. Locate an input address and click on it. A dialog will appear which allows choosing between opening the address page or adding the address to the workspace. Choose *Add to Workspace*.
 ![add address](img/workspace_example_add_address.webp)
 
-## 9. View node connections
+## 10. View node connections
 Connections between nodes can carry important information. For example a connection between two address cluster reveals which transactions connect the clusters. Additionally, a connection between an address cluster and a CoinJoin heuristic shows which transactions connect the cluster to the heuristic.
 
-## 10. Explore
+## 11. Explore
 
 Dakar allows viewing basic blockchain data, like transactions and addresses but also provides insights by analyzing CoinJoin graphs. Further explore features of Dakar by using workspaces, or discover more them in wiki.
