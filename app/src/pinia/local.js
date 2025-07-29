@@ -30,8 +30,8 @@ function insertLocalData(state) {
 	const localSettings = getLocalstorageData(LOCALSTORAGE_FIELD_SETTINGS);
 	if (localSettings !== null) {
 		// Explictly set values, so new settings are merged with old localstorage settings
-		if (localSettings.dark !== undefined) {
-			state.settings.dark = localSettings.dark;
+		if (localSettings.theme !== undefined) {
+			state.settings.theme = localSettings.theme;
 		}
 	}
 
@@ -52,8 +52,7 @@ const initialState = {
 	// Ory kratos session
 	session: null,
 	settings: {
-		// Set dark to be not initialized, so initial value can be set from media query
-		dark: null,
+		theme: 'system',
 	},
 	searchHistory: [],
 };

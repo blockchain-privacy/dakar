@@ -75,13 +75,12 @@
         </v-list-item>
         <v-list-item>
           <template #prepend>
-            <v-icon :icon="mdiThemeLightDark" />
+            <v-icon :icon="mdiPalette" />
           </template>
           <div class="d-flex">
             <v-list-item-title style="display:flex; align-items:center">
-              Dark Mode
+              <dark-mode-switch class="me-2 ms-0" />
             </v-list-item-title>
-            <dark-mode-switch class="mt-0 ml-2" />
           </div>
         </v-list-item>
         <v-list-item
@@ -112,7 +111,7 @@
 
 <script setup>
 import {
-	mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiThemeLightDark,
+	mdiAccount, mdiAccountCircle, mdiBrightness4, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiPalette, mdiThemeLightDark,
 } from '@mdi/js';
 import PageMenu from './PageMenu.vue';
 import QueryInput from '../common/QueryInput.vue';

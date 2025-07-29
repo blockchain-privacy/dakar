@@ -30,45 +30,15 @@ const theme = useTheme();
 const localStore = useLocalStore();
 
 // Computed
-const settings = computed({
-	get() {
-		return localStore.getSettings;
-	},
-	set(value) {
-		localStore.setSettings(value);
-	},
-});
-
 const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
 
 // Hooks
 onBeforeMount(() => {
 	checkSessionExpiration();
-	setDarkTheme();
-
-	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-		persistDarkTheme(e.matches);
-		setDarkTheme();
-	});
+	theme.change(localStore.getSettings.theme);
 });
 
 // Functions
-
-function persistDarkTheme(isDark) {
-	const set = settings.value;
-	set.dark = isDark;
-	settings.value = set;
-}
-
-function setDarkTheme() {
-	// Create new settings object if necessary
-	if (settings.value.dark === null) {
-		persistDarkTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
-	}
-
-	theme.change(settings.value.dark ? 'dark' : 'light');
-}
-
 // CheckSessionExpiration removes the stored session if it expired
 function checkSessionExpiration() {
 	if (!localStore.getSession?.expires_at) {

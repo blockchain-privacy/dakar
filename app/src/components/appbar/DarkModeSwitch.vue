@@ -1,18 +1,32 @@
 <template>
-  <!-- @click.stop so event does not bubble to parent component -->
-  <v-switch
-    v-model="darkModeEnabled"
-    inset
-    density="compact"
-    hide-details
-    :true-icon="mdiWeatherNight"
-    :false-icon="mdiWeatherSunny"
-    @click.stop="darkModeChange(!darkModeEnabled)"
-  />
+  <v-btn-toggle
+    v-model="themeModel"
+    color="primary"
+    mandatory
+    variant="plain"
+    density="comfortable"
+    @click.stop="handleThemeChange(themeModel)"
+  >
+    <v-btn
+      v-tooltip="{'text': 'Light Theme', 'location':'top', 'open-delay': 400}"
+      :icon="mdiWeatherSunny"
+      value="light"
+    />
+    <v-btn
+      v-tooltip="{'text': 'Dark Theme', 'location':'top', 'open-delay': 400}"
+      :icon="mdiWeatherNight"
+      value="dark"
+    />
+    <v-btn
+      v-tooltip="{'text': 'System Theme', 'location':'top', 'open-delay': 400}"
+      :icon="mdiThemeLightDark"
+      value="system"
+    />
+  </v-btn-toggle>
 </template>
 
 <script setup>
-import {mdiWeatherNight, mdiWeatherSunny} from '@mdi/js';
+import {mdiThemeLightDark, mdiWeatherNight, mdiWeatherSunny} from '@mdi/js';
 import {onBeforeMount, ref} from 'vue';
 import {useTheme} from 'vuetify';
 import {useLocalStore} from '@/pinia/local';
@@ -20,21 +34,20 @@ import {useLocalStore} from '@/pinia/local';
 const localStore = useLocalStore();
 const theme = useTheme();
 
-const darkModeEnabled = ref(false);
+const themeModel = ref('system');
 
 // Hooks
 onBeforeMount(() => {
-	darkModeEnabled.value = localStore.getSettings.dark;
+	themeModel.value = localStore.getSettings.theme;
 });
 
 // Functions
-function darkModeChange(enabled) {
-	darkModeEnabled.value = enabled;
-	theme.change(enabled ? 'dark' : 'light');
+function handleThemeChange(t) {
+	theme.change(t);
 
 	// Persist dark theme
 	const set = localStore.getSettings;
-	set.dark = enabled;
+	set.theme = t;
 	localStore.setSettings(set);
 }
 
