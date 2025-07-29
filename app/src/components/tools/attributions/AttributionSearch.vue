@@ -27,6 +27,8 @@
           <div class="d-flex justify-center">
             <attribution-details
               :attribution="attribution"
+              :blockchain-mode="blockchainMode"
+              :title="title"
               @deleted="handleAttributionDeletion"
             />
           </div>

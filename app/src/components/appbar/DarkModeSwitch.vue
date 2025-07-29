@@ -30,7 +30,7 @@ onBeforeMount(() => {
 // Functions
 function darkModeChange(enabled) {
 	darkModeEnabled.value = enabled;
-	theme.global.name.value = enabled ? 'dark' : 'light';
+	theme.change(enabled ? 'dark' : 'light');
 
 	// Persist dark theme
 	const set = localStore.getSettings;

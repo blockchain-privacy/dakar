@@ -523,10 +523,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.20.11":
-  version: 1.20.11
-  resolution: "@ory/client-fetch@npm:1.20.11"
-  checksum: 10c0/ce8013cfb968408c64fd0b83d7aa2b6cbccc7ce9079736130c946b0a22b371ec19193647eff2f67af3a90f94d358bd2387ff63956f120c00dbf5f3c14a73e2ce
+"@ory/client-fetch@npm:^1.20.22":
+  version: 1.20.22
+  resolution: "@ory/client-fetch@npm:1.20.22"
+  checksum: 10c0/d4b691420bf3bb4b2bbc25b0dd1da56f76ffc9e60b66f956416d320b4a35233efccf3cc7dd60dde16f5f4c3906cb961081ff98d8d768344cba959a552dc6d8d1
   languageName: node
   linkType: hard
 
@@ -1734,7 +1734,7 @@ __metadata:
     "@mdi/js": "npm:^7.4.47"
     "@neondark/kratosadmin": "npm:^0.0.37"
     "@neondark/wikiapi": "npm:^1.2.58"
-    "@ory/client-fetch": "npm:^1.20.11"
+    "@ory/client-fetch": "npm:^1.20.22"
     "@vitejs/plugin-vue": "npm:^6.0.0"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
