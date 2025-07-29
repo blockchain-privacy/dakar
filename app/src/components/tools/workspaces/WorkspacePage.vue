@@ -96,6 +96,11 @@
         </div>
       </template>
     </v-data-table>
+    <v-progress-linear
+      v-else-if="isLoading"
+      class="ma-5"
+      indeterminate
+    />
     <div
       v-else
       class="d-flex justify-center"
