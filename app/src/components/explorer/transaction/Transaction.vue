@@ -283,6 +283,7 @@
           value="inputs"
         >
           <v-infinite-scroll
+            ref="inputScroll"
             margin="100"
             @load="showMoreInputs"
           >
@@ -321,7 +322,7 @@
           value="outputs"
         >
           <v-infinite-scroll
-            :key="infiteScrollKey"
+            ref="outputScroll"
             margin="100"
             @load="showMoreOutputs"
           >
@@ -414,11 +415,14 @@ const componentID = useId();
 const route = useRoute();
 const {highlightWasabi2Denominations} = storeToRefs(useExplorerStore());
 
+const inputScroll = useTemplateRef('inputScroll');
+const outputScroll = useTemplateRef('outputScroll');
+
 const showTransactionDetails = toRef(props.showDetails);
 
 let svgInputGraph = null;
 let svgOutputGraph = null;
-let infiteScrollKey = 0;
+
 const colorMap = getColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
@@ -504,15 +508,16 @@ watch(allInputs, newVal => {
 });
 
 watch(() => props.filterHighlightedOutputs, () => {
-	resetInfiniteScroll();
+	inputScroll.value?.reset();
+	outputScroll.value?.reset();
 });
 
 watch(() => inputSortAndFilterModel.value, () => {
-	resetInfiniteScroll();
+	inputScroll.value?.reset();
 });
 
 watch(() => outputSortAndFilterModel.value, () => {
-	resetInfiniteScroll();
+	outputScroll.value?.reset();
 });
 
 // Functions
@@ -599,18 +604,6 @@ function getTransactionFilter(outputs) {
 	});
 
 	return [...filteredColorMap].map(d => ({text: d[0], color: d[1]}));
-}
-
-// When filtering the outputs, the infinite scroll would normaly send 'empty'.
-// Once in that state it can not be reset. So switchting back to unfiltered outputs,
-// the infinite scroll would not work anymore.
-// As a workaround set the 'key' property on the output infinite scroll and change it to simulate a reset
-// eslint-disable-next-line no-warning-comments
-// todo: once https://github.com/vuetifyjs/vuetify/pull/20637 is merged, remove workaround and use reset method:
-// - remove key property from inifite scroll
-// - replace resetInfiniteScroll() with new reset function
-function resetInfiniteScroll() {
-	infiteScrollKey += 1;
 }
 
 function updateInputGraph() {
