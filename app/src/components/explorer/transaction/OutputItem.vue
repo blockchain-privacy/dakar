@@ -19,7 +19,7 @@
               v-else
               style="min-width: 200px"
             >
-              No Address available
+              No address available
             </div>
             <div
               :class="{'text-no-wrap':true, 'ms-1':true, 'pt-1':true, 'amount':true, 'px-1':true,

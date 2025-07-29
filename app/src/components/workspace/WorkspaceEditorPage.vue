@@ -177,14 +177,12 @@
                 >
                   <v-icon :icon="item.icon" />
                 </template>
-                <div class="d-flex align-center pa-2 justify-space-between">
+                <div class="d-flex align-center justify-space-between">
                   <v-list-item-title>{{ item.title }}</v-list-item-title>
-                  <div
+                  <v-hotkey
                     v-if="item.shortcut"
-                    class="kbb ms-2"
-                  >
-                    {{ item.shortcut }}
-                  </div>
+                    :keys="item.shortcut"
+                  />
                 </div>
               </v-list-item>
             </template>
@@ -249,6 +247,8 @@ import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSid
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
+import {VHotkey} from 'vuetify/labs/VHotkey';
+import {useHotkey} from 'vuetify/framework';
 
 const route = useRoute();
 const msgStore = useMsgStore();
@@ -355,7 +355,7 @@ const nodeActions = ref([
 		icon: mdiDelete,
 		action: removeContextNode,
 		disabled: () => isModifyingWorkspace.value || !isDeleteEnabled(nodeGraph.getContextNode()),
-		shortcut: 'DEL',
+		shortcut: 'delete',
 	},
 ]);
 
@@ -429,7 +429,8 @@ onMounted(async () => {
 	workspaceStore.setWorkspaceActive(true);
 	await whenMounted();
 	document.addEventListener('visibilitychange', onDocumentClose);
-	document.addEventListener('keydown', handleKeyPress, false);
+
+	useHotkey('delete', handleMenuDeleteSelected);
 });
 
 onUnmounted(() => {
@@ -444,7 +445,6 @@ onUnmounted(() => {
 	selectorTimers.forEach(d => clearTimeout(d));
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
-	document.removeEventListener('keydown', handleKeyPress);
 	workspaceStore.setWorkspaceActive(false);
 });
 
@@ -1218,15 +1218,6 @@ function acceptsChild(node) {
 	}
 
 	return node.selectorStatus && node.selectorStatus === SELECTOR_STATUS_SUCCESS;
-}
-
-function handleKeyPress(e) {
-	// Don't trigger delete event when editing an <input /> element such as text boxes
-	if (e.target instanceof HTMLInputElement || e.key !== 'Delete') {
-		return;
-	}
-
-	handleMenuDeleteSelected();
 }
 
 </script>
