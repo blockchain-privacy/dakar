@@ -27,57 +27,19 @@
       />
     </template>
     <template v-if="!isLoading">
-      <template v-if="!query && !hideHistory && getSearchHistory.length > 0">
-        <v-list>
-          <v-list-item
-            v-for="(item, index) in getSearchHistory"
-            :key="index"
-            @click="handleResultItemClick(item)"
-          >
-            <template #prepend>
-              <v-icon
-                :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
-                :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
-              />
-            </template>
-            <template #append>
-              <v-chip v-if="getResultType(item.type)">
-                {{ getResultType(item.type) }}
-              </v-chip>
-            </template>
-            <div class="shorten">
-              {{ item.title }}
-            </div>
-          </v-list-item>
-        </v-list>
-      </template>
+      <query-input-results
+        v-if="!query && !hideHistory && getSearchHistory.length > 0"
+        :items="getSearchHistory"
+        @item-clicked="handleResultItemClick"
+      />
       <v-list v-else-if="resultItems.empty">
         <v-list-item title="No results" />
       </v-list>
-      <v-list
+      <query-input-results
         v-else-if="resultItems.length > 0"
-      >
-        <v-list-item
-          v-for="(item, index) in resultItems"
-          :key="index"
-          @click="handleResultItemClick(item)"
-        >
-          <template #prepend>
-            <v-icon
-              :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
-              :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
-            />
-          </template>
-          <template #append>
-            <v-chip v-if="getResultType(item.type)">
-              {{ getResultType(item.type) }}
-            </v-chip>
-          </template>
-          <div class="shorten">
-            {{ item.title }}
-          </div>
-        </v-list-item>
-      </v-list>
+        :items="resultItems"
+        @item-clicked="handleResultItemClick"
+      />
     </template>
   </v-menu>
 </template>
@@ -94,6 +56,7 @@ import {useMsgStore} from '@/pinia/msg.js';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
 import {mdiMagnify} from '@mdi/js';
+import QueryInputResults from '@/components/common/QueryInputResults.vue';
 
 const localStore = useLocalStore();
 const {getSearchHistory} = storeToRefs(localStore);
@@ -222,16 +185,6 @@ function getResultNavigation(item) {
 		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.title, blockchainMode: item.mode}};
 		default:
 			return {};
-	}
-}
-
-function getResultType(type) {
-	switch (type) {
-		case 'tx': return 'Transaction';
-		case 'block': return 'Block';
-		case 'addr': return 'Address';
-		default:
-			return '';
 	}
 }
 
