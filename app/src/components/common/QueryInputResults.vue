@@ -1,5 +1,5 @@
 <template>
-  <v-list>
+  <v-list min-width="270px">
     <v-list-item
       v-for="(item, index) in items"
       :key="index"
