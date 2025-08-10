@@ -111,7 +111,7 @@
 
 <script setup>
 import {
-	mdiAccount, mdiAccountCircle, mdiBrightness4, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiPalette, mdiThemeLightDark,
+	mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiPalette,
 } from '@mdi/js';
 import PageMenu from './PageMenu.vue';
 import QueryInput from '../common/QueryInput.vue';
