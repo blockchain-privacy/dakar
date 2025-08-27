@@ -57,9 +57,8 @@
       class="mt-5 mb-15"
     />
     <p class="text-h5 mb-5">
-      User sessions
+      Sessions
     </p>
-
     <v-data-table
       v-model:sort-by="userSessionSortBy"
       class="mb-10"

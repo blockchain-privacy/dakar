@@ -79,6 +79,9 @@ export default createVuetify({
 		VRadioGroup: {
 			color: 'primary',
 		},
+		VRangeSlider: {
+			color: 'primary',
+		},
 		VCheckbox: {
 			color: 'primary',
 		},
