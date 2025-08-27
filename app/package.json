@@ -16,7 +16,7 @@
     "@mdi/js": "^7.4.47",
     "@neondark/kratosadmin": "^0.0.39",
     "@neondark/wikiapi": "^1.2.58",
-    "@ory/client-fetch": "^1.21.0",
+    "@ory/client-fetch": "^1.21.1",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -29,10 +29,10 @@
     "pinia": "^3.0.3",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1",
-    "vuetify": "^3.9.2"
+    "vuetify": "^3.9.3"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitejs/plugin-vue": "^6.0.1",
     "eslint": "^9.32.0",
     "eslint-config-xo": "^0.48.0",
     "eslint-plugin-vue": "^10.3.0",
