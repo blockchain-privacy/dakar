@@ -10,13 +10,14 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
-	"github.com/qrest/gomisc/serror"
 	"io"
 	"os"
 	"slices"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph.ReversibleGraph,
@@ -32,7 +33,7 @@ func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph
 		return
 	}
 
-	recoveredData, err := tryRecoverFromFile(fileName, 20)
+	recoveredData, err := tryRecoverFromFile(fileName, 22)
 	if err != nil {
 		warn(err)
 		return
