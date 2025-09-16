@@ -71,44 +71,42 @@
       />
     </template>
     <template #body>
-      <fade-transition>
-        <v-skeleton-loader
-          v-if="isLoading"
-          class="mx-auto"
-          width="600px"
-          type="list-item-three-line, list-item-three-line, list-item-three-line"
-        />
-        <template v-else>
-          <div v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length">
-            <!-- duplicate transaction hashes can exist -> loop through all results
+      <v-skeleton-loader
+        v-if="isLoading"
+        class="mx-auto"
+        width="600px"
+        type="list-item-three-line, list-item-three-line, list-item-three-line"
+      />
+      <template v-else>
+        <div v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData?.length">
+          <!-- duplicate transaction hashes can exist -> loop through all results
             (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
-            <template
-              v-for="t in entityData"
-              :key="t.txhash+t.bid"
-            >
-              <transaction
-                :tx="t"
-                :show-heuristic-editor-link="false"
-                show-fingerprint-link
-                show-details
-                :embed="false"
-              />
-            </template>
-          </div>
-          <address-view
-            v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
-            :address-data="entityData"
-          />
-          <selector-details
-            v-else-if="isHeuristic || isTxProp || isTxGraph"
-            :selector-type="auxiliaryData.selectorType"
-            :selector-data="entityData"
-          />
-          <div v-else>
-            Type not recognized
-          </div>
-        </template>
-      </fade-transition>
+          <template
+            v-for="t in entityData"
+            :key="t.txhash+t.bid"
+          >
+            <transaction
+              :tx="t"
+              :show-heuristic-editor-link="false"
+              show-fingerprint-link
+              show-details
+              :embed="false"
+            />
+          </template>
+        </div>
+        <address-view
+          v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData"
+          :address-data="entityData"
+        />
+        <selector-details
+          v-else-if="isHeuristic || isTxProp || isTxGraph"
+          :selector-type="auxiliaryData.selectorType"
+          :selector-data="entityData"
+        />
+        <div v-else>
+          Type not recognized
+        </div>
+      </template>
     </template>
   </side-bar>
 </template>
@@ -124,13 +122,14 @@ import {
 	mdiTransfer,
 } from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
-import {computed, onUpdated, ref} from 'vue';
+import {
+	computed, onUpdated, ref, watch,
+} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
-import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import {getCurrentDate, getDakarClient, isDestination} from '@/utilities/index.js';
@@ -200,8 +199,19 @@ const isTxProp = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
 	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_PROP);
 const isTxGraph = computed(() => props.type === WORKSPACE_NODE_TYPE_SELECTOR
 	&& props.auxiliaryData.selectorType === SELECTOR_TYPE_TX_GRAPH);
+
+// Watchers
+
+watch(() => props.identifier, async () => {
+	await updateEntityData();
+});
+
 // Hooks
 onUpdated(async () => {
+	await updateEntityData();
+});
+
+async function updateEntityData() {
 	if (props.identifier && props.identifier !== oldIdentifier) {
 		workspaceStore.workspaceNodes.clear();
 		isLoading.value = true;
@@ -223,7 +233,7 @@ onUpdated(async () => {
 
 		isLoading.value = false;
 	}
-});
+}
 
 // Computed
 const sideBarIcon = computed(() => {
