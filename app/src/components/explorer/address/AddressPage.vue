@@ -11,18 +11,16 @@
         lg="9"
         xl="8"
       >
-        <fade-transition>
-          <address-view
-            v-if="address"
-            :address-data="address"
-            show-title-bar
-            show-mode
-          />
-          <v-skeleton-loader
-            v-else
-            type="list-item-three-line, list-item-three-line, list-item-three-line"
-          />
-        </fade-transition>
+        <address-view
+          v-if="address"
+          :address-data="address"
+          show-title-bar
+          show-mode
+        />
+        <v-skeleton-loader
+          v-else
+          type="list-item-three-line, list-item-three-line, list-item-three-line"
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -32,7 +30,6 @@
 import {PAGE_TITLE, ROUTE_NAME_404_PAGE} from '@/constants';
 import {onMounted, ref, watch} from 'vue';
 import AddressView from '@/components/explorer/address/Address.vue';
-import FadeTransition from '@/components/common/FadeTransition.vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg.js';
 import {getDakarClients, handleError} from '@/utilities/index.js';

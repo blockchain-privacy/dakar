@@ -11,125 +11,123 @@
         lg="10"
         xl="8"
       >
-        <fade-transition>
-          <div v-if="block">
-            <v-row>
-              <v-col>
-                <v-card variant="text">
-                  <icon-title
-                    :title="`Block ${block.blockhash}`"
-                    :icon="mdiCubeOutline"
-                  >
-                    <mode-chip :blockchain-mode="route.params.blockchainMode" />
-                  </icon-title>
-                  <v-card-text>
-                    <v-row>
-                      <v-col
-                        v-if="block.id"
-                        cols="12"
-                        sm="6"
-                      >
-                        <icon-item
-                          :icon="mdiFormatListNumbered"
-                          title="Block Height"
-                        >
-                          {{ block.id.toLocaleString() }}
-                        </icon-item>
-                      </v-col>
-                      <v-col v-if="block.ts">
-                        <icon-item
-                          :icon="mdiCalendar"
-                          title="Timestamp"
-                        >
-                          {{ block.ts != null ? new Date(block.ts).toLocaleString() : "" }}
-                        </icon-item>
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col
-                        v-if="block.prevblockhash"
-                        cols="12"
-                        sm="6"
-                      >
-                        <icon-item
-                          :icon="mdiFormatHeaderPound"
-                          title="Previous Block"
-                        >
-                          <router-link
-                            id="block-page-previous-block"
-                            :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.prevblockhash, blockchainMode: route.params.blockchainMode }}"
-                          >
-                            {{ shortenHash(block.prevblockhash) }}
-                          </router-link>
-                        </icon-item>
-                      </v-col>
-                      <v-col v-if="block.nextblockhash">
-                        <icon-item
-                          :icon="mdiFormatHeaderPound"
-                          title="Next Block"
-                        >
-                          <router-link
-                            id="block-page-next-block"
-                            :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: block.nextblockhash, blockchainMode: route.params.blockchainMode }}"
-                          >
-                            {{ shortenHash(block.nextblockhash) }}
-                          </router-link>
-                        </icon-item>
-                      </v-col>
-                    </v-row>
-                    <v-row v-if="block.txcount">
-                      <v-col>
-                        <icon-item
-                          :icon="mdiPound"
-                          title="Number of Transactions"
-                        >
-                          {{ block.txcount.toLocaleString() }}
-                        </icon-item>
-                      </v-col>
-                    </v-row>
-                  </v-card-text>
-                </v-card>
-              </v-col>
-              <template v-if="block.transactions">
-                <v-container class="pa-0">
-                  <v-infinite-scroll @load="addNewData">
-                    <template
-                      v-for="tx in block.transactions"
-                      :key="tx.txhash+tx.bid"
+        <div v-if="block">
+          <v-row>
+            <v-col>
+              <v-card variant="text">
+                <icon-title
+                  :title="`Block ${block.blockhash}`"
+                  :icon="mdiCubeOutline"
+                >
+                  <mode-chip :blockchain-mode="route.params.blockchainMode" />
+                </icon-title>
+                <v-card-text>
+                  <v-row>
+                    <v-col
+                      v-if="block.id"
+                      cols="12"
+                      sm="6"
                     >
-                      <v-col class="px-1">
-                        <transaction
-                          :tx="tx"
-                          show-title-link
-                          :show-heuristic-editor-link="isPrivilegedOrHigher"
-                          :show-fingerprint-link="isPrivilegedOrHigher"
-                          show-title-bar
-                          embed
-                        />
-                      </v-col>
-                    </template>
-                    <template #empty>
-                      <p class="text-overline text-grey">
-                        End of transaction list reached
-                      </p>
-                    </template>
-                    <template #error>
-                      <p class="text-h5 text-red">
-                        Error fetching new transactions
-                      </p>
-                    </template>
-                  </v-infinite-scroll>
-                </v-container>
-              </template>
-            </v-row>
-          </div>
-          <v-skeleton-loader
-            v-else
-            type="list-item-three-line, list-item-three-line, list-item-three-line"
-          />
-        </fade-transition>
+                      <icon-item
+                        :icon="mdiFormatListNumbered"
+                        title="Block Height"
+                      >
+                        {{ block.id.toLocaleString() }}
+                      </icon-item>
+                    </v-col>
+                    <v-col v-if="block.ts">
+                      <icon-item
+                        :icon="mdiCalendar"
+                        title="Timestamp"
+                      >
+                        {{ block.ts != null ? new Date(block.ts).toLocaleString() : "" }}
+                      </icon-item>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col
+                      v-if="block.prevblockhash"
+                      cols="12"
+                      sm="6"
+                    >
+                      <icon-item
+                        :icon="mdiFormatHeaderPound"
+                        title="Previous Block"
+                      >
+                        <router-link
+                          id="block-page-previous-block"
+                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
+                                 params: { id: block.prevblockhash, blockchainMode: route.params.blockchainMode }}"
+                        >
+                          {{ shortenHash(block.prevblockhash) }}
+                        </router-link>
+                      </icon-item>
+                    </v-col>
+                    <v-col v-if="block.nextblockhash">
+                      <icon-item
+                        :icon="mdiFormatHeaderPound"
+                        title="Next Block"
+                      >
+                        <router-link
+                          id="block-page-next-block"
+                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
+                                 params: { id: block.nextblockhash, blockchainMode: route.params.blockchainMode }}"
+                        >
+                          {{ shortenHash(block.nextblockhash) }}
+                        </router-link>
+                      </icon-item>
+                    </v-col>
+                  </v-row>
+                  <v-row v-if="block.txcount">
+                    <v-col>
+                      <icon-item
+                        :icon="mdiPound"
+                        title="Number of Transactions"
+                      >
+                        {{ block.txcount.toLocaleString() }}
+                      </icon-item>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <template v-if="block.transactions">
+              <v-container class="pa-0">
+                <v-infinite-scroll @load="addNewData">
+                  <template
+                    v-for="tx in block.transactions"
+                    :key="tx.txhash+tx.bid"
+                  >
+                    <v-col class="px-1">
+                      <transaction
+                        :tx="tx"
+                        show-title-link
+                        :show-heuristic-editor-link="isPrivilegedOrHigher"
+                        :show-fingerprint-link="isPrivilegedOrHigher"
+                        show-title-bar
+                        embed
+                      />
+                    </v-col>
+                  </template>
+                  <template #empty>
+                    <p class="text-overline text-grey">
+                      End of transaction list reached
+                    </p>
+                  </template>
+                  <template #error>
+                    <p class="text-h5 text-red">
+                      Error fetching new transactions
+                    </p>
+                  </template>
+                </v-infinite-scroll>
+              </v-container>
+            </template>
+          </v-row>
+        </div>
+        <v-skeleton-loader
+          v-else
+          type="list-item-three-line, list-item-three-line, list-item-three-line"
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -147,7 +145,6 @@ import {
 import {PAGE_TITLE, ROUTE_NAME_404_PAGE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from '../common/IconItem.vue';
 import Transaction from './transaction/Transaction.vue';
-import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {
 	computed, onMounted, ref, watch,
