@@ -1,9 +1,12 @@
 <template>
+  <!--disable-initial-focus is a workaround for https://github.com/vuetifyjs/vuetify/issues/21775 -->
+  <!--todo: remove workaround when https://github.com/vuetifyjs/vuetify/pull/22044 is merged -->
   <v-menu
     :open-on-click="false"
     open-on-focus
     scroll-strategy="none"
     max-width="0"
+    disable-initial-focus
   >
     <template #activator="{props}">
       <v-text-field
