@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package cliutil
 
 // GetOneKey returns an indeterminate key of the given map. If the map is empty, an empty key will be returned
