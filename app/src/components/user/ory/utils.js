@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // GetNodeName returns either the name or id of the given node.
 // If neither are available returns a string containing a random number.
 export function getNodeName(node) {
