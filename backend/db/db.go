@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v250"
-	"github.com/qrest/gomisc/serror"
 	"log"
 	"log/slog"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/qrest/gomisc/serror"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/stretchr/testify/require"
@@ -91,7 +92,7 @@ func WithRetry(f func() error, retryDuration time.Duration) error {
 	}
 
 	if encounteredError && err == nil {
-		info("retryed transaction was successful")
+		info("retried transaction was successful")
 	}
 
 	return err
@@ -202,7 +203,7 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 	defer cancel()
 
 	// reset db
-	require.NoError(t, database.DropAllNamespaces(ctx))
+	require.NoError(t, database.DropAll(ctx))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))
@@ -237,7 +238,7 @@ func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 	// reset db
-	require.NoError(t, database.DropAllNamespaces(ctx))
+	require.NoError(t, database.DropAll(ctx))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))

@@ -5,12 +5,13 @@ import (
 	"backend/jsonrpc"
 	"context"
 	_ "embed"
-	"github.com/dgraph-io/dgo/v250"
-	"github.com/dgraph-io/dgo/v250/protos/api"
 	"log"
 	"os"
 	"sync/atomic"
 	"testing"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 )
 
 type ContainerName string
@@ -79,22 +80,22 @@ func (t *TestDB) Close() {
 	t.DB.Close()
 }
 
-// DropAllNamespaces removes all data including schemas of all namespaces
-func (t *TestDB) DropAllNamespaces(ctx context.Context) error {
+// DropAll resets the database
+func (t *TestDB) DropAll(ctx context.Context) error {
 	t.IsDirty.Store(true)
-	return t.DB.DropAllNamespaces(ctx)
+	return t.DB.DropAll(ctx)
 }
 
 // DropPredicate dops the predicate of the specified namespace
-func (t *TestDB) DropPredicate(ctx context.Context, nsName, predicate string) error {
+func (t *TestDB) DropPredicate(ctx context.Context, predicate string) error {
 	t.IsDirty.Store(true)
-	return t.DB.DropPredicate(ctx, nsName, predicate)
+	return t.DB.DropPredicate(ctx, predicate)
 }
 
 // SetSchema sets the schema of the specified namespace
-func (t *TestDB) SetSchema(ctx context.Context, nsName string, schema string) error {
+func (t *TestDB) SetSchema(ctx context.Context, schema string) error {
 	t.IsDirty.Store(true)
-	return t.DB.SetSchema(ctx, nsName, schema)
+	return t.DB.SetSchema(ctx, schema)
 }
 
 func DoDBTests() bool {

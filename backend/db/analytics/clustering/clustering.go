@@ -4,15 +4,15 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-	"github.com/dgraph-io/dgo/v250"
-	"github.com/qrest/gomisc/serror"
-
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/dgo/v250/protos/api"
 	"log"
 	"strconv"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
+	"github.com/qrest/gomisc/serror"
 )
 
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
@@ -799,57 +799,6 @@ func GetClusterAddressCount(ctx context.Context, c external.Database,
 	addressCount = r.Count[0].Count
 
 	return
-}
-
-// DeleteAllFMIClusters deletes all flat multi-input clusters of a given user
-func DeleteAllFMIClusters(ctx context.Context, c external.Database) error {
-	const query = `{
-				 q(func: eq(Cluster.type, "fmi")){
-					count(uid)
-				  }
-				}`
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
-	if err != nil {
-		return err
-	}
-
-	var r struct {
-		Count []struct {
-			Count int64 `json:"count,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return err
-	}
-
-	deletionRounds := r.Count[0].Count / 10000
-	for range deletionRounds + 1 {
-		err := deleteTenThousandFMIClusters(ctx, c)
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) error {
-	req := &api.Request{
-		Query: `{
-				var(func:eq(Cluster.type, "fmi"), first: 10000){
-					c as uid
-				}
-			  }`,
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(c) * * ."),
-		}},
-		CommitNow: true,
-	}
-
-	return db.MutationWithRetry(ctx, c, req)
 }
 
 func SetClusterTransactions(ctx context.Context, c external.Database, clusterToTransaction map[string]string) error {

@@ -3,9 +3,10 @@ package external
 import (
 	"backend/jsonrpc"
 	"context"
+	"time"
+
 	"github.com/dgraph-io/dgo/v250"
 	"github.com/dgraph-io/dgo/v250/protos/api"
-	"time"
 )
 
 // This package defines interfaces for external dependencies,
@@ -42,10 +43,10 @@ type Database interface {
 	NewTxn() *dgo.Txn
 	// Close shutdown down all the connections to the Dgraph Cluster.
 	Close()
-	// DropAllNamespaces removes all data including schemas of all namespaces
-	DropAllNamespaces(ctx context.Context) error
+	// DropAll resets the database
+	DropAll(ctx context.Context) error
 	// DropPredicate dops the predicate of the specified namespace
-	DropPredicate(ctx context.Context, nsName, predicate string) error
+	DropPredicate(ctx context.Context, predicate string) error
 	// SetSchema sets the schema of the specified namespace
-	SetSchema(ctx context.Context, nsName string, schema string) error
+	SetSchema(ctx context.Context, schema string) error
 }

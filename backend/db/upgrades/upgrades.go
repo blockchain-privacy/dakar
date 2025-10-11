@@ -7,10 +7,11 @@ import (
 	"backend/db/status"
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"reflect"
 	"runtime"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 // availableUpgrades contains all available schema upgrades.

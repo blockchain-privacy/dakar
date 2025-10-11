@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/qrest/gomisc/serror"
-	"strconv"
 )
 
 // ErrAddressNotFound is returned if no address has been found
