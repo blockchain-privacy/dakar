@@ -3,8 +3,9 @@ package status
 import (
 	"backend/db"
 	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var dbHandle = &testhelper.TestDB{}
@@ -19,7 +20,7 @@ func TestGetCrawlerStatus(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
+	require.NoError(t, dbHandle.DropAll(ctx))
 
 	// crawler status not yet set
 	_, err := GetCrawlerStatus(ctx, dbHandle)
@@ -48,7 +49,7 @@ func TestGetClassifierStatus(t *testing.T) {
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
+	require.NoError(t, dbHandle.DropAll(ctx))
 
 	// classifier status not yet set
 	_, err := GetClassifierStatus(ctx, dbHandle)
@@ -78,7 +79,7 @@ func TestGetClusteringHMIStatus(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
+	require.NoError(t, dbHandle.DropAll(ctx))
 	// clustering status not yet set
 	_, err := GetClusteringHMIStatus(ctx, dbHandle)
 	require.Error(t, err)
@@ -107,7 +108,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
+	require.NoError(t, dbHandle.DropAll(ctx))
 	// clustering status not yet set
 	_, err := GetClusteringFMIStatus(ctx, dbHandle)
 	require.Error(t, err)
@@ -148,7 +149,7 @@ func TestGetFrontendStatus(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
+	require.NoError(t, dbHandle.DropAll(ctx))
 	// should not fail even if no status is set at all
 	status, err := GetFrontendStatus(ctx, dbHandle)
 	require.NoError(t, err)
@@ -175,7 +176,7 @@ func TestGetMeta(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAllNamespaces(ctx))
+	require.NoError(t, dbHandle.DropAll(ctx))
 
 	// nothing set yet -> should fail
 	_, err := GetMeta(ctx, dbHandle)
