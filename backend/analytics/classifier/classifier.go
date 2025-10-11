@@ -7,6 +7,7 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/serror"
 )
@@ -147,11 +148,7 @@ func (c *Classifier) Next(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if status.LastBlockID == nil {
-		return false, serror.FromStr("last crawled block is not set")
-	}
-
-	if c.state.ID <= *status.LastBlockID {
+	if status.LastBlockID != nil && c.state.ID <= *status.LastBlockID {
 		c.state.Top = *status.LastBlockID
 		return true, nil
 	}
