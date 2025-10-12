@@ -104,7 +104,6 @@ func RunRPCTests(m *testing.M, client *jsonrpc.BlockchainClient) {
 		if err != nil {
 			log.Panic(err)
 		}
-
 	}
 
 	m.Run()
