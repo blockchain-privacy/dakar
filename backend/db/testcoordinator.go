@@ -61,7 +61,6 @@ func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) e
 	nsID, err := c.dbConnection.CreateNamespace(t.Context())
 	if err != nil {
 		t.Fatal(err)
-
 	}
 
 	t.Cleanup(func() {
