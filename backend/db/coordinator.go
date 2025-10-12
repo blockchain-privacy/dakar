@@ -42,10 +42,10 @@ func GetTestCoordinator() *TestCoordinator {
 	return singletonCoordinator
 }
 
-// GetDBConnection returns a database connection. This may be a connection
-// to a newly created db namespace or a reused one.
-// If an empty string is passed, a database connection with no data will be returned.
-func GetDBConnection(fileKey string) external.Database {
+// GetDBConnectionWithOptions returns a database connection to a new namespace.
+// If setContent is true, the database schema will be set and filled based on fileKey.
+// If fileKey is empty, a database connection with no data will be returned.
+func GetDBConnectionWithOptions(setContent bool, fileKey string) external.Database {
 	c := GetTestCoordinator()
 
 	ctx, cancel := GetTaskContext()
@@ -70,38 +70,22 @@ func GetDBConnection(fileKey string) external.Database {
 		return nil
 	}
 
-	ChangeDBContent(graphDB, fileKey)
+	if setContent {
+		ChangeDBContent(graphDB, fileKey)
+	}
 
 	return graphDB
 }
 
+// GetDBConnection returns a database connection to a new namespace.
+// If fileKey is empty, a database connection with no data will be returned.
+func GetDBConnection(fileKey string) external.Database {
+	return GetDBConnectionWithOptions(true, fileKey)
+}
+
 // GetBareDBConnection returns a database connection with no data and no schema set.
 func GetBareDBConnection() external.Database {
-	c := GetTestCoordinator()
-
-	ctx, cancel := GetTaskContext()
-	defer cancel()
-
-	// if no reusable namespace is available, then we need to create new namespace
-	// create dgraph client
-	nsID, err := c.dbConnection.CreateNamespace(ctx)
-	if err != nil {
-		log.Panic(err)
-		return nil
-	}
-
-	graphDB, err := external.CreateClient(ctx, c.dbHostname+":9080", nsID)
-	if err != nil {
-		log.Panic(err)
-		return nil
-	}
-
-	if !external.WaitForDatabase(graphDB) {
-		log.Panic("Could not connect to database", err)
-		return nil
-	}
-
-	return graphDB
+	return GetDBConnectionWithOptions(false, "")
 }
 
 func ChangeDBContent(dbHandle external.Database, fileKey string) {
