@@ -55,9 +55,7 @@ test:
         - '-c'
         - |
           echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /acl_secret
-        - '/run.sh'
-      command:
-        - /run.sh
+          /run.sh
       variables:
         DGRAPH_ALPHA_ACL: secret-file=/acl_secret
     - name: lncm/bitcoind:$BITCOIND_VERSION
