@@ -63,18 +63,20 @@ func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) e
 		t.Fatal(err)
 	}
 
+	graphDB, err := external.CreateClient(t.Context(), c.dbHostname+":9080", nsID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Cleanup(func() {
+		graphDB.Close()
+
 		ctx, cancel := GetTaskContext()
 		defer cancel()
 		if err := c.dbConnection.DropNamespace(ctx, nsID); err != nil {
 			t.Fatal(err)
 		}
 	})
-
-	graphDB, err := external.CreateClient(t.Context(), c.dbHostname+":9080", nsID)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	if !external.WaitForDatabase(graphDB) {
 		t.Fatal("Could not connect to database", err)
