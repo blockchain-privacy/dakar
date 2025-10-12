@@ -100,8 +100,20 @@ func (g *GraphDB) CreateNamespace(ctx context.Context) (uint64, error) {
 	return nsID, nil
 }
 
-// CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(ctx context.Context, endpoint string, namespaceID uint64) (Database, error) {
+// CreateClient creates a new dgraph client connecting to the specified endpoint
+func CreateClient(endpoint string) (Database, error) {
+	dgraphClient, err := dgo.NewClient(endpoint,
+		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
+		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	return &GraphDB{Dgraph: dgraphClient}, nil
+}
+
+// CreateClientWithNamespace create a new dgraph client connecting to the specified endpoint and namespace
+func CreateClientWithNamespace(ctx context.Context, endpoint string, namespaceID uint64) (Database, error) {
 	dgraphClient, err := dgo.NewClient(endpoint,
 		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
 		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))

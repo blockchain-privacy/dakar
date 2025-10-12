@@ -147,9 +147,18 @@ func TestCreateClient(t *testing.T) {
 		t.Fatal("environment variable " + EnvDBHostname + " is not set")
 	}
 
-	ctx, cancel := GetShortTaskContext()
-	defer cancel()
-	d, err := external.CreateClient(ctx, name+":9080", 0)
+	d, err := external.CreateClient(name + ":9080")
+	require.NoError(t, err)
+	defer d.Close()
+}
+
+func TestCreateClientWithNamespace(t *testing.T) {
+	name, ok := GetDBName()
+	if !ok {
+		t.Fatal("environment variable " + EnvDBHostname + " is not set")
+	}
+
+	d, err := external.CreateClientWithNamespace(t.Context(), name+":9080", 0)
 	require.NoError(t, err)
 	defer d.Close()
 }

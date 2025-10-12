@@ -26,7 +26,7 @@ func getTestCoordinator() *TestCoordinator {
 		ctx, cancel := GetShortTaskContext()
 		defer cancel()
 
-		graphDB, err := external.CreateClient(ctx, dbName+":9080", 0)
+		graphDB, err := external.CreateClientWithNamespace(ctx, dbName+":9080", 0)
 		if err != nil {
 			log.Panic(err)
 			return
@@ -63,7 +63,7 @@ func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) e
 		t.Fatal(err)
 	}
 
-	graphDB, err := external.CreateClient(t.Context(), c.dbHostname+":9080", nsID)
+	graphDB, err := external.CreateClientWithNamespace(t.Context(), c.dbHostname+":9080", nsID)
 	if err != nil {
 		t.Fatal(err)
 	}
