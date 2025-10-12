@@ -54,7 +54,7 @@ test:
         - '/bin/sh'
         - '-c'
         - |
-          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > acl_secret
+          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /dgraph/acl/secret
         - '/run.sh'
       command:
         - /run.sh
