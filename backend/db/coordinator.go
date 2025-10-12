@@ -7,10 +7,8 @@ import (
 )
 
 type TestCoordinator struct {
-	namespacesMutex sync.Mutex
-	namespaces      map[uint64]*TestDB
-	dbConnection    external.Database
-	dbHostname      string
+	dbConnection external.Database
+	dbHostname   string
 }
 
 var singletonCoordinator *TestCoordinator
@@ -38,12 +36,7 @@ func GetTestCoordinator() *TestCoordinator {
 			return
 		}
 
-		singletonCoordinator = &TestCoordinator{
-			namespacesMutex: sync.Mutex{},
-			namespaces:      make(map[uint64]*TestDB),
-			dbConnection:    graphDB,
-			dbHostname:      dbName,
-		}
+		singletonCoordinator = &TestCoordinator{dbConnection: graphDB, dbHostname: dbName}
 	})
 
 	return singletonCoordinator
@@ -52,21 +45,8 @@ func GetTestCoordinator() *TestCoordinator {
 // GetDBConnection returns a database connection. This may be a connection
 // to a newly created db namespace or a reused one.
 // If an empty string is passed, a database connection with no data will be returned.
-func GetDBConnection(fileKey string) *TestDB {
+func GetDBConnection(fileKey string) external.Database {
 	c := GetTestCoordinator()
-	c.namespacesMutex.Lock()
-
-	for k, n := range c.namespaces {
-		if !n.IsDirty.Load() && !n.InUse.Load() && n.FileNameKey == fileKey {
-			n.InUse.Store(true)
-			c.namespaces[k] = n
-			c.namespacesMutex.Unlock()
-			info("reusing", fileKey, "namespace", n.NsID)
-			return n
-		}
-	}
-
-	c.namespacesMutex.Unlock()
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -90,16 +70,13 @@ func GetDBConnection(fileKey string) *TestDB {
 		return nil
 	}
 
-	var newTestDb TestDB
-	newTestDb.DB = graphDB
-	newTestDb.NsID = nsID
-	ChangeDBContent(&newTestDb, fileKey)
+	ChangeDBContent(graphDB, fileKey)
 
-	return &newTestDb
+	return graphDB
 }
 
 // GetBareDBConnection returns a database connection with no data and no schema set.
-func GetBareDBConnection() *TestDB {
+func GetBareDBConnection() external.Database {
 	c := GetTestCoordinator()
 
 	ctx, cancel := GetTaskContext()
@@ -124,14 +101,10 @@ func GetBareDBConnection() *TestDB {
 		return nil
 	}
 
-	var newTestDb TestDB
-	newTestDb.DB = graphDB
-	newTestDb.NsID = nsID
-
-	return &newTestDb
+	return graphDB
 }
 
-func ChangeDBContent(dbHandle *TestDB, fileKey string) {
+func ChangeDBContent(dbHandle external.Database, fileKey string) {
 	var fileBytes []byte
 
 	switch fileKey {
@@ -159,12 +132,4 @@ func ChangeDBContent(dbHandle *TestDB, fileKey string) {
 			log.Panic("could not upsert block data", err)
 		}
 	}
-
-	dbHandle.IsDirty.Store(false)
-	dbHandle.InUse.Store(true)
-	dbHandle.FileNameKey = fileKey
-	c := GetTestCoordinator()
-	c.namespacesMutex.Lock()
-	defer c.namespacesMutex.Unlock()
-	c.namespaces[dbHandle.NsID] = dbHandle
 }

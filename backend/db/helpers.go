@@ -1,17 +1,11 @@
 package db
 
 import (
-	"backend/external"
 	"backend/jsonrpc"
-	"context"
 	_ "embed"
 	"log"
 	"os"
-	"sync/atomic"
 	"testing"
-
-	"github.com/dgraph-io/dgo/v250"
-	"github.com/dgraph-io/dgo/v250/protos/api"
 )
 
 type ContainerName string
@@ -54,68 +48,6 @@ var PrivacyFile []byte
 //go:embed testfiles/btc_privacy_transactions.json
 var BTCPrivacyFile []byte
 
-type TestDB struct {
-	DB          external.Database
-	IsDirty     atomic.Bool
-	FileNameKey string
-	InUse       atomic.Bool
-	NsID        uint64
-}
-
-func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
-	t.IsDirty.Store(true)
-	return t.DB.Mutate(ctx, req)
-}
-
-func (t *TestDB) Query(ctx context.Context, q string, vars map[string]string) (*api.Response, error) {
-	return t.DB.Query(ctx, q, vars)
-}
-
-// NewTxn creates a new transaction.
-func (t *TestDB) NewTxn() *dgo.Txn {
-	t.IsDirty.Store(true)
-	return t.DB.NewTxn()
-}
-
-// Close shutdown down all the connections to the Dgraph Cluster.
-func (t *TestDB) Close() {
-	t.DB.Close()
-}
-
-// DropAll resets the database
-func (t *TestDB) DropAll(ctx context.Context) error {
-	t.IsDirty.Store(true)
-	return t.DB.DropAll(ctx)
-}
-
-// DropData drops all data of the database
-func (t *TestDB) DropData(ctx context.Context) error {
-	t.IsDirty.Store(true)
-	return t.DB.DropData(ctx)
-}
-
-// DropNamespace drops all data of the namespace
-func (t *TestDB) DropNamespace(ctx context.Context, nsID uint64) error {
-	t.IsDirty.Store(true)
-	return t.DB.DropNamespace(ctx, nsID)
-}
-
-// DropPredicate dops the predicate of the specified namespace
-func (t *TestDB) DropPredicate(ctx context.Context, predicate string) error {
-	t.IsDirty.Store(true)
-	return t.DB.DropPredicate(ctx, predicate)
-}
-
-// SetSchema sets the schema of the specified namespace
-func (t *TestDB) SetSchema(ctx context.Context, schema string) error {
-	t.IsDirty.Store(true)
-	return t.DB.SetSchema(ctx, schema)
-}
-
-func (t *TestDB) CreateNamespace(ctx context.Context) (uint64, error) {
-	return t.DB.CreateNamespace(ctx)
-}
-
 func DoDBTests() bool {
 	_, ok := os.LookupEnv(EnvDBTests)
 	return ok
@@ -145,43 +77,34 @@ func SkipIfNoRPC(t testing.TB) {
 	}
 }
 
-func setupRPC(client *jsonrpc.BlockchainClient) {
-	rpcHostname, ok := GetRPCName()
-	if !ok {
-		log.Panic("environment variable " + EnvRPCHostname + " is not set")
-		return
-	}
-
-	rpcClient := jsonrpc.NewBlockchainClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
-
-	*client = *rpcClient
-
-	if err := setupRPCTest(client, 5); err != nil {
-		log.Panic("Could not setup RPC test", err)
-		return
-	}
-}
-
-func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
-	// wallet might already exist -> ignore error
-	_, _ = client.CreateWallet("testwallet")
-	// wallet might already be loaded -> ignore error
-	_, _ = client.LoadWallet("testwallet")
-
-	generateToAddress, err := client.GetNewAddress()
-	if err != nil {
-		return err
-	}
-
-	_, err = client.GenerateToAddress(numBlocks, generateToAddress)
-	return err
-}
-
-// RunDgraphAndRPCTests runs all tests.
-// packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphAndRPCTests(m *testing.M, client *jsonrpc.BlockchainClient) {
+// RunRPCTests sets up the RPC client connection and runs all tests
+func RunRPCTests(m *testing.M, client *jsonrpc.BlockchainClient) {
 	if DoRPCTests() {
-		setupRPC(client)
+		rpcHostname, ok := GetRPCName()
+		if !ok {
+			log.Panic("environment variable " + EnvRPCHostname + " is not set")
+			return
+		}
+
+		rpcClient := jsonrpc.NewBlockchainClient(rpcHostname+":8131", "rpc1user", "1234pass", nil)
+
+		*client = *rpcClient
+
+		// wallet might already exist -> ignore error
+		_, _ = client.CreateWallet("testwallet")
+		// wallet might already be loaded -> ignore error
+		_, _ = client.LoadWallet("testwallet")
+
+		generateToAddress, err := client.GetNewAddress()
+		if err != nil {
+			log.Panic(err)
+		}
+
+		_, err = client.GenerateToAddress(5, generateToAddress)
+		if err != nil {
+			log.Panic(err)
+		}
+
 	}
 
 	m.Run()

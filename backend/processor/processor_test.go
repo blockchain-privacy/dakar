@@ -14,7 +14,7 @@ import (
 var client = &jsonrpc.BlockchainClient{}
 
 func TestMain(m *testing.M) {
-	db.RunDgraphAndRPCTests(m, client)
+	db.RunRPCTests(m, client)
 }
 
 func TestIncrementProcessingState(t *testing.T) {
