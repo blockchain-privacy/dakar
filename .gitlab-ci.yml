@@ -51,7 +51,11 @@ test:
     - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
       entrypoint:
-        - sh -c "echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > acl_secret"; /run.sh # set up acl secret
+        - '/bin/sh'
+        - '-c'
+        - |
+          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > acl_secret
+        - '/run.sh'
       command:
         - /run.sh
       variables:
