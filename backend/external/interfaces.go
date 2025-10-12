@@ -45,8 +45,14 @@ type Database interface {
 	Close()
 	// DropAll resets the database
 	DropAll(ctx context.Context) error
+	// DropData drops all data of the database
+	DropData(ctx context.Context) error
 	// DropPredicate dops the predicate of the specified namespace
 	DropPredicate(ctx context.Context, predicate string) error
+	// DropNamespace drops all data of the namespace
+	DropNamespace(ctx context.Context, nsID uint64) error
 	// SetSchema sets the schema of the specified namespace
 	SetSchema(ctx context.Context, schema string) error
+	// CreateNamespace creates a new namespace and returns its ID
+	CreateNamespace(ctx context.Context) (uint64, error)
 }

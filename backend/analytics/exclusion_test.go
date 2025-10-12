@@ -5,14 +5,14 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/user"
 	"backend/external"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestImportAddressExclusions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -114,8 +114,8 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 }
 
 func Test_validateExclusionAddresses(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	type args struct {
 		dgraph     external.Database

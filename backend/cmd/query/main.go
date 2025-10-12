@@ -11,12 +11,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/qrest/gomisc/config"
-	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/qrest/gomisc/config"
+	"github.com/qrest/gomisc/serror"
 )
 
 func info(msg string, v ...any) {
@@ -172,15 +173,15 @@ func main() {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
+	ctx := context.Background()
+
 	// create dgraph client
-	dgraph, err := external.CreateClient(cfg.DBHost)
+	dgraph, err := external.CreateClient(ctx, cfg.DBHost, 0)
 	if err != nil {
 		warn(err)
 		return
 	}
 	defer dgraph.Close()
-
-	ctx := context.Background()
 
 	if cfg.PrivacyCharts.Active {
 		exportTransactionData(ctx, dgraph, cfg.PrivacyCharts.Directory)

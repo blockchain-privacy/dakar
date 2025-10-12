@@ -47,9 +47,27 @@ func (g *GraphDB) Close() {
 	g.Dgraph.Close()
 }
 
-// DropAll resets the database
+// DropAll drops all data and the schema of the database
 func (g *GraphDB) DropAll(ctx context.Context) error {
 	if err := g.Dgraph.DropAll(ctx); err != nil {
+		return serror.New(err)
+	}
+
+	return nil
+}
+
+// DropData drops all data of the database
+func (g *GraphDB) DropData(ctx context.Context) error {
+	if err := g.Dgraph.DropData(ctx); err != nil {
+		return serror.New(err)
+	}
+
+	return nil
+}
+
+// DropNamespace drops all data of the namespace
+func (g *GraphDB) DropNamespace(ctx context.Context, nsID uint64) error {
+	if err := g.Dgraph.DropNamespace(ctx, nsID); err != nil {
 		return serror.New(err)
 	}
 
@@ -70,18 +88,30 @@ func (g *GraphDB) SetSchema(ctx context.Context, schema string) error {
 	if err := g.Dgraph.SetSchema(ctx, schema); err != nil {
 		return serror.New(err)
 	}
-
 	return nil
 }
 
+func (g *GraphDB) CreateNamespace(ctx context.Context) (uint64, error) {
+	nsID, err := g.Dgraph.CreateNamespace(ctx)
+	if err != nil {
+		return 0, serror.New(err)
+	}
+
+	return nsID, nil
+}
+
 // CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(endpoint string) (Database, error) {
+func CreateClient(ctx context.Context, endpoint string, namespaceID uint64) (Database, error) {
 	dgraphClient, err := dgo.NewClient(endpoint,
 		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
 		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
 	if err != nil {
-		err = serror.New(err)
-		return nil, err
+		return nil, serror.New(err)
+	}
+
+	err = dgraphClient.LoginIntoNamespace(ctx, "groot", "password", namespaceID)
+	if err != nil {
+		return nil, serror.New(err)
 	}
 
 	return &GraphDB{Dgraph: dgraphClient}, nil

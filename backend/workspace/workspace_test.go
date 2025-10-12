@@ -4,24 +4,19 @@ import (
 	"backend/db"
 	"backend/db/user"
 	"backend/db/workspace"
-	"backend/testhelper"
+	"backend/external"
 	"errors"
-	"github.com/qrest/gomisc/serror"
-	"github.com/stretchr/testify/require"
 	"math/rand/v2"
 	"sync"
 	"testing"
+
+	"github.com/qrest/gomisc/serror"
+	"github.com/stretchr/testify/require"
 )
 
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
-
 func TestGetAndRefreshWorkspace(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection("")
 	ctx := t.Context()
 
 	// create dgraph user and workspace for tests
@@ -66,7 +61,7 @@ func TestGetAndRefreshWorkspace(t *testing.T) {
 const userCount = 3
 const workspacesPerUser = 5
 
-func getUserAndWorkspaces(t *testing.T) ([]string, [][]string, [][]string) {
+func getUserAndWorkspaces(t *testing.T, dbHandle external.Database) ([]string, [][]string, [][]string) {
 	ctx := t.Context()
 	m := NewMutex()
 	users := make([]string, userCount)
@@ -106,9 +101,9 @@ func getUserAndWorkspaces(t *testing.T) ([]string, [][]string, [][]string) {
 }
 
 func TestGetAndRefreshWorkspaceParallel(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	users, userToWorkspaces, _ := getUserAndWorkspaces(t)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	users, userToWorkspaces, _ := getUserAndWorkspaces(t, dbHandle)
 	ctx := t.Context()
 	m := NewMutex()
 	wg := sync.WaitGroup{}
@@ -139,10 +134,10 @@ func TestGetAndRefreshWorkspaceParallel(t *testing.T) {
 }
 
 func TestWorkspaceUsageParallel(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
-	users, userToWorkspaces, workspaceToNodes := getUserAndWorkspaces(t)
+	users, userToWorkspaces, workspaceToNodes := getUserAndWorkspaces(t, dbHandle)
 	ctx := t.Context()
 	m := NewMutex()
 
@@ -179,8 +174,8 @@ func TestWorkspaceUsageParallel(t *testing.T) {
 			for i, n := range workspaceToNodes[workspaceIndex] {
 				nodes[i] = workspace.Node{
 					UID: n,
-					X:   testhelper.GetPointer[float32](3.0),
-					Y:   testhelper.GetPointer[float32](4.0),
+					X:   db.GetPointer[float32](3.0),
+					Y:   db.GetPointer[float32](4.0),
 				}
 			}
 

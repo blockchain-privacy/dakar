@@ -1,4 +1,4 @@
-package testhelper
+package db
 
 import (
 	"backend/external"
@@ -34,30 +34,32 @@ const (
 // BlockFile contains Dash blocks from height 60000 to 60020.
 // This file includes block, transaction, address and cluster data.
 //
-//go:embed blocks_60000_60020.json
+//go:embed testfiles/blocks_60000_60020.json
 var BlockFile []byte
 
 // ClassifierFile contains Dash blocks from height 1557775 to 1557780.
 // This file includes block, transaction, and address data.
 //
-//go:embed blocks_1557775_1557830.json
+//go:embed testfiles/blocks_1557775_1557830.json
 var ClassifierFile []byte
 
 // PrivacyFile contains a small transaction graph created by traversing forward beginning with tx
 // 452f795486980ef698fe652b56597eef3e7f6ad155cb0c9f1de21254d9bd9b0e
 //
-//go:embed privacy_transactions.json
+//go:embed testfiles/privacy_transactions.json
 var PrivacyFile []byte
 
 // BTCPrivacyFile contains a bitcoin blocks between 573945 574040
 //
-//go:embed btc_privacy_transactions.json
+//go:embed testfiles/btc_privacy_transactions.json
 var BTCPrivacyFile []byte
 
 type TestDB struct {
 	DB          external.Database
 	IsDirty     atomic.Bool
 	FileNameKey string
+	InUse       atomic.Bool
+	NsID        uint64
 }
 
 func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
@@ -86,6 +88,18 @@ func (t *TestDB) DropAll(ctx context.Context) error {
 	return t.DB.DropAll(ctx)
 }
 
+// DropData drops all data of the database
+func (t *TestDB) DropData(ctx context.Context) error {
+	t.IsDirty.Store(true)
+	return t.DB.DropData(ctx)
+}
+
+// DropNamespace drops all data of the namespace
+func (t *TestDB) DropNamespace(ctx context.Context, nsID uint64) error {
+	t.IsDirty.Store(true)
+	return t.DB.DropNamespace(ctx, nsID)
+}
+
 // DropPredicate dops the predicate of the specified namespace
 func (t *TestDB) DropPredicate(ctx context.Context, predicate string) error {
 	t.IsDirty.Store(true)
@@ -96,6 +110,10 @@ func (t *TestDB) DropPredicate(ctx context.Context, predicate string) error {
 func (t *TestDB) SetSchema(ctx context.Context, schema string) error {
 	t.IsDirty.Store(true)
 	return t.DB.SetSchema(ctx, schema)
+}
+
+func (t *TestDB) CreateNamespace(ctx context.Context) (uint64, error) {
+	return t.DB.CreateNamespace(ctx)
 }
 
 func DoDBTests() bool {
@@ -125,29 +143,6 @@ func SkipIfNoRPC(t testing.TB) {
 	if !DoRPCTests() {
 		t.SkipNow()
 	}
-}
-
-// setupGraphDB connects the given handel to the database.
-// The returned GRPC connection must be closed by the caller, after all tests are done.
-func setupGraphDB(packageDBHandle *TestDB) {
-	dbName, ok := GetDBName()
-	if !ok {
-		log.Fatal("environment variable " + EnvDBHostname + " is not set")
-	}
-	// create dgraph client
-	graphDB, err := external.CreateClient(dbName + ":9080")
-	if err != nil {
-		log.Panic(err)
-		return
-	}
-
-	if !external.WaitForDatabase(graphDB) {
-		log.Panic("Could not connect to database", err)
-		return
-	}
-
-	packageDBHandle.DB = graphDB
-	packageDBHandle.IsDirty.Store(true)
 }
 
 func setupRPC(client *jsonrpc.BlockchainClient) {
@@ -182,25 +177,9 @@ func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
 	return err
 }
 
-// RunDgraphTests connects to the given dgraph container and runs all tests
-// packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests(m *testing.M, packageDBHandle *TestDB) {
-	if DoDBTests() {
-		setupGraphDB(packageDBHandle)
-		defer packageDBHandle.Close()
-	}
-
-	m.Run()
-}
-
 // RunDgraphAndRPCTests runs all tests.
 // packageDBHandle should be set to the global db interface handle of the package module.
 func RunDgraphAndRPCTests(m *testing.M, packageDBHandle *TestDB, client *jsonrpc.BlockchainClient) {
-	if DoDBTests() {
-		setupGraphDB(packageDBHandle)
-		defer packageDBHandle.Close()
-	}
-
 	if DoRPCTests() {
 		setupRPC(client)
 	}

@@ -3,11 +3,11 @@ package clustering
 import (
 	"backend/db"
 	"backend/db/analytics/clustering"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"sort"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_buildClusterSet(t *testing.T) {
@@ -93,8 +93,8 @@ func Test_buildDatabaseClusters(t *testing.T) {
 }
 
 func Test_validateAddresses(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	// generate 1001 address hashes
 	oneThousandAndOneAddresses := make([]ExternalClusterItem, 1001)
@@ -149,8 +149,8 @@ func Test_validateAddresses(t *testing.T) {
 }
 
 func TestImportCluster(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	type args struct {
 		clusters []ExternalClusterItem

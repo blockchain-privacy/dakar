@@ -43,13 +43,19 @@ test:
     RPC_TESTS: "1" # variable which controls if tests requiring the RPC-client should be run
     DB_HOSTNAME: "dgraph_db" # name of the dgraph database container
     RPC_HOSTNAME: "bitcoind" # name of the bitcoin container
+  before_script:
+    - echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > acl_secret # set up acl secret
   script:
     # start tests
     - go install gotest.tools/gotestsum@latest
-    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race -p 1 ./...
+    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race ./...
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
+      variables:
+        DGRAPH_ALPHA_ACL: secret-file=/dgraph/acl/secret
+      volumes:
+        - ./acl_secret:/dgraph/acl/secret
     - name: lncm/bitcoind:$BITCOIND_VERSION
       alias: bitcoind # rpc server for rpc testing
       entrypoint: ["bitcoind"]

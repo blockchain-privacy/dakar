@@ -2,9 +2,9 @@ package db
 
 import (
 	"backend/external"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsValidSortOrder(t *testing.T) {
@@ -58,8 +58,8 @@ func TestFrontendAddress_String(t *testing.T) {
 }
 
 func TestGetFrontendAddress(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	SkipIfNoDB(t)
+	dbHandle := GetDBConnection(UseBlockFile)
 
 	_, err := GetFrontendAddress(t.Context(), dbHandle, "", 1, 1, nil)
 	require.Error(t, err)
@@ -78,8 +78,8 @@ func TestGetFrontendAddress(t *testing.T) {
 }
 
 func TestUpsertAddresses(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDBWithoutData(t, dbHandle)
+	SkipIfNoDB(t)
+	dbHandle := GetDBConnection("")
 
 	const newAddressHash = "some_address_hash"
 
@@ -105,13 +105,13 @@ func TestUpsertAddresses(t *testing.T) {
 }
 
 func TestGetAddressesByBlockRange(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	SkipIfNoDB(t)
+	dbHandle := GetDBConnection(UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
-	blockRange, err := GetAddressesByBlockRange(ctx, dbHandle, testhelper.BlockFileFirstBlock,
-		testhelper.BlockFileLastBlock, true)
+	blockRange, err := GetAddressesByBlockRange(ctx, dbHandle, BlockFileFirstBlock,
+		BlockFileLastBlock, true)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockRange)
 
@@ -121,8 +121,8 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 }
 
 func TestGetAddressUIDs(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	SkipIfNoDB(t)
+	dbHandle := GetDBConnection(UseBlockFile)
 	type args struct {
 		c             external.Database
 		addressHashes []string

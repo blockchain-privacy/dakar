@@ -4,9 +4,9 @@ import (
 	"backend/db"
 	"backend/db/user"
 	"backend/external"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var attributions = []Attribution{
@@ -34,8 +34,8 @@ var attributions = []Attribution{
 }
 
 func TestImportAttribution(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -140,8 +140,8 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 }
 
 func Test_validateAddresses(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	type args struct {
 		dgraph       external.Database

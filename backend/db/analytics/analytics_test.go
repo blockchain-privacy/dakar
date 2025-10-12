@@ -2,23 +2,17 @@ package analytics
 
 import (
 	"backend/db"
-	"backend/testhelper"
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/qrest/gomisc/serror"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
-
 func TestGetAllFMIClusters(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -29,8 +23,8 @@ func TestGetAllFMIClusters(t *testing.T) {
 }
 
 func TestGetTransactionCountPerCluster(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

@@ -4,10 +4,10 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_addSingleNodes(t *testing.T) {
@@ -206,9 +206,9 @@ func Test_verifyTransactionGraph(t *testing.T) {
 }
 
 func Test_loadTransactions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	db.SkipIfNoDB(t)
 	// testdata contains 132 mixing transactions and 557 input transactions
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
 	g := NewReversibleGraph(2000)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -229,8 +229,8 @@ func Test_loadTransactions(t *testing.T) {
 }
 
 func TestLoadDashTransactionGraph(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	graph, err := LoadDashTransactionGraph(ctx, dbHandle, 0)
@@ -240,8 +240,8 @@ func TestLoadDashTransactionGraph(t *testing.T) {
 }
 
 func TestLoadTransactionGraph(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 

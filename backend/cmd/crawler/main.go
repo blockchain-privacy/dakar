@@ -207,7 +207,9 @@ func main() {
 
 	////// CONNECT TO DATABASE //////
 
-	graphDB, err := external.CreateClient(newConfig.Database.Host)
+	ctx, cancel := db.GetShortTaskContext()
+	defer cancel()
+	graphDB, err := external.CreateClient(ctx, newConfig.Database.Host, 0)
 	if err != nil {
 		warn(err)
 		return

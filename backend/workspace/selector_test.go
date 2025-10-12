@@ -4,14 +4,15 @@ import (
 	"backend/db"
 	"backend/db/user"
 	"backend/db/workspace"
-	"backend/testhelper"
+	"backend/external"
 	"context"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
-func createUserAndWorkspace() (string, string, error) {
+func createUserAndWorkspace(dbHandle external.Database) (string, string, error) {
 	userUID, err := user.CreateNewUser(context.Background(), dbHandle)
 	if err != nil {
 		return "", "", err
@@ -26,10 +27,10 @@ func createUserAndWorkspace() (string, string, error) {
 }
 
 func TestAddSelector(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseClassifierFile)
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
 	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
@@ -96,13 +97,13 @@ func TestAddSelector(t *testing.T) {
 }
 
 func Test_isValidParent(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseClassifierFile)
 
-	userUID1, workspaceUID1, err := createUserAndWorkspace()
+	userUID1, workspaceUID1, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	userUID2, workspaceUID2, err := createUserAndWorkspace()
+	userUID2, workspaceUID2, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
 	ctx, cancel := db.GetTaskContext()

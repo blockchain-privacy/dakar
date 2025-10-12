@@ -4,17 +4,11 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/external"
-	"backend/testhelper"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
-
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
 
 func getUpgradesWithError() map[int]UpgradePackage {
 	fun := func(external.Database) error { return nil }
@@ -36,8 +30,8 @@ func getUpgrades() map[int]UpgradePackage {
 }
 
 func Test_upgradeDatabaseToNextVersion(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection("")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -86,11 +80,11 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 }
 
 func Test_applyUpgrades(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection("")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: testhelper.GetPointer[int](1)}))
+	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: db.GetPointer[int](1)}))
 
 	tests := []struct {
 		upgrades map[int]UpgradePackage

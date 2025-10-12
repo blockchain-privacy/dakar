@@ -3,6 +3,10 @@ services:
     image: dgraph/standalone:v25.0.0
     network_mode: "bridge"
     container_name: dgraph_db
+    environment:
+      DGRAPH_ALPHA_ACL: secret-file=/dgraph/acl/secret
+    volumes:
+      - ./acl_secret:/dgraph/acl/secret
     ports:
       - "${CONTAINER_IP}:8080:8080"
       - "${CONTAINER_IP}:9080:9080"

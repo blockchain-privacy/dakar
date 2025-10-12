@@ -5,13 +5,13 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/db/workspace"
-	"backend/testhelper"
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWorker(t *testing.T) {
@@ -26,11 +26,11 @@ func TestWorker_SetLoopInterval(_ *testing.T) {
 }
 
 func TestWorker_work(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
 
 	// create test data
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
 	startDate1, err := time.Parse(time.RFC3339, "2021-07-22T00:00:00Z")
@@ -70,7 +70,7 @@ func TestWorker_work(t *testing.T) {
 	wrapper := graph.NewWrapper(ctx, dbHandle)
 	wrapper.RegisterMetrics(prometheus.NewRegistry())
 
-	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 	require.NoError(t, wrapper.LoadGraphs(graph.NewDashConfig()))
 
 	w := NewWorker(NewMutex(), dbHandle, wrapper)

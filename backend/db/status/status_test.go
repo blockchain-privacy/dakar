@@ -2,25 +2,16 @@ package status
 
 import (
 	"backend/db"
-	"backend/testhelper"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
-
 func TestGetCrawlerStatus(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetBareDBConnection()
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-
-	require.NoError(t, dbHandle.DropAll(ctx))
 
 	// crawler status not yet set
 	_, err := GetCrawlerStatus(ctx, dbHandle)
@@ -45,11 +36,10 @@ func TestGetCrawlerStatus(t *testing.T) {
 }
 
 func TestGetClassifierStatus(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetBareDBConnection()
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	require.NoError(t, dbHandle.DropAll(ctx))
 
 	// classifier status not yet set
 	_, err := GetClassifierStatus(ctx, dbHandle)
@@ -74,12 +64,11 @@ func TestGetClassifierStatus(t *testing.T) {
 }
 
 func TestGetClusteringHMIStatus(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetBareDBConnection()
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAll(ctx))
 	// clustering status not yet set
 	_, err := GetClusteringHMIStatus(ctx, dbHandle)
 	require.Error(t, err)
@@ -103,12 +92,11 @@ func TestGetClusteringHMIStatus(t *testing.T) {
 }
 
 func TestGetClusteringFMIStatus(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetBareDBConnection()
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAll(ctx))
 	// clustering status not yet set
 	_, err := GetClusteringFMIStatus(ctx, dbHandle)
 	require.Error(t, err)
@@ -132,24 +120,23 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 }
 
 func TestGetHighestBlockID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	blockHeight, err := GetHighestBlockID(ctx, dbHandle)
 	require.NoError(t, err)
-	require.EqualValues(t, testhelper.BlockFileLastBlock, blockHeight)
+	require.EqualValues(t, db.BlockFileLastBlock, blockHeight)
 }
 
 func TestGetFrontendStatus(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetBareDBConnection()
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	require.NoError(t, dbHandle.DropAll(ctx))
 	// should not fail even if no status is set at all
 	status, err := GetFrontendStatus(ctx, dbHandle)
 	require.NoError(t, err)
@@ -171,12 +158,10 @@ func TestGetFrontendStatus(t *testing.T) {
 }
 
 func TestGetMeta(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	db.SkipIfNoDB(t)
+	dbHandle := db.GetBareDBConnection()
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-
-	require.NoError(t, dbHandle.DropAll(ctx))
 
 	// nothing set yet -> should fail
 	_, err := GetMeta(ctx, dbHandle)
