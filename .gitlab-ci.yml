@@ -54,12 +54,12 @@ test:
         - '/bin/sh'
         - '-c'
         - |
-          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /dgraph/acl/secret
+          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /acl_secret
         - '/run.sh'
       command:
         - /run.sh
       variables:
-        DGRAPH_ALPHA_ACL: secret-file=/dgraph/acl/secret
+        DGRAPH_ALPHA_ACL: secret-file=/acl_secret
     - name: lncm/bitcoind:$BITCOIND_VERSION
       alias: bitcoind # rpc server for rpc testing
       entrypoint: ["bitcoind"]
