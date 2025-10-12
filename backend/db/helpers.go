@@ -179,7 +179,7 @@ func setupRPCTest(client *jsonrpc.BlockchainClient, numBlocks int) error {
 
 // RunDgraphAndRPCTests runs all tests.
 // packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphAndRPCTests(m *testing.M, packageDBHandle *TestDB, client *jsonrpc.BlockchainClient) {
+func RunDgraphAndRPCTests(m *testing.M, client *jsonrpc.BlockchainClient) {
 	if DoRPCTests() {
 		setupRPC(client)
 	}

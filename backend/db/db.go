@@ -8,14 +8,12 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/dgraph-io/dgo/v250"
 	"github.com/qrest/gomisc/serror"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -187,20 +185,6 @@ func isValidQueryInput(input string) bool {
 // Example: [0x123,0x1a1d]
 func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
-}
-
-// SetupDBWithoutData returns the database to its initial state:
-// drops ALL data and sets up the schema
-func SetupDBWithoutData(t *testing.T, database *TestDB) {
-	ctx, cancel := GetTaskContext()
-	defer cancel()
-	// reset db
-	require.NoError(t, database.DropAll(ctx))
-
-	// set up schema
-	require.NoError(t, SetupSchema(database))
-
-	database.IsDirty.Store(true)
 }
 
 func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string, error) {

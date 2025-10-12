@@ -11,13 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	dbHandle = &db.TestDB{}
-	client   = &jsonrpc.BlockchainClient{}
-)
+var client = &jsonrpc.BlockchainClient{}
 
 func TestMain(m *testing.M) {
-	db.RunDgraphAndRPCTests(m, dbHandle, client)
+	db.RunDgraphAndRPCTests(m, client)
 }
 
 func TestIncrementProcessingState(t *testing.T) {
