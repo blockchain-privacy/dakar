@@ -15,8 +15,8 @@ type TestCoordinator struct {
 var singletonCoordinator *TestCoordinator
 var once sync.Once
 
-// GetTestCoordinator returns a singleton TestCoordinator with the database, mutex and hostname filled
-func GetTestCoordinator() *TestCoordinator {
+// getTestCoordinator returns a singleton TestCoordinator with the database, mutex and hostname filled
+func getTestCoordinator() *TestCoordinator {
 	once.Do(func() {
 		dbName, ok := GetDBName()
 		if !ok {
@@ -47,38 +47,38 @@ func GetTestCoordinator() *TestCoordinator {
 // If setContent is true, the database schema will be set and filled based on fileKey.
 // If fileKey is empty, a database connection with no data will be returned.
 func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) external.Database {
+	t.Helper()
+
 	if !doDBTests() {
 		t.SkipNow()
 		return nil
 	}
 
-	c := GetTestCoordinator()
-
-	ctx, cancel := GetTaskContext()
-	defer cancel()
+	c := getTestCoordinator()
 
 	// if no reusable namespace is available, then we need to create new namespace
 	// create dgraph client
-	nsID, err := c.dbConnection.CreateNamespace(ctx)
+	nsID, err := c.dbConnection.CreateNamespace(t.Context())
 	if err != nil {
-		log.Panic(err)
+		t.Fatal(err)
+
 	}
 
 	t.Cleanup(func() {
 		ctx, cancel := GetTaskContext()
 		defer cancel()
 		if err := c.dbConnection.DropNamespace(ctx, nsID); err != nil {
-			log.Panic(err)
+			t.Fatal(err)
 		}
 	})
 
-	graphDB, err := external.CreateClient(ctx, c.dbHostname+":9080", nsID)
+	graphDB, err := external.CreateClient(t.Context(), c.dbHostname+":9080", nsID)
 	if err != nil {
-		log.Panic(err)
+		t.Fatal(err)
 	}
 
 	if !external.WaitForDatabase(graphDB) {
-		log.Panic("Could not connect to database", err)
+		t.Fatal("Could not connect to database", err)
 	}
 
 	if setContent {
