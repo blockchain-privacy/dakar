@@ -374,8 +374,7 @@ func Test_getUids(t *testing.T) {
 }
 
 func Test_getConnectedCollaterals(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -440,8 +439,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 }
 
 func Test_isCollateralCreation(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -501,8 +499,7 @@ func Test_newCollateralCreationTransaction(t *testing.T) {
 }
 
 func Test_isCollateralPayment(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -552,8 +549,7 @@ func Test_newCollateralPaymentTransaction(t *testing.T) {
 }
 
 func Test_isMixing(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -623,8 +619,7 @@ func Test_newOriginTransaction(t *testing.T) {
 }
 
 func Test_classifyTransactions(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

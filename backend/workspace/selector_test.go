@@ -27,8 +27,7 @@ func createUserAndWorkspace(dbHandle external.Database) (string, string, error) 
 }
 
 func TestAddSelector(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
@@ -97,8 +96,7 @@ func TestAddSelector(t *testing.T) {
 }
 
 func Test_isValidParent(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	userUID1, workspaceUID1, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)

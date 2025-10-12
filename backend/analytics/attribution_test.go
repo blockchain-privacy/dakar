@@ -34,8 +34,7 @@ var attributions = []Attribution{
 }
 
 func TestImportAttribution(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -140,8 +139,7 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 }
 
 func Test_validateAddresses(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	type args struct {
 		dgraph       external.Database

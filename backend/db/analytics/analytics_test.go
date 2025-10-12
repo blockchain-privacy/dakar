@@ -11,8 +11,7 @@ import (
 )
 
 func TestGetAllFMIClusters(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -23,8 +22,7 @@ func TestGetAllFMIClusters(t *testing.T) {
 }
 
 func TestGetTransactionCountPerCluster(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

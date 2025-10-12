@@ -26,8 +26,7 @@ func TestWorker_SetLoopInterval(_ *testing.T) {
 }
 
 func TestWorker_work(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 
 	// create test data
 	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)

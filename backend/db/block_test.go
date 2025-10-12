@@ -65,8 +65,7 @@ func TestBlockQueryPayload(t *testing.T) {
 }
 
 func TestGetBlock(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
 	const blockHash2 = "000000000020ef46c4026cb77aee959224b9bb0a23b24bc46c429d8c9cab498b"
@@ -87,8 +86,7 @@ func TestGetBlock(t *testing.T) {
 }
 
 func TestGetFullBlock(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 	block, err := GetFullBlock(ctx, dbHandle, 60003, true)
@@ -105,8 +103,7 @@ func TestGetFullBlock(t *testing.T) {
 }
 
 func TestGetFrontendBlock(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
 	const blockHash2 = "000000000020ef46c4026cb77aee959224b9bb0a23b24bc46c429d8c9cab498b"
@@ -124,8 +121,7 @@ func TestGetFrontendBlock(t *testing.T) {
 }
 
 func TestUpsertBlock(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 

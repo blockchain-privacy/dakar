@@ -15,8 +15,7 @@ import (
 )
 
 func TestGetAndRefreshWorkspace(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx := t.Context()
 
 	// create dgraph user and workspace for tests
@@ -101,8 +100,7 @@ func getUserAndWorkspaces(t *testing.T, dbHandle external.Database) ([]string, [
 }
 
 func TestGetAndRefreshWorkspaceParallel(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 	users, userToWorkspaces, _ := getUserAndWorkspaces(t, dbHandle)
 	ctx := t.Context()
 	m := NewMutex()
@@ -134,8 +132,7 @@ func TestGetAndRefreshWorkspaceParallel(t *testing.T) {
 }
 
 func TestWorkspaceUsageParallel(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	users, userToWorkspaces, workspaceToNodes := getUserAndWorkspaces(t, dbHandle)
 	ctx := t.Context()

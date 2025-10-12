@@ -314,15 +314,13 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 	}
 }
 func TestWrapper_LoadGraphs(t *testing.T) {
-	db.SkipIfNoDB(t)
-
 	w := NewWrapper(t.Context(), nil)
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// database is not set
 	require.Error(t, w.LoadGraphs(NewDashConfig()))
 
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	w.db = dbHandle
 
@@ -364,7 +362,6 @@ func TestWrapper_CalculateInitialState(t *testing.T) {
 }
 
 func TestWrapper_NextBlock(t *testing.T) {
-	db.SkipIfNoDB(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -376,7 +373,7 @@ func TestWrapper_NextBlock(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, flag)
 
-	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	w.db = dbHandle
 
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
@@ -414,15 +411,13 @@ func TestWrapper_Empty(t *testing.T) {
 }
 
 func TestWrapper_Iterate(t *testing.T) {
-	db.SkipIfNoDB(t)
-
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	w := NewWrapper(ctx, nil)
 	w.RegisterMetrics(prometheus.NewRegistry())
 
-	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	w.db = dbHandle
 
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))

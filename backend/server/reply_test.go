@@ -11,8 +11,7 @@ import (
 )
 
 func Test_getTransactionReply(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
@@ -51,8 +50,7 @@ func Test_getTransactionReply(t *testing.T) {
 }
 
 func Test_getBlockReply(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	tests := []struct {
 		getRequest func() *http.Request
@@ -136,8 +134,7 @@ func Test_getBlockReply(t *testing.T) {
 }
 
 func Test_getShortestTransactionPathReply(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	tests := []struct {
 		r          *http.Request

@@ -8,8 +8,7 @@ import (
 )
 
 func Test_getWorkspaceConnectionsRaw(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx := t.Context()
 
@@ -64,8 +63,7 @@ func Test_getWorkspaceConnectionsRaw(t *testing.T) {
 }
 
 func TestCheckDuplicateAddress(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 

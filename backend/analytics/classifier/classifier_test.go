@@ -40,8 +40,7 @@ func TestClassifier_Empty(t *testing.T) {
 }
 
 func TestClassifier_CalculateInitialState(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	classifier := NewClassifier(ctx, nil, NewDashConfig())
@@ -64,8 +63,7 @@ func TestClassifier_CalculateInitialState(t *testing.T) {
 }
 
 func TestClassifier_NextBlock(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -98,8 +96,7 @@ func TestClassifier_Props(t *testing.T) {
 }
 
 func TestClassifier_Iterate(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -134,12 +131,11 @@ func TestClassifier_Iterate(t *testing.T) {
 }
 
 func TestMultipleBlockIteration(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	fileBlockCount := int64(db.ClassifierFileLastBlock - db.ClassifierFileFirstBlock)
 
-	ctx, cancelFunc := db.GetShortTaskContext()
+	ctx, cancelFunc := db.GetTaskContext()
 	defer cancelFunc()
 
 	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
@@ -167,8 +163,7 @@ func TestMultipleBlockIteration(t *testing.T) {
 }
 
 func TestClassifier_PostExecution(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
@@ -177,8 +172,7 @@ func TestClassifier_PostExecution(t *testing.T) {
 }
 
 func Test_setInitialClassifierID(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -192,8 +186,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 }
 
 func TestBlockIterator(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -224,8 +217,7 @@ func TestBlockIterator(t *testing.T) {
 }
 
 func TestBlockIteratorImmediateExit(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

@@ -8,8 +8,7 @@ import (
 )
 
 func TestCreateNewUser(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -19,8 +18,7 @@ func TestCreateNewUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

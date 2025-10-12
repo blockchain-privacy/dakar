@@ -9,8 +9,7 @@ import (
 )
 
 func TestAddWorkspace(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -55,8 +54,7 @@ func TestAddWorkspace(t *testing.T) {
 }
 
 func TestGetFrontendWorkspaces(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx := t.Context()
 	// create dgraph user and workspace for tests
@@ -182,8 +180,7 @@ func TestDeleteNodes(t *testing.T) {
 }
 
 func TestDeleteWorkspace(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

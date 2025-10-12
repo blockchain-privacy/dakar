@@ -48,7 +48,7 @@ var PrivacyFile []byte
 //go:embed testfiles/btc_privacy_transactions.json
 var BTCPrivacyFile []byte
 
-func DoDBTests() bool {
+func doDBTests() bool {
 	_, ok := os.LookupEnv(EnvDBTests)
 	return ok
 }
@@ -64,11 +64,6 @@ func GetDBName() (string, bool) {
 
 func GetRPCName() (string, bool) {
 	return os.LookupEnv(EnvRPCHostname)
-}
-func SkipIfNoDB(t testing.TB) {
-	if !DoDBTests() {
-		t.SkipNow()
-	}
 }
 
 func SkipIfNoRPC(t testing.TB) {

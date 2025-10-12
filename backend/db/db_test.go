@@ -27,9 +27,7 @@ func TestGetBackendContext(t *testing.T) {
 }
 
 func TestExecTx(t *testing.T) {
-	SkipIfNoDB(t)
-
-	dbHandle := GetDBConnection("")
+	dbHandle := GetDBConnection(t, "")
 
 	ctx, cancel := context.WithTimeout(t.Context(), 0)
 	defer cancel()
@@ -144,8 +142,6 @@ func TestCreateCommaArray(t *testing.T) {
 }
 
 func TestCreateClient(t *testing.T) {
-	SkipIfNoDB(t)
-
 	name, ok := GetDBName()
 	if !ok {
 		t.Fatal("environment variable " + EnvDBHostname + " is not set")
@@ -159,8 +155,7 @@ func TestCreateClient(t *testing.T) {
 }
 
 func TestGetTypeByUID(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection("")
+	dbHandle := GetDBConnection(t, "")
 
 	// empty db
 	_, err := GetTypeByUID(t.Context(), dbHandle, "0x123")

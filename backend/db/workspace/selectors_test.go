@@ -14,8 +14,7 @@ import (
 )
 
 func TestDoSelection(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
 	require.NoError(t, err)
@@ -232,8 +231,7 @@ func doSelection(dbHandle external.Database) ([]string, []byte, error) {
 }
 
 func TestInsertSelector(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
@@ -338,8 +336,7 @@ func TestInsertSelector(t *testing.T) {
 }
 
 func TestGetSelectorResultsByUID(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
@@ -387,8 +384,7 @@ func TestGetSelectorResultsByUID(t *testing.T) {
 }
 
 func TestUpdateSelector(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
@@ -446,8 +442,7 @@ func TestUpdateSelector(t *testing.T) {
 }
 
 func TestDeleteUserSelectors(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
@@ -479,8 +474,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 }
 
 func TestGetWaitingSelectors(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
@@ -524,8 +518,7 @@ func TestGetWaitingSelectors(t *testing.T) {
 }
 
 func TestGetSelectorStatus(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
@@ -558,8 +551,7 @@ func TestGetSelectorStatus(t *testing.T) {
 }
 
 func TestDoGraphSelection(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

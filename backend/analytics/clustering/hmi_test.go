@@ -16,8 +16,6 @@ func TestNewHierarchicalMultiInput(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
-	db.SkipIfNoDB(t)
-
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -28,7 +26,7 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 		_ = hm.CalculateInitialState(ctx)
 	})
 
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	hm.db = dbHandle
 
 	// error because classifier status is not set
@@ -43,8 +41,7 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_Iterate(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -72,8 +69,7 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -98,8 +94,7 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -135,8 +130,7 @@ func TestHierarchicalMultiInput_Props(t *testing.T) {
 }
 
 func Test_setInitialHMIClusteringID(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.Error(t, setInitialHMIClusteringID(ctx, dbHandle))

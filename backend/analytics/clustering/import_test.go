@@ -93,8 +93,7 @@ func Test_buildDatabaseClusters(t *testing.T) {
 }
 
 func Test_validateAddresses(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	// generate 1001 address hashes
 	oneThousandAndOneAddresses := make([]ExternalClusterItem, 1001)
@@ -149,8 +148,7 @@ func Test_validateAddresses(t *testing.T) {
 }
 
 func TestImportCluster(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	type args struct {
 		clusters []ExternalClusterItem

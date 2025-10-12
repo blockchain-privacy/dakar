@@ -206,9 +206,8 @@ func Test_verifyTransactionGraph(t *testing.T) {
 }
 
 func Test_loadTransactions(t *testing.T) {
-	db.SkipIfNoDB(t)
 	// testdata contains 132 mixing transactions and 557 input transactions
-	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	g := NewReversibleGraph(2000)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -229,8 +228,7 @@ func Test_loadTransactions(t *testing.T) {
 }
 
 func TestLoadDashTransactionGraph(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	graph, err := LoadDashTransactionGraph(ctx, dbHandle, 0)
@@ -240,8 +238,7 @@ func TestLoadDashTransactionGraph(t *testing.T) {
 }
 
 func TestLoadTransactionGraph(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UsePrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 

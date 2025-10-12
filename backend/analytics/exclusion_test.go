@@ -11,8 +11,7 @@ import (
 )
 
 func TestImportAddressExclusions(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -114,8 +113,7 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 }
 
 func Test_validateExclusionAddresses(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	type args struct {
 		dgraph     external.Database

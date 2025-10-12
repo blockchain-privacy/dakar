@@ -8,8 +8,7 @@ import (
 )
 
 func TestGetCrawlerStatus(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetBareDBConnection()
+	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -36,8 +35,7 @@ func TestGetCrawlerStatus(t *testing.T) {
 }
 
 func TestGetClassifierStatus(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetBareDBConnection()
+	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -64,8 +62,7 @@ func TestGetClassifierStatus(t *testing.T) {
 }
 
 func TestGetClusteringHMIStatus(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetBareDBConnection()
+	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -92,8 +89,7 @@ func TestGetClusteringHMIStatus(t *testing.T) {
 }
 
 func TestGetClusteringFMIStatus(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetBareDBConnection()
+	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -120,8 +116,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 }
 
 func TestGetHighestBlockID(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -132,8 +127,7 @@ func TestGetHighestBlockID(t *testing.T) {
 }
 
 func TestGetFrontendStatus(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetBareDBConnection()
+	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -158,8 +152,7 @@ func TestGetFrontendStatus(t *testing.T) {
 }
 
 func TestGetMeta(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetBareDBConnection()
+	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 

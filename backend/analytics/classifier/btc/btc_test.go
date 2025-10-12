@@ -699,8 +699,7 @@ func Test_classifyWhirlpoolOriginTransactions(t *testing.T) {
 }
 
 func TestIterate(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBTCPrivacyFile)
+	dbHandle := db.GetDBConnection(t, db.UseBTCPrivacyFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

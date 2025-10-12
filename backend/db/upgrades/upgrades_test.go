@@ -30,8 +30,7 @@ func getUpgrades() map[int]UpgradePackage {
 }
 
 func Test_upgradeDatabaseToNextVersion(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -80,8 +79,7 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 }
 
 func Test_applyUpgrades(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: db.GetPointer[int](1)}))

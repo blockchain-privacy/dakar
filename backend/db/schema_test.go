@@ -7,14 +7,12 @@ import (
 )
 
 func TestSetupSchema(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection("")
+	dbHandle := GetDBConnection(t, "")
 	require.NoError(t, SetupSchema(dbHandle))
 }
 
 func TestIsSchemaSet(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetBareDBConnection()
+	dbHandle := GetBareDBConnection(t)
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 

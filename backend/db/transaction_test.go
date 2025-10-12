@@ -78,8 +78,7 @@ func TestFrontendTransaction_String(t *testing.T) {
 }
 
 func TestGetTransactionsOutputs(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -111,8 +110,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 }
 
 func TestGetTransactionByBlock(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -128,8 +126,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 }
 
 func TestGetOutputAddressCounts(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection("")
+	dbHandle := GetDBConnection(t, "")
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
@@ -204,8 +201,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 }
 
 func TestGetFrontendTransaction(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 	const blockHash = "00000000000cfe64fca7b5c3a8ad1ee39dd3f380aeb56027bc25e97904d2c99e"
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	transaction, err := GetFrontendTransaction(t.Context(), dbHandle, txHash1)
@@ -227,8 +223,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 }
 
 func TestGetTransactionBlockID(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	id, err := GetTransactionBlockID(t.Context(), dbHandle, txHash1)
@@ -242,8 +237,7 @@ func TestGetTransactionBlockID(t *testing.T) {
 }
 
 func TestUpdateTransactions(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -277,8 +271,7 @@ func TestUpdateTransactions(t *testing.T) {
 }
 
 func TestGetTransactionUID(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx := t.Context()
 	_, err := GetTransactionUID(ctx, dbHandle, "")
@@ -294,8 +287,7 @@ func TestGetTransactionUID(t *testing.T) {
 }
 
 func TestGetOutputs(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -315,8 +307,7 @@ func TestGetOutputs(t *testing.T) {
 }
 
 func TestGetTransaction(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -350,8 +341,7 @@ func TestGetTransaction(t *testing.T) {
 }
 
 func TestGetTransactionUIDMapping(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()

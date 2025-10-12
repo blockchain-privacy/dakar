@@ -4,6 +4,7 @@ import (
 	"backend/external"
 	"log"
 	"sync"
+	"testing"
 )
 
 type TestCoordinator struct {
@@ -45,7 +46,12 @@ func GetTestCoordinator() *TestCoordinator {
 // GetDBConnectionWithOptions returns a database connection to a new namespace.
 // If setContent is true, the database schema will be set and filled based on fileKey.
 // If fileKey is empty, a database connection with no data will be returned.
-func GetDBConnectionWithOptions(setContent bool, fileKey string) external.Database {
+func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) external.Database {
+	if !doDBTests() {
+		t.SkipNow()
+		return nil
+	}
+
 	c := GetTestCoordinator()
 
 	ctx, cancel := GetTaskContext()
@@ -56,18 +62,23 @@ func GetDBConnectionWithOptions(setContent bool, fileKey string) external.Databa
 	nsID, err := c.dbConnection.CreateNamespace(ctx)
 	if err != nil {
 		log.Panic(err)
-		return nil
 	}
+
+	t.Cleanup(func() {
+		ctx, cancel := GetTaskContext()
+		defer cancel()
+		if err := c.dbConnection.DropNamespace(ctx, nsID); err != nil {
+			log.Panic(err)
+		}
+	})
 
 	graphDB, err := external.CreateClient(ctx, c.dbHostname+":9080", nsID)
 	if err != nil {
 		log.Panic(err)
-		return nil
 	}
 
 	if !external.WaitForDatabase(graphDB) {
 		log.Panic("Could not connect to database", err)
-		return nil
 	}
 
 	if setContent {
@@ -79,13 +90,13 @@ func GetDBConnectionWithOptions(setContent bool, fileKey string) external.Databa
 
 // GetDBConnection returns a database connection to a new namespace.
 // If fileKey is empty, a database connection with no data will be returned.
-func GetDBConnection(fileKey string) external.Database {
-	return GetDBConnectionWithOptions(true, fileKey)
+func GetDBConnection(t *testing.T, fileKey string) external.Database {
+	return GetDBConnectionWithOptions(t, true, fileKey)
 }
 
 // GetBareDBConnection returns a database connection with no data and no schema set.
-func GetBareDBConnection() external.Database {
-	return GetDBConnectionWithOptions(false, "")
+func GetBareDBConnection(t *testing.T) external.Database {
+	return GetDBConnectionWithOptions(t, false, "")
 }
 
 func ChangeDBContent(dbHandle external.Database, fileKey string) {

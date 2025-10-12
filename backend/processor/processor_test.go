@@ -151,8 +151,7 @@ func TestCreateOutputUid(t *testing.T) {
 }
 
 func TestProcessAddresses(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -199,7 +198,6 @@ func TestProcessAddresses(t *testing.T) {
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
-	db.SkipIfNoDB(t)
 	db.SkipIfNoRPC(t)
 	interrupt := make(chan struct{})
 	cfg := NewDashConfig()
@@ -243,7 +241,6 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 }
 
 func TestGetRPCNumberOfBlocks(t *testing.T) {
-	db.SkipIfNoDB(t)
 	db.SkipIfNoRPC(t)
 	numBlocks, err := getRPCNumberOfBlocks(client)
 	require.NoError(t, err)
@@ -353,7 +350,6 @@ func Test_buildAddresses(t *testing.T) {
 }
 
 func Test_buildTransactionMapping(t *testing.T) {
-	db.SkipIfNoDB(t)
 	db.SkipIfNoRPC(t)
 
 	generateToAddress, err := client.GetNewAddress()
@@ -574,8 +570,7 @@ func Test_processTxVin(t *testing.T) {
 }
 
 func Test_getStartingID(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -612,9 +607,8 @@ func Test_processingInterrupted(t *testing.T) {
 }
 
 func Test_getInitialState(t *testing.T) {
-	db.SkipIfNoDB(t)
 	db.SkipIfNoRPC(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -629,8 +623,7 @@ func Test_getInitialState(t *testing.T) {
 }
 
 func Test_getExternalOutputs(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -669,9 +662,8 @@ func Test_getExternalOutputs(t *testing.T) {
 }
 
 func Test_processRound(t *testing.T) {
-	db.SkipIfNoDB(t)
 	db.SkipIfNoRPC(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

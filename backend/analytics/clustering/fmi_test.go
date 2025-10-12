@@ -384,8 +384,6 @@ func TestNewFlatMultiInput(t *testing.T) {
 }
 
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
-	db.SkipIfNoDB(t)
-
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -396,7 +394,7 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 		_ = fm.CalculateInitialState(ctx)
 	})
 
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	fm.db = dbHandle
 
 	// error because classifier status is not set
@@ -411,8 +409,7 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Iterate(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -439,8 +436,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 }
 
 func TestFlatMultiInput_NextBlock(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection(db.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -465,8 +461,7 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 }
 
 func TestFlatMultiInput_PostExecution(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	fm := NewFlatMultiInput(ctx, dbHandle, NewDashConfig())
@@ -502,8 +497,7 @@ func TestFlatMultiInput_Props(t *testing.T) {
 }
 
 func Test_setInitialFMIClusteringID(t *testing.T) {
-	db.SkipIfNoDB(t)
-	dbHandle := db.GetDBConnection("")
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

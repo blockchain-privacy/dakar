@@ -58,8 +58,7 @@ func TestFrontendAddress_String(t *testing.T) {
 }
 
 func TestGetFrontendAddress(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	_, err := GetFrontendAddress(t.Context(), dbHandle, "", 1, 1, nil)
 	require.Error(t, err)
@@ -78,8 +77,7 @@ func TestGetFrontendAddress(t *testing.T) {
 }
 
 func TestUpsertAddresses(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection("")
+	dbHandle := GetDBConnection(t, "")
 
 	const newAddressHash = "some_address_hash"
 
@@ -105,8 +103,7 @@ func TestUpsertAddresses(t *testing.T) {
 }
 
 func TestGetAddressesByBlockRange(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -121,8 +118,7 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 }
 
 func TestGetAddressUIDs(t *testing.T) {
-	SkipIfNoDB(t)
-	dbHandle := GetDBConnection(UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 	type args struct {
 		c             external.Database
 		addressHashes []string
