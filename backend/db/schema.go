@@ -2,24 +2,22 @@ package db
 
 import (
 	"backend/external"
-	"github.com/qrest/gomisc/serror"
-
 	"context"
 	"encoding/json"
 
-	"github.com/dgraph-io/dgo/v240/protos/api"
+	"github.com/qrest/gomisc/serror"
 )
 
-// SchemaVersion is the identifier for the schema defined in SetupSchema.
-// If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
+// SchemaVersion is the version of the schema defined in SetupSchema.
+// If SchemaVersion is higher than Meta.schemaVersion (which is stored in the db, see schema below),
 // then a database upgrade is required.
-// Use status.SetSchemaVersion to increase the schema version.
-const SchemaVersion = 12
+// Use status.SetSchemaVersion to increase the schema version directly,
+// or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
+const SchemaVersion = 13
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
+	return c.SetSchema(context.Background(), `
 			Meta.creationTime: dateTime . # The time when this database was initialized
 			Meta.blockchainMode: string . # The blockchain mode of this database.
 			Meta.schemaVersion: int . # The schema version of this database. 
@@ -206,8 +204,7 @@ func SetupSchema(c external.Database) error {
 				Attribution.category
 				Attribution.isPublic
 			}
-		`,
-	})
+		`)
 }
 
 // IsSchemaSet checks if a schema is set

@@ -4,15 +4,15 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-	"github.com/dgraph-io/dgo/v240"
-	"github.com/qrest/gomisc/serror"
-
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/dgo/v240/protos/api"
 	"log"
 	"strconv"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
+	"github.com/qrest/gomisc/serror"
 )
 
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
@@ -419,11 +419,10 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 	}
 
 	for _, cluster := range clusters {
-		// todo activate check after https://github.com/hypermodeinc/dgraph/pull/9380 has been released
-		//if len(cluster.Transaction) > 1 {
-		//	err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
-		//	return
-		//}
+		if len(cluster.Transaction) > 1 {
+			err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
+			return
+		}
 
 		frontendCluster := FrontendCluster{
 			Type:         cluster.Type,
@@ -802,55 +801,89 @@ func GetClusterAddressCount(ctx context.Context, c external.Database,
 	return
 }
 
-// DeleteAllFMIClusters deletes all flat multi-input clusters of a given user
-func DeleteAllFMIClusters(ctx context.Context, c external.Database) error {
-	const query = `{
-				 q(func: eq(Cluster.type, "fmi")){
-					count(uid)
-				  }
-				}`
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
-	if err != nil {
-		return err
+func SetClusterTransactions(ctx context.Context, c external.Database, clusterToTransaction map[string]string) error {
+	if len(clusterToTransaction) == 0 {
+		return serror.FromStr("received empty map")
 	}
 
-	var r struct {
-		Count []struct {
-			Count int64 `json:"count,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return err
-	}
-
-	deletionRounds := r.Count[0].Count / 10000
-	for range deletionRounds + 1 {
-		err := deleteTenThousandFMIClusters(ctx, c)
-		if err != nil {
-			return err
+	var nquad string
+	for cluster, transaction := range clusterToTransaction {
+		if cluster == "" || transaction == "" {
+			return serror.FromStrWithContext("map entry is empty",
+				"cluster", cluster, "transaction", transaction)
 		}
+
+		nquad += fmt.Sprintf("<%s> Cluster.transaction <%s> .\n", cluster, transaction)
 	}
 
-	return err
-}
-
-func deleteTenThousandFMIClusters(ctx context.Context, c external.Database) error {
 	req := &api.Request{
-		Query: `{
-				var(func:eq(Cluster.type, "fmi"), first: 10000){
-					c as uid
-				}
-			  }`,
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(c) * * ."),
+			SetNquads: []byte(nquad),
 		}},
 		CommitNow: true,
 	}
 
 	return db.MutationWithRetry(ctx, c, req)
+}
+
+func CheckClusterTransactionOverflow(ctx context.Context, c external.Database, step int, afterNode string) (map[string]string, string, int, error) {
+	const query = `query Q($step:int,$after:string){
+				var(func: has(Cluster.transaction), first: $step, after: $after){
+					a as count(Cluster.transaction)
+				}
+
+				count(func: uid(a)){
+					c:count(uid)
+				}
+
+				last(func: uid(a), first: -1){
+					uid
+				}
+				
+				q(func: uid(a))@filter(gt(val(a), 1)){
+					uid
+					Cluster.transaction{
+						uid
+						txhash
+					}
+				}
+			  }`
+
+	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$step": strconv.Itoa(step), "$after": afterNode})
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	var r struct {
+		Count []struct {
+			Count int `json:"c,omitempty"`
+		} `json:"count,omitempty"`
+		Last    []db.UIDNode `json:"last,omitempty"`
+		Cluster []struct {
+			UID                string      `json:"uid,omitempty"`
+			ClusterTransaction *db.UIDNode `json:"Cluster.transaction,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, "", 0, serror.New(err)
+	}
+
+	var last string
+	if len(r.Last) > 0 {
+		last = r.Last[0].UID
+	}
+
+	uids := make(map[string]string, len(r.Cluster))
+	for _, cluster := range r.Cluster {
+		if cluster.ClusterTransaction == nil {
+			return nil, "", 0, serror.FromStrWithContext("cluster transaction was nil", "cluster uid", cluster.UID)
+		}
+
+		uids[cluster.UID] = cluster.ClusterTransaction.UID
+	}
+
+	return uids, last, r.Count[0].Count, nil
 }
 
 // GetClustersByBlockRange returns all cluster-address mappings of the given block range

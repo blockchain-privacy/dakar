@@ -18,9 +18,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/qrest/gomisc/config"
-	"github.com/qrest/gomisc/serror"
 	"log"
 	"log/slog"
 	"net/http"
@@ -31,6 +28,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/qrest/gomisc/config"
+	"github.com/qrest/gomisc/serror"
 )
 
 // versionString displays the version of the Crawler
@@ -102,7 +103,7 @@ func resetDatabaseDialog(database external.Database, blockchainMode string) erro
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	if err := db.DropAll(database); err != nil {
+	if err := database.DropAll(ctx); err != nil {
 		return err
 	}
 	info("Dropped all data.")

@@ -5,12 +5,13 @@ import (
 	"backend/jsonrpc"
 	"context"
 	_ "embed"
-	"github.com/dgraph-io/dgo/v240"
-	"github.com/dgraph-io/dgo/v240/protos/api"
 	"log"
 	"os"
 	"sync/atomic"
 	"testing"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 )
 
 type ContainerName string
@@ -68,11 +69,6 @@ func (t *TestDB) Query(ctx context.Context, q string, vars map[string]string) (*
 	return t.DB.Query(ctx, q, vars)
 }
 
-func (t *TestDB) Alter(ctx context.Context, op *api.Operation) error {
-	t.IsDirty.Store(true)
-	return t.DB.Alter(ctx, op)
-}
-
 // NewTxn creates a new transaction.
 func (t *TestDB) NewTxn() *dgo.Txn {
 	t.IsDirty.Store(true)
@@ -82,6 +78,24 @@ func (t *TestDB) NewTxn() *dgo.Txn {
 // Close shutdown down all the connections to the Dgraph Cluster.
 func (t *TestDB) Close() {
 	t.DB.Close()
+}
+
+// DropAll resets the database
+func (t *TestDB) DropAll(ctx context.Context) error {
+	t.IsDirty.Store(true)
+	return t.DB.DropAll(ctx)
+}
+
+// DropPredicate dops the predicate of the specified namespace
+func (t *TestDB) DropPredicate(ctx context.Context, predicate string) error {
+	t.IsDirty.Store(true)
+	return t.DB.DropPredicate(ctx, predicate)
+}
+
+// SetSchema sets the schema of the specified namespace
+func (t *TestDB) SetSchema(ctx context.Context, schema string) error {
+	t.IsDirty.Store(true)
+	return t.DB.SetSchema(ctx, schema)
 }
 
 func DoDBTests() bool {

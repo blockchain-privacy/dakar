@@ -59,7 +59,7 @@ const hiddenMessageText = computed(() => {
 		return '';
 	}
 
-	return `${numHiddenMessages.value} additional ${plural('message', numHiddenMessages)}`;
+	return `${numHiddenMessages.value} additional ${plural('message', numHiddenMessages.value)}`;
 });
 function removeMessage(key) {
 	msgStore.removeMessage(key);

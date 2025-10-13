@@ -2,12 +2,13 @@ package external
 
 import (
 	"context"
-	"github.com/dgraph-io/dgo/v240"
-	"github.com/dgraph-io/dgo/v240/protos/api"
+	"time"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"time"
 )
 
 // GraphDB is a wrapper for Dgraph
@@ -17,21 +18,23 @@ type GraphDB struct {
 
 // Mutate executes a query followed by one or more than one mutation.
 func (g *GraphDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
-	return g.Dgraph.NewTxn().Do(ctx, req)
+	resp, err := g.Dgraph.NewTxn().Do(ctx, req)
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	return resp, nil
 }
 
 // Query but allows a variable map to be used.
 // This can provide safety against injection attacks.
 func (g *GraphDB) Query(ctx context.Context, q string, vars map[string]string) (*api.Response, error) {
-	return g.Dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
-}
+	resp, err := g.Dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
+	if err != nil {
+		return nil, serror.New(err)
+	}
 
-// Alter can be used to do the following by setting various fields of api.Operation:
-//  1. Modify the schema.
-//  2. Drop a predicate.
-//  3. Drop the database.
-func (g *GraphDB) Alter(ctx context.Context, op *api.Operation) error {
-	return g.Dgraph.Alter(ctx, op)
+	return resp, nil
 }
 
 // NewTxn creates a new transaction.
@@ -42,6 +45,33 @@ func (g *GraphDB) NewTxn() *dgo.Txn {
 // Close shutdown down all the connections to the Dgraph Cluster.
 func (g *GraphDB) Close() {
 	g.Dgraph.Close()
+}
+
+// DropAll resets the database
+func (g *GraphDB) DropAll(ctx context.Context) error {
+	if err := g.Dgraph.DropAll(ctx); err != nil {
+		return serror.New(err)
+	}
+
+	return nil
+}
+
+// DropPredicate dops the predicate of the specified namespace
+func (g *GraphDB) DropPredicate(ctx context.Context, predicate string) error {
+	if err := g.Dgraph.DropPredicate(ctx, predicate); err != nil {
+		return serror.New(err)
+	}
+
+	return nil
+}
+
+// SetSchema sets the schema of the specified namespace
+func (g *GraphDB) SetSchema(ctx context.Context, schema string) error {
+	if err := g.Dgraph.SetSchema(ctx, schema); err != nil {
+		return serror.New(err)
+	}
+
+	return nil
 }
 
 // CreateClient create a new dgraph client connecting to the specified host and port

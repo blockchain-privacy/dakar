@@ -6,7 +6,7 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
-	"github.com/dgraph-io/dgo/v240/protos/api"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/qrest/gomisc/serror"
 	"strconv"
 )

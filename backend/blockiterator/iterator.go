@@ -106,7 +106,7 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 
 	props := iterator.Props()
 	if initErr := iterator.CalculateInitialState(props.Context); initErr != nil {
-		// only return an error if context was not canceled
+		// only return an error if context was not cancelled
 		if !errors.Is(props.Context.Err(), context.Canceled) {
 			err = initErr
 		}

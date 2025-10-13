@@ -3,9 +3,10 @@ package external
 import (
 	"backend/jsonrpc"
 	"context"
-	"github.com/dgraph-io/dgo/v240"
-	"github.com/dgraph-io/dgo/v240/protos/api"
 	"time"
+
+	"github.com/dgraph-io/dgo/v250"
+	"github.com/dgraph-io/dgo/v250/protos/api"
 )
 
 // This package defines interfaces for external dependencies,
@@ -38,13 +39,14 @@ type Database interface {
 	// Query but allows a variable map to be used.
 	// This can provide safety against injection attacks.
 	Query(ctx context.Context, q string, vars map[string]string) (*api.Response, error)
-	// Alter can be used to do the following by setting various fields of api.Operation:
-	//   1. Modify the schema.
-	//   2. Drop a predicate.
-	//   3. Drop the database.
-	Alter(ctx context.Context, op *api.Operation) error
 	// NewTxn creates a new transaction.
 	NewTxn() *dgo.Txn
 	// Close shutdown down all the connections to the Dgraph Cluster.
 	Close()
+	// DropAll resets the database
+	DropAll(ctx context.Context) error
+	// DropPredicate dops the predicate of the specified namespace
+	DropPredicate(ctx context.Context, predicate string) error
+	// SetSchema sets the schema of the specified namespace
+	SetSchema(ctx context.Context, schema string) error
 }
