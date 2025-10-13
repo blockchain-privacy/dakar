@@ -83,7 +83,8 @@ func WithRetry(f func() error, retryDuration time.Duration) error {
 			time.Sleep(retryDuration)
 		}
 
-		if err = f(); errors.Is(err, dgo.ErrAborted) || strings.Contains(err.Error(), "errIndexingInProgress") {
+		if err = f(); err != nil && (errors.Is(err, dgo.ErrAborted) ||
+			strings.Contains(err.Error(), "errIndexingInProgress")) {
 			encounteredError = true
 			continue
 		}
