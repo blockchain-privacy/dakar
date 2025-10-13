@@ -121,7 +121,10 @@ func ChangeDBContent(dbHandle external.Database, fileKey string) {
 		log.Panic("invalid file key")
 	}
 
-	if err := SetupSchema(dbHandle); err != nil {
+	err := WithRetry(func() error {
+		return SetupSchema(dbHandle)
+	}, retrySleepDuration)
+	if err != nil {
 		log.Panic("could not set up schema", err)
 	}
 
