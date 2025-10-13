@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import {
 	SELECTOR_STATUS_SUCCESS,
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-License-Identifier: AGPL-3.0-or-later OR BSD-3-Clause
+
 // Copied from https://github.com/skokenes/d3-lasso and modernized
 // Copyright 2016, Speros Kokenes
 // All rights reserved.

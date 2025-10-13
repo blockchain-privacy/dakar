@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import {createRouter, createWebHistory} from 'vue-router';
 import {isAnyAdminIdentity, isAnyPrivilegedIdentity} from '@/utilities';
 import EntryPage from '../components/EntryPage.vue';

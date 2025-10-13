@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // See assets directory for svg files
 // eslint-disable-next-line @stylistic/max-len
 export const sigmaRight = 'm 12.736888,11.46065 v 1.078701 h 6.472208 l -2.966429,2.966428 0.765878,0.765878 L 21.280202,12 17.008545,7.728343 16.242667,8.49422 19.209096,11.46065 Z M 14.01269,6.0000002 H 4.8426913 L 10.842691,12 4.8426913,18 h 9.1699997 v 2 h -12 V 18 L 8.0126913,12 2.012691,6.0000002 v -2 H 14.01269 Z';
