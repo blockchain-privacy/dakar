@@ -2,14 +2,13 @@ package workspace
 
 import (
 	"backend/db"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_getWorkspaceConnectionsRaw(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx := t.Context()
 
@@ -64,8 +63,7 @@ func Test_getWorkspaceConnectionsRaw(t *testing.T) {
 }
 
 func TestCheckDuplicateAddress(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 

@@ -3,19 +3,13 @@ package workspace
 import (
 	"backend/db"
 	"backend/db/user"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
-
 func TestAddWorkspace(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -60,7 +54,8 @@ func TestAddWorkspace(t *testing.T) {
 }
 
 func TestGetFrontendWorkspaces(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(t, "")
+
 	ctx := t.Context()
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(ctx, dbHandle)
@@ -185,7 +180,8 @@ func TestDeleteNodes(t *testing.T) {
 }
 
 func TestDeleteWorkspace(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	dbHandle := db.GetDBConnection(t, "")
+
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	// create dgraph user and workspace for tests

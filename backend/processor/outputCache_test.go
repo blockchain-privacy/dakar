@@ -2,14 +2,13 @@ package processor
 
 import (
 	"backend/db"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadUTXOCache(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -20,9 +19,9 @@ func TestLoadUTXOCache(t *testing.T) {
 	require.NotNil(t, cache)
 	require.Zero(t, cache.getOutputCounts())
 
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.ChangeDBContent(dbHandle, db.UseBlockFile)
 
-	cache, err = newUTXOCache(ctx, dbHandle, testhelper.BlockFileLastBlock, 20)
+	cache, err = newUTXOCache(ctx, dbHandle, db.BlockFileLastBlock, 20)
 	require.NoError(t, err)
 	require.NotNil(t, cache)
 	require.Equal(t, 2, cache.getOutputCounts())

@@ -4,10 +4,10 @@ import (
 	"backend/db"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
-	"backend/testhelper"
+	"testing"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewHierarchicalMultiInput(t *testing.T) {
@@ -16,8 +16,6 @@ func TestNewHierarchicalMultiInput(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -28,8 +26,8 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 		_ = hm.CalculateInitialState(ctx)
 	})
 
+	dbHandle := db.GetDBConnection(t, "")
 	hm.db = dbHandle
-	db.SetupDBWithoutData(t, dbHandle)
 
 	// error because classifier status is not set
 	require.Error(t, hm.CalculateInitialState(ctx))
@@ -43,8 +41,7 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_Iterate(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -60,7 +57,7 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, ok)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, db.BlockFileLastBlock))
 	require.NoError(t, hm.CalculateInitialState(ctx))
 
 	// this block contains transactions with multiple input addresses
@@ -72,8 +69,7 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -90,16 +86,15 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 	_, err = hm.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, db.BlockFileLastBlock))
 	ok, err := hm.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.EqualValues(t, testhelper.BlockFileLastBlock, hm.state.Top)
+	require.EqualValues(t, db.BlockFileLastBlock, hm.state.Top)
 }
 
 func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -110,7 +105,7 @@ func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_IncrementState(t *testing.T) {
-	hm := NewHierarchicalMultiInput(t.Context(), dbHandle)
+	hm := NewHierarchicalMultiInput(t.Context(), nil)
 
 	require.EqualValues(t, 0, hm.state.ID)
 	require.NoError(t, hm.IncrementState())
@@ -135,8 +130,7 @@ func TestHierarchicalMultiInput_Props(t *testing.T) {
 }
 
 func Test_setInitialHMIClusteringID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	require.Error(t, setInitialHMIClusteringID(ctx, dbHandle))

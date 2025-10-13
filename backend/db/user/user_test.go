@@ -2,20 +2,13 @@ package user
 
 import (
 	"backend/db"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
-
 func TestCreateNewUser(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -25,8 +18,7 @@ func TestCreateNewUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

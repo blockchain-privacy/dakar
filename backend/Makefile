@@ -17,8 +17,8 @@ build: crawler
 lint: ## Lint the files
 	golangci-lint run
 
-test: ## Run unittests, '-p 1' makes tests not run in parallel;
-	go test -p 1 -cover -race ./...
+test: ## Run tests
+	go test -cover -race ./...
 
 vet: ## Run vet
 	go vet ./...

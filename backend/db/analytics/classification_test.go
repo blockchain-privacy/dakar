@@ -2,14 +2,13 @@ package analytics
 
 import (
 	"backend/db"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRemoveTransactionTypeOfAllTransactions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

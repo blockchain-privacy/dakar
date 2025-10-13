@@ -3,14 +3,14 @@ package graph
 import (
 	"backend/db"
 	"backend/db/status"
-	"backend/testhelper"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"slices"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWrapper(t *testing.T) {
@@ -314,15 +314,13 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 	}
 }
 func TestWrapper_LoadGraphs(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
 	w := NewWrapper(t.Context(), nil)
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	// database is not set
 	require.Error(t, w.LoadGraphs(NewDashConfig()))
 
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	w.db = dbHandle
 
@@ -333,9 +331,10 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	db.ChangeDBContent(dbHandle, db.UsePrivacyFile)
+
 	// set correct classifier status
-	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 
 	// set wrapper not loading and set environment variable to
 	// only load a small graph (should have no effect, as graph is small anyway)
@@ -363,7 +362,6 @@ func TestWrapper_CalculateInitialState(t *testing.T) {
 }
 
 func TestWrapper_NextBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -375,10 +373,10 @@ func TestWrapper_NextBlock(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, flag)
 
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	w.db = dbHandle
 
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 	require.NoError(t, w.LoadGraphs(NewDashConfig()))
 
 	// false because w.state.top is higher than most recent classified block
@@ -413,17 +411,16 @@ func TestWrapper_Empty(t *testing.T) {
 }
 
 func TestWrapper_Iterate(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
 	w := NewWrapper(ctx, nil)
 	w.RegisterMetrics(prometheus.NewRegistry())
+
+	dbHandle := db.GetDBConnection(t, db.UsePrivacyFile)
 	w.db = dbHandle
 
-	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
-	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 	require.NoError(t, w.LoadGraphs(NewDashConfig()))
 
 	// state.ID is set to a block which does not exist,

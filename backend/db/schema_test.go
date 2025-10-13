@@ -1,24 +1,23 @@
 package db
 
 import (
-	"backend/testhelper"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestSetupSchema(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	dbHandle := GetDBConnection(t, "")
 	require.NoError(t, SetupSchema(dbHandle))
 }
 
 func TestIsSchemaSet(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	dbHandle := GetBareDBConnection(t)
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
 	// first drop schema
-	require.NoError(t, dbHandle.DropAll(ctx))
+	require.NoError(t, dbHandle.DropData(ctx))
 
 	// should return false because schema is not set
 	isSet, err := IsSchemaSet(dbHandle)

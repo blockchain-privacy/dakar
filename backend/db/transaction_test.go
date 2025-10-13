@@ -2,9 +2,9 @@ package db
 
 import (
 	"backend/constants"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTransaction_String(t *testing.T) {
@@ -78,8 +78,7 @@ func TestFrontendTransaction_String(t *testing.T) {
 }
 
 func TestGetTransactionsOutputs(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -111,8 +110,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 }
 
 func TestGetTransactionByBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -128,8 +126,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 }
 
 func TestGetOutputAddressCounts(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
+	dbHandle := GetDBConnection(t, "")
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
@@ -145,7 +142,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	ChangeDBContent(dbHandle, UseBlockFile)
 
 	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false, nil)
 	require.NoError(t, err)
@@ -204,8 +201,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 }
 
 func TestGetFrontendTransaction(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 	const blockHash = "00000000000cfe64fca7b5c3a8ad1ee39dd3f380aeb56027bc25e97904d2c99e"
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	transaction, err := GetFrontendTransaction(t.Context(), dbHandle, txHash1)
@@ -216,7 +212,6 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, int64(0), transaction[0].Fee)
 	require.Empty(t, transaction[0].Type)
 
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638"
 	transaction, err = GetFrontendTransaction(t.Context(), dbHandle, txHash2)
 	require.NoError(t, err)
@@ -228,8 +223,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 }
 
 func TestGetTransactionBlockID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	id, err := GetTransactionBlockID(t.Context(), dbHandle, txHash1)
@@ -243,8 +237,7 @@ func TestGetTransactionBlockID(t *testing.T) {
 }
 
 func TestUpdateTransactions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -278,8 +271,7 @@ func TestUpdateTransactions(t *testing.T) {
 }
 
 func TestGetTransactionUID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx := t.Context()
 	_, err := GetTransactionUID(ctx, dbHandle, "")
@@ -295,13 +287,12 @@ func TestGetTransactionUID(t *testing.T) {
 }
 
 func TestGetOutputs(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
-	transactions, err := GetOutputs(ctx, dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
+	transactions, err := GetOutputs(ctx, dbHandle, BlockFileFirstBlock, BlockFileLastBlock)
 	require.NoError(t, err)
 	require.Len(t, transactions, 56)
 
@@ -316,8 +307,7 @@ func TestGetOutputs(t *testing.T) {
 }
 
 func TestGetTransaction(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -351,8 +341,7 @@ func TestGetTransaction(t *testing.T) {
 }
 
 func TestGetTransactionUIDMapping(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := GetDBConnection(t, UseBlockFile)
 
 	ctx, cancel := GetTaskContext()
 	defer cancel()

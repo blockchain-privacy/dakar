@@ -46,10 +46,18 @@ test:
   script:
     # start tests
     - go install gotest.tools/gotestsum@latest
-    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race -p 1 ./...
+    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race ./...
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
+      entrypoint:
+        - '/bin/sh'
+        - '-c'
+        - |
+          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /acl_secret
+          /run.sh
+      variables:
+        DGRAPH_ALPHA_ACL: secret-file=/acl_secret
     - name: lncm/bitcoind:$BITCOIND_VERSION
       alias: bitcoind # rpc server for rpc testing
       entrypoint: ["bitcoind"]

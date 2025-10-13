@@ -2,23 +2,16 @@ package server
 
 import (
 	"backend/db"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
-
 func Test_getTransactionReply(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
@@ -57,8 +50,7 @@ func Test_getTransactionReply(t *testing.T) {
 }
 
 func Test_getBlockReply(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	tests := []struct {
 		getRequest func() *http.Request
@@ -142,8 +134,7 @@ func Test_getBlockReply(t *testing.T) {
 }
 
 func Test_getShortestTransactionPathReply(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	tests := []struct {
 		r          *http.Request

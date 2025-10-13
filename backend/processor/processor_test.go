@@ -4,20 +4,17 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/jsonrpc"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	dbHandle = &testhelper.TestDB{}
-	client   = &jsonrpc.BlockchainClient{}
-)
+var client = &jsonrpc.BlockchainClient{}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphAndRPCTests(m, dbHandle, client)
+	db.RunRPCTests(m, client)
 }
 
 func TestIncrementProcessingState(t *testing.T) {
@@ -154,8 +151,7 @@ func TestCreateOutputUid(t *testing.T) {
 }
 
 func TestProcessAddresses(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -202,8 +198,7 @@ func TestProcessAddresses(t *testing.T) {
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
+	db.SkipIfNoRPC(t)
 	interrupt := make(chan struct{})
 	cfg := NewDashConfig()
 	// for a fast test
@@ -246,8 +241,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 }
 
 func TestGetRPCNumberOfBlocks(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
+	db.SkipIfNoRPC(t)
 	numBlocks, err := getRPCNumberOfBlocks(client)
 	require.NoError(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
@@ -277,9 +271,9 @@ func Test_crawlerState_increment(t *testing.T) {
 func Test_buildAddresses(t *testing.T) {
 	oCache := newOutputCache()
 	err := oCache.setOutputs("asdf", []db.Output{
-		{OutputIndex: testhelper.GetPointer[int32](1)},
-		{OutputIndex: testhelper.GetPointer[int32](2)},
-		{OutputIndex: testhelper.GetPointer[int32](3)},
+		{OutputIndex: db.GetPointer[int32](1)},
+		{OutputIndex: db.GetPointer[int32](2)},
+		{OutputIndex: db.GetPointer[int32](3)},
 	})
 	require.NoError(t, err)
 
@@ -356,8 +350,7 @@ func Test_buildAddresses(t *testing.T) {
 }
 
 func Test_buildTransactionMapping(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
+	db.SkipIfNoRPC(t)
 
 	generateToAddress, err := client.GetNewAddress()
 	require.NoError(t, err)
@@ -450,8 +443,8 @@ func Test_filterExternalOutputs(t *testing.T) {
 
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs("txhash2", []db.Output{
-		{OutputIndex: testhelper.GetPointer[int32](4)},
-		{OutputIndex: testhelper.GetPointer[int32](5)},
+		{OutputIndex: db.GetPointer[int32](4)},
+		{OutputIndex: db.GetPointer[int32](5)},
 	}))
 
 	type args struct {
@@ -493,8 +486,8 @@ func Test_processTxVin(t *testing.T) {
 	cache := newOutputCache()
 	require.NoError(t, cache.setOutputs("txhash1", []db.Output{
 		{
-			OutputIndex: testhelper.GetPointer[int32](0),
-			Amount:      testhelper.GetPointer[int64](3),
+			OutputIndex: db.GetPointer[int32](0),
+			Amount:      db.GetPointer[int64](3),
 		},
 	}))
 	type args struct {
@@ -577,8 +570,7 @@ func Test_processTxVin(t *testing.T) {
 }
 
 func Test_getStartingID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -589,23 +581,23 @@ func Test_getStartingID(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotStartID)
 
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	db.ChangeDBContent(dbHandle, db.UseBlockFile)
 
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling: testhelper.GetPointer[bool](true),
+		IsCrawling: db.GetPointer[bool](true),
 		// make blocks not match
-		LastBlockID: testhelper.GetPointer[int64](5),
+		LastBlockID: db.GetPointer[int64](5),
 	}))
 	_, err = getStartingID(ctx, dbHandle)
 	require.Error(t, err)
 
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling:  testhelper.GetPointer[bool](true),
-		LastBlockID: testhelper.GetPointer[int64](testhelper.BlockFileLastBlock),
+		IsCrawling:  db.GetPointer[bool](true),
+		LastBlockID: db.GetPointer[int64](db.BlockFileLastBlock),
 	}))
 	gotStartID, err = getStartingID(ctx, dbHandle)
 	require.NoError(t, err)
-	require.EqualValues(t, testhelper.BlockFileLastBlock, gotStartID)
+	require.EqualValues(t, db.BlockFileLastBlock, gotStartID)
 }
 
 func Test_processingInterrupted(t *testing.T) {
@@ -615,9 +607,8 @@ func Test_processingInterrupted(t *testing.T) {
 }
 
 func Test_getInitialState(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -632,8 +623,7 @@ func Test_getInitialState(t *testing.T) {
 }
 
 func Test_getExternalOutputs(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -672,9 +662,8 @@ func Test_getExternalOutputs(t *testing.T) {
 }
 
 func Test_processRound(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

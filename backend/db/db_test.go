@@ -2,20 +2,14 @@ package db
 
 import (
 	"backend/external"
-	"backend/testhelper"
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/dgraph-io/dgo/v250"
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
-
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
 
 func TestInfo(t *testing.T) {
 	require.NotPanics(t, func() {
@@ -33,7 +27,7 @@ func TestGetBackendContext(t *testing.T) {
 }
 
 func TestExecTx(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
+	dbHandle := GetDBConnection(t, "")
 
 	ctx, cancel := context.WithTimeout(t.Context(), 0)
 	defer cancel()
@@ -148,25 +142,36 @@ func TestCreateCommaArray(t *testing.T) {
 }
 
 func TestCreateClient(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	name, ok := testhelper.GetDBName()
+	name, ok := GetDBName()
 	if !ok {
-		t.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
+		t.Fatal("environment variable " + EnvDBHostname + " is not set")
 	}
+
 	d, err := external.CreateClient(name + ":9080")
 	require.NoError(t, err)
 	defer d.Close()
 }
 
+func TestCreateClientWithNamespace(t *testing.T) {
+	name, ok := GetDBName()
+	if !ok {
+		t.Fatal("environment variable " + EnvDBHostname + " is not set")
+	}
+
+	d, err := external.CreateClientWithNamespace(t.Context(), name+":9080", 0)
+	require.NoError(t, err)
+	defer d.Close()
+}
+
 func TestGetTypeByUID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	SetupDBWithoutData(t, dbHandle)
+	dbHandle := GetDBConnection(t, "")
 
 	// empty db
 	_, err := GetTypeByUID(t.Context(), dbHandle, "0x123")
 	require.Error(t, err)
 
-	SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	ChangeDBContent(dbHandle, UseBlockFile)
+
 	ctx := t.Context()
 	txUID, err := GetTransactionUID(ctx, dbHandle, "91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb")
 	require.NoError(t, err)

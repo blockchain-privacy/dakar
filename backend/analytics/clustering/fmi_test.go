@@ -4,10 +4,10 @@ import (
 	"backend/db"
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
-	"backend/testhelper"
+	"testing"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_addClustersToMergeList(t *testing.T) {
@@ -240,7 +240,7 @@ func Test_buildDBOperation(t *testing.T) {
 					"a": &someCluster,
 					"b": {
 						changeTransaction: "0x2",
-						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: testhelper.GetPointer(50000)}, {UID: "0x200", AddressCount: &ten}},
+						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: db.GetPointer(50000)}, {UID: "0x200", AddressCount: &ten}},
 						addresses:         map[string]bool{"0x30": true, "0x40": true},
 					}},
 				clusterIndex: 0},
@@ -264,14 +264,14 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x100", AddressCount: testhelper.GetPointer(30000)},
-				{UID: "0x200", AddressCount: testhelper.GetPointer(8000)},
-				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
-				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
-				{UID: "0x300", AddressCount: testhelper.GetPointer(9000)},
-				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
+				{UID: "0x100", AddressCount: db.GetPointer(30000)},
+				{UID: "0x200", AddressCount: db.GetPointer(8000)},
+				{UID: "0x300", AddressCount: db.GetPointer(5000)},
+				{UID: "0x400", AddressCount: db.GetPointer(4000)},
+				{UID: "0x300", AddressCount: db.GetPointer(9000)},
+				{UID: "0x500", AddressCount: db.GetPointer(1000)},
+				{UID: "0x600", AddressCount: db.GetPointer(1000)},
+				{UID: "0x700", AddressCount: db.GetPointer(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -286,13 +286,13 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x100", AddressCount: testhelper.GetPointer(8000)},
-				{UID: "0x200", AddressCount: testhelper.GetPointer(5000)},
-				{UID: "0x300", AddressCount: testhelper.GetPointer(4000)},
-				{UID: "0x400", AddressCount: testhelper.GetPointer(9000)},
-				{UID: "0x500", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x700", AddressCount: testhelper.GetPointer(6000)},
+				{UID: "0x100", AddressCount: db.GetPointer(8000)},
+				{UID: "0x200", AddressCount: db.GetPointer(5000)},
+				{UID: "0x300", AddressCount: db.GetPointer(4000)},
+				{UID: "0x400", AddressCount: db.GetPointer(9000)},
+				{UID: "0x500", AddressCount: db.GetPointer(1000)},
+				{UID: "0x600", AddressCount: db.GetPointer(1000)},
+				{UID: "0x700", AddressCount: db.GetPointer(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -307,12 +307,12 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x300", AddressCount: testhelper.GetPointer(5000)},
-				{UID: "0x400", AddressCount: testhelper.GetPointer(4000)},
-				{UID: "0x500", AddressCount: testhelper.GetPointer(9000)},
-				{UID: "0x600", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x700", AddressCount: testhelper.GetPointer(1000)},
-				{UID: "0x800", AddressCount: testhelper.GetPointer(6000)},
+				{UID: "0x300", AddressCount: db.GetPointer(5000)},
+				{UID: "0x400", AddressCount: db.GetPointer(4000)},
+				{UID: "0x500", AddressCount: db.GetPointer(9000)},
+				{UID: "0x600", AddressCount: db.GetPointer(1000)},
+				{UID: "0x700", AddressCount: db.GetPointer(1000)},
+				{UID: "0x800", AddressCount: db.GetPointer(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -327,7 +327,7 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x300", AddressCount: testhelper.GetPointer(60000)},
+				{UID: "0x300", AddressCount: db.GetPointer(60000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -384,8 +384,6 @@ func TestNewFlatMultiInput(t *testing.T) {
 }
 
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
@@ -396,8 +394,8 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 		_ = fm.CalculateInitialState(ctx)
 	})
 
+	dbHandle := db.GetDBConnection(t, "")
 	fm.db = dbHandle
-	db.SetupDBWithoutData(t, dbHandle)
 
 	// error because classifier status is not set
 	require.Error(t, fm.CalculateInitialState(ctx))
@@ -411,8 +409,7 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Iterate(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -427,7 +424,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	require.Error(t, err)
 	require.False(t, ok)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, db.BlockFileLastBlock))
 	require.NoError(t, fm.CalculateInitialState(ctx))
 
 	// this block contains transactions with multiple input addresses
@@ -439,8 +436,7 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 }
 
 func TestFlatMultiInput_NextBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -457,16 +453,15 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 	_, err = fm.Next(ctx)
 	require.Error(t, err)
 
-	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(ctx, dbHandle, db.BlockFileLastBlock))
 	ok, err := fm.Next(ctx)
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.EqualValues(t, testhelper.BlockFileLastBlock, fm.state.Top)
+	require.EqualValues(t, db.BlockFileLastBlock, fm.state.Top)
 }
 
 func TestFlatMultiInput_PostExecution(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 	fm := NewFlatMultiInput(ctx, dbHandle, NewDashConfig())
@@ -502,8 +497,7 @@ func TestFlatMultiInput_Props(t *testing.T) {
 }
 
 func Test_setInitialFMIClusteringID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

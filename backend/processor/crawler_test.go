@@ -2,10 +2,10 @@ package processor
 
 import (
 	"backend/db"
-	"backend/testhelper"
+	"testing"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewCrawler(t *testing.T) {
@@ -20,9 +20,8 @@ func TestCrawler_Props(t *testing.T) {
 }
 
 func TestCrawler_IncrementState(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
@@ -45,9 +44,8 @@ func TestCrawler_IncrementState(t *testing.T) {
 }
 
 func TestCrawler_Empty(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
@@ -73,9 +71,8 @@ func TestCrawler_Empty(t *testing.T) {
 }
 
 func TestCrawler_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -86,8 +83,7 @@ func TestCrawler_CalculateInitialState(t *testing.T) {
 }
 
 func TestCrawler_PostExecution(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	dbHandle := db.GetDBConnection(t, "")
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -98,9 +94,8 @@ func TestCrawler_PostExecution(t *testing.T) {
 }
 
 func TestCrawler_NextBlock(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
@@ -121,9 +116,8 @@ func TestCrawler_NextBlock(t *testing.T) {
 }
 
 func TestCrawler_Iterate(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SkipIfNoRPC(t)
+	dbHandle := db.GetDBConnection(t, "")
 
 	// reduce fork range limit so there is something to crawl
 	c := NewBitcoinConfig()
@@ -152,8 +146,7 @@ func TestCrawler_Iterate(t *testing.T) {
 }
 
 func Test_createTransactionMap(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	testhelper.SkipIfNoRPC(t)
+	db.SkipIfNoRPC(t)
 
 	generateToAddress, err := client.GetNewAddress()
 	require.NoError(t, err)

@@ -4,16 +4,10 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-	"backend/testhelper"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
-
-var dbHandle = &testhelper.TestDB{}
-
-func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, dbHandle)
-}
 
 func TestIsMixing(t *testing.T) {
 	type transactionTest struct {
@@ -206,13 +200,13 @@ func TestIsCollateralPayment(t *testing.T) {
 	}
 
 	shouldWork1 := db.Transaction{
-		Fee:  testhelper.GetPointer[int64](minCollateral),
+		Fee:  db.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
 		},
 	}
 
@@ -220,45 +214,45 @@ func TestIsCollateralPayment(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
 		},
 	}
 
 	multipleInputs := db.Transaction{
-		Fee:  testhelper.GetPointer[int64](minCollateral),
+		Fee:  db.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
-			{Amount: testhelper.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: db.GetPointer[int64](minCollateral)},
 		},
 	}
 
 	bigInput := db.Transaction{
-		Fee:  testhelper.GetPointer[int64](minCollateral),
+		Fee:  db.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](500000000000)},
+			{Amount: db.GetPointer[int64](500000000000)},
 		},
 		Inputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](500000000000)},
+			{Amount: db.GetPointer[int64](500000000000)},
 		},
 	}
 
 	smallInput := db.Transaction{
-		Fee:  testhelper.GetPointer[int64](minCollateral),
+		Fee:  db.GetPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](1)},
+			{Amount: db.GetPointer[int64](1)},
 		},
 		Inputs: []db.Output{
-			{Amount: testhelper.GetPointer[int64](1)},
+			{Amount: db.GetPointer[int64](1)},
 		},
 	}
 
@@ -380,8 +374,7 @@ func Test_getUids(t *testing.T) {
 }
 
 func Test_getConnectedCollaterals(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -446,8 +439,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 }
 
 func Test_isCollateralCreation(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -507,8 +499,7 @@ func Test_newCollateralCreationTransaction(t *testing.T) {
 }
 
 func Test_isCollateralPayment(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -558,8 +549,7 @@ func Test_newCollateralPaymentTransaction(t *testing.T) {
 }
 
 func Test_isMixing(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -629,8 +619,7 @@ func Test_newOriginTransaction(t *testing.T) {
 }
 
 func Test_classifyTransactions(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()

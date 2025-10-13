@@ -2,22 +2,18 @@ package db
 
 import (
 	"backend/external"
-	"backend/testhelper"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/dgraph-io/dgo/v250"
 	"github.com/qrest/gomisc/serror"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -189,61 +185,6 @@ func isValidQueryInput(input string) bool {
 // Example: [0x123,0x1a1d]
 func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
-}
-
-// SetupDB returns the database to its initial state: drops ALL data,
-// sets up the schema and inserts data from the provided file
-func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
-	// check if database state has been modified. In case it has not, just return
-	if !database.IsDirty.Load() && database.FileNameKey == fileKey {
-		return
-	}
-
-	ctx, cancel := GetTaskContext()
-	defer cancel()
-
-	// reset db
-	require.NoError(t, database.DropAll(ctx))
-
-	// set up schema
-	require.NoError(t, SetupSchema(database))
-
-	var fileBytes []byte
-
-	switch fileKey {
-	case testhelper.UseClassifierFile:
-		fileBytes = testhelper.ClassifierFile
-	case testhelper.UseBlockFile:
-		fileBytes = testhelper.BlockFile
-	case testhelper.UsePrivacyFile:
-		fileBytes = testhelper.PrivacyFile
-	case testhelper.UseBTCPrivacyFile:
-		fileBytes = testhelper.BTCPrivacyFile
-	default:
-		log.Panic("invalid file key")
-	}
-
-	if err := InsertArbitraryJSON(ctx, database, fileBytes); err != nil {
-		log.Panic("could not upsert block data", err)
-		return
-	}
-
-	database.IsDirty.Store(false)
-	database.FileNameKey = fileKey
-}
-
-// SetupDBWithoutData returns the database to its initial state:
-// drops ALL data and sets up the schema
-func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
-	ctx, cancel := GetTaskContext()
-	defer cancel()
-	// reset db
-	require.NoError(t, database.DropAll(ctx))
-
-	// set up schema
-	require.NoError(t, SetupSchema(database))
-
-	database.IsDirty.Store(true)
 }
 
 func GetTypeByUID(ctx context.Context, c external.Database, uid string) (string, error) {

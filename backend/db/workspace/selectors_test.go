@@ -4,17 +4,17 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/user"
-	"backend/testhelper"
+	"backend/external"
 	"context"
 	"encoding/json"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestDoSelection(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
 	require.NoError(t, err)
@@ -181,7 +181,7 @@ func TestDoSelection(t *testing.T) {
 	}
 }
 
-func createUserAndWorkspace() (string, string, error) {
+func createUserAndWorkspace(dbHandle external.Database) (string, string, error) {
 	userUID, err := user.CreateNewUser(context.Background(), dbHandle)
 	if err != nil {
 		return "", "", err
@@ -195,7 +195,7 @@ func createUserAndWorkspace() (string, string, error) {
 	return userUID, workspaceUID, nil
 }
 
-func doSelection() ([]string, []byte, error) {
+func doSelection(dbHandle external.Database) ([]string, []byte, error) {
 	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
 	if err != nil {
 		return nil, nil, err
@@ -231,13 +231,12 @@ func doSelection() ([]string, []byte, error) {
 }
 
 func TestInsertSelector(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	resultUIDs, optJSON, err := doSelection()
+	resultUIDs, optJSON, err := doSelection(dbHandle)
 	require.NoError(t, err)
 
 	results := make([]any, len(resultUIDs))
@@ -337,13 +336,12 @@ func TestInsertSelector(t *testing.T) {
 }
 
 func TestGetSelectorResultsByUID(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	resultUIDs, optJSON, err := doSelection()
+	resultUIDs, optJSON, err := doSelection(dbHandle)
 	require.NoError(t, err)
 
 	results := make([]any, len(resultUIDs))
@@ -386,15 +384,14 @@ func TestGetSelectorResultsByUID(t *testing.T) {
 }
 
 func TestUpdateSelector(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	resultUIDs, optJSON, err := doSelection()
+	resultUIDs, optJSON, err := doSelection(dbHandle)
 	require.NoError(t, err)
 
 	results := make([]any, len(resultUIDs))
@@ -445,15 +442,14 @@ func TestUpdateSelector(t *testing.T) {
 }
 
 func TestDeleteUserSelectors(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	resultUIDs, optJSON, err := doSelection()
+	resultUIDs, optJSON, err := doSelection(dbHandle)
 	require.NoError(t, err)
 
 	results := make([]any, len(resultUIDs))
@@ -478,15 +474,14 @@ func TestDeleteUserSelectors(t *testing.T) {
 }
 
 func TestGetWaitingSelectors(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	resultUIDs, optJSON, err := doSelection()
+	resultUIDs, optJSON, err := doSelection(dbHandle)
 	require.NoError(t, err)
 
 	results := make([]any, len(resultUIDs))
@@ -523,15 +518,14 @@ func TestGetWaitingSelectors(t *testing.T) {
 }
 
 func TestGetSelectorStatus(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx := t.Context()
 
-	userUID, workspaceUID, err := createUserAndWorkspace()
+	userUID, workspaceUID, err := createUserAndWorkspace(dbHandle)
 	require.NoError(t, err)
 
-	resultUIDs, optJSON, err := doSelection()
+	resultUIDs, optJSON, err := doSelection(dbHandle)
 	require.NoError(t, err)
 
 	results := make([]any, len(resultUIDs))
@@ -557,8 +551,7 @@ func TestGetSelectorStatus(t *testing.T) {
 }
 
 func TestDoGraphSelection(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	dbHandle := db.GetDBConnection(t, db.UseClassifierFile)
 
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
@@ -578,23 +571,23 @@ func TestDoGraphSelection(t *testing.T) {
 		},
 		{
 			o: TxGraphOptions{
-				Depth: testhelper.GetPointer(10),
+				Depth: db.GetPointer(10),
 			},
 			parentUID: "",
 			wantErr:   true,
 		},
 		{
 			o: TxGraphOptions{
-				Depth: testhelper.GetPointer(2),
+				Depth: db.GetPointer(2),
 			},
 			parentUID: "",
 			wantErr:   true,
 		},
 		{
 			o: TxGraphOptions{
-				Depth:     testhelper.GetPointer(2),
+				Depth:     db.GetPointer(2),
 				IsForward: true,
-				MaxItems:  testhelper.GetPointer(5),
+				MaxItems:  db.GetPointer(5),
 			},
 			parentUID: uid,
 			wantErr:   false,
