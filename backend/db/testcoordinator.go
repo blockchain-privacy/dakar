@@ -53,7 +53,7 @@ func getTestCoordinator() *TestCoordinator {
 func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) external.Database {
 	t.Helper()
 
-	if !doDBTests() {
+	if !DoDBTests() {
 		t.SkipNow()
 		return nil
 	}

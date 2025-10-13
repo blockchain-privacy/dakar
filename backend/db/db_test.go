@@ -146,6 +146,10 @@ func TestCreateCommaArray(t *testing.T) {
 }
 
 func TestCreateClient(t *testing.T) {
+	if !DoDBTests() {
+		t.SkipNow()
+	}
+
 	name, ok := GetDBName()
 	if !ok {
 		t.Fatal("environment variable " + EnvDBHostname + " is not set")
@@ -157,6 +161,10 @@ func TestCreateClient(t *testing.T) {
 }
 
 func TestCreateClientWithNamespace(t *testing.T) {
+	if !DoDBTests() {
+		t.SkipNow()
+	}
+
 	name, ok := GetDBName()
 	if !ok {
 		t.Fatal("environment variable " + EnvDBHostname + " is not set")

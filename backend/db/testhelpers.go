@@ -52,7 +52,7 @@ var PrivacyFile []byte
 //go:embed testfiles/btc_privacy_transactions.json
 var BTCPrivacyFile []byte
 
-func doDBTests() bool {
+func DoDBTests() bool {
 	_, ok := os.LookupEnv(EnvDBTests)
 	return ok
 }
