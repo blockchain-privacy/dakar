@@ -170,7 +170,8 @@ func TestCreateClientWithNamespace(t *testing.T) {
 		t.Fatal("environment variable " + EnvDBHostname + " is not set")
 	}
 
-	d, err := external.CreateClientWithNamespace(t.Context(), name+":9080", 0)
+	d, err := external.CreateClientWithNamespace(t.Context(), name+":9080",
+		GetDBUser(), GetDBPassword(), 0)
 	require.NoError(t, err)
 	defer d.Close()
 }

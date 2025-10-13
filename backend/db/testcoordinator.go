@@ -14,6 +14,8 @@ import (
 type TestCoordinator struct {
 	dbConnection external.Database
 	dbHostname   string
+	dbUser       string
+	dbPassword   string
 }
 
 var singletonCoordinator *TestCoordinator
@@ -27,10 +29,13 @@ func getTestCoordinator() *TestCoordinator {
 			log.Fatal("environment variable " + EnvDBHostname + " is not set")
 		}
 
+		user := GetDBUser()
+		passwd := GetDBPassword()
+
 		ctx, cancel := GetShortTaskContext()
 		defer cancel()
 
-		graphDB, err := external.CreateClientWithNamespace(ctx, dbName+":9080", 0)
+		graphDB, err := external.CreateClientWithNamespace(ctx, dbName+":9080", user, passwd, 0)
 		if err != nil {
 			log.Panic(err)
 			return
@@ -41,7 +46,8 @@ func getTestCoordinator() *TestCoordinator {
 			return
 		}
 
-		singletonCoordinator = &TestCoordinator{dbConnection: graphDB, dbHostname: dbName}
+		singletonCoordinator = &TestCoordinator{dbConnection: graphDB, dbHostname: dbName,
+			dbUser: user, dbPassword: passwd}
 	})
 
 	return singletonCoordinator
@@ -67,7 +73,8 @@ func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) e
 		t.Fatal(err)
 	}
 
-	graphDB, err := external.CreateClientWithNamespace(t.Context(), c.dbHostname+":9080", nsID)
+	graphDB, err := external.CreateClientWithNamespace(t.Context(), c.dbHostname+":9080",
+		c.dbUser, c.dbPassword, nsID)
 	if err != nil {
 		t.Fatal(err)
 	}

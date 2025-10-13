@@ -19,6 +19,8 @@ const (
 	EnvRPCTests              = "RPC_TESTS"
 	EnvDBHostname            = "DB_HOSTNAME"
 	EnvRPCHostname           = "RPC_HOSTNAME"
+	EnvDBUser                = "DB_USER"
+	EnvDBPassword            = "DB_PASSWORD"
 	UseClassifierFile        = "classifier"
 	UseBlockFile             = "block"
 	UsePrivacyFile           = "privacy"
@@ -68,6 +70,22 @@ func GetDBName() (string, bool) {
 
 func GetRPCName() (string, bool) {
 	return os.LookupEnv(EnvRPCHostname)
+}
+
+func GetDBUser() string {
+	user, ok := os.LookupEnv(EnvDBUser)
+	if !ok {
+		user = "groot"
+	}
+	return user
+}
+
+func GetDBPassword() string {
+	user, ok := os.LookupEnv(EnvDBPassword)
+	if !ok {
+		user = "password"
+	}
+	return user
 }
 
 func SkipIfNoRPC(t testing.TB) {
