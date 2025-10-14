@@ -21,7 +21,7 @@ var ErrInvalidSelector = errors.New("invalid selector")
 
 // appendFilterArgs appends '<and> ge(filterSubject, number)' or '<and> le(filterSubject, number)' filter
 // to the given string and returns it
-func appendFilterArgs(filter string, fiterSubject string, number *int64, greaterOrEqual bool) string {
+func appendFilterArgs(filter string, filterSubject string, number *int64, greaterOrEqual bool) string {
 	if number == nil {
 		return filter
 	}
@@ -36,7 +36,7 @@ func appendFilterArgs(filter string, fiterSubject string, number *int64, greater
 		filter += "le"
 	}
 
-	return filter + "(" + fiterSubject + "," + strconv.FormatInt(*number, 10) + ")"
+	return filter + "(" + filterSubject + "," + strconv.FormatInt(*number, 10) + ")"
 }
 
 // DoSelection returns transactions specified by the options. It also returns the number of total results.

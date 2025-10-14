@@ -6,10 +6,11 @@ package graph
 
 import (
 	"fmt"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/iterator"
 	"maps"
 	"reflect"
+
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/iterator"
 )
 
 var (
@@ -47,7 +48,7 @@ func (g *ReversibleGraph) IsReversed() bool {
 	return g.reversed
 }
 
-// SetReverse sets wether the direction of the graph is reversed
+// SetReverse sets whether the direction of the graph is reversed
 func (g *ReversibleGraph) SetReverse(reversed bool) {
 	g.reversed = reversed
 }
@@ -57,7 +58,7 @@ func (g *ReversibleGraph) IsDirected() bool {
 	return g.directed
 }
 
-// SetDirected sets wether the graph is directed
+// SetDirected sets whether the graph is directed
 func (g *ReversibleGraph) SetDirected(directed bool) {
 	g.directed = directed
 }

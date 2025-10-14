@@ -57,7 +57,7 @@ With the `ignoresafeguard` flag the safeguard can be ignored and the crawling be
 
 The crawler is configured via a configuration file.
 
-### Using the configuartion file
+### Using the configuration file
 
 Create a new config file with the command below. This will create a new config file named `config.yml`.
 ```shell script
@@ -71,7 +71,7 @@ Start the Dakar with a config file in a custom path.
 
 ### Target Iteration Duration
 
-The classifer and clustering module support processing multiple blocks in one iteration. 
+The classifier and clustering module support processing multiple blocks in one iteration. 
 The target iteration duration can be set in the configuration file via `targetDuration` in the respective module in multiples of seconds.
 Increasing `targetDuration`, increases the relative number of blocks being processed per iteration and therefore also increases the load on the system. 
 If `targetDuration` is set to 0, each iteration will only process one block. 

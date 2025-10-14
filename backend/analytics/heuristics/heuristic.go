@@ -19,9 +19,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
 	"strconv"
 	"time"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 type HeuristicConstructor func() Heuristic
@@ -238,7 +239,7 @@ func getWhirlpoolDenominationCountsWithFilter(it heuristics.HeuristicTransaction
 }
 
 // If the given transaction hash belongs to a mixing transaction then it returns the transaction itself,
-// otherwise it return the input transactions of the transaction.
+// otherwise it returns the input transactions of the transaction.
 func getInputTransactions(ctx context.Context, c external.Database, txhash string,
 	allowedTransactionType string) ([]heuristics.HeuristicTransaction, error) {
 	transaction, err := db.GetTransaction(ctx, c, txhash)

@@ -5,8 +5,9 @@
 package analytics
 
 import (
-	"github.com/qrest/gomisc/serror"
 	"time"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 // ConnectedNodeRequest is the request for ConnectedNode
@@ -104,7 +105,7 @@ type AddressNode struct {
 	} `json:"i"`
 }
 
-// MixingActivity contains the timestamp and type of a classified transaction
+// MixingActivity contains the timestamp and type of classified transaction
 type MixingActivity struct {
 	TransactionHash string `json:"txhash"`
 	TransactionType string `json:"txtype,omitempty"`

@@ -12,11 +12,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/qrest/gomisc/serror"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 const (
@@ -95,7 +96,7 @@ func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, worksp
 		frontendState[n.UID] = n
 	}
 
-	modifiedAtLeasteOne := false
+	modifiedAtLeastOne := false
 
 	// don't blindly set the new state from user input,
 	// instead update the coordinates of nodes stored already in the db
@@ -103,11 +104,11 @@ func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, worksp
 		if frontendNode, ok := frontendState[backendNode.UID]; ok {
 			w.Nodes[i].X = frontendNode.X
 			w.Nodes[i].Y = frontendNode.Y
-			modifiedAtLeasteOne = true
+			modifiedAtLeastOne = true
 		}
 	}
 
-	if !modifiedAtLeasteOne {
+	if !modifiedAtLeastOne {
 		// state was not updated, so nothing to do
 		return nil
 	}
@@ -335,7 +336,7 @@ func AddNodes(ctx context.Context, dgraph external.Database, workspaceMutex *Mut
 const noteUIDPrefix = "note_"
 
 // Generates a note uid using unix time. The note uid only has to be unique between the notes of a workspace.
-// Therefore it is fine to not use cryptographically secure functions.
+// Therefore, it is fine to not use cryptographically secure functions.
 func generateNoteUID() string {
 	return noteUIDPrefix + strconv.FormatInt(time.Now().Unix(), 10)
 }
@@ -370,7 +371,7 @@ func AddNote(ctx context.Context, dgraph external.Database, workspaceMutex *Mute
 		return nil, serror.FromFormat("trying to add note with non-existing child %s", note.Children[0])
 	}
 
-	// if it is a new node generate a uid
+	// if it is a new node generate an uid
 	if note.UID == "" {
 		note.UID = generateNoteUID()
 	} else {
@@ -445,13 +446,13 @@ func isWorkspaceOutdated(ctx context.Context, dgraph external.Database, w *works
 		return false, nil
 	}
 
-	// no timestamp set, therefore it is unkown if the state is outdated -> respond with outdated
+	// no timestamp set, therefore it is unknown if the state is outdated -> respond with outdated
 	// or timestamp set to zero, therefore an update is necessary
 	if w.ClusterHeight == nil || *w.ClusterHeight == 0 {
 		return true, nil
 	}
 
-	// only one node with an non-zero cluster height -> not oudated
+	// only one node with a non-zero cluster height -> not outdated
 	if len(w.Nodes) == 1 {
 		return false, nil
 	}

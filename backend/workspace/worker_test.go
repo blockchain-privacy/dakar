@@ -88,7 +88,7 @@ func TestWorker_work(t *testing.T) {
 		w.Start(ctx)
 	}()
 
-	// if the number of waiting selectors is 0, then the worker has finsihed
+	// if the number of waiting selectors is 0, then the worker has finished
 	now := time.Now()
 	for {
 		time.Sleep(time.Millisecond * 100)

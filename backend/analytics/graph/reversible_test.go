@@ -298,7 +298,7 @@ func getSetEdgeData() []testEdgeInput {
 
 	// generate random test data
 	for txUID := range txCount {
-		// create up to a 100 inputs
+		// create up to 100 inputs
 		numInputs := txCount + max(1, r.Int64N(100)) //nolint:gosec
 		froms := make([]graph.Node, numInputs)
 		as := make([]int64, numInputs)

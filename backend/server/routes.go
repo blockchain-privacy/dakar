@@ -36,7 +36,7 @@ const (
 	routeMetrics                  string = "/metrics"
 )
 
-// BuildPattern buils a route pattern which can be used with the stdlib http package
+// BuildPattern builds a route pattern which can be used with the stdlib http package
 func BuildPattern(httpMethod string, r string, query string) string {
 	base := httpMethod + " " + routePrefix + r + "/"
 

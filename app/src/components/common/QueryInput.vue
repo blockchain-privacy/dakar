@@ -198,7 +198,7 @@ function getResultNavigation(item) {
 function handleResultItemClick(item) {
 	// The menu should be hidden by removing focus (blur()) from the text field.
 	// However, when calling blur it shows the history list for a split second.
-	// To workaround this set a flag to false and set it to true shortly after
+	// To work around this, set a flag to false and set it to true shortly after
 	hideHistory.value = true;
 	setTimeout(() => {
 		hideHistory.value = false;

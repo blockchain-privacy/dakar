@@ -6,9 +6,10 @@ package graph
 
 import (
 	"backend/constants"
-	"github.com/qrest/gomisc/serror"
 	"math"
 	"sort"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 func getEarliestTimestamp(g *ReversibleGraph, tx TransactionNode) (int64, error) {
@@ -39,7 +40,7 @@ type FingerPrint struct {
 }
 
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern and the number
-// of mixing sessions of this transactions. Uses the Chamfer distance as a similarity measure.
+// of mixing sessions of this transaction. Uses the Chamfer distance as a similarity measure.
 // Limits the number of results by maxResults
 func SpendingFingerprint(g *ReversibleGraph, uid string, maxResults int) ([]FingerPrint, int, error) {
 	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
@@ -135,7 +136,7 @@ func calcChamferDistance(g *ReversibleGraph, node1 TransactionNode, node2 Transa
 	return chamferDistanceOneSided(node1Timestamps, node2Timestamps)
 }
 
-// chamferDistanceOneSided calculates the one sided Chamfer distance between two 1D arrays.
+// chamferDistanceOneSided calculates the one-sided Chamfer distance between two 1D arrays.
 func chamferDistanceOneSided(arr1, arr2 []float64) (float64, error) {
 	if len(arr1) == 0 || len(arr2) == 0 {
 		return 0, serror.FromStr("empty timestamp array")

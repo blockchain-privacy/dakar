@@ -10,8 +10,9 @@ import (
 	"backend/db/analytics/classifier/dash"
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
 	"slices"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 // ------------------------- Private Send Example Graph -------------------------
@@ -219,7 +220,7 @@ func getConnectedCollaterals(ctx context.Context, dgraph external.Database, pote
 
 		// no mixing transaction should be recognized in this step
 		if len(mixing) > 0 {
-			err = serror.FromStr("mixing transaction occured after secondary classification loop")
+			err = serror.FromStr("mixing transaction occurred after secondary classification loop")
 			return
 		}
 

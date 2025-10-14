@@ -8,10 +8,10 @@ import (
 	"backend/constants"
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
-
 	"encoding/json"
 	"fmt"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 // Functions for detecting mixing activity

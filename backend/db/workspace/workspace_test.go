@@ -107,7 +107,7 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 	}
 }
 
-func TestFindDescandantSelectorUIDs(t *testing.T) {
+func TestFindDescendantSelectorUIDs(t *testing.T) {
 	filledMap := map[string]Node{
 		"0x1": {
 			UID:      "0x1",

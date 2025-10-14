@@ -54,7 +54,7 @@ func Test_upgradeDatabaseToNextVersion(t *testing.T) {
 			currentSchemaVersion: 1,
 			wantErr:              true,
 		},
-		// currentSchemaVersion is to low, so should fail
+		// currentSchemaVersion is too low, so should fail
 		{
 			upgrades:             upgrades,
 			currentSchemaVersion: 0,

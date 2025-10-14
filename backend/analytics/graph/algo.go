@@ -6,11 +6,12 @@ package graph
 
 import (
 	"backend/constants"
+	"strconv"
+	"time"
+
 	"github.com/qrest/gomisc/serror"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
-	"strconv"
-	"time"
 )
 
 func ErrNodeNotFound(nodeID int64) error {
@@ -141,7 +142,7 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 	if maxDepthParameter > 0 {
 		if !isReversed {
 			// Reduce the maximum depth by 1, because in Traverse() connected nodes are also considered.
-			// Therefore we traverse: maxDepth + 1 - 1 = maxDepth
+			// Therefore, we traverse: maxDepth + 1 - 1 = maxDepth
 			// This is limited to reverse lookups. When doing forward lookups we want to traverse
 			// one additional hop, which is achieved in Traverse()
 			maxDepth--

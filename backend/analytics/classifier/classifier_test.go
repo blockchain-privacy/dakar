@@ -238,7 +238,7 @@ func TestBlockIteratorImmediateExit(t *testing.T) {
 	}))
 
 	ctx, cancelFunc := db.GetShortTaskContext()
-	// immediatly cancel
+	// immediately cancel
 	cancelFunc()
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 	classifier.RegisterMetrics(prometheus.NewRegistry())

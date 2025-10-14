@@ -13,6 +13,7 @@ import (
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
+
 	"github.com/qrest/gomisc/serror"
 
 	"fmt"
@@ -68,7 +69,7 @@ func (h *reverseLookupHeuristic) GetDescriptor() Descriptor {
 		Title:    "Reverse lookup",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "Starting from each connected mixing transaciton, traverses the transaction " +
+		Description: "Starting from each connected mixing transaction, traverses the transaction " +
 			"graph backwards for the given duration and returns all found origins.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "48",
