@@ -138,16 +138,13 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error)
 }
 
 //	@title			Dakar API
-//	@version		1.0.4
+//	@version		1.0.5
 //	@description	This is the REST API for Dakar
 //	@host			localhost
 //	@BasePath		/api/v1
 //
-// The crawler for the system. It needs to be run prior to using any of the other
-// commands that rely on the Dgraph DB to be pre-created.
-//
-// The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
-// starting from a given block, and, working backwards, until a given stop block.
+// This is the backend of Dakar. It crawls, classifies and clusters either the Dash
+// or Bitcoin blockchain and exposes its data via a RESTful API.
 //
 // nolint:gocyclo
 func main() {

@@ -1,5 +1,5 @@
 BUILD_DIR := "build"
-CRAWLER_DIR := "./cmd/crawler"
+DAKAR_DIR := "./cmd/dakar"
 
 GREEN  = $(shell tput -Txterm setaf 2)
 YELLOW = $(shell tput -Txterm setaf 3)
@@ -10,8 +10,8 @@ RESET  = $(shell tput -Txterm sgr0)
 .PHONY: all build clean test vet lint tidy update_dependencies docker
 .PHONY: openapi-fmt openapi-spec openapi-client openapi-publish push-tag spellcheck-wikiapi
 
-all: crawler
-build: crawler
+all: dakar
+build: dakar
 
 ## Test:
 lint: ## Lint the files
@@ -31,22 +31,22 @@ tidy: ## Run go mod tidy on the default go.mod file
 	@go mod tidy
 
 ## Build:
-crawler: ## Build the crawler binary
-	go build -v -o $(BUILD_DIR)/crawler $(CRAWLER_DIR)
+dakar: ## Build the dakar binary
+	go build -v -o $(BUILD_DIR)/dakar $(DAKAR_DIR)
 
 clean: ## Remove previous build
 	@rm -rf $(BUILD_DIR)
 
 ## Docker:
-docker: ## Build Docker image for the crawler binary
+docker: ## Build Docker image for the dakar binary
 	docker build -t dakar .
 
 ## Open API:
 openapi-fmt: ## Formats swagger annotations
-	./swag fmt -d cmd/crawler,server
+	./swag fmt -d cmd/dakar,server
 
 openapi-spec: ## Creates openapi spec
-	mkdir -p openapi && ./swag init --pd -d cmd/crawler,server -o openapi
+	mkdir -p openapi && ./swag init --pd -d cmd/dakar,server -o openapi
 
 openapi-client: ## Creates a javascript client based on the openapi spec
 	(cd ../docker && sudo docker compose -f docker-compose-openapi.yml up && sudo docker compose -f docker-compose-openapi.yml rm -fsv)

@@ -1,18 +1,18 @@
  # Backend
 
-This is the backend of Dakar. It crawls the Dash blockchain and exposes its data via a REST API.
+This is the backend of Dakar. It crawls, classifies and clusters either the Dash or Bitcoin blockchain and exposes its data via a RESTful API.
 
 * [Backend](#backend)
    * [Dependencies](#dependencies)
    * [Development](#development)
    * [Start](#start)
-      * [Setup Dash](#setup-dash)
+      * [Setup Blockchain Client](#setup-blockchain-client)
       * [Setup Dgraph](#setup-dgraph)
-      * [Setup Crawler](#setup-crawler)
+      * [Setup Dakar](#setup-dakar)
       * [Docker](#docker)
       * [Setup Frontend](#setup-frontend)
    * [Metrics](#metrics)
-   * [Running local tests](#running-local-tests)
+   * [Running Local Tests](#running-local-tests)
    * [OpenAPI Documentation](#openapi-documentation)
 
 ## Dependencies
@@ -44,12 +44,9 @@ Branches
 *  feature branches - main mechanism for new work.
 
 ## Start
-### Setup Dash
-* Setup `dashd` and let it sync. A GUI is available via `dash-qt`. Dash can be downloaded [here](https://www.dash.org/downloads/). Verify the file hashes.
-* Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler/main.go) are used.
-```shell script
-dashd -rpcuser=rpc1user -rpcpassword=1234pass
-```
+### Setup Blockchain Client
+* Setup either `dashd` or `bitcoind`
+* Configure the RPC connection and set the details in `config.yml` of Dakar.
 
 ### Setup Dgraph
 * Change to the `docker` directory and create a new external docker network
@@ -62,34 +59,33 @@ docker network create dgraph_default
 * Execute `docker-compose up` to start Dgraph
 * After the startup is complete the database explorer `Ratel` is available via `http://localhost:8000/?local`
 
-### Setup Crawler
-* Build the dash version of the crawler
+### Setup Dakar
+* Build Dakar
 ```shell script
-cd <project_dir>/backend/cmd/crawler
-make dash
+cd backend
+make dakar
+cd build
 ```
 
-* Launch the crawler with the following command
+* Create a new config file. Change the values in the newly generated `config.yml` to appropriate values.
+```shell script
+# -createConfig will create a new config file `config.yml` in your current directory
+./dakar -createConfig
+```
+
+* Launch the Dakar executable with the following command
 ```shell script
 # -reset will delete all data of the dgraph instance and setup a new schema
-./crawler_dash -reset
+./build/dakar -reset
 ```
 * The REST API can be accessed via the address printed in the standard output.
-Check the [crawler description](cmd/crawler/Readme.md) for more details. 
-Example output:
-
-```commandline
-Dakar v1.0.0
-crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
-server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
-process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
-```
+Check the [Dakar description](cmd/dakar/Readme.md) for more details. 
 
 ### Docker
 
-To create a docker image containing the crawler executable execute the script below.
+To create a docker image containing the Dakar executable execute the script below.
 ```shell script
-make docker-dash
+make docker
 ```
 The image expects the config file to be mounted to `/data/config.yml`.
 
