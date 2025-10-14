@@ -5,5 +5,4 @@
 config.yml
 build/
 log.txt
-crawler.log
 swag
