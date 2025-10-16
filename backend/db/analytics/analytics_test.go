@@ -10,8 +10,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/qrest/gomisc/serror"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 func TestGetAllFMIClusters(t *testing.T) {

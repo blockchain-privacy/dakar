@@ -7,7 +7,7 @@ package analytics
 import (
 	"time"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // ConnectedNodeRequest is the request for ConnectedNode

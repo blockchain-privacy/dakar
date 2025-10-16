@@ -10,7 +10,7 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"time"
 )
 

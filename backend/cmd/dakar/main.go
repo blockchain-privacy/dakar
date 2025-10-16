@@ -34,8 +34,8 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/qrest/gomisc/config"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/config"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // versionString displays the version of the Crawler

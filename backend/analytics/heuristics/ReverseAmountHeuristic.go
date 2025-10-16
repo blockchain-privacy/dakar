@@ -13,7 +13,7 @@ import (
 	"backend/external"
 	"context"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // reverseAmountHeuristic - see exec for description

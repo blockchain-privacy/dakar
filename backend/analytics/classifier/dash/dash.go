@@ -12,7 +12,7 @@ import (
 	"context"
 	"slices"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // ------------------------- Private Send Example Graph -------------------------

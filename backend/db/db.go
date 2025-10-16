@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/dgo/v250"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
 )

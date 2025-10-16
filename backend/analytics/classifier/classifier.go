@@ -13,7 +13,7 @@ import (
 	"context"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type iteratorFunction func(ctx context.Context, c external.Database, from int64, to int64) (bool, error)

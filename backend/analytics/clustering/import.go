@@ -11,7 +11,7 @@ import (
 	"backend/external"
 	"context"
 	"errors"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"time"
 )
 

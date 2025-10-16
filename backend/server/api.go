@@ -5,7 +5,7 @@
 package server
 
 import (
-	mw "github.com/qrest/gomisc/middleware"
+	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
 	"net/http"
 	"time"
 )

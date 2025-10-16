@@ -11,7 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"strconv"

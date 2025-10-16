@@ -10,7 +10,7 @@ import (
 	"backend/external"
 	"errors"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"net/http"
 	"runtime"
 	"runtime/debug"

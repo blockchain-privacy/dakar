@@ -10,7 +10,7 @@ import (
 	"backend/external"
 	"context"
 	"github.com/goccy/go-yaml"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"os"
 	"strings"
 )

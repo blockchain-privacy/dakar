@@ -7,7 +7,7 @@ package db
 import (
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 
 	"encoding/json"
 	"fmt"
