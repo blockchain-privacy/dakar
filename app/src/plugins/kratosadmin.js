@@ -5,7 +5,7 @@
 import {
 	Configuration,
 	IdentityApi,
-} from '@neondark/kratosadmin';
+} from '@blockchain-privacy/kratosadmin';
 import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
 import {useLocalStore} from '@/pinia/local';

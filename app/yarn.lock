@@ -40,6 +40,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@blockchain-privacy/kratosadmin@npm:^0.0.2":
+  version: 0.0.2
+  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.2::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.2.tgz"
+  checksum: 10c0/e3ece6de75da765cbe896406797b4091431876a64ba355d7dde73f0dc33b3d5336519c062bd806e8781009e79da5c2b7912c081a5f11200fcae0713dfad8e734
+  languageName: node
+  linkType: hard
+
+"@blockchain-privacy/wikiapi@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "@blockchain-privacy/wikiapi@npm:0.0.1::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75353814%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fwikiapi%2F-%2F%40blockchain-privacy%2Fwikiapi-0.0.1.tgz"
+  checksum: 10c0/769b422105cfb58f195ca58748a49473b61accbcb775c398486fe46db57fe1691d6751425e872d94b36aab6020c8af3431fa40bc2fe73a81b66c090f467a8069
+  languageName: node
+  linkType: hard
+
 "@blockchain/dakar@npm:^1.1.68":
   version: 1.1.68
   resolution: "@blockchain/dakar@npm:1.1.68::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.68.tgz"
@@ -273,10 +287,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/config-helpers@npm:^0.3.1":
-  version: 0.3.1
-  resolution: "@eslint/config-helpers@npm:0.3.1"
-  checksum: 10c0/f6c5b3a0b76a0d7d84cc93e310c259e6c3e0792ddd0a62c5fc0027796ffae44183432cb74b2c2b1162801ee1b1b34a6beb5d90a151632b4df7349f994146a856
+"@eslint/config-helpers@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "@eslint/config-helpers@npm:0.4.0"
+  dependencies:
+    "@eslint/core": "npm:^0.16.0"
+  checksum: 10c0/4e20c13aaeba1fa024983785df6625b36c8f4415b2433097982e1ccb08db9909e2f7bf60b793538d52ecfd572f2c4eec39a884c13c185cb6be35151f053beed5
   languageName: node
   linkType: hard
 
@@ -295,6 +311,15 @@ __metadata:
   dependencies:
     "@types/json-schema": "npm:^7.0.15"
   checksum: 10c0/c17a6dc4f5a6006ecb60165cc38bcd21fefb4a10c7a2578a0cfe5813bbd442531a87ed741da5adab5eb678e8e693fda2e2b14555b035355537e32bcec367ea17
+  languageName: node
+  linkType: hard
+
+"@eslint/core@npm:^0.16.0":
+  version: 0.16.0
+  resolution: "@eslint/core@npm:0.16.0"
+  dependencies:
+    "@types/json-schema": "npm:^7.0.15"
+  checksum: 10c0/f27496a244ccfdca3e0fbc3331f9da3f603bdf1aa431af0045a3205826789a54493bc619ad6311a9090eaf7bc25798ff4e265dea1eccd2df9ce3b454f7e7da27
   languageName: node
   linkType: hard
 
@@ -336,10 +361,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.36.0":
-  version: 9.36.0
-  resolution: "@eslint/js@npm:9.36.0"
-  checksum: 10c0/e3f6fb7d6f117d79615574f7bef4f238bcfed6ece0465d28226c3a75d2b6fac9cc189121e8673562796ca8ccea2bf9861715ee5cf4a3dbef87d17811c0dac22c
+"@eslint/js@npm:9.37.0":
+  version: 9.37.0
+  resolution: "@eslint/js@npm:9.37.0"
+  checksum: 10c0/84f98a6213522fc76ea104bd910f606136200bd918544e056a7a22442d3f9d5c3c5cd7f4cdf2499d49b1fa140155b87d597a1f16d01644920f05c228e9ca0378
   languageName: node
   linkType: hard
 
@@ -369,6 +394,16 @@ __metadata:
     "@eslint/core": "npm:^0.15.2"
     levn: "npm:^0.4.1"
   checksum: 10c0/c178c1b58c574200c0fd125af3e4bc775daba7ce434ba6d1eeaf9bcb64b2e9fea75efabffb3ed3ab28858e55a016a5efa95f509994ee4341b341199ca630b89e
+  languageName: node
+  linkType: hard
+
+"@eslint/plugin-kit@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "@eslint/plugin-kit@npm:0.4.0"
+  dependencies:
+    "@eslint/core": "npm:^0.16.0"
+    levn: "npm:^0.4.1"
+  checksum: 10c0/125614e902bb34c041da859794c47ac2ec4a814f5d9e7c4d37fcd34b38d8ee5cf1f97020d38d168885d9bf4046a9a7decb86b4cee8dac9eedcc6ad08ebafe204
   languageName: node
   linkType: hard
 
@@ -459,20 +494,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@neondark/kratosadmin@npm:^0.0.39":
-  version: 0.0.39
-  resolution: "@neondark/kratosadmin@npm:0.0.39::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F59526555%2Fpackages%2Fnpm%2F%40neondark%2Fkratosadmin%2F-%2F%40neondark%2Fkratosadmin-0.0.39.tgz"
-  checksum: 10c0/c12447076799a85b5072c4c4876dd0d35b42700ddd6978dc7b24df7769ca011986760505e7296e751f7673997007d61e9264c16fe37a98ad2575fa8b492d2bcd
-  languageName: node
-  linkType: hard
-
-"@neondark/wikiapi@npm:^1.2.58":
-  version: 1.2.58
-  resolution: "@neondark/wikiapi@npm:1.2.58::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F39181089%2Fpackages%2Fnpm%2F%40neondark%2Fwikiapi%2F-%2F%40neondark%2Fwikiapi-1.2.58.tgz"
-  checksum: 10c0/1b09e773f21fdef0ebe9573aebb8c3dd8b42d6c9ea87e1f17e57f7d4c5efb1d8c00f13863c3c278bb1e7f889bf2c64c59d96fbec6e8f8a4333da6fe23f0eb380
-  languageName: node
-  linkType: hard
-
 "@npmcli/agent@npm:^2.0.0":
   version: 2.2.1
   resolution: "@npmcli/agent@npm:2.2.1"
@@ -495,10 +516,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.22.3":
-  version: 1.22.3
-  resolution: "@ory/client-fetch@npm:1.22.3"
-  checksum: 10c0/6c8654703e3cd342d085e2fa26189dda52bc0365f06d932057fd6cf6e3aa9d539fbfb4d4b677ab622b6f9cb7f3b7b089440085c620242852274ae675f69efd50
+"@ory/client-fetch@npm:^1.22.6":
+  version: 1.22.6
+  resolution: "@ory/client-fetch@npm:1.22.6"
+  checksum: 10c0/37b569f0d4e7ac9dda1cc23b4853d6c31473b5b49637c860e1423426fc2db8e82082a01b80ef68b140a8e06e5c8f7d3e9a60b72d7cdf7d2b80fef78a309a628f
   languageName: node
   linkType: hard
 
@@ -1796,12 +1817,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
+    "@blockchain-privacy/kratosadmin": "npm:^0.0.2"
+    "@blockchain-privacy/wikiapi": "npm:^0.0.1"
     "@blockchain/dakar": "npm:^1.1.68"
     "@fontsource/roboto": "npm:^5.2.8"
     "@mdi/js": "npm:^7.4.47"
-    "@neondark/kratosadmin": "npm:^0.0.39"
-    "@neondark/wikiapi": "npm:^1.2.58"
-    "@ory/client-fetch": "npm:^1.22.3"
+    "@ory/client-fetch": "npm:^1.22.6"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1812,19 +1833,19 @@ __metadata:
     d3-selection: "npm:^3.0.0"
     d3-time: "npm:^3.1.0"
     d3-zoom: "npm:^3.0.0"
-    eslint: "npm:^9.36.0"
+    eslint: "npm:^9.37.0"
     eslint-config-xo: "npm:^0.49.0"
-    eslint-plugin-vue: "npm:^10.5.0"
+    eslint-plugin-vue: "npm:^10.5.1"
     pinia: "npm:^3.0.3"
     sass: "npm:^1.93.2"
-    vite: "npm:^7.1.7"
+    vite: "npm:^7.1.10"
     vite-plugin-vuetify: "npm:^2.1.2"
     vite-svg-loader: "npm:^5.1.0"
     vitest: "npm:^3.2.4"
     vue: "npm:^3.5.22"
     vue-eslint-parser: "npm:^10.2.0"
-    vue-router: "npm:^4.5.1"
-    vuetify: "npm:^3.10.4"
+    vue-router: "npm:^4.6.3"
+    vuetify: "npm:^3.10.5"
   languageName: unknown
   linkType: soft
 
@@ -2091,9 +2112,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-vue@npm:^10.5.0":
-  version: 10.5.0
-  resolution: "eslint-plugin-vue@npm:10.5.0"
+"eslint-plugin-vue@npm:^10.5.1":
+  version: 10.5.1
+  resolution: "eslint-plugin-vue@npm:10.5.1"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.4.0"
     natural-compare: "npm:^1.4.0"
@@ -2111,7 +2132,7 @@ __metadata:
       optional: true
     "@typescript-eslint/parser":
       optional: true
-  checksum: 10c0/28d8a9abfef9dcdb5d8df10ce16f8b2d94ff82514b22c2c9623f426ddf4b10b1c3dcf841992a74a460e6bc1637f57db3adf3b3cbb2e5348cc42572e559dde87b
+  checksum: 10c0/002ebf22465ca2f6b0d0725012ae6db65a256d8f22cdddc10c79e5efb030e4bc38b461466289f05eb176796ca9466d29af4d4c7450e3d741c49f04e238433cb8
   languageName: node
   linkType: hard
 
@@ -2163,18 +2184,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.36.0":
-  version: 9.36.0
-  resolution: "eslint@npm:9.36.0"
+"eslint@npm:^9.37.0":
+  version: 9.37.0
+  resolution: "eslint@npm:9.37.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.8.0"
     "@eslint-community/regexpp": "npm:^4.12.1"
     "@eslint/config-array": "npm:^0.21.0"
-    "@eslint/config-helpers": "npm:^0.3.1"
-    "@eslint/core": "npm:^0.15.2"
+    "@eslint/config-helpers": "npm:^0.4.0"
+    "@eslint/core": "npm:^0.16.0"
     "@eslint/eslintrc": "npm:^3.3.1"
-    "@eslint/js": "npm:9.36.0"
-    "@eslint/plugin-kit": "npm:^0.3.5"
+    "@eslint/js": "npm:9.37.0"
+    "@eslint/plugin-kit": "npm:^0.4.0"
     "@humanfs/node": "npm:^0.16.6"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
     "@humanwhocodes/retry": "npm:^0.4.2"
@@ -2209,7 +2230,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/0e2705a94847813b03f2f3c1367c0708319cbb66458250a09b2d056a088c56e079a1c1d76c44feebf51971d9ce64d010373b2a4f007cd1026fc24f95c89836df
+  checksum: 10c0/30b71350b0e43542eeffa6f7380ed85c960055dde8003f17bf87d209a4a9afc6091bc0419aa32f86853e7ecef18790bdc4d678112b89dbebe61b69efcb1100e1
   languageName: node
   linkType: hard
 
@@ -3926,9 +3947,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^7.1.7":
-  version: 7.1.7
-  resolution: "vite@npm:7.1.7"
+"vite@npm:^7.1.10":
+  version: 7.1.10
+  resolution: "vite@npm:7.1.10"
   dependencies:
     esbuild: "npm:^0.25.0"
     fdir: "npm:^6.5.0"
@@ -3977,7 +3998,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/3f6bd61a65aaa81368f4dda804f0e23b103664724218ccb5a0b1a0c7e284df498107b57ced951dc40ae4c5d472435bc8fb5c836414e729ee7e102809eaf6ff80
+  checksum: 10c0/ea296971a3094b0e463a91af58de64dca56c8c5c563237e59d158641f8ad7f600f624c4f7c05c18fad68f414e23d50d7145118169b8dcd4bc85283c63c7185bb
   languageName: node
   linkType: hard
 
@@ -4053,14 +4074,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-router@npm:^4.5.1":
-  version: 4.5.1
-  resolution: "vue-router@npm:4.5.1"
+"vue-router@npm:^4.6.3":
+  version: 4.6.3
+  resolution: "vue-router@npm:4.6.3"
   dependencies:
     "@vue/devtools-api": "npm:^6.6.4"
   peerDependencies:
-    vue: ^3.2.0
-  checksum: 10c0/89fbc11e46c19a4c4d62b807596a0210726dc09bd9e6a319ded1ac0951e6933e581c56acd1b846d3891673b9bad7348564d28ecd8424126d63578b3b5d291d96
+    vue: ^3.5.0
+  checksum: 10c0/4528f4fded4b45b07d4e096116e9b5fd602af463e735f7e5133b1a258ce325ebc894dd7bc962a937556615fd42d06b0fb290dfae90e96f237862b7f74baa22a0
   languageName: node
   linkType: hard
 
@@ -4082,9 +4103,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.10.4":
-  version: 3.10.4
-  resolution: "vuetify@npm:3.10.4"
+"vuetify@npm:^3.10.5":
+  version: 3.10.5
+  resolution: "vuetify@npm:3.10.5"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=2.1.0"
@@ -4097,7 +4118,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/f1b72f03ce164d1edeeba638a05881aa604470a2c6b7d7245faa2e8d470a0ef0e06e87b6006227057004c8b0a5527be135f1137ff2618456dbe4a838220b00d6
+  checksum: 10c0/90ed62befd9815e2b54f75e069457ff42f4005bebbc911763be71a6fc30cfab84d676ae5e5811012617fec6e410406df2f0bca623d14d5e3a351a367f22d0a06
   languageName: node
   linkType: hard
 
