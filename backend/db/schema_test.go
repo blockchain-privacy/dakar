@@ -12,7 +12,8 @@ import (
 
 func TestSetupSchema(t *testing.T) {
 	dbHandle := GetDBConnection(t, "")
-	require.NoError(t, SetupSchema(dbHandle))
+
+	require.NoError(t, WithRetry(func() error { return SetupSchema(dbHandle) }, retrySleepDuration))
 }
 
 func TestIsSchemaSet(t *testing.T) {
