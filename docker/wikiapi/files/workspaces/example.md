@@ -53,4 +53,4 @@ Connections between nodes can carry important information. For example a connect
 
 ## 11. Explore
 
-Dakar allows viewing basic blockchain data, like transactions and addresses but also provides insights by analyzing CoinJoin graphs. Further explore features of Dakar by using workspaces, or discover more them in wiki.
+Dakar allows viewing basic blockchain data, like transactions and addresses but also provides insights by analyzing CoinJoin graphs. Further explore features of Dakar by using workspaces, or discover more of them in the wiki.
