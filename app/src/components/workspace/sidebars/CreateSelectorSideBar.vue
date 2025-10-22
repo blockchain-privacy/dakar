@@ -25,7 +25,7 @@
               </wiki-tooltip>
               transactions.
               <br>
-              <wiki-tooltip description-url="workspaces/coinJoinHeuristic.md">
+              <wiki-tooltip description-url="workspaces/coinJoinHeuristics.md">
                 Learn more
               </wiki-tooltip>
             </div>
