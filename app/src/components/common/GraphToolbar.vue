@@ -144,6 +144,18 @@
       />
       Shortest path
     </v-btn>
+    <v-btn
+      v-if="heuristicBatchEnabled"
+      variant="flat"
+      class="my-1 me-1"
+      @click="emit('heuristicBatch')"
+    >
+      <v-icon
+        :icon="blenderPlus"
+        start
+      />
+      Batch CJ Heuristics
+    </v-btn>
     <v-btn-toggle
       v-if="oneLine"
       v-model="selectionToggle"
@@ -199,6 +211,7 @@ import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import {useRoute} from 'vue-router';
 import {useHotkey} from 'vuetify/framework';
 import {VHotkey} from 'vuetify/labs/VHotkey';
+import {blenderPlus} from '@/customIcons/index.js';
 
 const route = useRoute();
 
@@ -210,6 +223,7 @@ const emit = defineEmits([
 	'addEntities',
 	'filterChanged',
 	'shortestPathLookup',
+	'heuristicBatch',
 	'addSelector',
 ]);
 
@@ -220,6 +234,7 @@ const props = defineProps({
 	showAddSelectorButton: {type: Boolean, required: false},
 	selectedItemCount: {type: Number, required: false, default: 0},
 	shortestPathEnabled: {type: Boolean, required: false},
+	heuristicBatchEnabled: {type: Boolean, required: false},
 	addEntityEnabled: {type: Boolean, required: false},
 	deleteDisabled: {type: Boolean, required: false},
 	oneLine: {type: Boolean, required: false},

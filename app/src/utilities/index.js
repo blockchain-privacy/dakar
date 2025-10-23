@@ -10,7 +10,8 @@ import {
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
-	DENOMINATIONS_WASABI2, PRIVACY_TYPE_WHIRLPOOL_DESTINATION,
+	DENOMINATIONS_WASABI2, PRIVACY_TYPE_WHIRLPOOL_DESTINATION, WORKSPACE_NODE_TYPE_SELECTOR,
+	WORKSPACE_NODE_TYPE_TRANSACTION, PRIVACY_TYPE_ORIGIN, PRIVACY_TYPE_WASABI_2_ORIGIN, PRIVACY_TYPE_WHIRLPOOL_ORIGIN,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -176,10 +177,73 @@ export function getClusterTypeLabel(clusterType) {
 	}
 }
 
-// Returns true if the provided transaction type is destination
+// Returns all descriptors which can be applied to at least one of the provided nodes
+// if validate is true (default), then an error is thrown if an invalid node is passed
+export function filterDescriptors(descriptors, nodes, validate = true) {
+	if (!descriptors?.length || !nodes?.length) {
+		return [];
+	}
+
+	const allowedDescriptors = [];
+
+	for (const d of descriptors) {
+		for (const n of nodes) {
+			let nodeType;
+			switch (n.type) {
+				case WORKSPACE_NODE_TYPE_SELECTOR:
+					if (n.selectorStatus !== 'success') {
+						// eslint-disable-next-line max-depth
+						if (validate) {
+							throw new Error('invalid node type');
+						}
+
+						continue;
+					}
+
+					nodeType = n.heuristicOptions.type;
+					break;
+				case WORKSPACE_NODE_TYPE_TRANSACTION:
+					nodeType = n.txtype;
+					break;
+				default:
+					if (validate) {
+						throw new Error('invalid node type');
+					}
+			}
+
+			if (d.allowedParents.includes(nodeType)) {
+				allowedDescriptors.push(d);
+				break;
+			}
+		}
+	}
+
+	return allowedDescriptors;
+}
+
+// Returns true if the provided transaction type is a destination
 export function isDestination(type) {
 	return type === PRIVACY_TYPE_DESTINATION || type === PRIVACY_TYPE_WASABI_2_DESTINATION
 		|| type === PRIVACY_TYPE_WHIRLPOOL_DESTINATION;
+}
+
+// Returns true if the provided transaction type is an origin
+export function isOrigin(type) {
+	return type === PRIVACY_TYPE_ORIGIN || type === PRIVACY_TYPE_WASABI_2_ORIGIN
+		|| type === PRIVACY_TYPE_WHIRLPOOL_ORIGIN;
+}
+
+// Returns the caption of the given heuristic type
+export function getCoinJoinTypeCaption(heuristicType) {
+	if (heuristicType.startsWith('whirlpool')) {
+		return 'Whirlpool';
+	}
+
+	if (heuristicType.startsWith('wasabi2')) {
+		return 'Wasabi 2.0';
+	}
+
+	return 'Dash';
 }
 
 // Returns true if the provided argument is a function

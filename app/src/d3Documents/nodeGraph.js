@@ -263,6 +263,19 @@ export default class NodeGraph {
 		}
 	}
 
+	selectAllNodes() {
+		const m = this.getFilteredMap();
+
+		const filteredNodeKeys = [...m.keys()];
+		const visibleNodes = this.#nodeGroup.selectAll('.node,.note').filter(d => filteredNodeKeys.includes(d.uid));
+
+		visibleNodes.classed('lasso-selected', true);
+		this.lassoSelectedNodes = this.#nodeGroup.selectAll('.lasso-selected');
+		if (this.#lassoSelectionCallback !== null) {
+			this.#lassoSelectionCallback();
+		}
+	}
+
 	nodeClick(e, d, d3This) {
 		if (e) {
 			e.stopPropagation();
