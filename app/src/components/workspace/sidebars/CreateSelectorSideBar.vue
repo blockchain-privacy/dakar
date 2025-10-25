@@ -449,19 +449,38 @@ const heuristicRules = computed(() => {
 const isBatchMode = computed(() => props.parentNodes.length > 1);
 
 // Functions
+
+// returns true if the descriptors contain at least two items with different types (CoinJoin implementations)
+function hasMultipleTypes(descriptors) {
+	let lastCoinJoinImplementation = '';
+
+	for (const d of descriptors) {
+		const caption = getCoinJoinTypeCaption(d.type);
+
+		if (lastCoinJoinImplementation && caption !== lastCoinJoinImplementation) {
+			return true;
+		}
+
+		lastCoinJoinImplementation = caption;
+	}
+
+	return false;
+}
+
 function getHeuristicTypes() {
 	if (!props.descriptors || !props.parentNodes) {
 		return [];
 	}
 
+	const descriptors = filterDescriptors(props.descriptors, props.parentNodes, !isBatchMode.value);
+	const multipleTypes = hasMultipleTypes(descriptors);
+
 	const selectorItems = [];
 	let lastCategory = '';
-
-	filterDescriptors(props.descriptors, props.parentNodes, !isBatchMode.value)
-		.map(d => {
-			d.category ||= 'Other';
-			return d;
-		})
+	descriptors.map(d => {
+		d.category ||= 'Other';
+		return d;
+	})
 		.sort((a, b) => {
 			const comparedCategory = b.category.localeCompare(a.category);
 
@@ -478,7 +497,7 @@ function getHeuristicTypes() {
 				selectorItems.push({title: d.category, type: 'subheader'});
 			}
 
-			if (isBatchMode.value) {
+			if (multipleTypes) {
 				d.subtitle = getCoinJoinTypeCaption(d.type);
 			} else {
 				// Need to clear any previously set subtitles
