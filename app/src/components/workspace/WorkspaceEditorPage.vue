@@ -349,7 +349,7 @@ const nodeActions = ref([
 		disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 	},
 	{
-		title: 'Add Batch CJ Heuristic',
+		title: 'Add Multiple CoinJoin Heuristics',
 		color: 'primary',
 		icon: blenderPlus,
 		show: () => isHeuristicBatchEnabled.value,

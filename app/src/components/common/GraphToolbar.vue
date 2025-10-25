@@ -121,6 +121,7 @@
     </v-btn>
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
+      v-tooltip="{'text': 'Delete Nodes', 'location':'top', 'open-delay': 400}"
       :disabled="deleteDisabled"
       variant="flat"
       class="my-1 me-1"
@@ -145,7 +146,8 @@
       Shortest path
     </v-btn>
     <v-btn
-      v-if="heuristicBatchEnabled"
+      v-if="heuristicBatchEnabled && selectedItemCount > 0"
+      v-tooltip="{'text': 'Add Multiple CoinJoin Heuristics', 'location':'top', 'open-delay': 400}"
       variant="flat"
       class="my-1 me-1"
       @click="emit('heuristicBatch')"
@@ -154,7 +156,7 @@
         :icon="blenderPlus"
         start
       />
-      Batch CJ Heuristics
+      {{ selectedItemCount }}
     </v-btn>
     <v-btn-toggle
       v-if="oneLine"
@@ -204,7 +206,7 @@ import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
 	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
-import {onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import SearchDialog from '@/components/common/SearchDialog.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
