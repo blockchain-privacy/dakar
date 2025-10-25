@@ -4,6 +4,7 @@
 
 <template>
   <div
+    ref="workspaceRoot"
     class="flex-column d-flex"
     style="height: 100%;position:relative"
   >
@@ -236,7 +237,7 @@ import {
 	getColorMap, getDakarClient, handleError, isDestination, isOrigin, setUndefinedTransactionColor,
 } from '@/utilities';
 import {
-	computed, nextTick, onMounted, onUnmounted, ref, watch,
+	computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -313,7 +314,7 @@ const lassoSelectedNodes = ref([]);
 const fingerprintTransaction = ref('');
 const shortestPathTransactions = ref(['', '']);
 const contextMenuModel = ref({display: false, x: 0, y: 0});
-
+const workspaceRoot = useTemplateRef('workspaceRoot');
 const allSideBarModels = [
 	isEntitySideBarOpen,
 	isConnectionSideBarOpen,
@@ -458,8 +459,8 @@ onMounted(async () => {
 	document.addEventListener('visibilitychange', onDocumentClose);
 
 	useHotkey('delete', handleMenuDeleteSelected);
-	useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
-	useHotkey('esc', () => nodeGraph.resetLasso());
+	useHotkey('cmd+a', handleSelectAllNodesHotkey);
+	useHotkey('esc', handleEscapeHotkey);
 });
 
 onUnmounted(() => {
@@ -478,6 +479,33 @@ onUnmounted(() => {
 });
 
 // Functions
+
+function isSideBarOpen() {
+	return allSideBarModels.some(s => s.value);
+}
+
+function isActiveElementInComponent() {
+	// ActiveElement !== body, means that an element is focused, so we need to check that the element
+	// is inside the workspace component. Otherwise, we ignore the hotkey.
+	return document.activeElement === document.body || workspaceRoot.value?.contains(document.activeElement);
+}
+
+function handleSelectAllNodesHotkey() {
+	if (isSideBarOpen() || !isActiveElementInComponent()) {
+		return;
+	}
+
+	nodeGraph.selectAllNodes();
+}
+
+function handleEscapeHotkey() {
+	if (isSideBarOpen() || !isActiveElementInComponent()) {
+		return;
+	}
+
+	nodeGraph.resetLasso();
+}
+
 async function removeGraphNodes(nodes) {
 	if (!nodes.length) {
 		return;

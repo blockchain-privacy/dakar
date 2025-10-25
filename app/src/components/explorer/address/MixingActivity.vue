@@ -247,6 +247,7 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import GraphToolbar from '@/components/common/GraphToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
+import {useHotkey} from 'vuetify/framework';
 
 const route = useRoute();
 const msgStore = useMsgStore();
@@ -348,6 +349,9 @@ onMounted(() => {
 			setErrorMessage('error setting lasso reset handler');
 		}
 	}
+
+	useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
+	useHotkey('esc', () => nodeGraph.resetLasso());
 });
 
 // Functions
