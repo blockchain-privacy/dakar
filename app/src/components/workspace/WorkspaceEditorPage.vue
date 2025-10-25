@@ -57,6 +57,15 @@
           Saved
         </template>
       </div>
+      <v-btn
+        v-tooltip="{'text': 'Shortcut Overview', 'open-delay': 400}"
+        :class="{'shortcuts-sm': $vuetify.display.smAndDown, 'shortcuts': $vuetify.display.mdAndUp }"
+        :icon="mdiKeyboard"
+        variant="text"
+        size="small"
+        :ripple="false"
+        @click="showShortcutDialog = true"
+      />
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
         <v-dialog
@@ -139,6 +148,10 @@
           text-area
           @submit="changeNote"
         />
+        <shortcut-dialog
+          v-if="showShortcutDialog"
+          v-model="showShortcutDialog"
+        />
         <fingerprint-side-bar
           v-model="isFingerprintSideBarOpen"
           :transaction-hash="fingerprintTransaction"
@@ -204,7 +217,7 @@
 <script setup>
 import {
 	mdiCheckCircle,
-	mdiDelete, mdiFilterPlus,
+	mdiDelete, mdiFilterPlus, mdiKeyboard,
 	mdiNoteEdit,
 	mdiNotePlus,
 } from '@mdi/js';
@@ -256,6 +269,7 @@ import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
 import {VHotkey} from 'vuetify/labs/VHotkey';
 import {useHotkey} from 'vuetify/framework';
+import ShortcutDialog from '@/components/workspace/ShortcutDialog.vue';
 
 const route = useRoute();
 const msgStore = useMsgStore();
@@ -307,6 +321,7 @@ const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
 const showAddNoteDialogModel = ref(false);
 const showEditNoteDialogModel = ref(false);
+const showShortcutDialog = ref(false);
 const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
@@ -1281,6 +1296,20 @@ function acceptsChild(node) {
 :deep( #svg_canvas ) {
   height: 100%;
   width: 100%;
+}
+
+.shortcuts {
+  position: absolute;
+  top: 20px;
+  right: 0px;
+  z-index: 1004;
+}
+
+.shortcuts-sm {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  z-index: 1004;
 }
 
 .auto-save {
