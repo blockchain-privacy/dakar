@@ -24,7 +24,7 @@
             title="Batch Mode"
             class="mb-2"
           >
-            Adding {{ selectorType }} to compatible nodes. There are {{ parentNodes.length }} nodes selected.
+            Adding {{ plural(selectorType, 2) }} to compatible nodes. There are {{ parentNodes.length }} nodes selected.
           </v-alert>
           <template v-if="selectorType === SELECTOR_TYPE_HEURISTIC">
             <div class="text-subtitle-2 mb-3">
@@ -287,7 +287,7 @@ import {
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {
-	amountToIntegers, capitalize, filterDescriptors, getCoinJoinTypeCaption, getColorMap,
+	amountToIntegers, capitalize, filterDescriptors, getCoinJoinTypeCaption, getColorMap, plural,
 } from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
