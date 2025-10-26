@@ -1308,7 +1308,7 @@ function acceptsChild(node) {
 .shortcuts-sm {
   position: absolute;
   bottom: 20px;
-  left: 10px;
+  left: 0px;
   z-index: 1004;
 }
 
