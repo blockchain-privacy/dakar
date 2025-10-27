@@ -227,12 +227,6 @@ export function isDestination(type) {
 		|| type === PRIVACY_TYPE_WHIRLPOOL_DESTINATION;
 }
 
-// Returns true if the provided transaction type is an origin
-export function isOrigin(type) {
-	return type === PRIVACY_TYPE_ORIGIN || type === PRIVACY_TYPE_WASABI_2_ORIGIN
-		|| type === PRIVACY_TYPE_WHIRLPOOL_ORIGIN;
-}
-
 // Returns the caption of the given heuristic type
 export function getCoinJoinTypeCaption(heuristicType) {
 	if (heuristicType.startsWith('whirlpool')) {

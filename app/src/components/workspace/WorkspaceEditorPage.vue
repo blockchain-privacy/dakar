@@ -201,6 +201,7 @@
                   <v-list-item-title>{{ item.title }}</v-list-item-title>
                   <v-hotkey
                     v-if="item.shortcut"
+                    class="ms-2"
                     :keys="item.shortcut"
                   />
                 </div>
@@ -247,7 +248,7 @@ import {
 } from '@/constants';
 import {
 	capitalize, filterDescriptors,
-	getColorMap, getDakarClient, handleError, isDestination, isOrigin, setUndefinedTransactionColor,
+	getColorMap, getDakarClient, handleError, setUndefinedTransactionColor,
 } from '@/utilities';
 import {
 	computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch,
@@ -343,10 +344,9 @@ const nodeActions = ref([
 		title: 'Add CoinJoin Heuristic',
 		color: 'primary',
 		icon: blenderPlus,
-		show: () => isHeuristicNode(nodeGraph.getContextNode())
-			|| isCoinJoinTransactionNode(nodeGraph.getContextNode()),
+		show: () => (isHeuristicNode(nodeGraph.getContextNode())
+			|| isCoinJoinTransactionNode(nodeGraph.getContextNode())) && acceptsChild(nodeGraph.getContextNode()),
 		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_HEURISTIC, [nodeGraph.getContextNode()]),
-		disabled: () => !acceptsChild(nodeGraph.getContextNode()),
 	},
 	{
 		title: 'Add Multiple CoinJoin Heuristics',
@@ -359,19 +359,19 @@ const nodeActions = ref([
 		title: 'Add Property Selector',
 		color: 'primary',
 		icon: mdiFilterPlus,
-		show: () => isTxPropNode(nodeGraph.getContextNode())
+		show: () => (isTxPropNode(nodeGraph.getContextNode())
 			|| isTxGraphNode(nodeGraph.getContextNode())
-			|| isHeuristicNode(nodeGraph.getContextNode()),
+			|| isHeuristicNode(nodeGraph.getContextNode())) && acceptsChild(nodeGraph.getContextNode()),
 		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_TX_PROP, [nodeGraph.getContextNode()]),
-		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Add Graph Selector',
 		color: 'primary',
 		icon: graphPlus,
-		show: () => isTransactionNode(nodeGraph.getContextNode()),
+		show: () => isTransactionNode(nodeGraph.getContextNode()) && acceptsChild(nodeGraph.getContextNode()),
 		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_TX_GRAPH, [nodeGraph.getContextNode()]),
-		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Add Note',
@@ -384,9 +384,9 @@ const nodeActions = ref([
 		title: 'Edit',
 		color: 'primary',
 		icon: mdiNoteEdit,
-		show: () => isNote(nodeGraph.getContextNode()),
+		show: () => isNote(nodeGraph.getContextNode()) && acceptsChild(nodeGraph.getContextNode()),
 		action: () => editNote(nodeGraph.getContextNode()),
-		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Delete',
@@ -454,7 +454,7 @@ const isShortestPathLookupEnabled = computed(() =>
 
 const isHeuristicBatchEnabled = computed(() => lassoSelectedNodes.value.length > 1
 // Selected nodes must contain at least 2 nodes for which a selector could be created
-	&& lassoSelectedNodes.value.filter(d => isDestination(d.txtype) || isOrigin(d.txtype)
+	&& lassoSelectedNodes.value.filter(d => isCoinJoinTransactionNode(d)
 		|| (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.selectorStatus === 'success')).length > 1);
 
 // Hooks
