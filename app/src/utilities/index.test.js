@@ -4,6 +4,7 @@
 
 import {expect, test} from 'vitest';
 import {extractEntities, filterDescriptors} from '.';
+import {SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS} from '@/constants/index.js';
 
 test('reactor csv', () => {
 	const csvExport = '"This file contains a list of all clusters within the graph with the following name:"\n'
@@ -102,23 +103,41 @@ test('filterDescriptors', () => {
 	expect(filterDescriptors(descriptors, onlyTransactions)).toHaveLength(1);
 
 	const onlyHeuristics = [
-		{type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'}},
-		{type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'}},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
 	];
 	expect(filterDescriptors(descriptors, onlyHeuristics)).toHaveLength(1);
 
 	const mixed = [
-		{type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'}},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
 		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
-		{type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'}},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
 		{type: 'transaction', txtype: 'mixing'},
 	];
 	expect(filterDescriptors(descriptors, mixed)).toHaveLength(2);
 
 	const fail = [
-		{type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'}},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
 		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
-		{type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'}},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
 		{type: 'transaction', txtype: 'mixing'},
 		{},
 	];
