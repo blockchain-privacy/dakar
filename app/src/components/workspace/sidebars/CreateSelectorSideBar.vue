@@ -115,7 +115,7 @@
               :max="SELECTOR_MAX_ITEMS"
             />
             <named-divider title="Select" />
-            <template v-if="!parentNodes">
+            <template v-if="!parentNodes.length">
               <div class="d-flex justify-center mt-2 text-subtitle-1">
                 Time Range
               </div>
@@ -297,7 +297,7 @@ import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
 import RangeOption from '@/components/workspace/sidebars/RangeOption.vue';
 
 const model = defineModel({type: Boolean});
-const emit = defineEmits(['add-selector']);
+const emit = defineEmits(['add-selectors']);
 const msgStore = useMsgStore();
 const route = useRoute();
 
@@ -468,7 +468,7 @@ function hasMultipleTypes(descriptors) {
 }
 
 function getHeuristicTypes() {
-	if (!props.descriptors || !props.parentNodes) {
+	if (!props.descriptors || !props.parentNodes.length) {
 		return [];
 	}
 
@@ -574,7 +574,10 @@ function isOptionsEmpty(options) {
 function buildTxPropOptions() {
 	const options = structuredClone(toRaw(txPropOptions.value));
 
-	if (props.parentNodes) {
+	if (props.parentNodes.length) {
+		delete options.startDate;
+		delete options.endDate;
+	} else {
 		if (!options.startDate || !options.endDate || options.startDate > options.endDate) {
 			startDateError.value = true;
 			endDateError.value = true;
@@ -594,9 +597,6 @@ function buildTxPropOptions() {
 
 		options.startDate = options.startDate.toISOString();
 		options.endDate = options.endDate.toISOString();
-	} else {
-		delete options.startDate;
-		delete options.endDate;
 	}
 
 	startDateError.value = false;
@@ -682,7 +682,7 @@ async function addNewSelectorAction(event) {
 		return;
 	}
 
-	emit('add-selector', props.selectorType, options, props.parentNodes);
+	emit('add-selectors', props.selectorType, options, props.parentNodes);
 	model.value = false;
 }
 

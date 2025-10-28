@@ -96,7 +96,7 @@
           :descriptors="heuristicDescriptors"
           :selector-type="selectorCreationType"
           :parent-nodes="selectorParents"
-          @add-selector="addNewSelectors"
+          @add-selectors="addNewSelectors"
         />
         <entity-side-bar
           v-model="isEntitySideBarOpen"
@@ -918,10 +918,14 @@ async function addNewSelectors(type, options, parentNodes) {
 	// LastResponse will contain the last valid recent graph state, after the loop has finished
 	let lastResponse;
 
-	for (const currentNode of parentNodes) {
-		// Only assign result of addNewSelector if not undefined
-		// eslint-disable-next-line no-await-in-loop
-		lastResponse = await addNewSelector(type, options, currentNode) ?? lastResponse;
+	if (parentNodes.length) {
+		for (const currentNode of parentNodes) {
+			// Only assign result of addNewSelector if not undefined
+			// eslint-disable-next-line no-await-in-loop
+			lastResponse = await addNewSelector(type, options, currentNode) ?? lastResponse;
+		}
+	} else {
+		lastResponse = await addNewSelector(type, options) ?? lastResponse;
 	}
 
 	if (lastResponse) {
