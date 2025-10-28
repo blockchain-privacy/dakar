@@ -294,8 +294,7 @@ const nodeTypeLabels = [
 
 const nodeGraph = new NodeGraph(colorMap);
 let data = null;
-// Holds the references to all selector timers
-const selectorTimers = [];
+let selectorTimer = null;
 
 const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
@@ -377,14 +376,15 @@ const nodeActions = ref([
 		title: 'Add Note',
 		color: 'primary',
 		icon: mdiNotePlus,
+		show: () => !isNote(nodeGraph.getContextNode()),
 		action: showAddNoteDialog,
-		show: () => isModifyingWorkspace.value || !isNote(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Edit',
 		color: 'primary',
 		icon: mdiNoteEdit,
-		show: () => isNote(nodeGraph.getContextNode()) && acceptsChild(nodeGraph.getContextNode()),
+		show: () => isNote(nodeGraph.getContextNode()),
 		action: () => editNote(nodeGraph.getContextNode()),
 		disabled: () => isModifyingWorkspace.value,
 	},
@@ -486,8 +486,7 @@ onUnmounted(() => {
 		doAutoSave();
 	}
 
-	// Stop all heuristic timers
-	selectorTimers.forEach(d => clearTimeout(d));
+	clearTimeout(selectorTimer);
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
 	workspaceStore.setWorkspaceActive(false);
@@ -900,18 +899,11 @@ async function addNewSelector(type, options, node) {
 	}
 
 	try {
-		const response = await dakar.workspace.workspacesSelectorPost({
+		return await dakar.workspace.workspacesSelectorPost({
 			selector: {
 				parent, type, heuristicOptions, txPropOptions, txGraphOptions, workspaceUID: workspaceUID.value,
 			},
 		});
-
-		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-		nodeGraph.addNodes(response.nodes);
-		startWaitingForSelectors(response.nodes);
-		// Immediately auto save to store coordinates of new node
-		queueAutoSave(0);
-		nodeGraph.centerOnNewNodes();
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -920,25 +912,42 @@ async function addNewSelector(type, options, node) {
 // Adds the selector to all parentNodes
 async function addNewSelectors(type, options, parentNodes) {
 	await lockAutosave();
+
+	// LastResponse will contain the last valid recent graph state, after the loop has finished
+	let lastResponse;
+
 	for (const currentNode of parentNodes) {
+		// Only assign result of addNewSelector if not undefined
 		// eslint-disable-next-line no-await-in-loop
-		await addNewSelector(type, options, currentNode);
+		lastResponse = await addNewSelector(type, options, currentNode) ?? lastResponse;
+	}
+
+	if (lastResponse) {
+		lastResponse.nodes = setNodesDisplayAttributes(lastResponse.nodes, heuristicTypeMap);
+		nodeGraph.addNodes(lastResponse.nodes);
+		startWaitingForSelectors(lastResponse.nodes);
+		// Immediately auto save to store coordinates of new nodes
+		queueAutoSave(0);
+		nodeGraph.centerOnNewNodes();
 	}
 
 	releaseAutosaveLock();
 }
 
 function startWaitingForSelectors(nodes) {
-	// Stop all timers
-	selectorTimers.forEach(d => clearTimeout(d));
-	// Start new timers
-	nodes
-		.filter(n => n.selectorStatus === SELECTOR_STATUS_WAITING)
-		.forEach(n => addWork(n.uid));
+	if (selectorTimer !== null) {
+		// Already checking for work
+		return;
+	}
+
+	const waitingSelector = nodes.find(n => n.selectorStatus === SELECTOR_STATUS_WAITING);
+	if (waitingSelector) {
+		addWork(waitingSelector.uid);
+	}
 }
 
 function addWork(selectorUID) {
-	selectorTimers.push(setTimeout(checkWork, 3000, selectorUID));
+	selectorTimer = setTimeout(checkWork, 3000, selectorUID);
 }
 
 // Checks if the requested selector is finished executing
@@ -948,8 +957,9 @@ async function checkWork(selectorUID) {
 			selector: {workspaceUID: workspaceUID.value, selectorUID},
 		});
 		if (response.nodes) {
-			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.addNodes(response.nodes);
+			nodeGraph.addNodes(setNodesDisplayAttributes(response.nodes, heuristicTypeMap));
+			selectorTimer = null;
+			startWaitingForSelectors(nodeGraph.getNodes());
 		} else {
 			addWork(selectorUID);
 		}

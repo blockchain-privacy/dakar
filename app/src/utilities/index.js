@@ -11,7 +11,8 @@ import {
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
 	DENOMINATIONS_WASABI2, PRIVACY_TYPE_WHIRLPOOL_DESTINATION, WORKSPACE_NODE_TYPE_SELECTOR,
-	WORKSPACE_NODE_TYPE_TRANSACTION, PRIVACY_TYPE_ORIGIN, PRIVACY_TYPE_WASABI_2_ORIGIN, PRIVACY_TYPE_WHIRLPOOL_ORIGIN,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -191,7 +192,7 @@ export function filterDescriptors(descriptors, nodes, validate = true) {
 			let nodeType;
 			switch (n.type) {
 				case WORKSPACE_NODE_TYPE_SELECTOR:
-					if (n.selectorStatus !== 'success') {
+					if (n.selectorType !== SELECTOR_TYPE_HEURISTIC || n.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
 						// eslint-disable-next-line max-depth
 						if (validate) {
 							throw new Error('invalid node type');
