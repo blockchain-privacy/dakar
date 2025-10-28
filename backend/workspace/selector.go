@@ -17,8 +17,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type Options interface {
@@ -157,7 +158,7 @@ func isValidParent(ctx context.Context, dgraph external.Database, selectorParent
 		return true, nil
 	}
 
-	// check if parent belongs to user and if status is correct
+	// check if parent belongs to user and that the selector's status is correct
 	status, err := workspace.GetSelectorStatus(ctx, dgraph, selectorParent, workspaceUID, userUID)
 	if err != nil {
 		if errors.Is(err, workspace.ErrInvalidSelector) {
