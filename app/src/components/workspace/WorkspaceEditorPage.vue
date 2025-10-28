@@ -293,7 +293,6 @@ const nodeTypeLabels = [
 ];
 
 const nodeGraph = new NodeGraph(colorMap);
-let data = null;
 let selectorTimer = null;
 
 const isAutoSaving = ref(false);
@@ -302,7 +301,7 @@ const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
 const workspaceUID = ref('');
 const workspaceName = ref('');
-// SelectorParent is the parent node of the new selector
+// SelectorParents are the parent nodes of the new selector
 const selectorParents = ref(undefined);
 const isCreateSelectorSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
@@ -458,7 +457,7 @@ const isHeuristicBatchEnabled = computed(() => lassoSelectedNodes.value.length >
 		|| (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.selectorStatus === 'success')).length > 1);
 
 // Hooks
-function onDocumentClose() {
+function onVisibilityChange() {
 	if (document.visibilityState === 'hidden') {
 		if (autoSaveTimer !== null) {
 			clearTimeout(autoSaveTimer);
@@ -470,8 +469,11 @@ function onDocumentClose() {
 
 onMounted(async () => {
 	workspaceStore.setWorkspaceActive(true);
-	await whenMounted();
-	document.addEventListener('visibilitychange', onDocumentClose);
+	if (!await whenMounted()) {
+		return;
+	}
+
+	document.addEventListener('visibilitychange', onVisibilityChange);
 
 	useHotkey('delete', handleMenuDeleteSelected);
 	useHotkey('cmd+a', handleSelectAllNodesHotkey);
@@ -488,7 +490,7 @@ onUnmounted(() => {
 
 	clearTimeout(selectorTimer);
 
-	document.removeEventListener('visibilitychange', onDocumentClose);
+	document.removeEventListener('visibilitychange', onVisibilityChange);
 	workspaceStore.setWorkspaceActive(false);
 });
 
@@ -1125,7 +1127,7 @@ function showAddNoteDialog() {
 
 async function refreshData() {
 	isLoadingWorkspace.value = true;
-
+	let data;
 	try {
 		const response = await dakar.workspace.workspacesUidGet({uid: workspaceUID.value});
 		if (!response.descriptors) {
@@ -1155,11 +1157,11 @@ async function refreshData() {
 		heuristicDescriptors.value.forEach(e => heuristicTypeMap.set(e.type, e.title));
 
 		if (response.workspace) {
+			response.workspace.nodes &&= setNodesDisplayAttributes(response.workspace.nodes, heuristicTypeMap);
 			data = response.workspace;
-			workspaceName.value = data.name;
-			data.nodes &&= setNodesDisplayAttributes(data.nodes, heuristicTypeMap);
+			data.loaded = true;
 		} else {
-			data = null;
+			data = {loaded: false};
 		}
 
 		msgStore.resetMessages();
@@ -1169,14 +1171,10 @@ async function refreshData() {
 
 	isLoadingWorkspace.value = false;
 
-	if (!data) {
-		return false;
-	}
-
 	// If the workspace does not yet contain any nodes, set an empty array
 	data.nodes ??= [];
 
-	return true;
+	return data;
 }
 
 function queueAutoSave(t = 5000) {
@@ -1216,6 +1214,9 @@ async function doAutoSave() {
 }
 
 async function whenMounted() {
+	// Set page title
+	document.title = `Workspace - ${APPLICATION_NAME}`;
+
 	const svgCanvasId = 'svg_canvas';
 	// Remove previous svg children
 	document.getElementById(svgCanvasId).innerHTML = '';
@@ -1223,8 +1224,14 @@ async function whenMounted() {
 	// Set workspace UID for this page view
 	workspaceUID.value = route.params.id;
 
-	// Set page title
-	document.title = `Workspace - ${APPLICATION_NAME}`;
+	const workspaceData = await refreshData();
+	if (!workspaceData.loaded) {
+		return false;
+	}
+
+	workspaceName.value = workspaceData.name;
+
+	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
 
 	if (!nodeGraph.setNodeClickCallback(openEntitySideBar)) {
 		setErrorMessage('error setting node click handler');
@@ -1269,17 +1276,10 @@ async function whenMounted() {
 	}
 
 	nodeGraph.initSvg(svgCanvasId);
-	if (!await refreshData()) {
-		return false;
-	}
-
-	// Update page title
-	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
-
-	nodeGraph.addNodes(data.nodes);
+	nodeGraph.addNodes(workspaceData.nodes);
 	nodeGraph.centerGraph();
 
-	startWaitingForSelectors(data.nodes);
+	startWaitingForSelectors(workspaceData.nodes);
 	return true;
 }
 
