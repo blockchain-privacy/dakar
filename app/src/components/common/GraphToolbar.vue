@@ -206,7 +206,7 @@ import {
 	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
 	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
 } from '@mdi/js';
-import {computed, onMounted, ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import SearchDialog from '@/components/common/SearchDialog.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
