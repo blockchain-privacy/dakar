@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/dgraph-io/dgo/v250"
 	"github.com/dgraph-io/dgo/v250/protos/api"
@@ -285,24 +286,26 @@ func ProcessClusterOperations(ctx context.Context, c external.Database, operatio
 	// step 2: get all addresses of clusters which will be deleted and add them to the clusters from step 1
 
 	// build query and create nquads
-	var setNquads string
-	var delNquads string
-	query := "{\n"
+	setNQuads := strings.Builder{}
+	delNQuads := strings.Builder{}
+	query := strings.Builder{}
+
+	query.WriteString("{\n")
 	for i, o := range operations {
 		if len(o.OldClusters) == 0 {
 			continue
 		}
 		index := strconv.Itoa(i)
-		query += "var(func:uid(" + db.CreateCommaList(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
-		setNquads += "<" + o.NewCluster.UID + "> <Cluster.addresses> uid(a" + index + ") .\n"
+		query.WriteString("var(func:uid(" + db.CreateCommaList(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n")
+		setNQuads.WriteString("<" + o.NewCluster.UID + "> <Cluster.addresses> uid(a" + index + ") .\n")
 
 		for _, oc := range o.OldClusters {
-			delNquads += "<" + oc + "> * * .\n"
+			delNQuads.WriteString("<" + oc + "> * * .\n")
 		}
 	}
-	query += "}"
+	query.WriteString("}")
 
-	existClusterMerges := setNquads != ""
+	existClusterMerges := setNQuads.Len() > 0
 
 	req := &api.Request{
 		Mutations: []*api.Mutation{{
@@ -320,9 +323,9 @@ func ProcessClusterOperations(ctx context.Context, c external.Database, operatio
 	}
 
 	req = &api.Request{
-		Query: query,
+		Query: query.String(),
 		Mutations: []*api.Mutation{{
-			SetNquads: []byte(setNquads),
+			SetNquads: []byte(setNQuads.String()),
 		}},
 	}
 	_, err = db.ExecTx(ctx, txn, req)
@@ -333,7 +336,7 @@ func ProcessClusterOperations(ctx context.Context, c external.Database, operatio
 	// step 3: delete all merged clusters
 	req = &api.Request{
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte(delNquads),
+			DelNquads: []byte(delNQuads.String()),
 		}},
 		CommitNow: true,
 	}
@@ -630,17 +633,17 @@ func GetUserClusters(ctx context.Context, c external.Database, userID string) (c
 // GetUserClustersUIDs returns all UIDs of clusters of a user
 func GetUserClustersUIDs(ctx context.Context, c external.Database, userID string,
 	clusterTypeFilter []ClusterType) (clusters []string, err error) {
-	var filter string
+	filter := strings.Builder{}
 	if len(clusterTypeFilter) > 0 {
+		filter.WriteString("@filter(eq(Cluster.type,")
 		for i, ct := range clusterTypeFilter {
-			filter += string(ct)
+			filter.WriteString(string(ct))
 
 			if i+1 < len(clusterTypeFilter) {
-				filter += ","
+				filter.WriteRune(',')
 			}
 		}
-
-		filter = "@filter(eq(Cluster.type," + filter + "))"
+		filter.WriteString("))")
 	}
 
 	query := fmt.Sprintf(`query Q($user:string) {
@@ -651,7 +654,7 @@ func GetUserClustersUIDs(ctx context.Context, c external.Database, userID string
 				q(func: uid(c)){
 					uid
 				}
-			  }`, filter)
+			  }`, filter.String())
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$user": userID})
 	if err != nil {
@@ -725,12 +728,12 @@ func GetRelatedClusters(ctx context.Context, c external.Database, clusterUID str
 		return
 	}
 
-	var filter string
+	filter := strings.Builder{}
 	for i, ct := range clusterTypeFilter {
-		filter += string(ct)
+		filter.WriteString(string(ct))
 
 		if i+1 < len(clusterTypeFilter) {
-			filter += ","
+			filter.WriteRune(',')
 		}
 	}
 
@@ -743,7 +746,7 @@ func GetRelatedClusters(ctx context.Context, c external.Database, clusterUID str
   					q(func: uid(c)) {
     					uid
 					}
-				  }`, filter)
+				  }`, filter.String())
 
 	resp, err := db.QueryVarWithRetry(ctx, c, query,
 		map[string]string{"$user": userUID, "$cluster": clusterUID})
@@ -810,19 +813,18 @@ func SetClusterTransactions(ctx context.Context, c external.Database, clusterToT
 		return serror.FromStr("received empty map")
 	}
 
-	var nquad string
+	nQuad := strings.Builder{}
 	for cluster, transaction := range clusterToTransaction {
 		if cluster == "" || transaction == "" {
 			return serror.FromStrWithContext("map entry is empty",
 				"cluster", cluster, "transaction", transaction)
 		}
-
-		nquad += fmt.Sprintf("<%s> Cluster.transaction <%s> .\n", cluster, transaction)
+		nQuad.WriteString(fmt.Sprintf("<%s> Cluster.transaction <%s> .\n", cluster, transaction))
 	}
 
 	req := &api.Request{
 		Mutations: []*api.Mutation{{
-			SetNquads: []byte(nquad),
+			SetNquads: []byte(nQuad.String()),
 		}},
 		CommitNow: true,
 	}

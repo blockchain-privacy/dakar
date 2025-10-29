@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
@@ -186,23 +187,25 @@ func GetFrontendAddressOutputsSortAndFilter(ctx context.Context, c external.Data
 		err = serror.FromStr("error unrecognized sort order")
 		return
 	}
-	var filter string
+
+	filterBuilder := strings.Builder{}
 	for i, f := range filters {
 		switch f {
 		case FilterByCoinbase:
-			filter += "eq(iscoinbase, true)"
+			filterBuilder.WriteString("eq(iscoinbase, true)")
 		case FilterByUnspent:
-			filter += " NOT has(~tx_inputs)"
+			filterBuilder.WriteString(" NOT has(~tx_inputs)")
 		default:
 			err = serror.FromStr("error unrecognized filter")
 			return
 		}
 
 		if i+1 < len(filters) {
-			filter += " AND "
+			filterBuilder.WriteString(" AND ")
 		}
 	}
 
+	filter := filterBuilder.String()
 	if len(filters) > 0 {
 		filter = fmt.Sprintf("@filter(%s)", filter)
 	}
@@ -359,23 +362,25 @@ func UpsertAddresses(ctx context.Context, c external.Database, addresses []Addre
 	// $h0 ... $h4 are needed to be later replaced. This prevents string injection
 
 	vars := make(map[string]string)
-	queryPrefix := "query Q("
-	var query string
+	query := strings.Builder{}
+	queryPrefix := strings.Builder{}
+
+	queryPrefix.WriteString("query Q(")
 	// set uid for all addresses and build query
 	for i := range addresses {
-		queryPrefix += "$h" + strconv.Itoa(i) + ": string"
+		queryPrefix.WriteString("$h" + strconv.Itoa(i) + ": string")
 
 		if i+1 < len(addresses) {
-			queryPrefix += ","
+			queryPrefix.WriteRune(',')
 		}
 
 		addresses[i].UID = fmt.Sprintf("uid(a%d)", i)
 		addresses[i].SetDType()
-		query += fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i)
+		query.WriteString(fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i))
 		vars["$h"+strconv.Itoa(i)] = addresses[i].Hash
 	}
 
-	queryPrefix += ") {\n"
+	queryPrefix.WriteString(") {\n")
 
 	pb, err := json.Marshal(addresses)
 	if err != nil {
@@ -383,7 +388,7 @@ func UpsertAddresses(ctx context.Context, c external.Database, addresses []Addre
 	}
 
 	return MutationWithRetry(ctx, c, &api.Request{
-		Query: queryPrefix + query + "}",
+		Query: queryPrefix.String() + query.String() + "}",
 		Vars:  vars,
 		Mutations: []*api.Mutation{{
 			SetJson: pb,

@@ -157,28 +157,28 @@ func QueryVarWithRetry(ctx context.Context, db external.Database, q string,
 // CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph.
 // // Example: 0x123,0x1a1d
 func CreateCommaList(uids []string) string {
-	var uidEnum string
+	uidEnum := strings.Builder{}
 	for i, uid := range uids {
-		uidEnum += uid
+		uidEnum.WriteString(uid)
 		if i+1 < len(uids) {
-			uidEnum += ","
+			uidEnum.WriteRune(',')
 		}
 	}
-	return uidEnum
+	return uidEnum.String()
 }
 
 // CreateCommaListQuotationMarks returns a formatted string which contains all given uids for usage with Dgraph.
 // // Each given string is put in quotation marks
 // // Example: "0x123","0x1a1d"
 func CreateCommaListQuotationMarks(uids []string) string {
-	var uidEnum string
+	uidEnum := strings.Builder{}
 	for i, uid := range uids {
-		uidEnum += "\"" + uid + "\""
+		uidEnum.WriteString("\"" + uid + "\"")
 		if i+1 < len(uids) {
-			uidEnum += ","
+			uidEnum.WriteRune(',')
 		}
 	}
-	return uidEnum
+	return uidEnum.String()
 }
 
 // returns true if the given input does not contain special characters
