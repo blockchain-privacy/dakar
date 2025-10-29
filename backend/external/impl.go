@@ -117,7 +117,8 @@ func CreateClient(endpoint string) (Database, error) {
 }
 
 // CreateClientWithNamespace create a new dgraph client connecting to the specified endpoint and namespace
-func CreateClientWithNamespace(ctx context.Context, endpoint string, namespaceID uint64) (Database, error) {
+func CreateClientWithNamespace(ctx context.Context, endpoint, user, password string,
+	namespaceID uint64) (Database, error) {
 	dgraphClient, err := dgo.NewClient(endpoint,
 		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
 		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
@@ -125,7 +126,7 @@ func CreateClientWithNamespace(ctx context.Context, endpoint string, namespaceID
 		return nil, serror.New(err)
 	}
 
-	err = dgraphClient.LoginIntoNamespace(ctx, "groot", "password", namespaceID)
+	err = dgraphClient.LoginIntoNamespace(ctx, user, password, namespaceID)
 	if err != nil {
 		return nil, serror.New(err)
 	}

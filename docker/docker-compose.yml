@@ -189,7 +189,6 @@ services:
       - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml:ro
       - /var/log/journal/:/var/log/journal/:ro
       - /etc/machine-id:/etc/machine-i:ro
-      - ../backend/cmd/crawler/crawler.log:/crawler.log:ro
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - dgraph_default

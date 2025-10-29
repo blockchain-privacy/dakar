@@ -116,22 +116,33 @@ Some tests require a connection to a dgraph database and a blockchain RPC-client
 
 The command below runs all tests, which don't require a database and RPC-client.
 ```shell
-go test -cover -race ./... 
+make test
 ```
 
 To run database tests, first set up an empty dgraph instance, preferably via [docker](../docker/docker-compose_local-test.yml).
-Next, set the `DB_TESTS` and `DB_HOSTNAME` environment variables. `DB_HOSTNAME` should be set to the host which runs the database. The port is expected to be `9080`. 
-Set parallelism to 1, so database tests of different modules don't interfere which each other.
+Set the `DB_TESTS` and `DB_HOSTNAME` environment variables to run database tests. `DB_HOSTNAME` should be set to the host which runs the database. The port is expected to be `9080`.
 
 ```shell
-DB_TESTS=1 DB_HOSTNAME=localhost go test -p 1 -cover -race ./... 
+export DB_TESTS=1; export DB_HOSTNAME=0.0.0.0; make test
 ```
 
-Set the `DB_TESTS`, `DB_HOSTNAME` and `RPC_TESTS` environment variables to run all tests.
+Set the `DB_TESTS`, `DB_HOSTNAME`, `RPC_TESTS` and `RPC_HOSTNAME` environment variables to run all tests.
 
 ```shell
-RPC_TESTS=1 DB_TESTS=1 DB_HOSTNAME=localhost go test -p 1 -cover -race ./... 
+export DB_TESTS=1; export RPC_TESTS=1; export DB_HOSTNAME=0.0.0.0; export RPC_HOSTNAME=0.0.0.0; make test
 ```
+
+Additionally, the Dgraph ACL user and password can be configured via `DB_USER` and `DB_PASSWORD`. 
+
+| Environment Variable | Description                               |
+|:---------------------|:------------------------------------------|
+| DB_TESTS             | Set to enable database tests              |
+| DB_HOSTNAME          | The hostname of the dgraph test database  |
+| DB_USER              | The ACL user name (default: groot)        |
+| DB_PASSWORD          | The ACL password (default: password)      |
+| RPC_TESTS            | Set to enable blockchain RPC tests        |
+| RPC_HOSTNAME         | The hostname of the blockchain RPC client |
+
 
 ## OpenAPI Documentation
 
