@@ -5,7 +5,25 @@
 <template>
   <v-card variant="text">
     <v-card-text>
+      <template v-if="selectorData.selectorStatus === SELECTOR_STATUS_ERROR">
+        <div class="d-flex flex-column align-center">
+          <v-icon
+            class="text-grey"
+            :icon="mdiAlertCircle"
+            size="90"
+          />
+          <div style="max-width: 400px">
+            <p class="text-h6 text-center mt-2">
+              An error occurred while running this CoinJoin heuristic.
+            </p>
+            <p class="text-h7 text-center mt-2">
+              Try running this heuristic again. Consider using different parameters. If the issue is persists, please report the error with any details.
+            </p>
+          </div>
+        </div>
+      </template>
       <div
+        v-else
         class="d-flex align-center flex-wrap justify-center"
         style="gap: 16px"
       >
@@ -54,6 +72,7 @@
           </v-card-text>
         </v-card>
       </div>
+
       <named-divider
         title="Properties"
         title-class="text-subtitle-1"
@@ -251,6 +270,7 @@
 
 <script setup>
 import {
+	mdiAlertCircle,
 	mdiApplicationVariableOutline,
 	mdiArrowCollapseDown,
 	mdiArrowLeft,
@@ -273,7 +293,11 @@ import {
 	convertAmount, getColorMap, plural, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {ROUTE_NAME_TRANSACTION_PAGE, SELECTOR_TYPE_HEURISTIC} from '@/constants/index.js';
+import {
+	ROUTE_NAME_TRANSACTION_PAGE,
+	SELECTOR_STATUS_ERROR,
+	SELECTOR_TYPE_HEURISTIC,
+} from '@/constants/index.js';
 import {
 	cashLeft, cashRight, sigmaLeft, sigmaRight, incognitoFilter,
 } from '@/customIcons/index.js';

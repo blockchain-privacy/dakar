@@ -8,8 +8,8 @@
     :title="title"
     :icon="icon"
     max-width="330px"
-    title-one-line
     disable-full-screen
+    title-one-line
   >
     <template #body>
       <v-form
@@ -17,6 +17,15 @@
         @submit.prevent="addNewSelectorAction"
       >
         <v-card-text>
+          <v-alert
+            v-if="isBatchMode"
+            variant="tonal"
+            type="info"
+            title="Batch Mode"
+            class="mb-2"
+          >
+            Adding {{ plural(selectorType, 2) }} to compatible nodes. There are {{ parentNodes.length }} nodes selected.
+          </v-alert>
           <template v-if="selectorType === SELECTOR_TYPE_HEURISTIC">
             <div class="text-subtitle-2 mb-3">
               Find senders and receivers of
@@ -39,11 +48,28 @@
               hide-details
               @update:model-value="heuristicOptions.type = heuristicTypeModel.type"
             >
+              <template #selection="{ item }">
+                <div class="d-flex flex-column">
+                  <span>{{ item.title }}</span>
+                  <span
+                    v-if="item.raw.subtitle"
+                    class="text-caption"
+                  >
+                    {{ item.raw.subtitle }}
+                  </span>
+                </div>
+              </template>
               <template #subheader="i">
                 <named-divider
                   :title="i.props.title"
                   :vertical-margin="0"
                   title-class="text-caption"
+                />
+              </template>
+              <template #item="{ props: itemProps, item }">
+                <v-list-item
+                  v-bind="itemProps"
+                  :subtitle="item.raw.subtitle"
                 />
               </template>
             </v-select>
@@ -89,7 +115,7 @@
               :max="SELECTOR_MAX_ITEMS"
             />
             <named-divider title="Select" />
-            <template v-if="!parentNode">
+            <template v-if="!parentNodes.length">
               <div class="d-flex justify-center mt-2 text-subtitle-1">
                 Time Range
               </div>
@@ -256,11 +282,13 @@ import {
 	CLUSTER_TYPE_CUSTOM,
 	SELECTOR_MAX_ITEMS,
 	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
-	SELECTOR_TYPE_TX_PROP, WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_TRANSACTION,
+	SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
-import {amountToIntegers, capitalize, getColorMap} from '@/utilities/index.js';
+import {
+	amountToIntegers, capitalize, filterDescriptors, getCoinJoinTypeCaption, getColorMap, plural,
+} from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
@@ -269,14 +297,14 @@ import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
 import RangeOption from '@/components/workspace/sidebars/RangeOption.vue';
 
 const model = defineModel({type: Boolean});
-const emit = defineEmits(['add-selector']);
+const emit = defineEmits(['add-selectors']);
 const msgStore = useMsgStore();
 const route = useRoute();
 
 const props = defineProps({
 	selectorType: {type: String, required: true},
 	descriptors: {type: Array, required: true},
-	parentNode: {type: Object, required: false, default: undefined},
+	parentNodes: {type: Array, required: false, default: () => []},
 });
 
 // Heuristic select model
@@ -377,9 +405,12 @@ onUpdated(() => {
 // Computed
 const title = computed(() => {
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC: return 'Add CoinJoin Heuristic';
-		case SELECTOR_TYPE_TX_PROP: return 'Add Property Selector';
-		case SELECTOR_TYPE_TX_GRAPH: return 'Add Graph Selector';
+		case SELECTOR_TYPE_HEURISTIC:
+			return 'Add CoinJoin Heuristic';
+		case SELECTOR_TYPE_TX_PROP:
+			return 'Add Property Selector';
+		case SELECTOR_TYPE_TX_GRAPH:
+			return 'Add Graph Selector';
 		default:
 			return 'Add Selector';
 	}
@@ -415,34 +446,41 @@ const heuristicRules = computed(() => {
 	return rules;
 });
 
+const isBatchMode = computed(() => props.parentNodes.length > 1);
+
 // Functions
+
+// returns true if the descriptors contain at least two items with different types (CoinJoin implementations)
+function hasMultipleTypes(descriptors) {
+	let lastCoinJoinImplementation = '';
+
+	for (const d of descriptors) {
+		const caption = getCoinJoinTypeCaption(d.type);
+
+		if (lastCoinJoinImplementation && caption !== lastCoinJoinImplementation) {
+			return true;
+		}
+
+		lastCoinJoinImplementation = caption;
+	}
+
+	return false;
+}
+
 function getHeuristicTypes() {
-	if (!props.descriptors || !props.parentNode) {
+	if (!props.descriptors || !props.parentNodes.length) {
 		return [];
 	}
 
+	const descriptors = filterDescriptors(props.descriptors, props.parentNodes, !isBatchMode.value);
+	const multipleTypes = hasMultipleTypes(descriptors);
+
 	const selectorItems = [];
 	let lastCategory = '';
-	props.descriptors
-		.filter(d => {
-			let parentType;
-			switch (props.parentNode.type) {
-				case WORKSPACE_NODE_TYPE_SELECTOR:
-					parentType = props.parentNode.heuristicOptions.type;
-					break;
-				case WORKSPACE_NODE_TYPE_TRANSACTION:
-					parentType = props.parentNode.txtype;
-					break;
-				default:
-					throw new Error('invalid node type');
-			}
-
-			return d.allowedParents.includes(parentType);
-		})
-		.map(d => {
-			d.category ||= 'Other';
-			return d;
-		})
+	descriptors.map(d => {
+		d.category ||= 'Other';
+		return d;
+	})
 		.sort((a, b) => {
 			const comparedCategory = b.category.localeCompare(a.category);
 
@@ -459,8 +497,16 @@ function getHeuristicTypes() {
 				selectorItems.push({title: d.category, type: 'subheader'});
 			}
 
+			if (multipleTypes) {
+				d.subtitle = getCoinJoinTypeCaption(d.type);
+			} else {
+				// Need to clear any previously set subtitles
+				d.subtitle = '';
+			}
+
 			selectorItems.push(d);
 		});
+
 	return selectorItems;
 }
 
@@ -528,7 +574,7 @@ function isOptionsEmpty(options) {
 function buildTxPropOptions() {
 	const options = structuredClone(toRaw(txPropOptions.value));
 
-	if (props.parentNode) {
+	if (props.parentNodes.length) {
 		delete options.startDate;
 		delete options.endDate;
 	} else {
@@ -636,7 +682,7 @@ async function addNewSelectorAction(event) {
 		return;
 	}
 
-	emit('add-selector', props.selectorType, options);
+	emit('add-selectors', props.selectorType, options, props.parentNodes);
 	model.value = false;
 }
 

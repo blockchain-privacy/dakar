@@ -26,16 +26,17 @@
       <v-card flat>
         <v-card-text>
           <fade-transition>
-            <div v-if="showEmptyText">
-              <div class="text-h6">
+            <div
+              v-if="showEmptyText"
+              class="d-flex flex-column align-center"
+            >
+              <v-icon
+                class="text-grey"
+                :icon="mdiCancel"
+                size="90"
+              />
+              <div class="text-h6 mt-2">
                 No connection data available
-              </div>
-              <div class="d-flex justify-center">
-                <v-icon
-                  class="text-grey mt-10"
-                  :icon="mdiCancel"
-                  size="90"
-                />
               </div>
             </div>
             <div v-else-if="transactionList !== null">

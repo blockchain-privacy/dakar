@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {expect, test} from 'vitest';
-import {extractEntities} from '.';
+import {extractEntities, filterDescriptors} from '.';
+import {SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS} from '@/constants/index.js';
 
 test('reactor csv', () => {
 	const csvExport = '"This file contains a list of all clusters within the graph with the following name:"\n'
@@ -79,4 +80,68 @@ test('empty', () => {
 test('trim', () => {
 	expect(extractEntities('    ')).toStrictEqual([]);
 	expect(extractEntities('')).toStrictEqual([]);
+});
+
+test('filterDescriptors', () => {
+	const descriptors = [
+		{allowedParents: ['whirlpool destination']},
+		{allowedParents: ['wasabi 2.0 origin']},
+		{allowedParents: ['dash_reverse_look']},
+		{allowedParents: ['wasabi2_one_source_by_time']},
+	];
+
+	const singleNode = [
+		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
+	];
+	expect(filterDescriptors(descriptors, singleNode)).toHaveLength(1);
+
+	const onlyTransactions = [
+		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
+		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
+		{type: 'transaction', txtype: 'mixing'},
+	];
+	expect(filterDescriptors(descriptors, onlyTransactions)).toHaveLength(1);
+
+	const onlyHeuristics = [
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+	];
+	expect(filterDescriptors(descriptors, onlyHeuristics)).toHaveLength(1);
+
+	const mixed = [
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+		{type: 'transaction', txtype: 'mixing'},
+	];
+	expect(filterDescriptors(descriptors, mixed)).toHaveLength(2);
+
+	const fail = [
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+		{type: 'transaction', txtype: 'wasabi 2.0 origin'},
+		{
+			type: 'selector', heuristicOptions: {type: 'wasabi2_one_source_by_time'},
+			selectorType: SELECTOR_TYPE_HEURISTIC, selectorStatus: SELECTOR_STATUS_SUCCESS,
+		},
+		{type: 'transaction', txtype: 'mixing'},
+		{},
+	];
+	expect(() => filterDescriptors(descriptors, fail)).toThrowError('invalid node type');
+
+	expect(filterDescriptors(descriptors, fail, false)).toHaveLength(2);
 });

@@ -121,6 +121,7 @@
     </v-btn>
     <v-btn
       v-if="showDeleteButton && selectedItemCount > 0"
+      v-tooltip="{'text': 'Delete Nodes', 'location':'top', 'open-delay': 400}"
       :disabled="deleteDisabled"
       variant="flat"
       class="my-1 me-1"
@@ -143,6 +144,19 @@
         start
       />
       Shortest path
+    </v-btn>
+    <v-btn
+      v-if="heuristicBatchEnabled && selectedItemCount > 0"
+      v-tooltip="{'text': 'Add Multiple CoinJoin Heuristics', 'location':'top', 'open-delay': 400}"
+      variant="flat"
+      class="my-1 me-1"
+      @click="emit('heuristicBatch')"
+    >
+      <v-icon
+        :icon="blenderPlus"
+        start
+      />
+      {{ selectedItemCount }}
     </v-btn>
     <v-btn-toggle
       v-if="oneLine"
@@ -199,6 +213,7 @@ import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import {useRoute} from 'vue-router';
 import {useHotkey} from 'vuetify/framework';
 import {VHotkey} from 'vuetify/labs/VHotkey';
+import {blenderPlus} from '@/customIcons/index.js';
 
 const route = useRoute();
 
@@ -210,6 +225,7 @@ const emit = defineEmits([
 	'addEntities',
 	'filterChanged',
 	'shortestPathLookup',
+	'heuristicBatch',
 	'addSelector',
 ]);
 
@@ -220,6 +236,7 @@ const props = defineProps({
 	showAddSelectorButton: {type: Boolean, required: false},
 	selectedItemCount: {type: Number, required: false, default: 0},
 	shortestPathEnabled: {type: Boolean, required: false},
+	heuristicBatchEnabled: {type: Boolean, required: false},
 	addEntityEnabled: {type: Boolean, required: false},
 	deleteDisabled: {type: Boolean, required: false},
 	oneLine: {type: Boolean, required: false},

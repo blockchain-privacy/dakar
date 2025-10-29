@@ -379,6 +379,7 @@ async function getSelectorData() {
 					heuristicParameterTitle: props.auxiliaryData.parameterTitle,
 					clusterCount: props.auxiliaryData.selectorResultCount,
 					selectorUid: props.auxiliaryData.uid,
+					selectorStatus: props.auxiliaryData.selectorStatus,
 					heuristicTimestamp: new Date(props.auxiliaryData.selectorModified),
 					transactions: [],
 				};

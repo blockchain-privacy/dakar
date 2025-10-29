@@ -4,6 +4,7 @@
 
 <template>
   <div
+    ref="workspaceRoot"
     class="flex-column d-flex"
     style="height: 100%;position:relative"
   >
@@ -19,6 +20,7 @@
           :selected-item-count="lassoSelectedNodes.length"
           :delete-disabled="!isLassoDeletionEnabled"
           :shortest-path-enabled="isShortestPathLookupEnabled"
+          :heuristic-batch-enabled="isHeuristicBatchEnabled"
           :add-entity-enabled="!isModifyingWorkspace"
           :node-type-items="nodeTypeLabels"
           :transaction-type-items="transactionTypeLabels"
@@ -32,7 +34,8 @@
           @add-entities="checkNodeCount"
           @filter-changed="handleMenuFilterChanged"
           @shortest-path-lookup="handleShortestPathLookup"
-          @add-selector="showCreateSelectorSheetFromButton"
+          @add-selector="showCreateSelectorSideBarFromButton"
+          @heuristic-batch="handleHeuristicBatch"
         />
         <v-progress-linear
           v-if="isModifyingWorkspace"
@@ -54,6 +57,15 @@
           Saved
         </template>
       </div>
+      <v-btn
+        v-tooltip="{'text': 'Shortcut Overview', 'open-delay': 400}"
+        :class="{'shortcuts-sm': $vuetify.display.smAndDown, 'shortcuts': $vuetify.display.mdAndUp }"
+        :icon="mdiKeyboard"
+        variant="text"
+        size="small"
+        :ripple="false"
+        @click="showShortcutDialog = true"
+      />
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
         <v-dialog
@@ -83,8 +95,8 @@
           v-model="isCreateSelectorSheetOpen"
           :descriptors="heuristicDescriptors"
           :selector-type="selectorCreationType"
-          :parent-node="selectorParent"
-          @add-selector="addNewSelector"
+          :parent-nodes="selectorParents"
+          @add-selectors="addNewSelectors"
         />
         <entity-side-bar
           v-model="isEntitySideBarOpen"
@@ -136,6 +148,10 @@
           text-area
           @submit="changeNote"
         />
+        <shortcut-dialog
+          v-if="showShortcutDialog"
+          v-model="showShortcutDialog"
+        />
         <fingerprint-side-bar
           v-model="isFingerprintSideBarOpen"
           :transaction-hash="fingerprintTransaction"
@@ -185,6 +201,7 @@
                   <v-list-item-title>{{ item.title }}</v-list-item-title>
                   <v-hotkey
                     v-if="item.shortcut"
+                    class="ms-2"
                     :keys="item.shortcut"
                   />
                 </div>
@@ -201,7 +218,7 @@
 <script setup>
 import {
 	mdiCheckCircle,
-	mdiDelete, mdiFilterPlus,
+	mdiDelete, mdiFilterPlus, mdiKeyboard,
 	mdiNoteEdit,
 	mdiNotePlus,
 } from '@mdi/js';
@@ -230,11 +247,11 @@ import {
 	PRIVACY_TYPE_WHIRLPOOL_DESTINATION,
 } from '@/constants';
 import {
-	capitalize,
+	capitalize, filterDescriptors,
 	getColorMap, getDakarClient, handleError, setUndefinedTransactionColor,
 } from '@/utilities';
 import {
-	computed, nextTick, onMounted, onUnmounted, ref, watch,
+	computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -253,6 +270,7 @@ import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
 import {VHotkey} from 'vuetify/labs/VHotkey';
 import {useHotkey} from 'vuetify/framework';
+import ShortcutDialog from '@/components/workspace/ShortcutDialog.vue';
 
 const route = useRoute();
 const msgStore = useMsgStore();
@@ -275,9 +293,7 @@ const nodeTypeLabels = [
 ];
 
 const nodeGraph = new NodeGraph(colorMap);
-let data = null;
-// Holds the references to all selector timers
-const selectorTimers = [];
+let selectorTimer = null;
 
 const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
@@ -285,8 +301,8 @@ const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
 const workspaceUID = ref('');
 const workspaceName = ref('');
-// SelectorParent is the parent node of the new selector
-const selectorParent = ref(undefined);
+// SelectorParents are the parent nodes of the new selector
+const selectorParents = ref(undefined);
 const isCreateSelectorSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const isConnectionSideBarOpen = ref(false);
@@ -304,6 +320,7 @@ const showRouteGuardDialogModel = ref(false);
 const routeGuardTo = ref({});
 const showAddNoteDialogModel = ref(false);
 const showEditNoteDialogModel = ref(false);
+const showShortcutDialog = ref(false);
 const showWarningDialogModel = ref(false);
 const editNoteDialogValue = ref('');
 const warningDialogNodes = ref([]);
@@ -311,40 +328,56 @@ const lassoSelectedNodes = ref([]);
 const fingerprintTransaction = ref('');
 const shortestPathTransactions = ref(['', '']);
 const contextMenuModel = ref({display: false, x: 0, y: 0});
+const workspaceRoot = useTemplateRef('workspaceRoot');
+const allSideBarModels = [
+	isEntitySideBarOpen,
+	isConnectionSideBarOpen,
+	isCreateSelectorSheetOpen,
+	isShortestPathSideBarOpen,
+	isFingerprintSideBarOpen,
+];
+
 const nodeActions = ref([
 	{
 		title: 'Add CoinJoin Heuristic',
 		color: 'primary',
 		icon: blenderPlus,
-		show: () => isHeuristicNode(nodeGraph.getContextNode())
-			|| isCoinJoinTransactionNode(nodeGraph.getContextNode()),
-		action: () => openCreateSelectorSheet(SELECTOR_TYPE_HEURISTIC, nodeGraph.getContextNode()),
-		disabled: () => !acceptsChild(nodeGraph.getContextNode()),
+		show: () => (isHeuristicNode(nodeGraph.getContextNode())
+			|| isCoinJoinTransactionNode(nodeGraph.getContextNode())) && acceptsChild(nodeGraph.getContextNode()),
+		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_HEURISTIC, [nodeGraph.getContextNode()]),
+	},
+	{
+		title: 'Add Multiple CoinJoin Heuristics',
+		color: 'primary',
+		icon: blenderPlus,
+		show: () => isHeuristicBatchEnabled.value,
+		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_HEURISTIC, lassoSelectedNodes.value),
 	},
 	{
 		title: 'Add Property Selector',
 		color: 'primary',
 		icon: mdiFilterPlus,
-		show: () => isTxPropNode(nodeGraph.getContextNode())
+		show: () => (isTxPropNode(nodeGraph.getContextNode())
 			|| isTxGraphNode(nodeGraph.getContextNode())
-			|| isHeuristicNode(nodeGraph.getContextNode()),
-		action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP, nodeGraph.getContextNode()),
-		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+			|| isHeuristicNode(nodeGraph.getContextNode())) && acceptsChild(nodeGraph.getContextNode()),
+		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_TX_PROP, [nodeGraph.getContextNode()]),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Add Graph Selector',
 		color: 'primary',
 		icon: graphPlus,
-		show: () => isTransactionNode(nodeGraph.getContextNode()),
-		action: () => openCreateSelectorSheet(SELECTOR_TYPE_TX_GRAPH, nodeGraph.getContextNode()),
-		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+		show: () => isTransactionNode(nodeGraph.getContextNode()) && acceptsChild(nodeGraph.getContextNode()),
+		action: () => openCreateSelectorSideBar(SELECTOR_TYPE_TX_GRAPH, [nodeGraph.getContextNode()]),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Add Note',
 		color: 'primary',
 		icon: mdiNotePlus,
+		show: () => !isNote(nodeGraph.getContextNode()),
 		action: showAddNoteDialog,
-		show: () => isModifyingWorkspace.value || !isNote(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Edit',
@@ -352,7 +385,7 @@ const nodeActions = ref([
 		icon: mdiNoteEdit,
 		show: () => isNote(nodeGraph.getContextNode()),
 		action: () => editNote(nodeGraph.getContextNode()),
-		disabled: () => isModifyingWorkspace.value || !acceptsChild(nodeGraph.getContextNode()),
+		disabled: () => isModifyingWorkspace.value,
 	},
 	{
 		title: 'Delete',
@@ -418,8 +451,13 @@ const isLassoDeletionEnabled = computed(() => !lassoSelectedNodes.value.some(d =
 const isShortestPathLookupEnabled = computed(() =>
 	lassoSelectedNodes.value.length === 2 && !lassoSelectedNodes.value.some(d => !d.transactionHash));
 
+const isHeuristicBatchEnabled = computed(() => lassoSelectedNodes.value.length > 1
+// Selected nodes must contain at least 2 nodes for which a selector could be created
+	&& lassoSelectedNodes.value.filter(d => isCoinJoinTransactionNode(d)
+		|| (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.selectorStatus === 'success')).length > 1);
+
 // Hooks
-function onDocumentClose() {
+function onVisibilityChange() {
 	if (document.visibilityState === 'hidden') {
 		if (autoSaveTimer !== null) {
 			clearTimeout(autoSaveTimer);
@@ -431,10 +469,15 @@ function onDocumentClose() {
 
 onMounted(async () => {
 	workspaceStore.setWorkspaceActive(true);
-	await whenMounted();
-	document.addEventListener('visibilitychange', onDocumentClose);
+	if (!await whenMounted()) {
+		return;
+	}
+
+	document.addEventListener('visibilitychange', onVisibilityChange);
 
 	useHotkey('delete', handleMenuDeleteSelected);
+	useHotkey('cmd+a', handleSelectAllNodesHotkey);
+	useHotkey('esc', handleEscapeHotkey);
 });
 
 onUnmounted(() => {
@@ -445,14 +488,40 @@ onUnmounted(() => {
 		doAutoSave();
 	}
 
-	// Stop all heuristic timers
-	selectorTimers.forEach(d => clearTimeout(d));
+	clearTimeout(selectorTimer);
 
-	document.removeEventListener('visibilitychange', onDocumentClose);
+	document.removeEventListener('visibilitychange', onVisibilityChange);
 	workspaceStore.setWorkspaceActive(false);
 });
 
 // Functions
+
+function isSideBarOpen() {
+	return allSideBarModels.some(s => s.value);
+}
+
+function isActiveElementInComponent() {
+	// ActiveElement !== body, means that an element is focused, so we need to check that the element
+	// is inside the workspace component. Otherwise, we ignore the hotkey.
+	return document.activeElement === document.body || workspaceRoot.value?.contains(document.activeElement);
+}
+
+function handleSelectAllNodesHotkey() {
+	if (isSideBarOpen() || !isActiveElementInComponent()) {
+		return;
+	}
+
+	nodeGraph.selectAllNodes();
+}
+
+function handleEscapeHotkey() {
+	if (isSideBarOpen() || !isActiveElementInComponent()) {
+		return;
+	}
+
+	nodeGraph.resetLasso();
+}
+
 async function removeGraphNodes(nodes) {
 	if (!nodes.length) {
 		return;
@@ -632,6 +701,10 @@ function handleShortestPathLookup() {
 	openShortestPathSidebar();
 }
 
+function handleHeuristicBatch() {
+	openCreateSelectorSideBar(SELECTOR_TYPE_HEURISTIC, lassoSelectedNodes.value);
+}
+
 function handleMenuFilterChanged(nodeFilter, privacyFilter) {
 	nodeGraph.filterNodes(nodeFilter, privacyFilter);
 	nodeGraph.draw();
@@ -772,10 +845,7 @@ function setWarningMessage(msg) {
 	});
 }
 
-// Sends the new selector to the backend
-async function addNewSelector(type, options) {
-	const currentNode = nodeGraph.getContextNode();
-
+async function addNewSelector(type, options, node) {
 	let parent;
 	let heuristicOptions;
 	let txPropOptions;
@@ -784,15 +854,22 @@ async function addNewSelector(type, options) {
 	switch (type) {
 		case SELECTOR_TYPE_HEURISTIC:
 			{
-				if (!currentNode || !currentNode.uid) {
+				// All descriptors, which can be applied to the current node
+				const descriptors = filterDescriptors(heuristicDescriptors.value, [node], false);
+				if (!descriptors.some(d => options.type === d.type)) {
+					// The chosen heuristic is not in the set of possible descriptors, so there is nothing to do.
+					return;
+				}
+
+				if (!node || !node.uid) {
 					setErrorMessage('could not determine parent node');
 					return;
 				}
 
-				parent = currentNode.uid;
+				parent = node.uid;
 
 				heuristicOptions = options;
-				const txHash = getHeuristicTransaction(nodeGraph.getNodes(), currentNode.uid);
+				const txHash = getHeuristicTransaction(nodeGraph.getNodes(), node.uid);
 				if (!txHash) {
 					setErrorMessage('could not determine heuristic transaction');
 					return;
@@ -803,19 +880,19 @@ async function addNewSelector(type, options) {
 
 			break;
 		case SELECTOR_TYPE_TX_PROP:
-			if (currentNode?.uid) {
-				parent = currentNode.uid;
+			if (node?.uid) {
+				parent = node.uid;
 			}
 
 			txPropOptions = options;
 			break;
 		case SELECTOR_TYPE_TX_GRAPH:
-			if (!currentNode || !currentNode.uid) {
+			if (!node || !node.uid) {
 				setErrorMessage('parent not set');
 				return;
 			}
 
-			parent = currentNode.uid;
+			parent = node.uid;
 			txGraphOptions = options;
 			break;
 		default:
@@ -823,39 +900,60 @@ async function addNewSelector(type, options) {
 			return;
 	}
 
-	await lockAutosave();
-
 	try {
-		const response = await dakar.workspace.workspacesSelectorPost({
+		return await dakar.workspace.workspacesSelectorPost({
 			selector: {
 				parent, type, heuristicOptions, txPropOptions, txGraphOptions, workspaceUID: workspaceUID.value,
 			},
 		});
-
-		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-		nodeGraph.addNodes(response.nodes);
-		startWaitingForSelectors(response.nodes);
-		// Immediately auto save to store coordinates of new node
-		queueAutoSave(0);
-		nodeGraph.centerOnNewNodes();
 	} catch (e) {
 		setErrorMessage(e);
+	}
+}
+
+// Adds the selector to all parentNodes
+async function addNewSelectors(type, options, parentNodes) {
+	await lockAutosave();
+
+	// LastResponse will contain the last valid recent graph state, after the loop has finished
+	let lastResponse;
+
+	if (parentNodes.length) {
+		for (const currentNode of parentNodes) {
+			// Only assign result of addNewSelector if not undefined
+			// eslint-disable-next-line no-await-in-loop
+			lastResponse = await addNewSelector(type, options, currentNode) ?? lastResponse;
+		}
+	} else {
+		lastResponse = await addNewSelector(type, options) ?? lastResponse;
+	}
+
+	if (lastResponse) {
+		lastResponse.nodes = setNodesDisplayAttributes(lastResponse.nodes, heuristicTypeMap);
+		nodeGraph.addNodes(lastResponse.nodes);
+		startWaitingForSelectors(lastResponse.nodes);
+		// Immediately auto save to store coordinates of new nodes
+		queueAutoSave(0);
+		nodeGraph.centerOnNewNodes();
 	}
 
 	releaseAutosaveLock();
 }
 
 function startWaitingForSelectors(nodes) {
-	// Stop all timers
-	selectorTimers.forEach(d => clearTimeout(d));
-	// Start new timers
-	nodes
-		.filter(n => n.selectorStatus === SELECTOR_STATUS_WAITING)
-		.forEach(n => addWork(n.uid));
+	if (selectorTimer !== null) {
+		// Already checking for work
+		return;
+	}
+
+	const waitingSelector = nodes.find(n => n.selectorStatus === SELECTOR_STATUS_WAITING);
+	if (waitingSelector) {
+		addWork(waitingSelector.uid);
+	}
 }
 
 function addWork(selectorUID) {
-	selectorTimers.push(setTimeout(checkWork, 3000, selectorUID));
+	selectorTimer = setTimeout(checkWork, 3000, selectorUID);
 }
 
 // Checks if the requested selector is finished executing
@@ -865,8 +963,9 @@ async function checkWork(selectorUID) {
 			selector: {workspaceUID: workspaceUID.value, selectorUID},
 		});
 		if (response.nodes) {
-			response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
-			nodeGraph.addNodes(response.nodes);
+			nodeGraph.addNodes(setNodesDisplayAttributes(response.nodes, heuristicTypeMap));
+			selectorTimer = null;
+			startWaitingForSelectors(nodeGraph.getNodes());
 		} else {
 			addWork(selectorUID);
 		}
@@ -905,33 +1004,34 @@ function getHeuristicTransaction(nodes, uid) {
 function openConnectionSheet(d) {
 	connectionData.value = d;
 
-	isEntitySideBarOpen.value = false;
-	isCreateSelectorSheetOpen.value = false;
-	isConnectionSideBarOpen.value = true;
-	isShortestPathSideBarOpen.value = false;
-	isFingerprintSideBarOpen.value = false;
+	closeAllSideBars(isConnectionSideBarOpen);
 
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
 
-function showCreateSelectorSheetFromButton() {
+function showCreateSelectorSideBarFromButton() {
 	// So no parent is set
 	nodeGraph.resetContextNode();
-	openCreateSelectorSheet(SELECTOR_TYPE_TX_PROP);
+	openCreateSelectorSideBar(SELECTOR_TYPE_TX_PROP, []);
 }
 
-function openCreateSelectorSheet(selectorType, parentNode) {
-	selectorCreationType.value = selectorType;
-	selectorParent.value = parentNode;
-	isEntitySideBarOpen.value = false;
-	isConnectionSideBarOpen.value = false;
-	isCreateSelectorSheetOpen.value = true;
-	isShortestPathSideBarOpen.value = false;
-	isFingerprintSideBarOpen.value = false;
+// Closes all sidebars. if a ref to a sidebar is passed, it will be set to true.
+function closeAllSideBars(open) {
+	allSideBarModels.forEach(sideBar => {
+		sideBar.value = open === sideBar;
+	});
+}
 
-	// Next tick so watcher actions are executed first
-	nextTick(() => nodeGraph.setContextObjectClicked());
+function openCreateSelectorSideBar(selectorType, parentNodes) {
+	selectorCreationType.value = selectorType;
+	selectorParents.value = parentNodes;
+	closeAllSideBars(isCreateSelectorSheetOpen);
+
+	if (parentNodes.length === 1) {
+		// Next tick so watcher actions are executed first
+		nextTick(() => nodeGraph.setContextObjectClicked());
+	}
 }
 
 function openEntitySideBar(nodeData) {
@@ -983,11 +1083,8 @@ function openEntitySideBar(nodeData) {
 		default:
 	}
 
-	isCreateSelectorSheetOpen.value = false;
-	isConnectionSideBarOpen.value = false;
-	isShortestPathSideBarOpen.value = false;
-	isFingerprintSideBarOpen.value = false;
-	isEntitySideBarOpen.value = true;
+	closeAllSideBars(isEntitySideBarOpen);
+
 	// Next tick so watcher actions are executed first
 	nextTick(() => nodeGraph.setContextObjectClicked());
 }
@@ -995,29 +1092,13 @@ function openEntitySideBar(nodeData) {
 function openShortestPathSidebar() {
 	shortestPathTransactions.value = lassoSelectedNodes.value.map(d => d.transactionHash);
 
-	isEntitySideBarOpen.value = false;
-	isCreateSelectorSheetOpen.value = false;
-	isConnectionSideBarOpen.value = false;
-	isShortestPathSideBarOpen.value = true;
-	isFingerprintSideBarOpen.value = false;
+	closeAllSideBars(isShortestPathSideBarOpen);
 }
 
 function openFingerprintSidebar(txhash) {
 	fingerprintTransaction.value = txhash;
 
-	isEntitySideBarOpen.value = false;
-	isCreateSelectorSheetOpen.value = false;
-	isConnectionSideBarOpen.value = false;
-	isShortestPathSideBarOpen.value = false;
-	isFingerprintSideBarOpen.value = true;
-}
-
-function closeSideBars() {
-	isCreateSelectorSheetOpen.value = false;
-	isEntitySideBarOpen.value = false;
-	isConnectionSideBarOpen.value = false;
-	isShortestPathSideBarOpen.value = false;
-	isFingerprintSideBarOpen.value = false;
+	closeAllSideBars(isFingerprintSideBarOpen);
 }
 
 function showContextMenu(e) {
@@ -1028,8 +1109,8 @@ function showContextMenu(e) {
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
 
-	// Need to hide sidebar, otherwise the context node is also used by sidebar
-	closeSideBars();
+	// Need to hide sidebar, otherwise the context node is also used by the sidebar
+	closeAllSideBars();
 
 	nextTick(() => {
 		contextMenuModel.value.display = true;
@@ -1050,7 +1131,7 @@ function showAddNoteDialog() {
 
 async function refreshData() {
 	isLoadingWorkspace.value = true;
-
+	let data;
 	try {
 		const response = await dakar.workspace.workspacesUidGet({uid: workspaceUID.value});
 		if (!response.descriptors) {
@@ -1080,11 +1161,11 @@ async function refreshData() {
 		heuristicDescriptors.value.forEach(e => heuristicTypeMap.set(e.type, e.title));
 
 		if (response.workspace) {
+			response.workspace.nodes &&= setNodesDisplayAttributes(response.workspace.nodes, heuristicTypeMap);
 			data = response.workspace;
-			workspaceName.value = data.name;
-			data.nodes &&= setNodesDisplayAttributes(data.nodes, heuristicTypeMap);
+			data.loaded = true;
 		} else {
-			data = null;
+			data = {loaded: false};
 		}
 
 		msgStore.resetMessages();
@@ -1094,14 +1175,10 @@ async function refreshData() {
 
 	isLoadingWorkspace.value = false;
 
-	if (!data) {
-		return false;
-	}
-
 	// If the workspace does not yet contain any nodes, set an empty array
 	data.nodes ??= [];
 
-	return true;
+	return data;
 }
 
 function queueAutoSave(t = 5000) {
@@ -1141,6 +1218,9 @@ async function doAutoSave() {
 }
 
 async function whenMounted() {
+	// Set page title
+	document.title = `Workspace - ${APPLICATION_NAME}`;
+
 	const svgCanvasId = 'svg_canvas';
 	// Remove previous svg children
 	document.getElementById(svgCanvasId).innerHTML = '';
@@ -1148,8 +1228,14 @@ async function whenMounted() {
 	// Set workspace UID for this page view
 	workspaceUID.value = route.params.id;
 
-	// Set page title
-	document.title = `Workspace - ${APPLICATION_NAME}`;
+	const workspaceData = await refreshData();
+	if (!workspaceData.loaded) {
+		return false;
+	}
+
+	workspaceName.value = workspaceData.name;
+
+	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
 
 	if (!nodeGraph.setNodeClickCallback(openEntitySideBar)) {
 		setErrorMessage('error setting node click handler');
@@ -1168,7 +1254,7 @@ async function whenMounted() {
 		return false;
 	}
 
-	if (!nodeGraph.setSvgClickCallback(closeSideBars)) {
+	if (!nodeGraph.setSvgClickCallback(closeAllSideBars)) {
 		setErrorMessage('error setting svg click handler');
 		return false;
 	}
@@ -1194,17 +1280,10 @@ async function whenMounted() {
 	}
 
 	nodeGraph.initSvg(svgCanvasId);
-	if (!await refreshData()) {
-		return false;
-	}
-
-	// Update page title
-	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
-
-	nodeGraph.addNodes(data.nodes);
+	nodeGraph.addNodes(workspaceData.nodes);
 	nodeGraph.centerGraph();
 
-	startWaitingForSelectors(data.nodes);
+	startWaitingForSelectors(workspaceData.nodes);
 	return true;
 }
 
@@ -1231,6 +1310,20 @@ function acceptsChild(node) {
 :deep( #svg_canvas ) {
   height: 100%;
   width: 100%;
+}
+
+.shortcuts {
+  position: absolute;
+  top: 20px;
+  right: 0px;
+  z-index: 1004;
+}
+
+.shortcuts-sm {
+  position: absolute;
+  bottom: 20px;
+  left: 0px;
+  z-index: 1004;
 }
 
 .auto-save {
