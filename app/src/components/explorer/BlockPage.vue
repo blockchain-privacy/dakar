@@ -201,8 +201,8 @@ function setPageTitle() {
 	document.title = `Block${id}- ${PAGE_TITLE}`;
 }
 
-function isResponseValid(reponse) {
-	return !(!reponse.block || !reponse.block.transactions || reponse.block.transactions.length === 0);
+function isResponseValid(resp) {
+	return !(!resp.block || !resp.block.transactions || resp.block.transactions.length === 0);
 }
 
 async function pullInitialData() {

@@ -90,7 +90,7 @@
                   <v-spacer />
                   <!-- need to set min-width so the switch does not shrink when less space is available -->
                   <v-switch
-                    v-model="showOnlyHiglightedOutputs"
+                    v-model="showOnlyHighlightedOutputs"
                     class="ms-2"
                     inset
                     density="compact"
@@ -112,7 +112,7 @@
                   show-details
                   :embed="false"
                   :highlight-transaction="connectionTarget.transactionHash"
-                  :filter-highlighted-outputs="showOnlyHiglightedOutputs"
+                  :filter-highlighted-outputs="showOnlyHighlightedOutputs"
                 />
               </template>
             </div>
@@ -164,7 +164,7 @@ const transactions = ref(null);
 const showEmptyText = ref(false);
 const identitiesSortBy = ref([{key: 'ts', order: 'desc'}]);
 const filteredHeaders = ref([]);
-const showOnlyHiglightedOutputs = ref(false);
+const showOnlyHighlightedOutputs = ref(false);
 const showSelectAddresses = ref(true);
 const showSelectTransactions = ref(true);
 
@@ -196,7 +196,7 @@ onUpdated(async () => {
 
 		workspaceStore.workspaceNodes.clear();
 		selectableEntities.clear();
-		showOnlyHiglightedOutputs.value = false;
+		showOnlyHighlightedOutputs.value = false;
 		showEmptyText.value = false;
 		oldConnection = props.connection;
 		connectionSource.value = props.connection.source;

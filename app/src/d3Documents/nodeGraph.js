@@ -68,7 +68,7 @@ function dragged(event, context, d3This, data) {
 
 	if (context.lassoSelectedNodes) {
 		context.lassoSelectedNodes.each(d => {
-			// Don't change the actual dragged ndoe
+			// Don't change the actual dragged node
 			if (d.uid === data.uid) {
 				return;
 			}
@@ -1185,7 +1185,7 @@ export default class NodeGraph {
 			}));
 
 		// The limit simulation should only be done if all nodes are reordered.
-		// Otherwise nodes can get stuck in the limit rectangle if host nodes are outside of the rectangle
+		// Otherwise, nodes can get stuck in the limit rectangle if host nodes are outside the rectangle
 		if (limitSimulation) {
 			this.simulation = this.simulation.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.#nodeRadius));
 		}

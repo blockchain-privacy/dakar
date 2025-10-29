@@ -184,7 +184,7 @@ func createOutputUID(transaction string, outputID int32) string {
 	return "_:" + transaction + strconv.FormatInt(int64(outputID), 10)
 }
 
-// newAmount mulitplies the given float times 1e8 and returns an integer
+// newAmount multiplies the given float times 1e8 and returns an integer
 func newAmount(f float64) (int64, error) {
 	// The amount is only considered invalid if it cannot be represented
 	// as an integer type. This may happen if f is NaN or +-Infinity.

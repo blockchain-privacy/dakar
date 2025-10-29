@@ -78,7 +78,7 @@ func (g *GraphDB) DropNamespace(ctx context.Context, nsID uint64) error {
 	return nil
 }
 
-// DropPredicate dops the predicate of the specified namespace
+// DropPredicate drops the predicate of the specified namespace
 func (g *GraphDB) DropPredicate(ctx context.Context, predicate string) error {
 	if err := g.Dgraph.DropPredicate(ctx, predicate); err != nil {
 		return serror.New(err)

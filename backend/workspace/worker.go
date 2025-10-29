@@ -10,10 +10,11 @@ import (
 	"backend/db/workspace"
 	"backend/external"
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/qrest/gomisc/serror"
 )
 
 func info(msg string, v ...any) {
@@ -26,7 +27,7 @@ func warn(err error, v ...any) {
 
 // Work is an interface to pass a package of work to a Worker, which will process it eventually.
 type Work interface {
-	// Run processes the a Work package. It receives the database and the graph wrapper.
+	// Run processes the Work package. It receives the database and the graph wrapper.
 	Run(context.Context, *Mutex, external.Database, *graph.Wrapper) error
 }
 

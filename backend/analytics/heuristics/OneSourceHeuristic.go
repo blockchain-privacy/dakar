@@ -14,9 +14,10 @@ import (
 	"backend/external"
 	"context"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
 	"strconv"
 	"time"
+
+	"github.com/qrest/gomisc/serror"
 )
 
 // oneSourceHeuristic - see exec for description
@@ -69,7 +70,7 @@ func (h *oneSourceHeuristic) GetDescriptor() Descriptor {
 		Category: heuristicCategoryReverse,
 		Description: "Destination transactions spend outputs of their connected input mixing transactions. " +
 			"Each input mixing transaction is connected to a mixing sub graph. Starting from each connected " +
-			"mixing transacion, this heuristic traverses the transaction graph backwards for the given " +
+			"mixing transaction, this heuristic traverses the transaction graph backwards for the given " +
 			"duration and excludes all clusters which can't fund every mixing sub graph (due to lack of funds " +
 			"or due to having no connection to them).",
 		Parameter: &DescriptorParameter{

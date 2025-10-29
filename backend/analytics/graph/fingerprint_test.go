@@ -63,21 +63,21 @@ func Test_splitTimestampsIntoSessions(t *testing.T) {
 func Test_getSessionCount(t *testing.T) {
 	g := newDestinationGraph(t)
 	tests := []struct {
-		txID          int64
-		sesssionCount int
+		txID         int64
+		sessionCount int
 	}{
 		// node does not exist in graph -> no results
 		{
-			txID:          55555,
-			sesssionCount: 0,
+			txID:         55555,
+			sessionCount: 0,
 		},
 		{
-			txID:          1,
-			sesssionCount: 2,
+			txID:         1,
+			sessionCount: 2,
 		},
 	}
 	for _, tt := range tests {
-		require.Equal(t, tt.sesssionCount, getSessionCount(g, tt.txID))
+		require.Equal(t, tt.sessionCount, getSessionCount(g, tt.txID))
 	}
 }
 

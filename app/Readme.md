@@ -27,15 +27,6 @@ npmScopes:
     npmAuthToken: "<your-deploy-token>"
 ```
 
-* Build the front-end (see below)
-* Build `crawler` of the backend project
-* Run Dash daemon (`dashd`)
-* Run `crawler` for a small-test block range, such that the Dgraph DB gets generated
-* Build `explorer` on the backend project
-* Deploy the front-end app
-* Search for transactions, blocks or addresses that are stored in the Dgraph DB
-
-
 ## Front-end setup
 
 ```shell

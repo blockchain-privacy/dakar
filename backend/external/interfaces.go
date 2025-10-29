@@ -51,7 +51,7 @@ type Database interface {
 	DropAll(ctx context.Context) error
 	// DropData drops all data of the database
 	DropData(ctx context.Context) error
-	// DropPredicate dops the predicate of the specified namespace
+	// DropPredicate drops the predicate of the specified namespace
 	DropPredicate(ctx context.Context, predicate string) error
 	// DropNamespace drops all data of the namespace
 	DropNamespace(ctx context.Context, nsID uint64) error

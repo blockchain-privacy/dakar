@@ -366,7 +366,7 @@ function showRenameDialog(workspace) {
 		return;
 	}
 
-	// Workspace is a ref -> ned to convert and clone it
+	// Workspace is a ref -> need to convert and clone it
 	renamedWorkspace.value = structuredClone(toRaw(workspace));
 	showRenameWorkspaceDialogModel.value = true;
 }

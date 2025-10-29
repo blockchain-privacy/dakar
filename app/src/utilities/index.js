@@ -263,7 +263,7 @@ export function isWasabi2Denomination(amount) {
 	return DENOMINATIONS_WASABI2.has(amount);
 }
 
-// IsUncommonWasabi2Denomination returns true if the given amount is a uncommon wasabi 2.0 denomination
+// IsUncommonWasabi2Denomination returns true if the given amount is an uncommon wasabi 2.0 denomination
 export function isUncommonWasabi2Denomination(amount) {
 	return amount % 5000 !== 0 && DENOMINATIONS_WASABI2.has(amount);
 }

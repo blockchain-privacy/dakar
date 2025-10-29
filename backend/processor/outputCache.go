@@ -123,7 +123,7 @@ func (u *outputCache) getOutput(txHash string, outputIndex int32) *db.Output {
 	return &output
 }
 
-// deleteOutput returns the output specified output and deletes it afterwards
+// deleteOutput returns the output specified output and deletes it afterward
 func (u *outputCache) getAndEvictOutput(txHash string, outputIndex int32) *db.Output {
 	t, ok := u.c[txHash]
 	if !ok {

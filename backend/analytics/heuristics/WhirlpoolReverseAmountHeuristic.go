@@ -14,6 +14,7 @@ import (
 	"backend/external"
 	"context"
 	"fmt"
+
 	"github.com/qrest/gomisc/serror"
 )
 
@@ -119,7 +120,7 @@ func (h *whirlpoolReverseAmountHeuristic) Exec(ctx context.Context, dgraph exter
 		results[i].Cluster = origins[results[i].UID].Cluster
 	}
 
-	// 0: exact denomiatino because the mixing transaction outputs do not carry a fee
+	// 0: exact denomination because the mixing transaction outputs do not carry a fee
 	inputDenominationCounts := getWhirlpoolDenominationCounts(transaction, 0)
 	// 100: because origin outputs also carry a fee
 	originAmounts := buildWhirlpoolSourceAmounts(origins, 100)

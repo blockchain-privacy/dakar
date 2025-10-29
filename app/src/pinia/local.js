@@ -33,7 +33,7 @@ function deleteLocalstorageData(key) {
 function insertLocalData(state) {
 	const localSettings = getLocalstorageData(LOCALSTORAGE_FIELD_SETTINGS);
 	if (localSettings !== null) {
-		// Explictly set values, so new settings are merged with old localstorage settings
+		// Explicitly set values, so new settings are merged with old localstorage settings
 		if (localSettings.theme !== undefined) {
 			state.settings.theme = localSettings.theme;
 		}
@@ -86,7 +86,7 @@ export const useLocalStore = defineStore('local', {
 				return;
 			}
 
-			// Remove the item if it already exist and add it to the first position
+			// Remove the item if it already exists and add it to the first position
 			const items = this.searchHistory.filter(i => i.title !== item.title);
 			items.unshift(item);
 

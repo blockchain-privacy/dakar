@@ -13,9 +13,10 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
+	"slices"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qrest/gomisc/serror"
-	"slices"
 )
 
 // maximum number of addresses per cluster. Cluster with a size of maxClusterSize
@@ -30,7 +31,7 @@ type FlatMultiInput struct {
 	ctx    context.Context
 	state  blockiterator.State
 
-	// how many blocks are processed in one interation at maximum
+	// how many blocks are processed in one iteration at maximum
 	maxBlocks int64
 	// number of blocks which have been processed by the last Iterate call
 	blocksProcessed int64
@@ -248,7 +249,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 			// tx inputs
 			if len(tx.InputAddresses) > 0 {
 				if constants.IsMixingTransaction(tx.Type) || isGenericCoinJoin(tx, m.config) {
-					// treat inputs of mixing transations not with the multi-input heuristic
+					// treat inputs of mixing transactions not with the multi-input heuristic
 					processAsNonMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
 				} else {
 					processAsMultiInput(clusterMergeMap, addressMergeMap, clusterStore, tx.UID, tx.InputAddresses)
@@ -279,7 +280,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 
 		// insert new clusters
 		if len(operations) > 0 {
-			// ProcessClusterOperations uses a long running transaction,
+			// ProcessClusterOperations uses a long-running transaction,
 			// therefore transaction retrying has to be handled manually
 			if err = db.WithRetry(func() error {
 				return clustering.ProcessClusterOperations(ctx, m.db, operations)

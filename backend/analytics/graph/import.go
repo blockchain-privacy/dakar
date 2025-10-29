@@ -11,8 +11,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
 	"runtime"
+
+	"github.com/qrest/gomisc/serror"
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
@@ -157,7 +158,7 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 // loadDashOriginTransactions loads transactions filtered by type from the database into the graph.
 // maxTransactions: the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
 // step: how many transactions are loaded in a single call to the database
-// loadSingleNodes: wether single nodes or edges are supposed to be loaded
+// loadSingleNodes: whether single nodes or edges are supposed to be loaded
 func loadTransactions(ctx context.Context, c external.Database, g *ReversibleGraph,
 	step int, maxTransactions int, transactionType string, loadSingleNodes bool) error {
 	lastNodeUID := "0x0"

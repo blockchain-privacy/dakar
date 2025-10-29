@@ -62,14 +62,14 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 
 		// step 2.2: whirlpool mixing transactions must be connected to at least one whirlpool origin transaction.
 		// Whirlpool origin transactions have a high chance to be misclassified,
-		// therefore classify both mixing and origin transactions only if they are connnected to each other.
+		// therefore classify both mixing and origin transactions only if they are connected to each other.
 		if len(potWhirlpoolOrigins) > 0 {
 			// - get all unclassified transactions which are connected to the potential whirlpool mixing transactions
 			// - from the results, check if any transaction can be classified as a whirlpool origin transaction
 			// - persist classifications of all origin-mixing pairs
-			classfiedTransactions := classifyWhirlpoolOriginTransactions(potWhirlpoolOrigins, originsToMixingMap)
-			if len(classfiedTransactions) > 0 {
-				if err = db.UpdateTransactions(ctx, c, classfiedTransactions); err != nil {
+			classifiedTransactions := classifyWhirlpoolOriginTransactions(potWhirlpoolOrigins, originsToMixingMap)
+			if len(classifiedTransactions) > 0 {
+				if err = db.UpdateTransactions(ctx, c, classifiedTransactions); err != nil {
 					return false, err
 				}
 			}
@@ -90,11 +90,11 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 // classifyWhirlpoolOriginTransactions classifies the given origin transactions
 // and return them with their connected mixing transactions
 func classifyWhirlpoolOriginTransactions(origins []db.Transaction, originToMixingMap map[string][]string) []db.Transaction {
-	var classfiedTransactions []db.Transaction //nolint:prealloc
+	var classifiedTransactions []db.Transaction //nolint:prealloc
 	confirmedMixingTransactions := map[string]bool{}
 	for _, whirlpoolOrigin := range origins {
 		if isWhirlpoolOrigin(whirlpoolOrigin) {
-			classfiedTransactions = append(classfiedTransactions, db.Transaction{UID: whirlpoolOrigin.UID,
+			classifiedTransactions = append(classifiedTransactions, db.Transaction{UID: whirlpoolOrigin.UID,
 				Type: constants.TypeWhirlpoolOrigin})
 			mixingTxs := originToMixingMap[whirlpoolOrigin.UID]
 			// make sure mixing uids are unique
@@ -106,10 +106,10 @@ func classifyWhirlpoolOriginTransactions(origins []db.Transaction, originToMixin
 
 	// add mixing transactions to set of transactions which are going to be persisted
 	for m := range confirmedMixingTransactions {
-		classfiedTransactions = append(classfiedTransactions, db.Transaction{UID: m, Type: constants.TypeWhirlpoolMixing})
+		classifiedTransactions = append(classifiedTransactions, db.Transaction{UID: m, Type: constants.TypeWhirlpoolMixing})
 	}
 
-	return classfiedTransactions
+	return classifiedTransactions
 }
 
 // classifyTransactions detects mixing transactions and sets the transaction type appropriately

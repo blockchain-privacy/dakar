@@ -21,10 +21,11 @@ import (
 	"backend/external"
 	"backend/workspace"
 	"context"
-	"github.com/qrest/gomisc/serror"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/qrest/gomisc/serror"
 
 	"encoding/csv"
 	"encoding/json"
@@ -1788,7 +1789,7 @@ func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (rep
 			return
 		}
 	} else {
-		// wrong comibnation of types
+		// wrong combination of types
 		status = http.StatusBadRequest
 		return
 	}

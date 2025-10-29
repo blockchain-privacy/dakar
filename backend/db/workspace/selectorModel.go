@@ -79,13 +79,13 @@ type TxPropOptions struct {
 	TransactionTypes []string `json:"txTypes,omitempty"`
 	// ExcludePrivacyTransactions determines if all transactions with a transaction type should be excluded
 	ExcludePrivacyTransactions *bool `json:"excludePrivacyTransactions,omitempty"`
-	// InputSum is an amount range of the summed up inputs each transaction has to fullfil
+	// InputSum is an amount range of the summed up inputs each transaction has to fulfill
 	InputSum *AmountRange `json:"inputSum,omitempty"`
-	// OutputSum is an amount range of the summed up outputs each transaction has to fullfil
+	// OutputSum is an amount range of the summed up outputs each transaction has to fulfill
 	OutputSum *AmountRange `json:"outputSum,omitempty"`
-	// InputRange is an amount range at least one input of each transaction has to fullfil
+	// InputRange is an amount range at least one input of each transaction has to fulfill
 	InputRange *AmountRange `json:"inputRange,omitempty"`
-	// OutputRange  is an amount range at least one output of each transaction has to fullfil
+	// OutputRange  is an amount range at least one output of each transaction has to fulfill
 	OutputRange *AmountRange `json:"outputRange,omitempty"`
 }
 
@@ -151,7 +151,7 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 type TxGraphOptions struct {
 	// MaxItems is the maximum number of items the selector stores. Can not be higher than selectorMaxItems
 	MaxItems *int `json:"maxItems,omitempty"`
-	// IsForward determines the direction of the graph lookup: foward or backward
+	// IsForward determines the direction of the graph lookup: forward or backward
 	IsForward bool `json:"isForward,omitempty"`
 	// Depth determines how many levels the transaction graph will be traversed
 	Depth *int `json:"depth,omitempty"`

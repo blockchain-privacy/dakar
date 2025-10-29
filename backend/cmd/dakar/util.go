@@ -180,7 +180,7 @@ func waitForRPCClient(client external.RPCClient) error {
 	return serror.FromStr("RPC client is not ready to receive requests")
 }
 
-// shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
+// shutdownServer sends a shutdown signal to the server with a timeout of 10 seconds
 func shutdownServer(srv *http.Server) {
 	if srv == nil {
 		return

@@ -36,7 +36,7 @@ func TestGetAndRefreshWorkspace(t *testing.T) {
 		wantErr           bool
 	}{
 		{
-			name:              "invalid worksapce UID and name",
+			name:              "invalid workspace UID and name",
 			workspaceUID:      "",
 			wantWorkspaceName: "",
 			wantErr:           true,

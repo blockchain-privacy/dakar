@@ -499,7 +499,7 @@ function editNote(note) {
 	showEditNoteDialogModel.value = true;
 }
 
-// Getlock prevents further actions causing an autosave event to occur,
+// LockAutosave prevents further actions causing an autosave event to occur,
 // and waits until the current autosave event is done.
 async function lockAutosave() {
 	nodeGraph.setEnableInteractions(false);
@@ -834,8 +834,8 @@ async function addNewSelector(type, options) {
 
 		response.nodes = setNodesDisplayAttributes(response.nodes, heuristicTypeMap);
 		nodeGraph.addNodes(response.nodes);
-		startWaitingforSelectors(response.nodes);
-		// Immediatly auto save to store coordinates of new node
+		startWaitingForSelectors(response.nodes);
+		// Immediately auto save to store coordinates of new node
 		queueAutoSave(0);
 		nodeGraph.centerOnNewNodes();
 	} catch (e) {
@@ -845,7 +845,7 @@ async function addNewSelector(type, options) {
 	releaseAutosaveLock();
 }
 
-function startWaitingforSelectors(nodes) {
+function startWaitingForSelectors(nodes) {
 	// Stop all timers
 	selectorTimers.forEach(d => clearTimeout(d));
 	// Start new timers
@@ -1028,7 +1028,7 @@ function showContextMenu(e) {
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
 
-	// Need to hide sidebar, otherwise the context node is also used by side bar
+	// Need to hide sidebar, otherwise the context node is also used by sidebar
 	closeSideBars();
 
 	nextTick(() => {
@@ -1204,7 +1204,7 @@ async function whenMounted() {
 	nodeGraph.addNodes(data.nodes);
 	nodeGraph.centerGraph();
 
-	startWaitingforSelectors(data.nodes);
+	startWaitingForSelectors(data.nodes);
 	return true;
 }
 

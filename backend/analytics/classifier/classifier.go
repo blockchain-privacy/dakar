@@ -43,7 +43,7 @@ type Classifier struct {
 	ctx    context.Context
 	state  blockiterator.State
 
-	// how many blocks are processed in one interation at maximum
+	// how many blocks are processed in one iteration at maximum
 	maxBlocks int64
 	// number of blocks which have been processed by the last Iterate call
 	blocksProcessed int64

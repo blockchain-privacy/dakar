@@ -294,7 +294,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 
 	// clusterToAddress contains the mapping of flat multi-input clusters to their addresses.
 	// This map is used to replace the uid of clusters with the uid of addresses.
-	// This is done because we ultimatly want to store the address uids, not the cluster uids as they are not static.
+	// This is done because we ultimately want to store the address uids, not the cluster uids as they are not static.
 	clusterToAddress := map[string]string{}
 	for _, address := range r.AddressClusters {
 		if len(address.Cluster) != 1 {

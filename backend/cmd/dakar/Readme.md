@@ -1,9 +1,7 @@
-# Crawler
-
-This is the blockchain crawler. 
+# Dakar
 
 Modules 
- - Crawler: Loads data from `dashd` via JSON-RPC and stores it in a Dgraph database.
+ - Crawler: Loads data from `dashd` or `bitcoind` via JSON-RPC and stores it in a Dgraph database.
  - Classifier: Classifies transaction stored in Dgraph regarding their classification type (mixing, origin, destination, ...).
  - Clustering: Clusters addresses of non-mixing transactions via the multi-input clustering heuristic.
  - Heuristics: Allows to apply heuristics on classified transactions in conjunction with clustered addresses.
@@ -15,16 +13,16 @@ Do not kill the crawling process, instead send a termination or interrupt signal
 
 ## Initial Setup
 
-Create a new config file. This will not start the crawler.
+Create a new config file. This will not start Dakar.
 
 ```shell script
-./crawler -createConfig
+./dakar -createConfig
 ```
 
-Start the crawler and confirm the reset dialog.
+Start Dakar and confirm the reset dialog.
 
 ```shell script
-./crawler -reset
+./dakar -reset
 ```
 
 ## Environment Variables
@@ -36,7 +34,7 @@ Start the crawler and confirm the reset dialog.
 
 ## Metrics
 
-The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured via HTTP basic authentication.
+Dakar exposes prometheus metrics via `\metrics`. This endpoint is secured via HTTP basic authentication.
 
 ## Commandline Arguments
 
@@ -59,21 +57,21 @@ With the `ignoresafeguard` flag the safeguard can be ignored and the crawling be
 
 The crawler is configured via a configuration file.
 
-### Using the configuartion file
+### Using the configuration file
 
 Create a new config file with the command below. This will create a new config file named `config.yml`.
 ```shell script
-./crawler -createConfig
+./dakar -createConfig
 ```
 
-Start the crawler with a new config file
+Start the Dakar with a config file in a custom path.
 ```shell script
-./crawler -config path/to/config/file.yml
+./dakar -config path/to/config/file.yml
 ```
 
 ### Target Iteration Duration
 
-Some modules process multiple blocks in one iteration. 
+The classifier and clustering module support processing multiple blocks in one iteration. 
 The target iteration duration can be set in the configuration file via `targetDuration` in the respective module in multiples of seconds.
 Increasing `targetDuration`, increases the relative number of blocks being processed per iteration and therefore also increases the load on the system. 
 If `targetDuration` is set to 0, each iteration will only process one block. 

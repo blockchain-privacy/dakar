@@ -186,7 +186,7 @@ function evalScript(event, script) {
 	event.preventDefault();
 	event.stopPropagation();
 
-	// Eval is bad practice, but this the offical way to call ory kratos script
+	// Eval is bad practice, but this the official way to call an ory kratos script
 	// eslint-disable-next-line no-new-func
 	const evalScript = new Function(script);
 	evalScript();

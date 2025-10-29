@@ -8,11 +8,11 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN go build -o /crawler ./cmd/crawler/
+RUN go build -o /dakar ./cmd/dakar/
 
 FROM scratch
-COPY --from=build-stage /crawler .
+COPY --from=build-stage /dakar .
 
 VOLUME ["/data"]
 CMD ["--config", "/data/config.yml"]
-ENTRYPOINT ["/crawler"]
+ENTRYPOINT ["/dakar"]

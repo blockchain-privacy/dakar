@@ -177,7 +177,7 @@ const selectableEntities = new Map();
 
 // Computed
 const title = computed(() => {
-	const unkownType = 'Unkown Entity Type';
+	const unknownType = 'Unknown Entity Type';
 	switch (props.type) {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			return `Transaction ${props.identifier}`;
@@ -189,11 +189,11 @@ const title = computed(() => {
 				case SELECTOR_TYPE_TX_GRAPH: return 'Graph Selector';
 				case SELECTOR_TYPE_TX_PROP: return 'Property Selector';
 				default:
-					return unkownType;
+					return unknownType;
 			}
 
 		default:
-			return unkownType;
+			return unknownType;
 	}
 });
 

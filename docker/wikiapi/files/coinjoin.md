@@ -8,6 +8,6 @@ Depending on the CoinJoin implementation the transaction format follows a common
 - Transactions use a predefined list of amounts (denominations)
 - Before a CoinJoin can start, outputs have to be split into certain amount denominations
 - Mixing transactions have a set amount of input and outputs
-- Mixing fees are payed via a separate transaction type
+- Mixing fees are paid via a separate transaction type
 
 See the [Dash Mixing Process page](dash/mixingProcess.md) for more details on how CoinJoins work in Dash.

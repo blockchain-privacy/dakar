@@ -10,6 +10,7 @@ import (
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
+
 	"github.com/qrest/gomisc/serror"
 
 	"fmt"
@@ -64,7 +65,7 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) GetDescriptor() Descriptor {
 		Title:    "Reverse lookup by depth",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "Starting from each connected mixing transaciton, traverses the transaction " +
+		Description: "Starting from each connected mixing transaction, traverses the transaction " +
 			"graph backwards until the given depth is reached and returns all found origins.",
 		Parameter: &DescriptorParameter{
 			DefaultValue: "2",

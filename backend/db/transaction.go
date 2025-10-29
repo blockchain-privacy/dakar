@@ -9,9 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/qrest/gomisc/serror"
-	"strconv"
 )
 
 // transactionDType is the dgraph database type for the Transaction type
@@ -742,7 +743,7 @@ type OutputCount struct {
 }
 
 // GetTransactionOutputCounts returns every transaction in the specified block range with its input and output counts.
-// If excludeTransactionType is not empty, transactions matching the given type will excluded.
+// If excludeTransactionType is not empty, transactions matching the given type will be excluded.
 func GetTransactionOutputCounts(ctx context.Context, c external.Database,
 	fromBlockID int64, toBlockID int64, excludeTransactionType string) ([]OutputCount, error) {
 	var filter string
