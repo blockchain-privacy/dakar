@@ -12,7 +12,7 @@ import (
 	"strconv"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // transactionDType is the dgraph database type for the Transaction type

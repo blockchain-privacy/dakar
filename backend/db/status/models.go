@@ -5,7 +5,7 @@
 package status
 
 import (
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 
 	"errors"
 	"fmt"

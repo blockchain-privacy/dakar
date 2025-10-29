@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // availableUpgrades contains all available schema upgrades.

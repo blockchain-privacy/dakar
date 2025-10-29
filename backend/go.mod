@@ -7,8 +7,8 @@ require (
 	github.com/dgraph-io/dgo/v250 v250.0.0
 	github.com/goccy/go-yaml v1.18.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/qrest/gomisc v0.0.23
 	github.com/stretchr/testify v1.11.1
+	gitlab.com/blockchain-privacy/gomisc v0.0.3
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/grpc v1.76.0
 )
@@ -35,7 +35,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/net v0.45.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff // indirect
 	google.golang.org/protobuf v1.36.10 // indirect

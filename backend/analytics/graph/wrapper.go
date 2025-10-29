@@ -13,15 +13,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/qrest/gomisc/serror"
 	"log/slog"
 	"os"
 	"strconv"
-
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 func info(msg string, v ...any) {

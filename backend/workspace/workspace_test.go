@@ -14,8 +14,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qrest/gomisc/serror"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 func TestGetAndRefreshWorkspace(t *testing.T) {

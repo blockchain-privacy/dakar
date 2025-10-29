@@ -10,12 +10,11 @@ import (
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
-
-	"github.com/qrest/gomisc/serror"
-
 	"fmt"
 	"strconv"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // wasabi2ReverseLookupByTimeHeuristic - see exec for description

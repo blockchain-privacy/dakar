@@ -9,7 +9,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 func getEarliestTimestamp(g *ReversibleGraph, tx TransactionNode) (int64, error) {

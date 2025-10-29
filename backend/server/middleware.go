@@ -6,8 +6,8 @@ package server
 
 import (
 	"context"
-	mw "github.com/qrest/gomisc/middleware"
-	"github.com/qrest/gomisc/serror"
+	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"net/http"
 )
 

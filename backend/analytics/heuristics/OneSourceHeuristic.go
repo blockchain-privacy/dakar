@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // oneSourceHeuristic - see exec for description

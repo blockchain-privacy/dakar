@@ -8,7 +8,7 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
 )
 

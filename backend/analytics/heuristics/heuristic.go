@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type HeuristicConstructor func() Heuristic

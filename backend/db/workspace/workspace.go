@@ -9,10 +9,11 @@ import (
 	"backend/external"
 	"context"
 	"encoding/json"
-	"github.com/dgraph-io/dgo/v250/protos/api"
-	"github.com/qrest/gomisc/serror"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // AddWorkspace creates a new workspace

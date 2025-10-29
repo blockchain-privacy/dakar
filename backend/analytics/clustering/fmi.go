@@ -16,7 +16,7 @@ import (
 	"slices"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // maximum number of addresses per cluster. Cluster with a size of maxClusterSize

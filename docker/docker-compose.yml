@@ -109,7 +109,7 @@ services:
       - dgraph_default
 
   wikiapi:
-    image: bluedark/wikiapi:latest
+    image: registry.gitlab.com/blockchain-privacy/wikiapi:latest
     container_name: wikiapi
     volumes:
       - ./wikiapi/files:/data
@@ -122,7 +122,7 @@ services:
       - dgraph_default
 
   kratosadmin:
-    image: bluedark/kratosadmin:latest
+    image: registry.gitlab.com/blockchain-privacy/kratosadmin:latest
     container_name: kratosadmin
     volumes:
       - ./kratosadmin/config.yml:/config.yml

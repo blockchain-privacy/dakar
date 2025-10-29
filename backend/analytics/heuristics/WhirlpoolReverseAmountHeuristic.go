@@ -15,7 +15,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // whirlpoolReverseAmountHeuristic - see exec for description

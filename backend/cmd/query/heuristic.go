@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 func doHeuristicAnalysis(ctx context.Context, dgraph external.Database, g *graph.ReversibleGraph,

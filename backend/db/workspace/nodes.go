@@ -12,7 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"slices"
 	"strconv"
 )

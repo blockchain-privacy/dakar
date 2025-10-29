@@ -137,4 +137,4 @@ make openapi-fmt
 2. [Propagate](https://dave.cheney.net/2015/11/05/lets-talk-about-logging) and [wrap](https://blog.golang.org/go1.13-errors) errors.
     1. Propagate errors with additional information up to the `main` package and log them there. Do not log errors in other package than `main`.
        Only log if there is an error. Do not log metrics.
-    2. Wrap all native errors via the [StackError](https://github.com/qrest/gomisc/serror) type to enable error tracing.
+    2. Wrap all native errors via the [StackError](https://gitlab.com/blockchain-privacy/gomisc/serror) type to enable error tracing.

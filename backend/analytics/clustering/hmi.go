@@ -12,7 +12,7 @@ import (
 	"backend/external"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
 )
 

@@ -14,7 +14,7 @@ import (
 	"backend/db/workspace"
 	"context"
 	"encoding/json"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"net/http"
 	"regexp"
 	"strconv"

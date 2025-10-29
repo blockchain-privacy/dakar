@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // whirlpoolOneSourceByDepthHeuristic - see exec for description

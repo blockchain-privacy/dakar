@@ -10,7 +10,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/external"
 	"context"
-	"github.com/qrest/gomisc/serror"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // ImportAddressExclusions writes the given address relations into the database

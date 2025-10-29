@@ -5,7 +5,7 @@
 import {
 	DefaultApi,
 	Configuration,
-} from '@neondark/wikiapi';
+} from '@blockchain-privacy/wikiapi';
 import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
 import {useLocalStore} from '@/pinia/local';
