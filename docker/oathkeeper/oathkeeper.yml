@@ -51,6 +51,16 @@ authenticators:
       only:
         - ory_kratos_session
 
+  oauth2_introspection:
+    enabled: true
+    config:
+      introspection_url: http://hydra:4445/admin/oauth2/introspect
+      scope_strategy: exact
+      required_scope:
+        - openid
+      trusted_issuers:
+        - http://localhost:8082/hydra
+
   noop:
     enabled: true
 
@@ -76,4 +86,4 @@ mutators:
     enabled: true
     config:
       headers:
-        X-user: "{{ print .Subject }}"
+        X-user: "{{ print .Extra.identity.id }}"
