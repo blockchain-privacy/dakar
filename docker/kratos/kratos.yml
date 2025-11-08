@@ -1,4 +1,4 @@
-version: v1.3.1
+version: v25.4.0
 
 dsn: memory
 
@@ -116,3 +116,7 @@ identity:
 courier:
   smtp:
     connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+
+oauth2_provider:
+  url: http://hydra:4445
+  override_return_to: true

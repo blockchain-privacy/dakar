@@ -5,6 +5,7 @@
 import {
 	Configuration,
 	IdentityApi,
+	OauthApi,
 } from '@blockchain-privacy/kratosadmin';
 import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
@@ -26,7 +27,8 @@ export default {
 	setup(v) {
 		const c = newConfig(v);
 		return {
-			default: new IdentityApi(c),
+			identity: new IdentityApi(c),
+			oauth: new OauthApi(c),
 		};
 	},
 };

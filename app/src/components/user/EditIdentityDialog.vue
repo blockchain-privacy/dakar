@@ -175,7 +175,7 @@ async function saveIdentity() {
 	isLoading.value = true;
 	if (props.createNewUser) {
 		try {
-			const response = await kratosAdmin.identitiesPost({
+			const response = await kratosAdmin.identity.identitiesPost({
 				identity: {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
@@ -192,7 +192,7 @@ async function saveIdentity() {
 		}
 	} else {
 		try {
-			const response = await kratosAdmin.identitiesPut({
+			const response = await kratosAdmin.identity.identitiesPut({
 				identity: {
 					uid: shadowIdentity.value.id,
 					email: shadowIdentity.value.email,

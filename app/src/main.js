@@ -30,7 +30,7 @@ app.provide('ory', oryConfig);
 app.provide('dashdakar', dakarConfig.setup(app.config.globalProperties, '/dashdakar'));
 app.provide('btcdakar', dakarConfig.setup(app.config.globalProperties, '/btcdakar'));
 app.provide('wikiapi', wikiapiConfig.setup(app.config.globalProperties).default);
-app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties).default);
+app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties));
 
 await router.isReady();
 app.mount('#app');

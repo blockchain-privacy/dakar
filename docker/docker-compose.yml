@@ -46,7 +46,7 @@ services:
 
   kratos:
     container_name: kratos
-    image: oryd/kratos:v1.3
+    image: oryd/kratos:v25.4.0
     depends_on:
       - postgres
     ports:
@@ -60,11 +60,29 @@ services:
       - SECRETS_COOKIE=${KRATOS_SECRETS_COOKIE}
       - SECRETS_CIPHER=${KRATOS_SECRETS_CIPHER}
     command: serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS}
-#    command: migrate sql -e # enable the three commands and run: sudo docker-compose --env .env.local run kratos
+#    command: migrate sql -e up # enable the three commands and run: sudo docker compose --env-file .env.local run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
     volumes:
       - ./kratos:/etc/config/kratos
+    networks:
+      - dgraph_default
+    logging: *default-logging
+
+  hydra:
+    image: oryd/hydra:v25.4.0
+    ports:
+      - "4444:4444" # Public port
+      - "4445:4445" # Admin port
+      - "5555:5555" # Port for hydra token user
+    command: serve -c /etc/config/hydra/config.yml all --dev
+#    command: migrate -c /etc/config/hydra/config.yml sql up -e --yes
+    volumes:
+      - ./hydra/sqlite:/var/lib/sqlite
+      - ./hydra/config.yml:/etc/config/hydra/config.yml
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+    restart: unless-stopped
     networks:
       - dgraph_default
     logging: *default-logging
@@ -130,7 +148,6 @@ services:
       - "9316:9316"
     expose:
       - 9316
-#    command: --config /config.yml -updateIdentities
     networks:
       - dgraph_default
     logging: *default-logging
@@ -138,7 +155,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   oathkeeper:
-    image: oryd/oathkeeper:v0.40
+    image: oryd/oathkeeper:v25.4.0
     container_name: oathkeeper
     user: "1000:1000"
     ports:

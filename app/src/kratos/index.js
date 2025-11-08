@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE} from '@/constants';
+import {ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE, ROUTE_NAME_OAUTH_ERROR_PAGE} from '@/constants';
 import {isFunction} from '@/utilities';
 
 async function refreshFlow(onRefreshFlow) {
@@ -14,7 +14,7 @@ async function refreshFlow(onRefreshFlow) {
 }
 
 // Returns true if the error was handled
-async function handleErrorCodeAndID(context, error, onRefreshFlow) {
+async function handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth) {
 	switch (error.response.error.id) {
 		case 'session_already_available': // User is already signed in, let's redirect them home!
 			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE});
@@ -30,8 +30,14 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 			await refreshFlow(onRefreshFlow);
 			return true;
 		case 'security_csrf_violation': // A CSRF violation occurred, remove session and let user login anew
-			context.navStore.setFailedRoute(context.$route);
 			context.localStore.setSession(null);
+
+			if (isOAuth) {
+				context.$router.push({name: ROUTE_NAME_OAUTH_ERROR_PAGE});
+				return true;
+			}
+
+			context.navStore.setFailedRoute(context.$route);
 			context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 			return true;
 		case 'session_inactive':
@@ -59,9 +65,9 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 
 // HandleGetFlowError tries to handle possible ory kratos error scenarios.
 // onRefreshFlow is called when a flow has expired.
-export default async function handleGetFlowError(context, error, onRefreshFlow) {
+export default async function handleGetFlowError(context, error, onRefreshFlow, isOAuth) {
 	if (error.response?.error) {
-		if (await handleErrorCodeAndID(context, error, onRefreshFlow)) {
+		if (await handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth)) {
 			return Promise.resolve();
 		}
 	}

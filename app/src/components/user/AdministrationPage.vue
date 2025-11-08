@@ -273,7 +273,7 @@ function setErrorMessage(msg) {
 async function loadUserList() {
 	isLoading.value = true;
 	try {
-		const response = await kratosAdmin.identitiesGet();
+		const response = await kratosAdmin.identity.identitiesGet();
 
 		identities.value = response.identities;
 		sessions.value = response.sessions;
@@ -370,7 +370,7 @@ async function deleteIdentity(identity) {
 	isLoading.value = true;
 
 	try {
-		await kratosAdmin.identitiesUidDelete({uid: identity.id});
+		await kratosAdmin.identity.identitiesUidDelete({uid: identity.id});
 		await refreshUsers();
 	} catch (e) {
 		setErrorMessage(e);

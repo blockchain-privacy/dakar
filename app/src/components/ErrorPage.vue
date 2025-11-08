@@ -20,7 +20,10 @@
       <v-card-text>
         {{ errorDescription?errorDescription:description }}
       </v-card-text>
-      <v-card-actions class="d-flex justify-end">
+      <v-card-actions
+        v-if="!hideActions"
+        class="d-flex justify-end"
+      >
         <v-btn :to="{ name: ROUTE_NAME_ENTRY_PAGE}">
           Go to entry page
         </v-btn>
@@ -38,6 +41,7 @@ const props = defineProps({
 	title: {type: String, required: true},
 	description: {type: String, required: true},
 	imageSource: {type: String, required: true},
+	hideActions: {type: Boolean, required: false},
 });
 
 const route = useRoute();
