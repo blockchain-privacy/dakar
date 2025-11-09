@@ -138,6 +138,8 @@ const ory = inject('ory');
 const localStore = useLocalStore();
 const route = useRoute();
 const router = useRouter();
+const kratosAdmin = inject('kratosadmin');
+
 const context = {
 	$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore(),
 };
@@ -156,6 +158,53 @@ const session = computed({
 
 // Functions
 
+// GoToPage should receive a page name from ./constants
+function goToPage(pageName) {
+	// Only change route if not already on page
+	if (route.name !== pageName) {
+		router.push({name: pageName});
+	}
+}
+
+// Extracts the oauth logout challenge from the given response url
+function extractLogoutChallenge(response) {
+	if (!response.redirected || !response.url) {
+		return null;
+	}
+
+	return new URL(response.url).searchParams.get('logout_challenge');
+}
+
+// This function tries to do an oauth logout. We do this in a hacky way to achieve a better
+// UX without visible page reloads. Returns true if the function redirected to another page.
+async function tryOAuthLogout() {
+	const resp = await fetch('/hydra/oauth2/sessions/logout');
+	const logoutChallenge = extractLogoutChallenge(resp);
+	if (logoutChallenge) {
+		const r = await kratosAdmin.oauth.logoutLogoutChallengePost({logoutChallenge});
+
+		if (!r.redirectTo) {
+			return false;
+		}
+
+		const rr = await fetch(r.redirectTo);
+
+		if (rr.redirected && rr.url) {
+			const redirectURL = new URL(rr.url);
+			// If it is a know url, do an SPA path change
+			if (redirectURL.host === window.location.host && redirectURL.pathname === '/') {
+				goToPage(ROUTE_NAME_ENTRY_PAGE);
+				return true;
+			}
+		}
+
+		window.location.href = r.redirectTo;
+		return true;
+	}
+
+	return false;
+}
+
 async function initLogoutFlow() {
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
@@ -166,8 +215,10 @@ async function initLogoutFlow() {
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
 
-		// Try to log out from oauth session
-		window.location.href = '/hydra/oauth2/sessions/logout';
+		const redirected = await tryOAuthLogout();
+		if (!redirected) {
+			goToPage(ROUTE_NAME_ENTRY_PAGE);
+		}
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}
