@@ -22,7 +22,7 @@ import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
 import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
 import AddressExclusionsPage from '../components/tools/addressExclusions/AddressExclusionsPage.vue';
 import RecoveryPage from '../components/user/RecoveryPage.vue';
-import SuccessPage from '../components/user/OAuthSuccessPage.vue';
+import OAuthSuccessPage from '../components/user/OAuthSuccessPage.vue';
 import WikiPage from '../components/wiki/WikiPage.vue';
 import TextLoaderPage from '../components/TextLoaderPage.vue';
 import ErrorPage from '@/components/ErrorPage.vue';
@@ -31,9 +31,9 @@ import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import NoResultsImg from '@/assets/no_results.webp';
 import BugsImg from '@/assets/bugs.webp';
-import ConsentPage from '@/components/user/ConsentPage.vue';
-import VerificationPage from '@/components/user/OAuthVerificationPage.vue';
-import LogoutPage from '@/components/user/OAuthLogoutpage.vue';
+import OAuthConsentPage from '@/components/user/OAuthConsentPage.vue';
+import OAuthVerificationPage from '@/components/user/OAuthVerificationPage.vue';
+import OAuthLogoutPage from '@/components/user/OAuthLogoutpage.vue';
 
 let msgStore = null;
 let navStore = null;
@@ -189,22 +189,22 @@ export const router = createRouter({
 				{
 					path: 'consent',
 					name: Constants.ROUTE_NAME_OAUTH_CONSENT_PAGE,
-					component: ConsentPage,
+					component: OAuthConsentPage,
 				},
 				{
 					path: 'logout',
 					name: Constants.ROUTE_NAME_OAUTH_LOGOUT_PAGE,
-					component: LogoutPage,
+					component: OAuthLogoutPage,
 				},
 				{
 					path: 'verification',
 					name: Constants.ROUTE_NAME_OAUTH_VERIFICATION_PAGE,
-					component: VerificationPage,
+					component: OAuthVerificationPage,
 				},
 				{
 					path: 'success',
 					name: Constants.ROUTE_NAME_OAUTH_SUCCESS_PAGE,
-					component: SuccessPage,
+					component: OAuthSuccessPage,
 				},
 				{
 					path: 'error',
