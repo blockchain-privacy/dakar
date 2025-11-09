@@ -155,13 +155,6 @@ const session = computed({
 });
 
 // Functions
-// GoToPage should receive a page name from ./constants
-function goToPage(pageName) {
-	// Only change route if not already on page
-	if (route.name !== pageName) {
-		router.push({name: pageName});
-	}
-}
 
 async function initLogoutFlow() {
 	try {
@@ -172,7 +165,9 @@ async function initLogoutFlow() {
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
-		goToPage(ROUTE_NAME_ENTRY_PAGE);
+
+		// Try to log out from oauth session
+		window.location.href = '/hydra/oauth2/sessions/logout';
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}

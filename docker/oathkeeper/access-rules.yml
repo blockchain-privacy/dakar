@@ -25,7 +25,7 @@
     url: "http://kratosadmin:9316"
     strip_path: "/kratosadmin"
   match:
-    url: "http://localhost:4455/kratosadmin/<(?!self|verify|consent).*>"
+    url: "http://localhost:4455/kratosadmin/<(?!self|verify|consent|logout).*>"
     methods:
       - GET
       - POST
@@ -91,7 +91,7 @@
     url: "http://kratosadmin:9316"
     strip_path: "/kratosadmin"
   match:
-    url: "http://localhost:4455/kratosadmin/verify/<.*>"
+    url: "http://localhost:4455/kratosadmin/<(verify|logout).*>"
     methods:
       - GET
       - POST

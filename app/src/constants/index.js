@@ -19,6 +19,7 @@ export const ROUTE_NAME_ERROR = 'Error';
 export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
 export const ROUTE_NAME_OAUTH_LOGIN_PAGE = 'OAuth Login Page';
 export const ROUTE_NAME_OAUTH_CONSENT_PAGE = 'OAuth Consent Page';
+export const ROUTE_NAME_OAUTH_LOGOUT_PAGE = 'OAuth Logout Page';
 export const ROUTE_NAME_OAUTH_VERIFICATION_PAGE = 'OAuth Verification Page';
 export const ROUTE_NAME_OAUTH_SUCCESS_PAGE = 'OAuth Success Page';
 export const ROUTE_NAME_OAUTH_ERROR_PAGE = 'OAuth Error Page';

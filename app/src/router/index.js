@@ -33,6 +33,7 @@ import NoResultsImg from '@/assets/no_results.webp';
 import BugsImg from '@/assets/bugs.webp';
 import ConsentPage from '@/components/user/ConsentPage.vue';
 import VerificationPage from '@/components/user/OAuthVerificationPage.vue';
+import LogoutPage from '@/components/user/OAuthLogoutpage.vue';
 
 let msgStore = null;
 let navStore = null;
@@ -189,6 +190,11 @@ export const router = createRouter({
 					path: 'consent',
 					name: Constants.ROUTE_NAME_OAUTH_CONSENT_PAGE,
 					component: ConsentPage,
+				},
+				{
+					path: 'logout',
+					name: Constants.ROUTE_NAME_OAUTH_LOGOUT_PAGE,
+					component: LogoutPage,
 				},
 				{
 					path: 'verification',
