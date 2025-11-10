@@ -16,20 +16,20 @@ async function refreshFlow(onRefreshFlow) {
 // Returns true if the error was handled
 async function handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth) {
 	switch (error.response.error.id) {
-		case 'session_already_available': // User is already signed in, let's redirect them home!
+		case 'session_already_available':
 			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE});
 			return true;
-		case 'session_aal2_required': // 2FA is enabled and enforced, but user did not perform 2fa yet!
-		case 'session_refresh_required': // We need to re-authenticate to perform this action
-		case 'browser_location_change_required': // Ory Kratos asked us to point the user to this URL.
+		case 'session_aal2_required':
+		case 'session_refresh_required':
+		case 'browser_location_change_required':
 			window.location.href = error.response.redirect_browser_to;
 			return true;
-		case 'self_service_flow_expired': // The flow expired, let's request a new one.
-		case 'self_service_flow_return_to_forbidden': // The return is invalid, we need a new flow
-		case 'security_identity_mismatch': // The requested item was intended for someone else. Let's request a new flow...
+		case 'self_service_flow_expired':
+		case 'self_service_flow_return_to_forbidden':
+		case 'security_identity_mismatch':
 			await refreshFlow(onRefreshFlow);
 			return true;
-		case 'security_csrf_violation': // A CSRF violation occurred, remove session and let user login anew
+		case 'security_csrf_violation':
 			context.localStore.setSession(null);
 
 			if (isOAuth) {
@@ -50,7 +50,7 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth) {
 	}
 
 	switch (error.response.error.code) {
-		case 410: // Flow expired
+		case 410: // Expired
 			await refreshFlow(onRefreshFlow);
 			return true;
 		case 401: // Unauthorized access
