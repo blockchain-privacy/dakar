@@ -89,6 +89,7 @@
         </v-list-item>
         <v-list-item
           id="app-bar-logout"
+          :disabled="isLogoutLoading"
           @click="initLogoutFlow"
         >
           <template #prepend>
@@ -127,7 +128,7 @@ import {
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
-import {computed, inject} from 'vue';
+import {computed, inject, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
@@ -145,6 +146,8 @@ const context = {
 };
 
 defineProps({minimize: {type: Boolean, required: true}});
+
+const isLogoutLoading = ref(false);
 
 // Computed
 const session = computed({
@@ -166,21 +169,22 @@ function goToPage(pageName) {
 	}
 }
 
-// Extracts the oauth logout challenge from the given response url
-function extractLogoutChallenge(response) {
-	if (!response.redirected || !response.url) {
+// Extracts the parameter from the given response url. Returns null if the response
+// was not redirected, the url was invalid or the parameter could not be found.
+function extractParam(response, param) {
+	if (!response.redirected || !response.url || !param) {
 		return null;
 	}
 
-	return new URL(response.url).searchParams.get('logout_challenge');
+	return new URL(response.url).searchParams.get(param);
 }
 
 // This function tries to do an oauth logout.
-// Usually this is achieved by following user-visible redirects. This makes for bad UX.
+// Usually this is achieved by following user-visible redirects. This would create a bad UX.
 // Instead, we extract the logout challenge and do the redirects via fetch.
 async function tryOAuthLogout() {
 	const resp = await fetch('/hydra/oauth2/sessions/logout');
-	const logoutChallenge = extractLogoutChallenge(resp);
+	const logoutChallenge = extractParam(resp, 'logout_challenge');
 	if (logoutChallenge) {
 		const r = await kratosAdmin.oauth.logoutLogoutChallengePost({logoutChallenge});
 
@@ -207,6 +211,7 @@ async function tryOAuthLogout() {
 }
 
 async function initLogoutFlow() {
+	isLogoutLoading.value = true;
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
 		if (!response.logout_token) {
@@ -222,6 +227,8 @@ async function initLogoutFlow() {
 		}
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
+	} finally {
+		isLogoutLoading.value = false;
 	}
 }
 
