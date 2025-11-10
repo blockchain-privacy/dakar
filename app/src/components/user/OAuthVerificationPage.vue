@@ -11,7 +11,7 @@
       max-width="600px"
       style="flex:1"
     >
-      <div class="pa-5">
+      <v-card-text>
         <div class="d-flex">
           <v-img
             alt="Dakar Logo"
@@ -50,7 +50,7 @@
             Submit
           </v-btn>
         </v-form>
-      </div>
+      </v-card-text>
     </v-card>
   </div>
 </template>

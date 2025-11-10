@@ -11,7 +11,7 @@
       max-width="600px"
       style="flex:1"
     >
-      <div class="pa-5">
+      <v-card-text>
         <div class="d-flex justify-center">
           <v-icon
             :icon="mdiCheckCircle"
@@ -19,10 +19,10 @@
             size="100"
           />
         </div>
-        <h3 class="text-h5 font-weight-bold text-center mb-2">
+        <h5 class="text-h5 font-weight-bold text-center mb-2">
           Authentication successful. You can close this page now.
-        </h3>
-      </div>
+        </h5>
+      </v-card-text>
     </v-card>
   </div>
 </template>

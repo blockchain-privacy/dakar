@@ -3,7 +3,22 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 <template>
-  <v-progress-linear indeterminate />
+  <div
+    class="d-flex align-center justify-center"
+    style="height: 100%; width:100%"
+  >
+    <v-card
+      max-width="600px"
+      style="flex:1"
+    >
+      <v-card-text>
+        <h5 class="text-h5 font-weight-bold text-center my-2">
+          Checking consent
+        </h5>
+        <v-progress-linear indeterminate />
+      </v-card-text>
+    </v-card>
+  </div>
 </template>
 
 <script setup>
