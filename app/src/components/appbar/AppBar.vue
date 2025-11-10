@@ -175,8 +175,9 @@ function extractLogoutChallenge(response) {
 	return new URL(response.url).searchParams.get('logout_challenge');
 }
 
-// This function tries to do an oauth logout. We do this in a hacky way to achieve a better
-// UX without visible page reloads. Returns true if the function redirected to another page.
+// This function tries to do an oauth logout.
+// Usually this is achieved by following user-visible redirects. This makes for bad UX.
+// Instead, we extract the logout challenge and do the redirects via fetch.
 async function tryOAuthLogout() {
 	const resp = await fetch('/hydra/oauth2/sessions/logout');
 	const logoutChallenge = extractLogoutChallenge(resp);
@@ -191,7 +192,7 @@ async function tryOAuthLogout() {
 
 		if (rr.redirected && rr.url) {
 			const redirectURL = new URL(rr.url);
-			// If it is a know url, do an SPA path change
+			// If it is a know url, do routing via the router
 			if (redirectURL.host === window.location.host && redirectURL.pathname === '/') {
 				goToPage(ROUTE_NAME_ENTRY_PAGE);
 				return true;
