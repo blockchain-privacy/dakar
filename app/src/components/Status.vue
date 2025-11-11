@@ -33,8 +33,8 @@
           </div>
           <v-card-text>
             <error-message
-              v-if="errorText"
-              :text="errorText"
+              v-if="errorMsg"
+              :text="errorMsg"
             />
             <v-skeleton-loader
               v-else-if="!data"
@@ -238,7 +238,7 @@ const props = defineProps({
 const dakar = getDakarClient(props.blockchainMode);
 
 const data = ref(null);
-const errorText = ref('');
+const errorMsg = ref('');
 const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
 	databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
@@ -322,13 +322,13 @@ async function loadStatusData() {
 		data.value = await dakar.meta.metaGet();
 		return true;
 	} catch (e) {
-		errorText.value = e.message;
+		errorMsg.value = e.message;
 		return false;
 	}
 }
 
 async function refreshData() {
-	errorText.value = '';
+	errorMsg.value = '';
 	resetTimers();
 	if (await loadStatusData()) {
 		startTimer();
