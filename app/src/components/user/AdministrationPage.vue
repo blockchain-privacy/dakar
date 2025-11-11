@@ -9,6 +9,7 @@
       justify="center"
     >
       <v-col cols="12">
+        <error-message :text="errorMsg" />
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -216,16 +217,15 @@ import {
 	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
 } from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
-import {handleError} from '@/utilities';
 import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 const kratosAdmin = inject('kratosadmin');
 const route = useRoute();
 const msgStore = useMsgStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
 
 const isLoading = ref(false);
 const showCreateIdentityDialog = ref(false);
@@ -235,6 +235,7 @@ const identityToDelete = ref(null);
 const search = ref('');
 const searchSessions = ref('');
 const searchOAuthSessions = ref('');
+const errorMsg = ref('');
 
 const identitiesSortBy = ref([{key: 'modified', order: 'desc'}]);
 
@@ -314,6 +315,7 @@ function setErrorMessage(msg) {
 
 async function loadUserList() {
 	isLoading.value = true;
+	errorMsg.value = '';
 	try {
 		const response = await kratosAdmin.identity.identitiesGet();
 
@@ -322,7 +324,7 @@ async function loadUserList() {
 		oauthSessions.value = response.oauthSessions;
 		msgStore.resetMessages();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 
 	isLoading.value = false;
