@@ -99,12 +99,19 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 	}
 
 	if (errMsg === '') {
-		if (response.status === 400) {
-			errMsg = 'invalid request';
-		} else if (response.status === 404) {
-			errMsg = 'resource not found';
-		} else {
-			errMsg = `${response.status} ${response.statusText}`;
+		switch (response.status) {
+			case 400:
+				errMsg = 'Your request was invalid. Please try again.';
+				break;
+			case 404:
+				errMsg = 'The resource you are trying to access is unavailable.';
+				break;
+			case 500:
+			case 502:
+				errMsg = 'Error requesting data from server. Please try again later.';
+				break;
+			default:
+				errMsg = `${response.status} ${response.statusText}`;
 		}
 	}
 
@@ -112,15 +119,8 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 }
 
 export function handleError(context, error) {
-	let errMsg;
-	if (error.cause?.status === 500 || error.cause?.status === 502) {
-		errMsg = 'Error requesting data from server. Please try again later.';
-	} else {
-		errMsg = error.message;
-	}
-
 	context.addMessage({
-		text: errMsg, type: 'error', temporary: true, category: context.$route.name,
+		text: error.message, type: 'error', temporary: true, category: context.$route.name,
 	});
 }
 

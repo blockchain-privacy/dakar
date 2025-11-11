@@ -30,21 +30,23 @@
         </h6>
         <v-form>
           <v-alert
-            v-if="isError"
+            v-if="errorText"
             type="error"
             class="mt-2"
             variant="text"
           >
-            Please try again. Codes are case-sensitive. If the error continues, restart the authentication process.
+            {{ errorText }}
           </v-alert>
           <v-text-field
             v-model="code"
             label="Code"
             :prepend-inner-icon="mdiFormTextboxPassword"
             min-width="300px"
+            :disabled="isLoading"
           />
           <v-btn
             block
+            :loading="isLoading"
             @click="handleClick"
           >
             Submit
@@ -67,7 +69,8 @@ const router = useRouter();
 const route = useRoute();
 const code = ref('');
 const challenge = ref('');
-const isError = ref(false);
+const errorText = ref('');
+const isLoading = ref(false);
 
 // Hooks
 onMounted(async () => {
@@ -86,15 +89,23 @@ async function handleClick() {
 		return;
 	}
 
-	isError.value = false;
+	isLoading.value = true;
+	errorText.value = '';
 
 	try {
 		const r = await kratosAdmin.oauth.verifyPost({challenge: {challenge: challenge.value, code: code.value.trim()}});
 		if (r.redirectTo) {
 			window.location.href = r.redirectTo;
 		}
-	} catch (_) {
-		isError.value = true;
+	} catch (e) {
+		if (e.cause?.status === 400) {
+			errorText.value = 'Please try again. Codes are case-sensitive. If the error continues, restart the authentication process.';
+			return;
+		}
+
+		errorText.value = e.message;
+	} finally {
+		isLoading.value = false;
 	}
 }
 
