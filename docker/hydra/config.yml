@@ -24,15 +24,15 @@ webfinger:
   oidc_discovery:
     client_registration_url: http://localhost:4444/oauth2/register
 
-oidc:
-  subject_identifiers:
-    supported_types:
-      - pairwise
-      - public
-    pairwise:
-      salt: youReallyNeedToChangeThis
-  dynamic_client_registration:
-    enabled: true
+#oidc:
+#  subject_identifiers:
+#    supported_types:
+#      - pairwise
+#      - public
+#    pairwise:
+#      salt: youReallyNeedToChangeThis
+#  dynamic_client_registration:
+#    enabled: true
 
 log:
   leak_sensitive_values: true
