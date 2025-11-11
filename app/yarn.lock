@@ -40,10 +40,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/kratosadmin@npm:^0.0.17":
-  version: 0.0.17
-  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.17::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.17.tgz"
-  checksum: 10c0/c42b933f491f88aab389b61a9407e5bf8ff451387127146eb90bea21474341658d9fcfaa37cc907e6d2e49e4f447578416656d9f8f713fd9dc4d02ae10b0bb71
+"@blockchain-privacy/kratosadmin@npm:^0.0.18":
+  version: 0.0.18
+  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.18::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.18.tgz"
+  checksum: 10c0/f85378be9633b8340e31f91ab7b2f32676d8631600093c1794035ea122c4ec0b87273b44bcc6fb38847bd1945a79f55323a1a1ba7249ebdc4871030cb3003a68
   languageName: node
   linkType: hard
 
@@ -1640,7 +1640,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain-privacy/kratosadmin": "npm:^0.0.17"
+    "@blockchain-privacy/kratosadmin": "npm:^0.0.18"
     "@blockchain-privacy/wikiapi": "npm:^0.0.1"
     "@blockchain/dakar": "npm:^1.1.68"
     "@fontsource/roboto": "npm:^5.2.8"
@@ -1660,7 +1660,7 @@ __metadata:
     eslint-config-xo: "npm:^0.49.0"
     eslint-plugin-vue: "npm:^10.5.1"
     pinia: "npm:^3.0.4"
-    sass: "npm:^1.93.3"
+    sass: "npm:^1.94.0"
     vite: "npm:^7.2.2"
     vite-plugin-vuetify: "npm:^2.1.2"
     vite-svg-loader: "npm:^5.1.0"
@@ -1668,7 +1668,7 @@ __metadata:
     vue: "npm:^3.5.24"
     vue-eslint-parser: "npm:^10.2.0"
     vue-router: "npm:^4.6.3"
-    vuetify: "npm:^3.10.9"
+    vuetify: "npm:^3.10.10"
   languageName: unknown
   linkType: soft
 
@@ -3152,9 +3152,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.93.3":
-  version: 1.93.3
-  resolution: "sass@npm:1.93.3"
+"sass@npm:^1.94.0":
+  version: 1.94.0
+  resolution: "sass@npm:1.94.0"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     chokidar: "npm:^4.0.0"
@@ -3165,7 +3165,7 @@ __metadata:
       optional: true
   bin:
     sass: sass.js
-  checksum: 10c0/b9facc64de10c9d1514272c1dcbb48ca99d5f591a1cd43fd27d641275d9d95948f1299107ab5b309e2abb552667cca84a38a1a3df5116eb72eba4144bf850b6a
+  checksum: 10c0/e32968180d4a98b4a6468920ce77ca0428c651dbdfe139572138dc0264d8329a93d652299b1d6ffce20db3d8a4981e497a4e5c3a5e0163d47db41b1e1d913123
   languageName: node
   linkType: hard
 
@@ -3722,9 +3722,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.10.9":
-  version: 3.10.9
-  resolution: "vuetify@npm:3.10.9"
+"vuetify@npm:^3.10.10":
+  version: 3.10.10
+  resolution: "vuetify@npm:3.10.10"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=2.1.0"
@@ -3737,7 +3737,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/1db2b021c1c178c3bc73c9c9c86e74a7180122634b66de575a77585f64869552fc0ee79dcd684f59bc766d279105708d168574039ef55cc0c5338893ae60a6c6
+  checksum: 10c0/f41141d031b41227fb113c0ffa40bd75bd34f6001c7ba48f3b16c4e75a5f88e47b0acb879cbb41cc8a7168fd699adf4835ecba34d32eaa5fb93e81757739adfa
   languageName: node
   linkType: hard
 
