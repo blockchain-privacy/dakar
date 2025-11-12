@@ -221,6 +221,7 @@ func isWhirlpoolMixing(t db.Transaction) bool {
 
 	// there must be at least one non-denomination input
 	denominationIn := countWhirlpoolDenominations(t.Inputs)
+	//nolint:gosec
 	if denominationIn[denominationIndex] == numOutputs {
 		return false
 	}
