@@ -58,6 +58,8 @@ authenticators:
       scope_strategy: exact
       required_scope:
         - openid
+      target_audience:
+        - dakar
       trusted_issuers:
         - http://localhost:8082/hydra
 

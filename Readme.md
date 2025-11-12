@@ -151,6 +151,7 @@ code_client=$(sudo docker compose --env-file .env.local exec hydra \
     --skip-consent \
     --format json \
     --scope openid --scope offline \
+    --audience dakar \
     --token-endpoint-auth-method none)
 echo $code_client
 ```
