@@ -89,6 +89,7 @@
         </v-list-item>
         <v-list-item
           id="app-bar-logout"
+          :disabled="isLogoutLoading"
           @click="initLogoutFlow"
         >
           <template #prepend>
@@ -127,7 +128,7 @@ import {
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
-import {computed, inject} from 'vue';
+import {computed, inject, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
@@ -138,11 +139,15 @@ const ory = inject('ory');
 const localStore = useLocalStore();
 const route = useRoute();
 const router = useRouter();
+const kratosAdmin = inject('kratosadmin');
+
 const context = {
 	$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore(),
 };
 
 defineProps({minimize: {type: Boolean, required: true}});
+
+const isLogoutLoading = ref(false);
 
 // Computed
 const session = computed({
@@ -155,6 +160,7 @@ const session = computed({
 });
 
 // Functions
+
 // GoToPage should receive a page name from ./constants
 function goToPage(pageName) {
 	// Only change route if not already on page
@@ -163,7 +169,49 @@ function goToPage(pageName) {
 	}
 }
 
+// Extracts the parameter from the given response url. Returns null if the response
+// was not redirected, the url was invalid or the parameter could not be found.
+function extractParam(response, param) {
+	if (!response.redirected || !response.url || !param) {
+		return null;
+	}
+
+	return new URL(response.url).searchParams.get(param);
+}
+
+// This function tries to do an oauth logout.
+// Usually this is achieved by following user-visible redirects. This would create a bad UX.
+// Instead, we extract the logout challenge and do the redirects via fetch.
+async function tryOAuthLogout() {
+	const resp = await fetch('/hydra/oauth2/sessions/logout');
+	const logoutChallenge = extractParam(resp, 'logout_challenge');
+	if (logoutChallenge) {
+		const r = await kratosAdmin.oauth.logoutLogoutChallengePost({logoutChallenge});
+
+		if (!r.redirectTo) {
+			return false;
+		}
+
+		const rr = await fetch(r.redirectTo);
+
+		if (rr.redirected && rr.url) {
+			const redirectURL = new URL(rr.url);
+			// If it is a know url, do routing via the router
+			if (redirectURL.host === window.location.host && redirectURL.pathname === '/') {
+				goToPage(ROUTE_NAME_ENTRY_PAGE);
+				return true;
+			}
+		}
+
+		window.location.href = r.redirectTo;
+		return true;
+	}
+
+	return false;
+}
+
 async function initLogoutFlow() {
+	isLogoutLoading.value = true;
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
 		if (!response.logout_token) {
@@ -172,9 +220,15 @@ async function initLogoutFlow() {
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
-		goToPage(ROUTE_NAME_ENTRY_PAGE);
+
+		const redirected = await tryOAuthLogout();
+		if (!redirected) {
+			goToPage(ROUTE_NAME_ENTRY_PAGE);
+		}
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
+	} finally {
+		isLogoutLoading.value = false;
 	}
 }
 

@@ -15,12 +15,14 @@ import AddressPage from '../components/explorer/address/AddressPage.vue';
 import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
 import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
+import OAuthPage from '../components/user/OAuthPage.vue';
 import WorkspacePage from '@/components/tools/workspaces/WorkspacePage.vue';
 import * as Constants from '../constants';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
 import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
 import AddressExclusionsPage from '../components/tools/addressExclusions/AddressExclusionsPage.vue';
 import RecoveryPage from '../components/user/RecoveryPage.vue';
+import OAuthSuccessPage from '../components/user/OAuthSuccessPage.vue';
 import WikiPage from '../components/wiki/WikiPage.vue';
 import TextLoaderPage from '../components/TextLoaderPage.vue';
 import ErrorPage from '@/components/ErrorPage.vue';
@@ -29,6 +31,8 @@ import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 import NoResultsImg from '@/assets/no_results.webp';
 import BugsImg from '@/assets/bugs.webp';
+import OAuthConsentPage from '@/components/user/OAuthConsentPage.vue';
+import OAuthVerificationPage from '@/components/user/OAuthVerificationPage.vue';
 
 let msgStore = null;
 let navStore = null;
@@ -166,6 +170,49 @@ export const router = createRouter({
 			name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
 			component: AdministrationPage,
 			meta: {limitToRole: 'admin'},
+		},
+		{
+			path: '/oauth/',
+			component: OAuthPage,
+			children: [
+				{
+					path: 'login',
+					name: Constants.ROUTE_NAME_OAUTH_LOGIN_PAGE,
+					component: LoginPage,
+					props: {
+						default: true,
+						title: 'Login with Dakar',
+						isOAuth: true,
+					},
+				},
+				{
+					path: 'consent',
+					name: Constants.ROUTE_NAME_OAUTH_CONSENT_PAGE,
+					component: OAuthConsentPage,
+				},
+				{
+					path: 'verification',
+					name: Constants.ROUTE_NAME_OAUTH_VERIFICATION_PAGE,
+					component: OAuthVerificationPage,
+				},
+				{
+					path: 'success',
+					name: Constants.ROUTE_NAME_OAUTH_SUCCESS_PAGE,
+					component: OAuthSuccessPage,
+				},
+				{
+					path: 'error',
+					name: Constants.ROUTE_NAME_OAUTH_ERROR_PAGE,
+					component: ErrorPage,
+					props: {
+						default: true,
+						title: 'Authentication Error',
+						hideActions: true,
+						description: 'While authenticating an error occurred. Close this page and try again.',
+						imageSource: NoResultsImg,
+					},
+				},
+			],
 		},
 		{
 			path: '/about',

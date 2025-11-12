@@ -188,6 +188,8 @@ const session = computed({
 	},
 });
 
+const isAccountRecovery = computed(() => settingsFlow.value?.ui?.messages?.some(m => m.id === 1060001));
+
 // Watchers
 watch(route, to => {
 	if (to.name === ROUTE_NAME_USER_PROFILE_PAGE && !to.query.flow) {
@@ -198,11 +200,11 @@ watch(route, to => {
 });
 
 // Hooks
-onMounted(() => {
+onMounted(async () => {
 	document.title = `Profile - ${PAGE_TITLE}`;
 
-	// Init the flow and get sessions in parallel
-	Promise.all([initFlow(), getSessions()]);
+	await initFlow();
+	await getSessions();
 });
 
 // Functions
@@ -244,7 +246,7 @@ function setErrorMessage(msg) {
 
 async function deleteIdentity() {
 	try {
-		await kratosAdmin.selfDelete();
+		await kratosAdmin.identity.selfDelete();
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
@@ -270,6 +272,11 @@ async function deleteUserSession(session) {
 }
 
 async function getSessions() {
+	if (isAccountRecovery.value) {
+		// Can't get session when in account recovery
+		return;
+	}
+
 	userSessionsLoading.value = true;
 
 	try {
@@ -407,9 +414,9 @@ async function initFlow() {
 			const response = await ory.frontend.getSettingsFlow({id: flow});
 			setFlowData(response);
 
-			// Try to refresh session. This might fail if the identity
-			// is in the process of being recovered and aal2 is set.
-			await tryRefreshSession();
+			if (!isAccountRecovery.value) {
+				await tryRefreshSession();
+			}
 		} catch (e) {
 			await handleGetFlowError(context, e, initSettingsFlow);
 		}

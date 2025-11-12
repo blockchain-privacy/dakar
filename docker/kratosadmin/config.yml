@@ -2,3 +2,4 @@ port: 9316
 dakarDashEndpoint: "http://host.docker.internal:8085"
 dakarBTCEndpoint: "http://btc_dakar:8085"
 kratosAdminEndpoint: "http://kratos:4434"
+hydraAdminEndpoint: "http://hydra:4445"

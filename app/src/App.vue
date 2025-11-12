@@ -4,7 +4,10 @@
 
 <template>
   <v-app>
-    <app-bar :minimize="isEntryPage" />
+    <app-bar
+      v-if="!isOAuthPage"
+      :minimize="isEntryPage"
+    />
     <v-main>
       <div style="position: relative">
         <msg-box />
@@ -35,6 +38,8 @@ const localStore = useLocalStore();
 
 // Computed
 const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
+
+const isOAuthPage = computed(() => route.path.startsWith('/oauth/'));
 
 // Hooks
 onBeforeMount(() => {

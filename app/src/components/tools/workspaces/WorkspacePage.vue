@@ -56,6 +56,7 @@
         />
       </div>
     </fade-transition>
+    <error-message :text="errorMsg" />
     <v-data-table
       v-if="workspaceList.length > 0"
       v-model:sort-by="sortBy"
@@ -161,7 +162,7 @@ import {
 	BLOCKCHAIN_ATTRIBUTES, PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE,
 } from '@/constants/index.js';
 import {
-	getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
+	getDakarClients, isAdminIdentity, isPrivilegedIdentity,
 } from '@/utilities/index.js';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
@@ -177,12 +178,12 @@ import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import BlockchainModeTextDialog from '@/components/tools/workspaces/BlockchainModeTextDialog.vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 const route = useRoute();
 const msgStore = useMsgStore();
 const display = useDisplay();
 const {session} = storeToRefs(useLocalStore());
-const context = {addMessage: msgStore.addMessage, $route: route};
 const dakarClients = getDakarClients();
 
 const workspaceList = ref([]);
@@ -195,6 +196,7 @@ const isLoading = ref(false);
 const showSearchField = ref(false);
 const search = ref('');
 const sortBy = ref([{key: 'modTimeUnix', order: 'desc'}]);
+const errorMsg = ref('');
 const headers = [
 	{
 		title: 'Name', key: 'name', align: 'start', sortable: false,
@@ -236,28 +238,29 @@ function setInfoMessage(msg) {
 }
 
 async function renameWorkspace(workspace) {
+	errorMsg.value = '';
 	const workspaceName = workspace;
 	if (workspaceName === '') {
-		setErrorMessage('workspace name must not be empty');
+		errorMsg.value = 'workspace name must not be empty';
 		return;
 	}
 
 	if (workspaceName.length > maxWorkspaceNameLength) {
-		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+		errorMsg.value = `workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`;
 		return;
 	}
 
 	const {mode} = renamedWorkspace.value;
 
 	if (mode === '') {
-		setErrorMessage('workspace mode is empty');
+		errorMsg.value = 'workspace mode is empty';
 		return;
 	}
 
 	const workspaceUID = renamedWorkspace.value.uid;
 
 	if (workspaceUID === '') {
-		setErrorMessage('workspace UID is not set');
+		errorMsg.value = 'workspace UID is not set';
 		return;
 	}
 
@@ -270,27 +273,28 @@ async function renameWorkspace(workspace) {
 		msgStore.resetMessages();
 		await refreshWorkspaceList();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 
 	isLoading.value = false;
 }
 
 async function addWorkspace(name, mode) {
+	errorMsg.value = '';
 	showAddWorkspaceDialogModel.value = false;
 	const workspaceName = name.trim();
 	if (workspaceName === '') {
-		setErrorMessage('workspace name must not be empty');
+		errorMsg.value = 'workspace name must not be empty';
 		return;
 	}
 
 	if (workspaceName.length > maxWorkspaceNameLength) {
-		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+		errorMsg.value = `workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`;
 		return;
 	}
 
 	if (!mode) {
-		setErrorMessage('workspace mode is empty');
+		errorMsg.value = 'workspace mode is empty';
 		return;
 	}
 
@@ -300,7 +304,7 @@ async function addWorkspace(name, mode) {
 		msgStore.resetMessages();
 		await refreshWorkspaceList();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 
 	isLoading.value = false;
@@ -308,6 +312,7 @@ async function addWorkspace(name, mode) {
 
 async function refreshWorkspaceList() {
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	workspaceList.value = [];
 	const resolved = await Promise.allSettled(authPerMode.value.map(chain => dakarClients[chain.mode].workspace.workspacesGet()));
@@ -315,7 +320,7 @@ async function refreshWorkspaceList() {
 	const workspaces = [];
 	for (const [index, response] of resolved.entries()) {
 		if (response.status === 'rejected') {
-			handleError(context, response.reason);
+			errorMsg.value = response.reason.message;
 			continue;
 		}
 

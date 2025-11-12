@@ -32,8 +32,12 @@
             </v-btn>
           </div>
           <v-card-text>
+            <error-message
+              v-if="errorMsg"
+              :text="errorMsg"
+            />
             <v-skeleton-loader
-              v-if="!data"
+              v-else-if="!data"
               type="table-tbody"
             />
             <div v-else>
@@ -219,22 +223,22 @@ import {
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from './common/IconItem.vue';
-import {getDakarClient, handleError} from '@/utilities';
+import {getDakarClient} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {
 	computed, ref, onMounted, onBeforeUnmount,
 } from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
 	blockchainMode: {type: String, required: true},
 });
 
-const context = {$route: useRoute(), addMessage: useMsgStore().addMessage};
 const dakar = getDakarClient(props.blockchainMode);
 
+const data = ref(null);
+const errorMsg = ref('');
 const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
 	databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
@@ -247,10 +251,8 @@ const tooltips = {
 	rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
 	rpcBlockchainSize: 'The estimated size of the block and undo files on disk',
 };
-
 const refreshStep = 10000;
 let timer = null;
-const data = ref(null);
 
 // Computed
 
@@ -292,6 +294,17 @@ const clusteringFMISyncProgress = computed(() => {
 	return percentage > 100 ? 100 : percentage;
 });
 
+// Hooks
+onMounted(() => {
+	document.title = `Status - ${PAGE_TITLE}`;
+	// Initially get data
+	refreshData();
+});
+
+onBeforeUnmount(() => {
+	resetTimers();
+});
+
 // Functions
 
 function startTimer() {
@@ -309,28 +322,18 @@ async function loadStatusData() {
 		data.value = await dakar.meta.metaGet();
 		return true;
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 		return false;
 	}
 }
 
 async function refreshData() {
+	errorMsg.value = '';
 	resetTimers();
 	if (await loadStatusData()) {
 		startTimer();
 	}
 }
-
-onMounted(() => {
-	document.title = `Status - ${PAGE_TITLE}`;
-});
-
-onBeforeUnmount(() => {
-	resetTimers();
-});
-
-// Initially get data
-refreshData();
 
 </script>
 

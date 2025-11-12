@@ -1,0 +1,39 @@
+serve:
+  cookies:
+    same_site_mode: Lax
+
+urls:
+  self:
+    issuer: http://localhost:8082/hydra
+  consent: http://localhost:8082/oauth/consent
+  login: http://localhost:8082/oauth/login
+  logout: http://localhost:8082/oauth/logout
+  post_logout_redirect: http://localhost:8082/
+  device:
+    verification: http://localhost:8082/oauth/verification
+    success: http://localhost:8082/oauth/success
+  identity_provider:
+    publicUrl: http://localhost:8082
+    url: http://kratos:4434
+
+secrets:
+  system:
+    - youReallyNeedToChangeThis
+
+webfinger:
+  oidc_discovery:
+    client_registration_url: http://localhost:4444/oauth2/register
+
+#oidc:
+#  subject_identifiers:
+#    supported_types:
+#      - pairwise
+#      - public
+#    pairwise:
+#      salt: youReallyNeedToChangeThis
+#  dynamic_client_registration:
+#    enabled: true
+
+log:
+  leak_sensitive_values: true
+  level: debug

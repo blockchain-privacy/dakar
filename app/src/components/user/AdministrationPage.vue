@@ -9,6 +9,7 @@
       justify="center"
     >
       <v-col cols="12">
+        <error-message :text="errorMsg" />
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -123,6 +124,33 @@
             <span>{{ new Date(item.expires_at).toLocaleString() }}</span>
           </template>
         </v-data-table>
+        <v-data-table
+          v-model:sort-by="oauthSessionsSortBy"
+          :headers="oauthSessionHeaders"
+          :items="oauthSessions?oauthSessions:[]"
+          :search="searchOAuthSessions"
+          :loading="isLoading || !oauthSessions"
+          item-key="id"
+          class="my-10 elevation-4"
+        >
+          <template #top>
+            <v-toolbar flat>
+              <v-toolbar-title>OAuth 2 Sessions</v-toolbar-title>
+              <v-spacer />
+              <v-text-field
+                v-model="searchOAuthSessions"
+                class="me-3"
+                :append-inner-icon="mdiMagnify"
+                label="Filter OAuth 2 sessions"
+                single-line
+                hide-details
+              />
+            </v-toolbar>
+          </template>
+          <template #item.handled_at="{ item }">
+            <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
+          </template>
+        </v-data-table>
         <edit-identity-dialog
           v-if="showCreateIdentityDialog"
           v-model="showCreateIdentityDialog"
@@ -189,16 +217,15 @@ import {
 	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
 } from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
-import {handleError} from '@/utilities';
 import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 const kratosAdmin = inject('kratosadmin');
 const route = useRoute();
 const msgStore = useMsgStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
 
 const isLoading = ref(false);
 const showCreateIdentityDialog = ref(false);
@@ -207,6 +234,8 @@ const showIdentityPropertyDialog = ref(false);
 const identityToDelete = ref(null);
 const search = ref('');
 const searchSessions = ref('');
+const searchOAuthSessions = ref('');
+const errorMsg = ref('');
 
 const identitiesSortBy = ref([{key: 'modified', order: 'desc'}]);
 
@@ -248,6 +277,19 @@ const sessionHeaders = [
 	},
 ];
 
+const oauthSessionsSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
+const oauthSessionHeaders = [
+	{
+		title: 'ID', key: 'consent_request.subject', align: 'start', sortable: false,
+	},
+	{
+		title: 'E-Mail', key: 'email',
+	},
+	{
+		title: 'Handled At', key: 'handled_at',
+	},
+];
+
 const createNewUser = ref(false);
 const editedItem = ref({
 	id: '', email: '', state: '', roles: {},
@@ -257,6 +299,7 @@ const defaultItem = ref({
 });
 const identities = ref(null);
 const sessions = ref(null);
+const oauthSessions = ref(null);
 const identityPropertyDialogData = ref(null);
 
 onMounted(() => {
@@ -272,14 +315,16 @@ function setErrorMessage(msg) {
 
 async function loadUserList() {
 	isLoading.value = true;
+	errorMsg.value = '';
 	try {
-		const response = await kratosAdmin.identitiesGet();
+		const response = await kratosAdmin.identity.identitiesGet();
 
 		identities.value = response.identities;
 		sessions.value = response.sessions;
+		oauthSessions.value = response.oauthSessions;
 		msgStore.resetMessages();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 
 	isLoading.value = false;
@@ -292,6 +337,17 @@ async function refreshUsers() {
 	if (!identities.value) {
 		return;
 	}
+
+	// Add email to oauth sessions so they can be easier identified
+	oauthSessions.value = oauthSessions.value.map(d => {
+		const {subject} = d.consent_request;
+		const identity = identities.value.find(i => i.id === subject);
+		if (identity) {
+			d.email = identity.traits.email;
+		}
+
+		return d;
+	});
 
 	identities.value = identities.value.map(d => {
 		// Convert dates to unix time so, they can be sorted in data table
@@ -370,7 +426,7 @@ async function deleteIdentity(identity) {
 	isLoading.value = true;
 
 	try {
-		await kratosAdmin.identitiesUidDelete({uid: identity.id});
+		await kratosAdmin.identity.identitiesUidDelete({uid: identity.id});
 		await refreshUsers();
 	} catch (e) {
 		setErrorMessage(e);

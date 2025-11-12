@@ -67,6 +67,12 @@ export default defineConfig({
 				// Remove '/auth' prefix
 				rewrite: path => path.replace(/^\/auth/, ''),
 			},
+			'/hydra': {
+				target: 'http://localhost:4444',
+				changeOrigin: true,
+				// Remove '/auth' prefix
+				rewrite: path => path.replace(/^\/hydra/, ''),
+			},
 		},
 	},
 });

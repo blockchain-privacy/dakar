@@ -577,13 +577,14 @@ export default class NodeGraph {
 		}
 	}
 
+	// ReorderNodes randomizes the position of all visible nodes
+	// and runs the force simulation to determine new node coordinates.
 	reorderNodes() {
 		if (this.lassoSelectedNodes === null) {
 			for (const [key, value] of this.getFilteredMap()) {
 				// Randomize position, reorderNodes creates different arrangements for each call
-				const random = Math.random() * 30;
-				value.x = random;
-				value.y = random;
+				value.x = Math.random();
+				value.y = Math.random();
 				delete value.fx;
 				delete value.fy;
 				this.#nodeMap[key] = value;

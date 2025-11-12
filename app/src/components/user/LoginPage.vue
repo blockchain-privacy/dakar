@@ -12,8 +12,21 @@
       style="flex:1"
     >
       <div class="pa-5">
+        <div
+          v-if="isOAuth"
+          class="d-flex"
+        >
+          <v-img
+            alt="Dakar Logo"
+            :src="DakarImg"
+            class="mb-4"
+            transition="fade-transition"
+            width="64"
+            max-height="75px"
+          />
+        </div>
         <h3 class="text-h3 font-weight-bold text-center mb-2">
-          Login
+          {{ title }}
         </h3>
         <ory-flow
           v-if="loginFlow"
@@ -28,7 +41,10 @@
           class="mx-auto"
           type="article, actions"
         />
-        <div class="d-flex align-center mt-2">
+        <div
+          v-if="!isOAuth"
+          class="d-flex align-center mt-2"
+        >
           <v-btn
             class="ms-auto"
             variant="text"
@@ -54,7 +70,7 @@
 
 <script setup>
 import {
-	PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_ACCOUNT_RECOVERY, ROUTE_NAME_LOGIN_PAGE,
+	PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_ACCOUNT_RECOVERY, ROUTE_NAME_LOGIN_PAGE, ROUTE_NAME_OAUTH_LOGIN_PAGE,
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
 import OryFlow from './ory/OryFlow.vue';
@@ -66,6 +82,7 @@ import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
+import DakarImg from '@/assets/dakar.svg?url';
 
 const ory = inject('ory');
 const router = useRouter();
@@ -77,6 +94,11 @@ const {failedRoute} = storeToRefs(navStore);
 const context = {
 	$route: route, $router: router, navStore, localStore, msgStore,
 };
+
+const props = defineProps({
+	title: {type: String, required: false, default: 'Login'},
+	isOAuth: {type: Boolean, required: false},
+});
 
 const loginFlow = ref(null);
 const showLogoutButton = ref(false);
@@ -94,7 +116,7 @@ const session = computed({
 
 // Watch
 watch(route, to => {
-	if (to.name === ROUTE_NAME_LOGIN_PAGE && !to.query.flow) {
+	if ((to.name === ROUTE_NAME_LOGIN_PAGE || to.name === ROUTE_NAME_OAUTH_LOGIN_PAGE) && !to.query.flow) {
 		// This happens if the users manually navigates to the route of this page,
 		// in this case flow is not set and needs to be reinitialized
 		initFlow();
@@ -111,8 +133,13 @@ onMounted(() => {
 		return;
 	}
 
+	if (props.isOAuth) {
+		initFlow();
+		return;
+	}
+
 	// If session is not set, user might be logged in already -> get session
-	if (session.value) {
+	if (session.value && !props.isOAuth) {
 		leave();
 	} else {
 		tryToGetSession();
@@ -235,7 +262,7 @@ async function initFlow() {
 			const response = await ory.frontend.getLoginFlow({id: flow});
 			setFlowData(response);
 		} catch (e) {
-			await handleGetFlowError(context, e, () => initLoginFlow('aal1'));
+			await handleGetFlowError(context, e, () => initLoginFlow('aal1'), props.isOAuth);
 		}
 	} else {
 		// If there's no flow in our route,
@@ -245,8 +272,11 @@ async function initFlow() {
 }
 
 async function initLoginFlow(aal) {
+	// If the user is already logged in and if we are in oauth mode, then createBrowserLoginFlow returns null.
+	// workaround: set refresh to true and let user log in again
+	// kratos issue: https://github.com/ory/kratos/issues/4024
 	try {
-		const response = await ory.frontend.createBrowserLoginFlow({refresh: false, aal});
+		const response = await ory.frontend.createBrowserLoginFlow({refresh: props.isOAuth, aal, loginChallenge: route.query.login_challenge});
 		setFlowData(response);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
@@ -257,7 +287,7 @@ function setFlowData(d) {
 	loginFlow.value = d;
 	showLogoutButton.value = Boolean(d.requested_aal) && d.requested_aal !== 'aal1';
 	if (!route.query.flow || route.query.flow !== d.id) {
-		router.replace({query: {flow: d.id}});
+		router.replace({query: {...route.query, flow: d.id}});
 	}
 }
 
