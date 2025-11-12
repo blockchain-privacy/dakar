@@ -40,10 +40,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/kratosadmin@npm:^0.0.19":
-  version: 0.0.19
-  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.19::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.19.tgz"
-  checksum: 10c0/dd033102f41e8d10454af355f841dd4cf2d82b22a8883b18c8795189e6b0f8f62e6af586a925362a9997db4e80af2aa164e2c4f0585dd83bb19f9d83047ff7e6
+"@blockchain-privacy/kratosadmin@npm:^0.0.22":
+  version: 0.0.22
+  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.22::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.22.tgz"
+  checksum: 10c0/37c10d719de4552ad30d2cf223785e7f5c48b3eb18bc49b8a0ab06acda262778b679ea7385a1892b7822428392147fc539a869506ecd807bb50f074242d6c178
   languageName: node
   linkType: hard
 
@@ -509,10 +509,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.22.8":
-  version: 1.22.8
-  resolution: "@ory/client-fetch@npm:1.22.8"
-  checksum: 10c0/e52c0218a0344f660b649428f11efcbad4d4c32837c6589006e4759c1c08c5af12909ffc5e954995329b79c0cbd00684b9396e405061da6d56ac76d3498d6eb8
+"@ory/client-fetch@npm:^1.22.9":
+  version: 1.22.9
+  resolution: "@ory/client-fetch@npm:1.22.9"
+  checksum: 10c0/b09a20e6fb170b4781f3768b5e6f4dd1527c61a972cf947a123b3fa215501a3984e47568c0aadfcc0a4991c52265ba212d041ef2170735dc6008bae763718c8a
   languageName: node
   linkType: hard
 
@@ -1640,12 +1640,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain-privacy/kratosadmin": "npm:^0.0.19"
+    "@blockchain-privacy/kratosadmin": "npm:^0.0.22"
     "@blockchain-privacy/wikiapi": "npm:^0.0.1"
     "@blockchain/dakar": "npm:^1.1.68"
     "@fontsource/roboto": "npm:^5.2.8"
     "@mdi/js": "npm:^7.4.47"
-    "@ory/client-fetch": "npm:^1.22.8"
+    "@ory/client-fetch": "npm:^1.22.9"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"

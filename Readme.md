@@ -143,11 +143,12 @@ Create a device authorization client with the following commands.
 Use the client id stored in `$code_client` to set up an oauth client.
 ```shell
 cd docker
-code_client=$(sudo docker compose --env-file .env.local exec hydra \                
+code_client=$(sudo docker compose --env-file .env.local exec hydra \
     hydra create client \
     --endpoint http://<hydra_endpoint>:4445 \
     --grant-type authorization_code,refresh_token,urn:ietf:params:oauth:grant-type:device_code \
     --response-type code,id_token \
+    --name <client_name> \
     --skip-consent \
     --format json \
     --scope openid --scope offline \
