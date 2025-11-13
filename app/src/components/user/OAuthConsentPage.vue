@@ -35,19 +35,27 @@
           v-else-if="consentRejected"
           class="text-subtitle-1"
         >
-          Consent rejected. You can close this page now.
+          Consent has been rejected. You can close this page now.
         </div>
         <template v-else-if="consentData.show">
-          <div class="text-subtitle-1">
-            Hi <code v-if="consentData.userIdentifier">{{ consentData.userIdentifier }}</code>,
-            <strong>{{ consentData.client.name || consentData.client.id }}</strong> wants access resources on your behalf with the following permissions:
+          <div class="text-subtitle-1 text-center">
+            <v-chip
+              :text="consentData.client.name || consentData.client.id"
+              rounded
+            />
+            wants to access resources on behalf of <v-chip
+              :text="consentData.userIdentifier"
+              rounded
+            />
+            with the following permissions:
           </div>
-          <v-list>
+          <v-list lines="three">
             <v-list-item
               v-for="item in consentData.requestedScope"
               :key="item"
               :title="item.title"
               :subtitle="item.description"
+              :prepend-icon="item.icon"
             />
           </v-list>
         </template>
@@ -86,6 +94,7 @@ import {
 import {useRoute, useRouter} from 'vue-router';
 import ErrorMessage from '@/components/common/ErrorMessage.vue';
 import DakarImg from '@/assets/dakar.svg?url';
+import {mdiAccount, mdiRefresh} from '@mdi/js';
 
 const route = useRoute();
 const router = useRouter();
@@ -110,8 +119,8 @@ onMounted(async () => {
 
 // Functions
 
-// Maps an array of scope strings to an array of objects containing the scope and its description.
-function addScopeDescriptions(scopes) {
+// Adds description and icons to known scopes
+function addScopeMeta(scopes) {
 	if (!scopes) {
 		return [];
 	}
@@ -122,11 +131,13 @@ function addScopeDescriptions(scopes) {
 				return {
 					title: scope,
 					description: 'Allows the requesting application to verify your identity using your account data.',
+					icon: mdiAccount,
 				};
 			case 'offline':
 				return {
 					title: scope,
-					description: 'Allows the requesting application refresh the authentication session.',
+					description: 'Allows the requesting application to refresh the authentication session.',
+					icon: mdiRefresh,
 				};
 			default:
 				return {title: scope};
@@ -151,6 +162,7 @@ async function requestConsent(accepted) {
 
 		if (r.redirectTo) {
 			if (accepted === false) {
+				// Consent rejected: call oauth server
 				fetch(r.redirectTo);
 				consentRejected.value = true;
 				return;
@@ -165,7 +177,7 @@ async function requestConsent(accepted) {
 		}
 
 		if (r.requestedScope) {
-			consentData.value.requestedScope = addScopeDescriptions(r.requestedScope);
+			consentData.value.requestedScope = addScopeMeta(r.requestedScope);
 		}
 
 		if (r.userIdentifier) {
