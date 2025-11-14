@@ -158,7 +158,7 @@ async function requestConsent(accepted) {
 	isLoading.value = true;
 
 	try {
-		const r = await kratosAdmin.oauth.consentPost({consent: {challenge: consentChallenge, accepted}});
+		const r = await kratosAdmin.oauth.selfConsentsPost({consent: {challenge: consentChallenge, accepted}});
 
 		if (r.redirectTo) {
 			if (accepted === false) {

@@ -246,7 +246,7 @@ function setErrorMessage(msg) {
 
 async function deleteIdentity() {
 	try {
-		await kratosAdmin.identity.selfDelete();
+		await kratosAdmin.identity.selfIdentitiesDelete();
 		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
