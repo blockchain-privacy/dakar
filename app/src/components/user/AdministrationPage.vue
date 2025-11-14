@@ -151,6 +151,42 @@
             <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
           </template>
         </v-data-table>
+        <v-data-table
+          v-model:sort-by="oauthClientsSortBy"
+          :headers="oauthClientsHeaders"
+          :items="oauthClients?oauthClients:[]"
+          :search="searchOAuthClients"
+          :loading="isLoading || !oauthClients"
+          item-key="id"
+          class="my-10 elevation-4"
+        >
+          <template #top>
+            <v-toolbar flat>
+              <v-toolbar-title>OAuth 2 Clients</v-toolbar-title>
+              <v-spacer />
+              <v-text-field
+                v-model="searchOAuthClients"
+                class="me-3"
+                :append-inner-icon="mdiMagnify"
+                label="Filter OAuth 2 clients"
+                single-line
+                hide-details
+              />
+            </v-toolbar>
+          </template>
+          <template #item.updated_at="{ item }">
+            <span>{{ new Date(item.updated_at).toLocaleString() }}</span>
+          </template>
+          <template #item.created_at="{ item }">
+            <span>{{ new Date(item.created_at).toLocaleString() }}</span>
+          </template>
+          <template #item.redirect_uris="{ item }">
+            <span>{{ item.redirect_uris.join(', ') }}</span>
+          </template>
+          <template #item.grant_types="{ item }">
+            <span>{{ item.grant_types.join(', ') }}</span>
+          </template>
+        </v-data-table>
         <edit-identity-dialog
           v-if="showCreateIdentityDialog"
           v-model="showCreateIdentityDialog"
@@ -235,6 +271,7 @@ const identityToDelete = ref(null);
 const search = ref('');
 const searchSessions = ref('');
 const searchOAuthSessions = ref('');
+const searchOAuthClients = ref('');
 const errorMsg = ref('');
 
 const identitiesSortBy = ref([{key: 'modified', order: 'desc'}]);
@@ -277,7 +314,7 @@ const sessionHeaders = [
 	},
 ];
 
-const oauthSessionsSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
+const oauthSessionsSortBy = ref([{key: 'handled_at', order: 'desc'}]);
 const oauthSessionHeaders = [
 	{
 		title: 'ID', key: 'consent_request.subject', align: 'start', sortable: false,
@@ -286,7 +323,38 @@ const oauthSessionHeaders = [
 		title: 'E-Mail', key: 'email',
 	},
 	{
+		title: 'Client ID', key: 'consent_request.client.client_id',
+	},
+	{
 		title: 'Handled At', key: 'handled_at',
+	},
+];
+
+const oauthClientsSortBy = ref([{key: 'updated_at', order: 'desc'}]);
+const oauthClientsHeaders = [
+	{
+		title: 'ID', key: 'client_id', align: 'start', sortable: false,
+	},
+	{
+		title: 'Name', key: 'client_name',
+	},
+	{
+		title: 'Scopes', key: 'scope',
+	},
+	{
+		title: 'Grant Types', key: 'grant_types',
+	},
+	{
+		title: 'Redirect URIs', key: 'redirect_uris',
+	},
+	{
+		title: 'Skip Consent', key: 'skip_consent',
+	},
+	{
+		title: 'Created At', key: 'created_at',
+	},
+	{
+		title: 'Updated At', key: 'updated_at',
 	},
 ];
 
@@ -300,6 +368,7 @@ const defaultItem = ref({
 const identities = ref(null);
 const sessions = ref(null);
 const oauthSessions = ref(null);
+const oauthClients = ref(null);
 const identityPropertyDialogData = ref(null);
 
 onMounted(() => {
@@ -322,6 +391,7 @@ async function loadUserList() {
 		identities.value = response.identities;
 		sessions.value = response.sessions;
 		oauthSessions.value = response.oauthSessions;
+		oauthClients.value = response.oauthClients;
 		msgStore.resetMessages();
 	} catch (e) {
 		errorMsg.value = e.message;
