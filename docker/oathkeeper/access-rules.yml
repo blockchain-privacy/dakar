@@ -15,10 +15,7 @@
     handler: allow
   mutators:
     - handler: noop
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
 - id: "ory:kratosadmin_admin"
   upstream:
     preserve_host: true
@@ -48,10 +45,7 @@
         }
   mutators:
     - handler: header
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
 - id: "ory:kratosadmin_protected"
   upstream:
     preserve_host: true
@@ -81,10 +75,7 @@
         }
   mutators:
     - handler: header
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
 - id: "ory:kratosadmin_public"
   upstream:
     preserve_host: true
@@ -104,10 +95,7 @@
     handler: allow
   mutators:
     - handler: noop
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
 - id: "ory:dakar_dash_public"
   upstream:
     preserve_host: true
@@ -127,10 +115,7 @@
     handler: allow
   mutators:
     - handler: noop
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
 - id: "ory:dakar_dash_protected"
   upstream:
     preserve_host: true
@@ -164,10 +149,7 @@
         headers:
           X-user: "{{ print .Extra.identity.id }}"
           X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_dash_user }}"
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
 - id: "ory:dakar_btc_public"
   upstream:
     preserve_host: true
@@ -187,10 +169,7 @@
     handler: allow
   mutators:
     - handler: noop
-  errors:
-    - handler: json
-      config:
-        verbose: true
+
 - id: "ory:dakar_btc_protected"
   upstream:
     preserve_host: true
@@ -224,7 +203,4 @@
         headers:
           X-user: "{{ print .Extra.identity.id }}"
           X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_btc_user }}"
-  errors:
-    - handler: json
-      config:
-        verbose: false
+
