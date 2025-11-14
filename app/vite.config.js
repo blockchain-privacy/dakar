@@ -67,11 +67,18 @@ export default defineConfig({
 				// Remove '/auth' prefix
 				rewrite: path => path.replace(/^\/auth/, ''),
 			},
-			'/hydra': {
+			// Hydra endpoints, need to be a root level to be compatible with MCP
+			'/userinfo': {
 				target: 'http://localhost:4444',
 				changeOrigin: true,
-				// Remove '/auth' prefix
-				rewrite: path => path.replace(/^\/hydra/, ''),
+			},
+			'/oauth2': {
+				target: 'http://localhost:4444',
+				changeOrigin: true,
+			},
+			'/.well-known': {
+				target: 'http://localhost:4444',
+				changeOrigin: true,
 			},
 		},
 	},

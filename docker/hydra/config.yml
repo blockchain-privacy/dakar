@@ -4,7 +4,7 @@ serve:
 
 urls:
   self:
-    issuer: http://localhost:8082/hydra
+    issuer: http://localhost:8082/
   consent: http://localhost:8082/oauth/consent
   login: http://localhost:8082/oauth/login
   logout: http://localhost:8082/oauth/logout
@@ -24,15 +24,15 @@ webfinger:
   oidc_discovery:
     client_registration_url: http://localhost:4444/oauth2/register
 
-#oidc:
-#  subject_identifiers:
-#    supported_types:
-#      - pairwise
-#      - public
-#    pairwise:
-#      salt: youReallyNeedToChangeThis
-#  dynamic_client_registration:
-#    enabled: true
+oidc:
+  subject_identifiers:
+    supported_types:
+      - pairwise
+      - public
+    pairwise:
+      salt: youReallyNeedToChangeThis
+  dynamic_client_registration:
+    enabled: true
 
 log:
   leak_sensitive_values: true

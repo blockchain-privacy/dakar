@@ -61,7 +61,7 @@ authenticators:
       target_audience:
         - dakar
       trusted_issuers:
-        - http://localhost:8082/hydra
+        - http://localhost:8082/
 
   noop:
     enabled: true
