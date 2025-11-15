@@ -173,7 +173,9 @@ const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore,
+	$route: route, $router: router, navStore, localStore, setErrorMessage(msg) {
+		errorMsg.value = msg;
+	},
 };
 
 const errorMsg = ref('');
