@@ -40,10 +40,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/kratosadmin@npm:^0.0.24":
-  version: 0.0.24
-  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.24::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.24.tgz"
-  checksum: 10c0/2dead69e518c213aa00c79f4b9b0c7d2d92f26df55aab3f79d704b2792715871b55ed8703ed1cd5d036b328a33d449f23a8382970a38b012e32efbf809ca0742
+"@blockchain-privacy/kratosadmin@npm:^0.0.25":
+  version: 0.0.25
+  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.25::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.25.tgz"
+  checksum: 10c0/209ae6d51978d0f13a2ed6825540c01398a729de23dff95c42323cac780b8b75731416bdb932eea1ae4c180f855edafd1aa2a368d70fde090966f68924d28359
   languageName: node
   linkType: hard
 
@@ -1640,7 +1640,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain-privacy/kratosadmin": "npm:^0.0.24"
+    "@blockchain-privacy/kratosadmin": "npm:^0.0.25"
     "@blockchain-privacy/wikiapi": "npm:^0.0.1"
     "@blockchain/dakar": "npm:^1.1.68"
     "@fontsource/roboto": "npm:^5.2.8"

@@ -56,10 +56,6 @@
       class="mx-auto"
       type="article, actions"
     />
-    <v-divider
-      thickness="3"
-      class="mt-5 mb-15"
-    />
     <p class="text-h5 mb-5">
       Sessions
     </p>
@@ -83,13 +79,38 @@
       <template #item.actions="{ item }">
         <v-icon
           size="small"
-          @click="deleteUserSession(item)"
+          @click="deleteUserSession(item.id)"
         >
           {{ mdiDelete }}
         </v-icon>
       </template>
       <template #no-data>
         No other active sessions found
+      </template>
+    </v-data-table>
+    <p class="text-h5 mb-5">
+      External Sessions - OAuth 2.0
+    </p>
+    <v-data-table
+      v-model:sort-by="consentSessionSortBy"
+      class="mb-10"
+      :headers="consentSessionHeaders"
+      :items="consentSessions?consentSessions:[]"
+      :loading="consentSessionsLoading"
+    >
+      <template #item.handled_at="{ item }">
+        <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
+      </template>
+      <template #item.actions="{ item }">
+        <v-icon
+          size="small"
+          @click="deleteConsentSession(item.consent_request.consent_request_id)"
+        >
+          {{ mdiDelete }}
+        </v-icon>
+      </template>
+      <template #no-data>
+        No sessions found
       </template>
     </v-data-table>
     <v-dialog
@@ -154,27 +175,33 @@ const context = {
 	$route: route, $router: router, navStore, localStore, msgStore, addMessage: msgStore.addMessage,
 };
 
-const settingsFlow = ref(null);
-const userSessions = ref([]);
-const userSessionsLoading = ref(false);
 const disabledForms = ref([]);
 const showAccountDeletionDialog = ref(false);
+const settingsFlow = ref(null);
+
+const userSessions = ref([]);
+const userSessionsLoading = ref(false);
 const userSessionSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
 const userSessionHeaders = [
+	{title: 'Authentication Date', key: 'authenticatedAt', align: 'start'},
+	{title: 'Expiration Date', key: 'expiresAt'},
+	{title: 'Device', key: 'userAgent'},
+	{title: 'IP Address', key: 'ipAddress'},
 	{
-		title: 'Authentication Date', key: 'authenticatedAt', align: 'start',
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
+];
+
+const consentSessions = ref([]);
+const consentSessionsLoading = ref(false);
+const consentSessionSortBy = ref([{key: 'handled_at', order: 'desc'}]);
+const consentSessionHeaders = [
 	{
-		title: 'Expiration Date', key: 'expiresAt',
+		title: 'ID', key: 'consent_request.subject', align: 'start', sortable: false,
 	},
+	{title: 'Handled At', key: 'handled_at'},
 	{
-		title: 'Device', key: 'userAgent',
-	},
-	{
-		title: 'IP Address', key: 'ipAddress',
-	},
-	{
-		title: '', key: 'actions', sortable: false,
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
 ];
 
@@ -205,6 +232,7 @@ onMounted(async () => {
 
 	await initFlow();
 	await getSessions();
+	await getConsentSessions();
 });
 
 // Functions
@@ -258,14 +286,27 @@ async function deleteIdentity() {
 	showAccountDeletionDialog.value = false;
 }
 
-async function deleteUserSession(session) {
-	if (!session.id) {
+async function deleteUserSession(id) {
+	if (!id) {
 		return;
 	}
 
 	try {
-		await ory.frontend.disableMySession({id: session.id});
-		userSessions.value = userSessions.value.filter(d => d.id !== session.id);
+		await ory.frontend.disableMySession({id});
+		await getSessions();
+	} catch (e) {
+		handleError(context, e);
+	}
+}
+
+async function deleteConsentSession(consentId) {
+	if (!consentId) {
+		return;
+	}
+
+	try {
+		await kratosAdmin.oauth.selfConsentsConsentIdDelete({consentId});
+		await getConsentSessions();
 	} catch (e) {
 		handleError(context, e);
 	}
@@ -273,7 +314,7 @@ async function deleteUserSession(session) {
 
 async function getSessions() {
 	if (isAccountRecovery.value) {
-		// Can't get session when in account recovery
+		// Can't get session during account recovery
 		return;
 	}
 
@@ -303,6 +344,25 @@ async function getSessions() {
 	}
 
 	userSessionsLoading.value = false;
+}
+
+async function getConsentSessions() {
+	if (isAccountRecovery.value) {
+		// Can't get consent session during account recovery
+		return;
+	}
+
+	consentSessionsLoading.value = true;
+
+	try {
+		const response = await kratosAdmin.oauth.selfConsentsGet();
+
+		consentSessions.value = response.oauthSessions;
+	} catch (e) {
+		handleError({addMessage: msgStore.addMessage, $route: route}, e);
+	}
+
+	consentSessionsLoading.value = false;
 }
 
 async function initSettingsFlow() {
