@@ -23,7 +23,7 @@
           />
         </div>
         <h3 class="text-h3 font-weight-bold text-center mb-2">
-          Consent Request
+          Permission Consent
         </h3>
       </div>
       <v-card-text>
@@ -35,7 +35,7 @@
           v-else-if="consentRejected"
           class="text-subtitle-1"
         >
-          Consent has been rejected. You can close this page now.
+          Permission consent has been rejected. You can close this page now.
         </div>
         <template v-else-if="consentData.show">
           <div class="text-subtitle-1 text-center">
@@ -58,6 +58,9 @@
               :prepend-icon="item.icon"
             />
           </v-list>
+          <div class="text-subtitle-1 text-center">
+            You can manage app permissions in your profile page.
+          </div>
         </template>
         <template v-else>
           <h5 class="text-h5 font-weight-bold text-center my-2">
