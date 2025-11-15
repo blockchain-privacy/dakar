@@ -7,6 +7,7 @@
     class="mx-auto"
     style="max-width: 1200px;"
   >
+    <error-message :text="errorMsg" />
     <p class="text-h5 my-5 d-flex align-center justify-space-between">
       Settings
       <v-menu>
@@ -155,7 +156,6 @@ import {
 import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
-import {handleError} from '@/utilities';
 import {
 	computed, inject, onMounted, ref, watch,
 } from 'vue';
@@ -163,6 +163,7 @@ import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 const ory = inject('ory');
 const kratosAdmin = inject('kratosadmin');
@@ -172,9 +173,10 @@ const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore, addMessage: msgStore.addMessage,
+	$route: route, $router: router, navStore, localStore, msgStore,
 };
 
+const errorMsg = ref('');
 const disabledForms = ref([]);
 const showAccountDeletionDialog = ref(false);
 const settingsFlow = ref(null);
@@ -261,26 +263,16 @@ function getDeviceIcon(userAgent) {
 	return mdiLaptop;
 }
 
-function setSuccessMessage(msg) {
-	// Do not limit message to current route
-	msgStore.addMessage({text: msg, type: 'success', temporary: true});
-}
-
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
-
 async function deleteIdentity() {
+	errorMsg.value = '';
 	try {
 		await kratosAdmin.identity.selfIdentitiesDelete();
 		msgStore.resetMessages();
-		setSuccessMessage('Your account was successfully deleted. Goodbye!');
+		msgStore.addMessage({text: 'Your account was successfully deleted. Goodbye!', type: 'success', temporary: true});
 		session.value = null;
 		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 
 	showAccountDeletionDialog.value = false;
@@ -291,11 +283,13 @@ async function deleteUserSession(id) {
 		return;
 	}
 
+	errorMsg.value = '';
+
 	try {
 		await ory.frontend.disableMySession({id});
 		await getSessions();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 }
 
@@ -304,11 +298,13 @@ async function deleteConsentSession(consentId) {
 		return;
 	}
 
+	errorMsg.value = '';
+
 	try {
 		await kratosAdmin.oauth.selfConsentsConsentIdDelete({consentId});
 		await getConsentSessions();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 }
 
@@ -319,6 +315,7 @@ async function getSessions() {
 	}
 
 	userSessionsLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		// Get a maximum of 30 sessions
@@ -340,7 +337,7 @@ async function getSessions() {
 			return d;
 		});
 	} catch (e) {
-		handleError({addMessage: msgStore.addMessage, $route: route}, e);
+		errorMsg.value = e.message;
 	}
 
 	userSessionsLoading.value = false;
@@ -353,13 +350,14 @@ async function getConsentSessions() {
 	}
 
 	consentSessionsLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		const response = await kratosAdmin.oauth.selfConsentsGet();
 
 		consentSessions.value = response.oauthSessions;
 	} catch (e) {
-		handleError({addMessage: msgStore.addMessage, $route: route}, e);
+		errorMsg.value = e.message;
 	}
 
 	consentSessionsLoading.value = false;
@@ -386,6 +384,8 @@ async function handleOrySubmitSettings(formID) {
 	if (!form || !settingsFlow.value.ui.action) {
 		return;
 	}
+
+	errorMsg.value = '';
 
 	// Disable submitting from this form
 	disabledForms.value.push(formID);
@@ -424,7 +424,7 @@ async function handleOrySubmitSettings(formID) {
 		await refreshSession();
 
 		if (response.error && response.error.reason) {
-			setErrorMessage(response.error.reason);
+			errorMsg.value = response.error.reason;
 		}
 	} catch (e) {
 		if (e.response?.ui) {
@@ -432,9 +432,9 @@ async function handleOrySubmitSettings(formID) {
 		} else {
 			handleGetFlowError(context, e, async () => {
 				await initSettingsFlow();
-				setErrorMessage('The settings flow has expired, please try again.');
+				errorMsg.value = 'The settings flow has expired, please try again.';
 			}).catch(e => {
-				setErrorMessage(e);
+				errorMsg.value = e.message;
 			});
 		}
 	}
