@@ -12,9 +12,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"slices"
 	"strconv"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 var ErrNodeNotFound = errors.New("node not found")
@@ -943,7 +944,7 @@ func GetConnectionClusterToTransaction(ctx context.Context, c external.Database,
 
 // FindDescendantSelectorUIDs returns the given node uid and all node uids which can
 // be found by recursively traversing their children. Only heuristics are considered.
-func FindDescendantSelectorUIDs(nodes map[string]Node, nodeUID string) []string {
+func FindDescendantSelectorUIDs(nodes map[string]*Node, nodeUID string) []string {
 	var descendants []string
 
 	n, ok := nodes[nodeUID]

@@ -108,7 +108,7 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 }
 
 func TestFindDescendantSelectorUIDs(t *testing.T) {
-	filledMap := map[string]Node{
+	filledMap := map[string]*Node{
 		"0x1": {
 			UID:      "0x1",
 			Type:     NodeTypeSelector,
@@ -132,14 +132,14 @@ func TestFindDescendantSelectorUIDs(t *testing.T) {
 	}
 
 	tests := []struct {
-		nodes   map[string]Node
+		nodes   map[string]*Node
 		nodeUID string
 		want    []string
 	}{
 		{},
 		// node not in map
 		{
-			nodes:   map[string]Node{},
+			nodes:   map[string]*Node{},
 			nodeUID: "0x123",
 			want:    nil,
 		},
