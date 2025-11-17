@@ -294,6 +294,7 @@ const nodeTypeLabels = [
 
 const nodeGraph = new NodeGraph(colorMap);
 let selectorTimer = null;
+const hotKeyCleanup = [];
 
 const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
@@ -474,10 +475,9 @@ onMounted(async () => {
 	}
 
 	document.addEventListener('visibilitychange', onVisibilityChange);
-
-	useHotkey('delete', handleMenuDeleteSelected);
-	useHotkey('cmd+a', handleSelectAllNodesHotkey);
-	useHotkey('esc', handleEscapeHotkey);
+	hotKeyCleanup.push(useHotkey('delete', handleMenuDeleteSelected));
+	hotKeyCleanup.push(useHotkey('cmd+a', handleSelectAllNodesHotkey));
+	hotKeyCleanup.push(useHotkey('esc', handleEscapeHotkey));
 });
 
 onUnmounted(() => {
@@ -489,7 +489,7 @@ onUnmounted(() => {
 	}
 
 	clearTimeout(selectorTimer);
-
+	hotKeyCleanup.forEach(d => d());
 	document.removeEventListener('visibilitychange', onVisibilityChange);
 	workspaceStore.setWorkspaceActive(false);
 });
