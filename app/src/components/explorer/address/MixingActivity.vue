@@ -247,13 +247,16 @@ import {useWorkspaceStore} from '@/pinia/workspace.js';
 import GraphToolbar from '@/components/common/GraphToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
-import {useHotkey} from 'vuetify/framework';
+import {useHotkey} from 'vuetify';
 
 const route = useRoute();
 const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 const dakar = getDakarClient(route.params.blockchainMode);
+
+useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
+useHotkey('esc', () => nodeGraph.resetLasso());
 
 const colorMap = getColorMap(route.params.blockchainMode);
 let svgBarChart = null;
@@ -349,9 +352,6 @@ onMounted(() => {
 			setErrorMessage('error setting lasso reset handler');
 		}
 	}
-
-	useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
-	useHotkey('esc', () => nodeGraph.resetLasso());
 });
 
 // Functions

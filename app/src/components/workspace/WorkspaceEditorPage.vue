@@ -269,7 +269,7 @@ import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
 import {VHotkey} from 'vuetify/labs/VHotkey';
-import {useHotkey} from 'vuetify/framework';
+import {useHotkey} from 'vuetify';
 import ShortcutDialog from '@/components/workspace/ShortcutDialog.vue';
 
 const route = useRoute();
@@ -277,6 +277,10 @@ const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 const dakar = getDakarClient(route.params.blockchainMode);
+
+useHotkey('cmd+a', handleSelectAllNodesHotkey);
+useHotkey('delete', handleMenuDeleteSelected);
+useHotkey('esc', handleEscapeHotkey);
 
 const colorMap = getColorMap(route.params.blockchainMode);
 colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
@@ -294,7 +298,6 @@ const nodeTypeLabels = [
 
 const nodeGraph = new NodeGraph(colorMap);
 let selectorTimer = null;
-const hotKeyCleanup = [];
 
 const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
@@ -475,9 +478,6 @@ onMounted(async () => {
 	}
 
 	document.addEventListener('visibilitychange', onVisibilityChange);
-	hotKeyCleanup.push(useHotkey('delete', handleMenuDeleteSelected));
-	hotKeyCleanup.push(useHotkey('cmd+a', handleSelectAllNodesHotkey));
-	hotKeyCleanup.push(useHotkey('esc', handleEscapeHotkey));
 });
 
 onUnmounted(() => {
@@ -489,7 +489,6 @@ onUnmounted(() => {
 	}
 
 	clearTimeout(selectorTimer);
-	hotKeyCleanup.forEach(d => d());
 	document.removeEventListener('visibilitychange', onVisibilityChange);
 	workspaceStore.setWorkspaceActive(false);
 });
