@@ -117,33 +117,20 @@ func UpdateNodeCoordinates(ctx context.Context, dgraph external.Database, worksp
 		w.Nodes, w.ClusterHeight)
 }
 
-func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.Node, workspaceNodes []workspace.Node,
+func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.Node, nodeMap map[string]*workspace.Node,
 	userUID string, workspaceUID string) ([]string, error) {
 	var deletedNodes []string
 	if node.IsSelector() {
-		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
-		for _, n := range workspaceNodes {
-			nodeMap[n.UID] = n
-		}
-
 		uids := workspace.FindDescendantSelectorUIDs(nodeMap, node.UID)
 
 		// delete the actual selectors
-		if err := workspace.DeleteUserSelectors(ctx, dgraph, uids, userUID, workspaceUID); err != nil {
-			if errors.Is(err, db.ErrNoMutationHappened) {
-				return nil, nil
-			}
-
+		if err := workspace.DeleteUserSelectors(ctx, dgraph, uids, userUID, workspaceUID); err != nil &&
+			!errors.Is(err, db.ErrNoMutationHappened) {
 			return nil, err
 		}
 
 		deletedNodes = uids
 	} else if node.IsTransaction() {
-		nodeMap := make(map[string]workspace.Node, len(workspaceNodes))
-		for _, n := range workspaceNodes {
-			nodeMap[n.UID] = n
-		}
-
 		// collect all selector UIDs
 		var children []string
 		for _, child := range node.Children {
@@ -151,12 +138,9 @@ func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.N
 		}
 
 		if len(children) > 0 {
-			// delete the actual heuristics
-			if err := workspace.DeleteUserSelectors(ctx, dgraph, children, userUID, workspaceUID); err != nil {
-				if errors.Is(err, db.ErrNoMutationHappened) {
-					return nil, nil
-				}
-
+			// delete the actual selectors
+			if err := workspace.DeleteUserSelectors(ctx, dgraph, children, userUID, workspaceUID); err != nil &&
+				!errors.Is(err, db.ErrNoMutationHappened) {
 				return nil, err
 			}
 		}
@@ -203,7 +187,7 @@ func DeleteNodes(ctx context.Context, dgraph external.Database, workspaceMutex *
 
 	deleteNodesMap := map[string]bool{}
 	for _, n := range nodesToDelete {
-		nodes, err := deleteNode(ctx, dgraph, n, w.Nodes, userUID, workspaceUID)
+		nodes, err := deleteNode(ctx, dgraph, n, nodesToDelete, userUID, workspaceUID)
 		if err != nil {
 			return nil, err
 		}
