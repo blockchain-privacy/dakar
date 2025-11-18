@@ -7,7 +7,7 @@
     class="mx-auto"
     style="max-width: 1200px;"
   >
-    <error-message :text="errorMsg" />
+    <alert :text="errorMsg" />
     <p class="text-h5 my-5 d-flex align-center justify-space-between">
       Settings
       <v-menu>
@@ -163,7 +163,7 @@ import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
-import ErrorMessage from '@/components/common/ErrorMessage.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const ory = inject('ory');
 const kratosAdmin = inject('kratosadmin');

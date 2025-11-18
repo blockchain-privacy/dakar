@@ -9,6 +9,11 @@
         {{ title }}
       </v-card-title>
       <v-card-text>
+        <alert :text="errorMsg" />
+        <alert
+          :text="infoMsg"
+          type="info"
+        />
         <v-btn
           variant="outlined"
           class="my-2"
@@ -67,11 +72,15 @@
         <v-spacer />
         <v-btn
           color="red"
+          :loading="isLoading"
           @click="model = false"
         >
           Cancel
         </v-btn>
-        <v-btn @click="createClient">
+        <v-btn
+          :loading="isLoading"
+          @click="createClient"
+        >
           {{ submitButtonTitle }}
         </v-btn>
       </v-card-actions>
@@ -82,16 +91,14 @@
 import {
 	computed, inject, onMounted, onUpdated, ref, toRaw,
 } from 'vue';
-import {useMsgStore} from '@/pinia/msg.js';
-import {useRoute} from 'vue-router';
+import Alert from '@/components/common/Alert.vue';
 
-const route = useRoute();
-const msgStore = useMsgStore();
 const model = defineModel({type: Boolean});
 const kratosAdmin = inject('kratosadmin');
 const emit = defineEmits(['created']);
 const isLoading = ref(false);
 const errorMsg = ref('');
+const infoMsg = ref('');
 
 const tokenEndPointAuthModel = ref([
 	'client_secret_post',
@@ -157,15 +164,9 @@ function updateFromProps() {
 	clientDetails.value.skipConsent = props.client.skip_consent;
 }
 
-function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
-	});
-}
-
 function getParams() {
-	if (!clientDetails.value.clientName || !clientDetails.value.scope
-		|| !clientDetails.value.responseTypes || !clientDetails.value.grantTypes) {
+	if (!clientDetails.value.clientName || clientDetails.value.scope.length === 0
+		|| clientDetails.value.responseTypes.length === 0 || clientDetails.value.grantTypes.length === 0) {
 		return undefined;
 	}
 
@@ -185,34 +186,31 @@ async function createClient() {
 	}
 
 	isLoading.value = true;
+	errorMsg.value = '';
+	infoMsg.value = '';
 
-	if (props.isEdit) {
-		params.clientID = props.client.client_id;
-		try {
-			const response = await kratosAdmin.oauth.clientsPut({client: params});
-			if (response.msg) {
-				setInfoMessage(response.msg);
-			}
-
-			emit('created');
-		} catch (e) {
-			errorMsg.value = e.message;
+	let response;
+	try {
+		if (props.isEdit) {
+			params.clientID = props.client.client_id;
+			response = await kratosAdmin.oauth.clientsPut({client: params});
+		} else {
+			response = await kratosAdmin.oauth.clientsPost({client: params});
 		}
-	} else {
-		try {
-			const response = await kratosAdmin.oauth.clientsPost({client: params});
-			if (response.msg) {
-				setInfoMessage(response.msg);
-			}
 
-			emit('created');
-		} catch (e) {
-			errorMsg.value = e.message;
+		if (response.msg) {
+			infoMsg.value = response.msg;
+			isLoading.value = false;
+			return;
 		}
+
+		emit('created');
+		model.value = false;
+	} catch (e) {
+		errorMsg.value = e.message;
 	}
 
 	isLoading.value = false;
-	model.value = false;
 }
 
 function handleApplyDeviceAuthPreset() {

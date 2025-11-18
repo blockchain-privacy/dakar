@@ -32,7 +32,7 @@
             </v-btn>
           </div>
           <v-card-text>
-            <error-message
+            <alert
               v-if="errorMsg"
               :text="errorMsg"
             />
@@ -228,7 +228,7 @@ import IconTitle from '@/components/common/IconTitle.vue';
 import {
 	computed, ref, onMounted, onBeforeUnmount,
 } from 'vue';
-import ErrorMessage from '@/components/common/ErrorMessage.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},

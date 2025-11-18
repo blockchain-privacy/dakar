@@ -9,7 +9,7 @@
       justify="center"
     >
       <v-col cols="12">
-        <error-message :text="errorMsg" />
+        <alert :text="errorMsg" />
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -350,7 +350,7 @@ import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import ErrorMessage from '@/components/common/ErrorMessage.vue';
+import Alert from '@/components/common/Alert.vue';
 import DeletionDialog from '@/components/user/DeletionDialog.vue';
 import CreateClientDialog from '@/components/user/CreateClientDialog.vue';
 
