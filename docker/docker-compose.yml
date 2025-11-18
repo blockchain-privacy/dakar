@@ -68,6 +68,7 @@ services:
     logging: *default-logging
 
   hydra:
+    container_name: hydra
     image: oryd/hydra:v25.4.0
     ports:
       - "4444:4444" # public
