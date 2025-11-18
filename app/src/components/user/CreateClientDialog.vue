@@ -6,7 +6,7 @@
   >
     <v-card class="mx-auto">
       <v-card-title class="text-h5">
-        Create OAuth 2.0 Client
+        {{ title }}
       </v-card-title>
       <v-card-text>
         <v-btn
@@ -16,8 +16,14 @@
         >
           Apply Device Auth Preset
         </v-btn>
+        <div
+          v-if="isEdit && client.client_id"
+          class="text-caption my-2 text-center"
+        >
+          ID: {{ client.client_id }}
+        </div>
         <v-text-field
-          v-model="clientDetails.client_name"
+          v-model="clientDetails.clientName"
           label="Name"
         />
         <v-select
@@ -28,31 +34,31 @@
           :items="scopeModel"
         />
         <v-select
-          v-model="clientDetails.grant_types"
+          v-model="clientDetails.grantTypes"
           multiple
           chips
           label="Grant Types"
           :items="grantTypesModel"
         />
         <v-text-field
-          v-model="clientDetails.redirect_uris"
+          v-model="clientDetails.redirectURIs"
           label="Redirect URIs"
           hint="Separate multiple URIs by comma"
         />
         <v-select
-          v-model="clientDetails.response_types"
+          v-model="clientDetails.responseTypes"
           multiple
           chips
           label="Response Types"
           :items="responseTypesModel"
         />
         <v-select
-          v-model="clientDetails.token_endpoint_auth_method"
+          v-model="clientDetails.tokenEndpointAuthMethod"
           label="Token Endpoint Auth Method"
           :items="tokenEndPointAuthModel"
         />
         <v-checkbox
-          v-model="clientDetails.skip_consent"
+          v-model="clientDetails.skipConsent"
           label="Skip Consent"
           hide-details
         />
@@ -66,14 +72,16 @@
           Cancel
         </v-btn>
         <v-btn @click="createClient">
-          Create
+          {{ submitButtonTitle }}
         </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 <script setup>
-import {inject, ref, toRaw} from 'vue';
+import {
+	computed, inject, onMounted, onUpdated, ref, toRaw,
+} from 'vue';
 import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
 
@@ -85,27 +93,69 @@ const emit = defineEmits(['created']);
 const isLoading = ref(false);
 const errorMsg = ref('');
 
-const tokenEndPointAuthModel = ref(['client_secret_post', 'client_secret_basic', 'none']);
+const tokenEndPointAuthModel = ref([
+	'client_secret_post',
+	'client_secret_basic',
+	'none',
+]);
 const responseTypesModel = ref(['code', 'id_token', 'token']);
-const grantTypesModel = ref(['authorization_code', 'implicit', 'client_credentials', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code']);
+const grantTypesModel = ref([
+	'authorization_code',
+	'implicit',
+	'client_credentials',
+	'refresh_token',
+	'urn:ietf:params:oauth:grant-type:device_code',
+]);
 const scopeModel = ref(['offline_access', 'offline', 'openid']);
 const clientDetails = ref({
-	// eslint-disable-next-line camelcase
-	client_name: '',
+	clientName: '',
 	scope: [],
-	// eslint-disable-next-line camelcase
-	grant_types: [],
-	// eslint-disable-next-line camelcase
-	redirect_uris: '',
-	// eslint-disable-next-line camelcase
-	response_types: [],
-	// eslint-disable-next-line camelcase
-	token_endpoint_auth_method: '',
-	// eslint-disable-next-line camelcase
-	skip_consent: false,
+	grantTypes: [],
+	redirectURIs: '',
+	responseTypes: [],
+	tokenEndpointAuthMethod: '',
+	skipConsent: false,
+});
+
+const props = defineProps({
+	isEdit: {type: Boolean, required: false},
+	client: {
+		type: Object, required: false, default() {
+			return {};
+		},
+	},
+});
+
+// Computed
+
+const title = computed(() => props.isEdit ? 'Update OAuth 2.0 Client' : 'Create OAuth 2.0 Client');
+const submitButtonTitle = computed(() => props.isEdit ? 'Update' : 'Create');
+
+// Hooks
+
+onMounted(() => {
+	updateFromProps();
+});
+
+onUpdated(() => {
+	updateFromProps();
 });
 
 // Functions
+
+function updateFromProps() {
+	if (!props.isEdit) {
+		return;
+	}
+
+	clientDetails.value.clientName = props.client.client_name;
+	clientDetails.value.scope = props.client.scope.split(' ');
+	clientDetails.value.grantTypes = props.client.grant_types;
+	clientDetails.value.redirectURIs = props.client.redirect_uris.join(',');
+	clientDetails.value.responseTypes = props.client.response_types;
+	clientDetails.value.tokenEndpointAuthMethod = props.client.token_endpoint_auth_method;
+	clientDetails.value.skipConsent = props.client.skip_consent;
+}
 
 function setInfoMessage(msg) {
 	msgStore.addMessage({
@@ -114,18 +164,16 @@ function setInfoMessage(msg) {
 }
 
 function getParams() {
-	if (!clientDetails.value.client_name || !clientDetails.value.scope
-		|| !clientDetails.value.response_types || !clientDetails.value.grant_types) {
+	if (!clientDetails.value.clientName || !clientDetails.value.scope
+		|| !clientDetails.value.responseTypes || !clientDetails.value.grantTypes) {
 		return undefined;
 	}
 
 	const clone = structuredClone(toRaw(clientDetails.value));
-	// eslint-disable-next-line camelcase
-	clone.client_name = clone.client_name.trim();
+	clone.clientName = clone.clientName.trim();
 	// Scope must be separated by space
 	clone.scope = clone.scope.join(' ');
-	// eslint-disable-next-line camelcase
-	clone.redirect_uris = clone.redirect_uris.replaceAll(' ', '').split(',').filter(d => d);
+	clone.redirectURIs = clone.redirectURIs.replaceAll(' ', '').split(',').filter(d => d);
 
 	return clone;
 }
@@ -137,15 +185,30 @@ async function createClient() {
 	}
 
 	isLoading.value = true;
-	try {
-		const response = await kratosAdmin.oauth.clientsPost({client: params});
-		if (response.msg) {
-			setInfoMessage(response.msg);
-		}
 
-		emit('created');
-	} catch (e) {
-		errorMsg.value = e.message;
+	if (props.isEdit) {
+		params.clientID = props.client.client_id;
+		try {
+			const response = await kratosAdmin.oauth.clientsPut({client: params});
+			if (response.msg) {
+				setInfoMessage(response.msg);
+			}
+
+			emit('created');
+		} catch (e) {
+			errorMsg.value = e.message;
+		}
+	} else {
+		try {
+			const response = await kratosAdmin.oauth.clientsPost({client: params});
+			if (response.msg) {
+				setInfoMessage(response.msg);
+			}
+
+			emit('created');
+		} catch (e) {
+			errorMsg.value = e.message;
+		}
 	}
 
 	isLoading.value = false;
@@ -154,14 +217,14 @@ async function createClient() {
 
 function handleApplyDeviceAuthPreset() {
 	clientDetails.value.scope = ['openid'];
-	// eslint-disable-next-line camelcase
-	clientDetails.value.grant_types = ['authorization_code', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code'];
-	// eslint-disable-next-line camelcase
-	clientDetails.value.response_types = ['code', 'id_token'];
-	// eslint-disable-next-line camelcase
-	clientDetails.value.token_endpoint_auth_method = 'none';
-	// eslint-disable-next-line camelcase
-	clientDetails.value.skip_consent = true;
+	clientDetails.value.grantTypes = [
+		'authorization_code',
+		'refresh_token',
+		'urn:ietf:params:oauth:grant-type:device_code',
+	];
+	clientDetails.value.responseTypes = ['code', 'id_token'];
+	clientDetails.value.tokenEndpointAuthMethod = 'none';
+	clientDetails.value.skipConsent = true;
 }
 
 </script>

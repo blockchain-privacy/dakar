@@ -251,6 +251,12 @@
                 </v-btn>
               </template>
               <v-list>
+                <v-list-item @click="showEditClientDialog(item)">
+                  <template #prepend>
+                    <v-icon :icon="mdiPencil" />
+                  </template>
+                  Edit
+                </v-list-item>
                 <v-list-item @click="showDeleteClientDialog(item.client_id)">
                   <template #prepend>
                     <v-icon :icon="mdiDelete" />
@@ -271,6 +277,8 @@
         <create-client-dialog
           v-if="showCreateClientDialogModel"
           v-model="showCreateClientDialogModel"
+          :is-edit="updateClient"
+          :client="updateClientData"
           @created="refreshUsers()"
         />
         <deletion-dialog
@@ -437,12 +445,16 @@ const oauthClientsHeaders = [
 ];
 
 const createNewUser = ref(false);
+const updateClient = ref(false);
 const editedItem = ref({
 	id: '', email: '', state: '', roles: {},
 });
 const defaultItem = ref({
 	id: '', email: '', state: '', roles: {},
 });
+// Client data for the client update dialog.
+const updateClientData = ref(null);
+
 const identities = ref(null);
 const sessions = ref(null);
 const oauthSessions = ref(null);
@@ -561,6 +573,8 @@ function showCreateClientDialog() {
 		return;
 	}
 
+	updateClient.value = false;
+	updateClientData.value = null;
 	showCreateClientDialogModel.value = true;
 }
 
@@ -635,6 +649,16 @@ async function deleteClient(clientId) {
 
 	isLoading.value = false;
 	clientToDelete.value = null;
+}
+
+function showEditClientDialog(item) {
+	if (isLoading.value) {
+		return;
+	}
+
+	updateClient.value = true;
+	updateClientData.value = item;
+	showCreateClientDialogModel.value = true;
 }
 
 async function deleteSession(sessionId) {
