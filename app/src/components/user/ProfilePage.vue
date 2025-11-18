@@ -7,6 +7,7 @@
     class="mx-auto"
     style="max-width: 1200px;"
   >
+    <error-message :text="errorMsg" />
     <p class="text-h5 my-5 d-flex align-center justify-space-between">
       Settings
       <v-menu>
@@ -56,10 +57,6 @@
       class="mx-auto"
       type="article, actions"
     />
-    <v-divider
-      thickness="3"
-      class="mt-5 mb-15"
-    />
     <p class="text-h5 mb-5">
       Sessions
     </p>
@@ -83,13 +80,38 @@
       <template #item.actions="{ item }">
         <v-icon
           size="small"
-          @click="deleteUserSession(item)"
+          @click="deleteUserSession(item.id)"
         >
           {{ mdiDelete }}
         </v-icon>
       </template>
       <template #no-data>
         No other active sessions found
+      </template>
+    </v-data-table>
+    <p class="text-h5 mb-5">
+      External Sessions - OAuth 2.0
+    </p>
+    <v-data-table
+      v-model:sort-by="consentSessionSortBy"
+      class="mb-10"
+      :headers="consentSessionHeaders"
+      :items="consentSessions?consentSessions:[]"
+      :loading="consentSessionsLoading"
+    >
+      <template #item.handled_at="{ item }">
+        <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
+      </template>
+      <template #item.actions="{ item }">
+        <v-icon
+          size="small"
+          @click="deleteConsentSession(item.consent_request.consent_request_id)"
+        >
+          {{ mdiDelete }}
+        </v-icon>
+      </template>
+      <template #no-data>
+        No sessions found
       </template>
     </v-data-table>
     <v-dialog
@@ -134,7 +156,6 @@ import {
 import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
-import {handleError} from '@/utilities';
 import {
 	computed, inject, onMounted, ref, watch,
 } from 'vue';
@@ -142,6 +163,7 @@ import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 const ory = inject('ory');
 const kratosAdmin = inject('kratosadmin');
@@ -151,30 +173,39 @@ const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore, addMessage: msgStore.addMessage,
+	$route: route, $router: router, navStore, localStore, setErrorMessage(msg) {
+		errorMsg.value = msg;
+	},
 };
 
-const settingsFlow = ref(null);
-const userSessions = ref([]);
-const userSessionsLoading = ref(false);
+const errorMsg = ref('');
 const disabledForms = ref([]);
 const showAccountDeletionDialog = ref(false);
+const settingsFlow = ref(null);
+
+const userSessions = ref([]);
+const userSessionsLoading = ref(false);
 const userSessionSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
 const userSessionHeaders = [
+	{title: 'Authentication Date', key: 'authenticatedAt', align: 'start'},
+	{title: 'Expiration Date', key: 'expiresAt'},
+	{title: 'Device', key: 'userAgent'},
+	{title: 'IP Address', key: 'ipAddress'},
 	{
-		title: 'Authentication Date', key: 'authenticatedAt', align: 'start',
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
+];
+
+const consentSessions = ref([]);
+const consentSessionsLoading = ref(false);
+const consentSessionSortBy = ref([{key: 'handled_at', order: 'desc'}]);
+const consentSessionHeaders = [
 	{
-		title: 'Expiration Date', key: 'expiresAt',
+		title: 'ID', key: 'consent_request.subject', align: 'start', sortable: false,
 	},
+	{title: 'Handled At', key: 'handled_at'},
 	{
-		title: 'Device', key: 'userAgent',
-	},
-	{
-		title: 'IP Address', key: 'ipAddress',
-	},
-	{
-		title: '', key: 'actions', sortable: false,
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
 ];
 
@@ -205,6 +236,7 @@ onMounted(async () => {
 
 	await initFlow();
 	await getSessions();
+	await getConsentSessions();
 });
 
 // Functions
@@ -233,51 +265,59 @@ function getDeviceIcon(userAgent) {
 	return mdiLaptop;
 }
 
-function setSuccessMessage(msg) {
-	// Do not limit message to current route
-	msgStore.addMessage({text: msg, type: 'success', temporary: true});
-}
-
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
-
 async function deleteIdentity() {
+	errorMsg.value = '';
 	try {
-		await kratosAdmin.identity.selfDelete();
+		await kratosAdmin.identity.selfIdentitiesDelete();
 		msgStore.resetMessages();
-		setSuccessMessage('Your account was successfully deleted. Goodbye!');
+		msgStore.addMessage({text: 'Your account was successfully deleted. Goodbye!', type: 'success', temporary: true});
 		session.value = null;
 		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
 	}
 
 	showAccountDeletionDialog.value = false;
 }
 
-async function deleteUserSession(session) {
-	if (!session.id) {
+async function deleteUserSession(id) {
+	if (!id) {
 		return;
 	}
 
+	errorMsg.value = '';
+
 	try {
-		await ory.frontend.disableMySession({id: session.id});
-		userSessions.value = userSessions.value.filter(d => d.id !== session.id);
+		await ory.frontend.disableMySession({id});
+		await getSessions();
 	} catch (e) {
-		handleError(context, e);
+		errorMsg.value = e.message;
+	}
+}
+
+async function deleteConsentSession(consentId) {
+	if (!consentId) {
+		return;
+	}
+
+	errorMsg.value = '';
+
+	try {
+		await kratosAdmin.oauth.selfConsentsConsentIdDelete({consentId});
+		await getConsentSessions();
+	} catch (e) {
+		errorMsg.value = e.message;
 	}
 }
 
 async function getSessions() {
 	if (isAccountRecovery.value) {
-		// Can't get session when in account recovery
+		// Can't get session during account recovery
 		return;
 	}
 
 	userSessionsLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		// Get a maximum of 30 sessions
@@ -299,10 +339,30 @@ async function getSessions() {
 			return d;
 		});
 	} catch (e) {
-		handleError({addMessage: msgStore.addMessage, $route: route}, e);
+		errorMsg.value = e.message;
 	}
 
 	userSessionsLoading.value = false;
+}
+
+async function getConsentSessions() {
+	if (isAccountRecovery.value) {
+		// Can't get consent session during account recovery
+		return;
+	}
+
+	consentSessionsLoading.value = true;
+	errorMsg.value = '';
+
+	try {
+		const response = await kratosAdmin.oauth.selfConsentsGet();
+
+		consentSessions.value = response.oauthSessions;
+	} catch (e) {
+		errorMsg.value = e.message;
+	}
+
+	consentSessionsLoading.value = false;
 }
 
 async function initSettingsFlow() {
@@ -326,6 +386,8 @@ async function handleOrySubmitSettings(formID) {
 	if (!form || !settingsFlow.value.ui.action) {
 		return;
 	}
+
+	errorMsg.value = '';
 
 	// Disable submitting from this form
 	disabledForms.value.push(formID);
@@ -364,7 +426,7 @@ async function handleOrySubmitSettings(formID) {
 		await refreshSession();
 
 		if (response.error && response.error.reason) {
-			setErrorMessage(response.error.reason);
+			errorMsg.value = response.error.reason;
 		}
 	} catch (e) {
 		if (e.response?.ui) {
@@ -372,9 +434,9 @@ async function handleOrySubmitSettings(formID) {
 		} else {
 			handleGetFlowError(context, e, async () => {
 				await initSettingsFlow();
-				setErrorMessage('The settings flow has expired, please try again.');
+				errorMsg.value = 'The settings flow has expired, please try again.';
 			}).catch(e => {
-				setErrorMessage(e);
+				errorMsg.value = e.message;
 			});
 		}
 	}

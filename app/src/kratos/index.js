@@ -87,16 +87,26 @@ export default async function handleGetFlowError(context, error, onRefreshFlow, 
 			msg += error.response.error.reason;
 		}
 
-		context.msgStore.addMessage({
-			text: msg, type: 'error', temporary: false, category: context.$route.name,
-		});
+		if (context.setErrorMessage) {
+			context.setErrorMessage(msg);
+		} else {
+			context.msgStore.addMessage({
+				text: msg, type: 'error', temporary: false, category: context.$route.name,
+			});
+		}
+
 		return Promise.resolve();
 	}
 
 	if (error.message) {
-		context.msgStore.addMessage({
-			text: error.message, type: 'error', temporary: false, category: context.$route.name,
-		});
+		if (context.setErrorMessage) {
+			context.setErrorMessage(error.message);
+		} else {
+			context.msgStore.addMessage({
+				text: error.message, type: 'error', temporary: false, category: context.$route.name,
+			});
+		}
+
 		return Promise.resolve();
 	}
 
