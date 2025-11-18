@@ -1,0 +1,35 @@
+import pluginVue from 'eslint-plugin-vue';
+import globals from 'globals';
+import eslintJsPlugin from '@eslint/js';
+import xo from 'eslint-config-xo';
+
+// Since v0.47 xo sets the list of allowed files and does not include .vue, so we have to inject it ourselves
+xo[0].files.push('**/*.vue');
+export default [
+	...pluginVue.configs['flat/base'],
+	...pluginVue.configs['flat/recommended'],
+	...xo,
+	{
+		files: ['**/*.js', '**/*.vue'],
+		ignores: ['**/*.gitignore'],
+		rules: {
+			'vue/prefer-true-attribute-shorthand': ['error', 'always'],
+			'vue/multi-word-component-names': 'off',
+			'vue/no-boolean-default': 'error',
+			'vue/component-name-in-template-casing': ['error', 'kebab-case'],
+			'no-return-await': 'off',
+			'vue/valid-v-slot': ['error', {allowModifiers: true}],
+			...eslintJsPlugin.configs.recommended.rules,
+		},
+		languageOptions: {
+			globals: {
+				...globals.browser,
+			},
+			ecmaVersion: 2025,
+		},
+		linterOptions: {
+			reportUnusedInlineConfigs: 'error',
+			reportUnusedDisableDirectives: 'error',
+		},
+	},
+];

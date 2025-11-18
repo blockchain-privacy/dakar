@@ -1,0 +1,8 @@
+.DS_Store
+.vscode
+.idea
+*.iml
+config.yml
+build/
+log.txt
+swag

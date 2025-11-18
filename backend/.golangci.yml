@@ -1,0 +1,35 @@
+version: "2"
+run:
+  concurrency: 2
+linters:
+  enable:
+    - bodyclose
+    - errorlint
+    - gocheckcompilerdirectives
+    - gocyclo
+    - goprintffuncname
+    - gosec
+    - intrange
+    - mirror
+    - musttag
+    - nilnil
+    - perfsprint
+    - prealloc
+    - revive
+    - sloglint
+    - staticcheck
+    - testifylint
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+  exclusions:
+    warn-unused: true
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+output:
+  path-prefix: "backend/"

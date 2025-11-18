@@ -1,0 +1,21 @@
+services:
+  dgraph_db:
+    image: dgraph/standalone:v25.0.0
+    network_mode: "bridge"
+    container_name: dgraph_db
+    environment:
+      DGRAPH_ALPHA_ACL: secret-file=/dgraph/acl/secret
+    volumes:
+      - ./acl_secret:/dgraph/acl/secret
+    ports:
+      - "${CONTAINER_IP}:8080:8080"
+      - "${CONTAINER_IP}:9080:9080"
+    expose:
+      - 9080
+  bitcoin:
+    container_name: bitcoind
+    image: lncm/bitcoind:v28.0
+    entrypoint: ["bitcoind"]
+    command: -regtest -rpcuser=rpc1user -rpcpassword=1234pass -rpcport=8131 -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0 -txindex
+    ports:
+      - "${CONTAINER_IP}:8131:8131"

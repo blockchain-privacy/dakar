@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg viewBox="0 0 91.86248 60.854851" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    #g4 { fill:currentColor; stroke:currentColor; }
+  </style>
+  <g transform="translate(-549.28859,-19.89339)">
+    <g id="g4">
+      <circle
+         cx="629.09222"
+         cy="42.032669"
+         r="11.55885" />
+      <circle
+         cx="566.6795"
+         cy="37.284332"
+         r="16.890944" />
+      <circle
+         cx="606.36584"
+         cy="68.987091"
+         r="11.261142" />
+      <path
+         style="stroke-width:6"
+         d="m 563.01692,36.040662 37.65834,27.715786"
+         id="path3-3-7-6-2-2" />
+      <path
+         style="stroke-width:6"
+         d="m 609.73507,64.274734 12.24267,-13.22611"/>
+    </g>
+  </g>
+</svg>

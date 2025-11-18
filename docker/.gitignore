@@ -1,0 +1,3 @@
+.env.local
+id_token.jwks.json
+promtail-local-config.yaml

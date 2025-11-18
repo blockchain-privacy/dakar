@@ -1,0 +1,70 @@
+x-logging:
+  &default-logging
+  driver: "journald"
+  options:
+    tag: "{{.Name}}"
+
+services:
+  btc_zero:
+    image: dgraph/dgraph:v25.0.0
+    container_name: btc_zero
+    volumes:
+      - ${BTC_DGRAPH_PATH}:/dgraph
+    restart: unless-stopped
+    command: dgraph zero --my=btc_zero:5080 --telemetry "reports=false"
+    networks:
+      - dgraph_default
+
+  btc_alpha:
+    image: dgraph/dgraph:v25.0.0
+    container_name: btc_alpha
+    volumes:
+      - ${BTC_DGRAPH_PATH}:/dgraph
+    expose:
+      - 9080
+    ports:
+      - "${CONTAINER_IP}:18080:8080"
+    restart: unless-stopped
+    command: dgraph alpha --my=btc_alpha:7080 --zero=btc_zero:5080 --security "whitelist=192.168.188.0:192.168.188.255,172.16.0.0:172.31.255.255" --limit "query-edge=10000000" --telemetry "reports=false"
+    networks:
+      - dgraph_default
+
+  btc_dakar:
+    image: dakar:latest
+    container_name: btc_dakar
+    depends_on:
+      - btc_zero
+      - btc_alpha
+#      - bitcoind
+    environment:
+      - DEV_GRAPH_LIMIT=10000
+    ports:
+      - '9081:8081'
+      - '9481:8481'
+      - '9085:8085'
+#    command: -ignoresafeguard --config /data/config.yml
+#    stdin_open: true # docker run -i
+#    tty: true        # docker run -t
+    volumes:
+      - ./btc_dakar/config.yml:/data/config.yml
+    networks:
+      - dgraph_default
+    stop_grace_period: 2m
+    logging: *default-logging
+
+#  bitcoind:
+#    container_name: bitcoind
+#    image: lncm/bitcoind:v28.0
+#    entrypoint: ["bitcoind"]
+#    volumes:
+#      - ${BITCOIN_PATH}:/data/.bitcoin
+#    command: -rpcuser=rpc1user -rpcpassword=1234pass -rpcport=8332 -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0 -txindex=1
+#    ports:
+#      - "${CONTAINER_IP}:8332:8332"
+#    networks:
+#      - dgraph_default
+#    stop_grace_period: 2m
+#    logging: *default-logging
+
+networks:
+  dgraph_default:
