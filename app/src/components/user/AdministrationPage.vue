@@ -17,7 +17,7 @@
           :search="search"
           :loading="isLoading || !identities"
           item-key="id"
-          class="my-10 elevation-4"
+          class="mb-10 elevation-4"
         >
           <template #top>
             <v-toolbar flat>
@@ -40,16 +40,16 @@
               >
                 <v-icon>{{ mdiRefresh }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
-                  Refresh
+                  Refresh All
                 </div>
               </v-btn>
               <v-btn
                 variant="outlined"
-                @click="showCreateDialog"
+                @click="showCreateIdentityDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
-                  Create Identity
+                  Create
                 </div>
               </v-btn>
             </v-toolbar>
@@ -214,6 +214,14 @@
                 single-line
                 hide-details
               />
+              <v-spacer />
+              <v-btn
+                variant="outlined"
+                @click="showCreateClientDialog"
+              >
+                <v-icon :icon="mdiPlus" />
+                Create
+              </v-btn>
             </v-toolbar>
           </template>
           <template #item.updated_at="{ item }">
@@ -256,6 +264,11 @@
           :create-new-user="createNewUser"
           :identity="editedItem"
           @saved="refreshUsers()"
+        />
+        <create-client-dialog
+          v-if="showCreateClientDialogModel"
+          v-model="showCreateClientDialogModel"
+          @created="refreshUsers()"
         />
         <deletion-dialog
           v-if="identityToDelete"
@@ -319,7 +332,7 @@
 <script setup>
 import {
 	mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
-	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
+	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical, mdiPlus,
 } from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
 import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
@@ -328,6 +341,7 @@ import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import ErrorMessage from '@/components/common/ErrorMessage.vue';
 import DeletionDialog from '@/components/user/DeletionDialog.vue';
+import CreateClientDialog from '@/components/user/CreateClientDialog.vue';
 
 const kratosAdmin = inject('kratosadmin');
 const route = useRoute();
@@ -340,6 +354,7 @@ const showIdentityPropertyDialogModel = ref(false);
 const showDeleteClientDialogModel = ref(false);
 const showDeleteConsentDialogModel = ref(false);
 const showDeleteSessionDialogModel = ref(false);
+const showCreateClientDialogModel = ref(false);
 
 const identityToDelete = ref(null);
 const clientToDelete = ref(null);
@@ -527,10 +542,22 @@ function showEditDialog(item) {
 	showCreateIdentityDialogModel.value = true;
 }
 
-function showCreateDialog() {
+function showCreateIdentityDialog() {
+	if (isLoading.value) {
+		return;
+	}
+
 	createNewUser.value = true;
 	editedItem.value = {...defaultItem.value};
 	showCreateIdentityDialogModel.value = true;
+}
+
+function showCreateClientDialog() {
+	if (isLoading.value) {
+		return;
+	}
+
+	showCreateClientDialogModel.value = true;
 }
 
 function showDeleteIdentityDialog(identity) {
