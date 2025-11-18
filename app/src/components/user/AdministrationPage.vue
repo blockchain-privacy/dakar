@@ -236,6 +236,9 @@
           <template #item.grant_types="{ item }">
             <span>{{ item.grant_types.join(', ') }}</span>
           </template>
+          <template #item.response_types="{ item }">
+            <span>{{ item.response_types.join(', ') }}</span>
+          </template>
           <template #item.actions="{ item }">
             <v-menu>
               <template #activator="{ props }">
@@ -426,6 +429,7 @@ const oauthClientsHeaders = [
 	{title: 'Redirect URIs', key: 'redirect_uris'},
 	{title: 'Skip Consent', key: 'skip_consent'},
 	{title: 'Created At', key: 'created_at'},
+	{title: 'Response Types', key: 'response_types'},
 	{title: 'Updated At', key: 'updated_at'},
 	{
 		title: '', key: 'actions', sortable: false, align: 'end',

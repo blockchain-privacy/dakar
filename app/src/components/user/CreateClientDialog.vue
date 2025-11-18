@@ -9,37 +9,52 @@
         Create OAuth 2.0 Client
       </v-card-title>
       <v-card-text>
+        <v-btn
+          variant="outlined"
+          class="my-2"
+          @click="handleApplyDeviceAuthPreset"
+        >
+          Apply Device Auth Preset
+        </v-btn>
         <v-text-field
           v-model="clientDetails.client_name"
           label="Name"
         />
-        <v-text-field
+        <v-select
           v-model="clientDetails.scope"
+          multiple
+          chips
           label="Scope"
-          hint="Separate multiple scopes by comma"
+          :items="scopeModel"
         />
-        <v-text-field
+        <v-select
           v-model="clientDetails.grant_types"
+          multiple
+          chips
           label="Grant Types"
-          hint="Separate multiple types by comma"
+          :items="grantTypesModel"
         />
         <v-text-field
           v-model="clientDetails.redirect_uris"
           label="Redirect URIs"
           hint="Separate multiple URIs by comma"
         />
-        <v-text-field
+        <v-select
           v-model="clientDetails.response_types"
+          multiple
+          chips
           label="Response Types"
-          hint="Separate multiple types by comma"
+          :items="responseTypesModel"
         />
-        <v-text-field
+        <v-select
           v-model="clientDetails.token_endpoint_auth_method"
           label="Token Endpoint Auth Method"
+          :items="tokenEndPointAuthModel"
         />
         <v-checkbox
           v-model="clientDetails.skip_consent"
           label="Skip Consent"
+          hide-details
         />
       </v-card-text>
       <v-card-actions>
@@ -70,16 +85,20 @@ const emit = defineEmits(['created']);
 const isLoading = ref(false);
 const errorMsg = ref('');
 
+const tokenEndPointAuthModel = ref(['client_secret_post', 'client_secret_basic', 'none']);
+const responseTypesModel = ref(['code', 'id_token', 'token']);
+const grantTypesModel = ref(['authorization_code', 'implicit', 'client_credentials', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code']);
+const scopeModel = ref(['offline_access', 'offline', 'openid']);
 const clientDetails = ref({
 	// eslint-disable-next-line camelcase
 	client_name: '',
-	scope: '',
+	scope: [],
 	// eslint-disable-next-line camelcase
-	grant_types: '',
+	grant_types: [],
 	// eslint-disable-next-line camelcase
 	redirect_uris: '',
 	// eslint-disable-next-line camelcase
-	response_types: '',
+	response_types: [],
 	// eslint-disable-next-line camelcase
 	token_endpoint_auth_method: '',
 	// eslint-disable-next-line camelcase
@@ -103,14 +122,10 @@ function getParams() {
 	const clone = structuredClone(toRaw(clientDetails.value));
 	// eslint-disable-next-line camelcase
 	clone.client_name = clone.client_name.trim();
-	// Scope must be separated by space: remove all spaces, split by comma, remove empty items and join by space
-	clone.scope = clone.scope.replaceAll(' ', '').split(',').filter(d => d).join(' ');
-	// eslint-disable-next-line camelcase
-	clone.grant_types = clone.grant_types.replaceAll(' ', '').split(',').filter(d => d);
+	// Scope must be separated by space
+	clone.scope = clone.scope.join(' ');
 	// eslint-disable-next-line camelcase
 	clone.redirect_uris = clone.redirect_uris.replaceAll(' ', '').split(',').filter(d => d);
-	// eslint-disable-next-line camelcase
-	clone.response_types = clone.response_types.replaceAll(' ', '').split(',').filter(d => d);
 
 	return clone;
 }
@@ -120,8 +135,6 @@ async function createClient() {
 	if (!params) {
 		return;
 	}
-
-	console.log(params);
 
 	isLoading.value = true;
 	try {
@@ -137,6 +150,18 @@ async function createClient() {
 
 	isLoading.value = false;
 	model.value = false;
+}
+
+function handleApplyDeviceAuthPreset() {
+	clientDetails.value.scope = ['openid'];
+	// eslint-disable-next-line camelcase
+	clientDetails.value.grant_types = ['authorization_code', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code'];
+	// eslint-disable-next-line camelcase
+	clientDetails.value.response_types = ['code', 'id_token'];
+	// eslint-disable-next-line camelcase
+	clientDetails.value.token_endpoint_auth_method = 'none';
+	// eslint-disable-next-line camelcase
+	clientDetails.value.skip_consent = true;
 }
 
 </script>
