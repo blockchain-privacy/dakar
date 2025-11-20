@@ -21,6 +21,13 @@
         >
           Apply Device Auth Preset
         </v-btn>
+        <v-btn
+          variant="outlined"
+          class="my-2"
+          @click="handleApplyAuthCodeFlowPreset"
+        >
+          Apply Auth Code Preset
+        </v-btn>
         <div
           v-if="isEdit && client.client_id"
           class="text-caption my-2 text-center"
@@ -214,12 +221,20 @@ async function createClient() {
 }
 
 function handleApplyDeviceAuthPreset() {
-	clientDetails.value.scope = ['openid'];
+	clientDetails.value.scope = ['openid', 'offline_access'];
 	clientDetails.value.grantTypes = [
 		'authorization_code',
 		'refresh_token',
 		'urn:ietf:params:oauth:grant-type:device_code',
 	];
+	clientDetails.value.responseTypes = ['code', 'id_token'];
+	clientDetails.value.tokenEndpointAuthMethod = 'none';
+	clientDetails.value.skipConsent = true;
+}
+
+function handleApplyAuthCodeFlowPreset() {
+	clientDetails.value.scope = ['offline_access'];
+	clientDetails.value.grantTypes = ['authorization_code', 'refresh_token'];
 	clientDetails.value.responseTypes = ['code', 'id_token'];
 	clientDetails.value.tokenEndpointAuthMethod = 'none';
 	clientDetails.value.skipConsent = true;
