@@ -99,6 +99,9 @@
       :items="consentSessions?consentSessions:[]"
       :loading="consentSessionsLoading"
     >
+      <template #item.grant_scope="{ item }">
+        <span>{{ item.grant_scope.join(', ') }}</span>
+      </template>
       <template #item.handled_at="{ item }">
         <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
       </template>
@@ -200,9 +203,8 @@ const consentSessions = ref([]);
 const consentSessionsLoading = ref(false);
 const consentSessionSortBy = ref([{key: 'handled_at', order: 'desc'}]);
 const consentSessionHeaders = [
-	{
-		title: 'ID', key: 'consent_request.subject', align: 'start', sortable: false,
-	},
+	{title: 'Client Name', key: 'consent_request.client.client_name', align: 'start'},
+	{title: 'Permissions', key: 'grant_scope'},
 	{title: 'Handled At', key: 'handled_at'},
 	{
 		title: '', key: 'actions', sortable: false, align: 'end',
