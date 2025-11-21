@@ -142,6 +142,12 @@ function addScopeMeta(scopes) {
 					description: 'Allows the requesting application to refresh the authentication session.',
 					icon: mdiRefresh,
 				};
+			case 'offline_access':
+				return {
+					title: scope,
+					description: 'Allows the requesting application to refresh the authentication session.',
+					icon: mdiRefresh,
+				};
 			default:
 				return {title: scope};
 		}
