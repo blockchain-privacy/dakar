@@ -30,7 +30,6 @@
       - PUT
       - HEAD
   authenticators:
-    - handler: oauth2_introspection
     - handler: cookie_session
   authorizer:
     handler: remote_json
@@ -60,7 +59,6 @@
       - PUT
       - HEAD
   authenticators:
-    - handler: oauth2_introspection
     - handler: cookie_session
   authorizer:
     handler: remote_json
@@ -115,6 +113,39 @@
     handler: allow
   mutators:
     - handler: noop
+
+- id: "ory:dakar_dash_mcp_protected"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8666"
+    strip_path: "/dashmcp"
+  match:
+    url: "http://localhost:4455/dashmcp"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: oauth2_introspection
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.dakar_dash | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_dash_protected"
+        }
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Extra.identity.id }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_dash_user }}"
 
 - id: "ory:dakar_dash_protected"
   upstream:

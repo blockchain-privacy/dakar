@@ -10,12 +10,13 @@ import (
 	"backend/external"
 	"errors"
 	"fmt"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"net/http"
 	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type RPCConfig struct {
@@ -48,6 +49,11 @@ type UserModule struct {
 	Port   uint `yaml:"port"`
 }
 
+type MCPModule struct {
+	Active bool `yaml:"active"`
+	Port   uint `yaml:"port"`
+}
+
 type Classifier struct {
 	Active         bool `yaml:"active"`
 	TargetDuration int  `yaml:"targetDuration"`
@@ -62,6 +68,7 @@ type ModulesConfig struct {
 	HTTP       APIModule     `yaml:"api"`
 	Metrics    MetricsModule `yaml:"metrics"`
 	User       UserModule    `yaml:"user"`
+	MCP        MCPModule     `yaml:"mcp"`
 	Crawler    CrawlerModule `yaml:"crawler"`
 	FMI        FMIModule     `yaml:"fmi"`
 	Classifier Classifier    `yaml:"classifier"`
@@ -71,7 +78,7 @@ type ModulesConfig struct {
 
 type Config struct {
 	// BlockchainMode controls various config parameters (see config.go).
-	// Allowed values: "Dash" and "Bitcoin"
+	// Allowed values: "dash" and "btc" (see constants module)
 	BlockchainMode string         `yaml:"blockchainMode"`
 	RPC            RPCConfig      `yaml:"rpc"`
 	Database       DatabaseConfig `yaml:"database"`
@@ -96,6 +103,10 @@ var defaultConfig = Config{
 		User: UserModule{
 			Active: true,
 			Port:   8085,
+		},
+		MCP: MCPModule{
+			Active: true,
+			Port:   8666,
 		},
 		Metrics: MetricsModule{
 			Active: true,
