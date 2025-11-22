@@ -120,7 +120,7 @@ const grantTypesModel = ref([
 	'refresh_token',
 	'urn:ietf:params:oauth:grant-type:device_code',
 ]);
-const scopeModel = ref(['offline_access', 'offline', 'openid']);
+const scopeModel = ref(['offline_access', 'offline', 'openid', 'dakar']);
 const clientDetails = ref({
 	clientName: '',
 	scope: [],

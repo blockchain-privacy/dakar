@@ -4,10 +4,11 @@ serve:
 
 urls:
   self:
-    issuer: http://localhost:8082/
+    issuer: http://localhost:8082/hydra/
   consent: http://localhost:8082/oauth/consent
   login: http://localhost:8082/oauth/login
   logout: http://localhost:8082/oauth/logout
+  error: http://localhost:8082/oauth/error
   post_logout_redirect: http://localhost:8082/
   device:
     verification: http://localhost:8082/oauth/verification
@@ -22,8 +23,14 @@ secrets:
 
 webfinger:
   oidc_discovery:
-    client_registration_url: http://localhost:4444/oauth2/register
-
+    client_registration_url: http://localhost:8082/hydra/oauth2/register
+    jwks_url: http://localhost:8082/hydra/.well-known/jwks.json
+    token_url: http://localhost:8082/hydra/oauth2/token
+    auth_url: http://localhost:8082/hydra/oauth2/auth
+    device_authorization_url: http://localhost:8082/hydra/oauth2/device/auth
+    userinfo_url: http://localhost:8082/hydra/userinfo
+    supported_scope:
+      - dakar
 oidc:
   subject_identifiers:
     supported_types:
