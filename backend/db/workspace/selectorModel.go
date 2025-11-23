@@ -192,3 +192,12 @@ type Attribution struct {
 	Tag      string `json:"tag,omitempty"`
 	IsPublic bool   `json:"isPublic"`
 }
+
+type NodeType struct {
+	TransactionType string   `json:"Transaction.type,omitempty"`
+	SelectorOptions string   `json:"Selector.options,omitempty"`
+	SelectorType    string   `json:"Selector.type,omitempty"`
+	Type            []string `json:"dgraph.type,omitempty"`
+	// filled from selector options, if applicable
+	HeuristicType string `json:"-"`
+}

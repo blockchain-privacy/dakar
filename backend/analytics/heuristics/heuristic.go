@@ -465,6 +465,16 @@ func IsConfigValid(config heuristics.Options) error {
 	return clonedHeuristic.SetConfig(c)
 }
 
+// GetValidParentTypes returns parent types that are allowed for the given heuristic type.
+func GetValidParentTypes(heuristicType string) ([]string, error) {
+	constructor, ok := ConstructorMap[heuristicType]
+	if !ok {
+		return nil, serror.FromStrWithContext("invalid heuristic type", "type", heuristicType)
+	}
+
+	return constructor().GetDescriptor().AllowedParents, nil
+}
+
 // Run starts the execution of the given heuristic executor.
 func (hx Executor) Run(ctx context.Context, dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
 	heuristicClusters, err := hx.thisHeuristic.Exec(ctx, dgraph, g, hx.rootUID, nil)

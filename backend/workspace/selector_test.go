@@ -118,13 +118,22 @@ func Test_isValidParent(t *testing.T) {
 	}, userUID1, workspaceUID1)
 	require.NoError(t, err)
 
+	nodeType := workspace.NodeType{
+		Type: []string{workspace.SelectorDType},
+	}
+
+	// invalid because node type is empty
+	isValid, err := isValidParent(ctx, dbHandle, selectorUID1, workspace.NodeType{}, workspaceUID1, userUID1)
+	require.NoError(t, err)
+	require.False(t, isValid)
+
 	// invalid because wrong status
-	isValid, err := isValidParent(ctx, dbHandle, selectorUID1, workspaceUID1, userUID1)
+	isValid, err = isValidParent(ctx, dbHandle, selectorUID1, nodeType, workspaceUID1, userUID1)
 	require.NoError(t, err)
 	require.False(t, isValid)
 
 	// invalid because wrong status + wrong user
-	isValid, err = isValidParent(ctx, dbHandle, selectorUID1, workspaceUID2, userUID2)
+	isValid, err = isValidParent(ctx, dbHandle, selectorUID1, nodeType, workspaceUID2, userUID2)
 	require.NoError(t, err)
 	require.False(t, isValid)
 
@@ -135,12 +144,12 @@ func Test_isValidParent(t *testing.T) {
 	}, userUID1, workspaceUID1)
 	require.NoError(t, err)
 
-	isValid, err = isValidParent(ctx, dbHandle, selectorUID2, workspaceUID1, userUID1)
+	isValid, err = isValidParent(ctx, dbHandle, selectorUID2, nodeType, workspaceUID1, userUID1)
 	require.NoError(t, err)
 	require.True(t, isValid)
 
 	// invalid because wrong user
-	isValid, err = isValidParent(ctx, dbHandle, selectorUID2, workspaceUID2, userUID2)
+	isValid, err = isValidParent(ctx, dbHandle, selectorUID2, nodeType, workspaceUID2, userUID2)
 	require.NoError(t, err)
 	require.False(t, isValid)
 }

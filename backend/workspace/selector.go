@@ -16,10 +16,16 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"slices"
 	"strconv"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"
+)
+
+var (
+	errInvalidParent  = errors.New("invalid selector parent")
+	errInvalidOptions = errors.New("invalid selector option")
+	errInvalidType    = errors.New("invalid selector type")
 )
 
 type Options interface {
@@ -148,13 +154,12 @@ func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.
 }
 
 // isValidParent checks if the parent is a selector, if it belongs to the user and if it was successfully executed
-func isValidParent(ctx context.Context, dgraph external.Database, selectorParent string, workspaceUID string, userUID string) (bool, error) {
-	parentType, err := db.GetTypeByUID(ctx, dgraph, selectorParent)
-	if err != nil {
-		return false, err
+func isValidParent(ctx context.Context, dgraph external.Database, selectorParent string, selectorParentType workspace.NodeType, workspaceUID string, userUID string) (bool, error) {
+	if selectorParentType.Type == nil {
+		return false, serror.FromStr("selector parent type not set")
 	}
 
-	if parentType != workspace.SelectorDType {
+	if selectorParentType.Type[0] != workspace.SelectorDType {
 		return true, nil
 	}
 
@@ -171,15 +176,39 @@ func isValidParent(ctx context.Context, dgraph external.Database, selectorParent
 	return status == workspace.StatusSuccess, nil
 }
 
-// AddSelector adds a new selector to the workspace. It returns UID the updated workspace.
-func AddSelector[O Options](ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options O,
-	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, []workspace.Node, error) {
+// returns true if any item of parentTypes is in allowedParents
+func isParentTypeValid(allowedParents []string, parentTypes []string) bool {
+	if len(allowedParents) == 0 {
+		return false
+	}
+
+	for _, parentType := range parentTypes {
+		if slices.Contains(allowedParents, parentType) {
+			return true
+		}
+	}
+	return false
+}
+
+// checkOptions validates the options and attaches them to a new selector.
+// Validates selector type, selector options and selector parent type.
+func checkOptions[O Options](ctx context.Context, dgraph external.Database, options O,
+	selectorType string, selectorParent string, workspaceUID string, userUID string) (*workspace.Node, error) {
 	if !workspace.IsTypeValid(selectorType) {
-		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "type", selectorType)
+		return nil, serror.New(errInvalidType)
 	}
 
 	if !options.IsValid(selectorParent != "") {
-		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+		return nil, serror.New(errInvalidOptions)
+	}
+
+	var parentNodeType *workspace.NodeType
+	if selectorParent != "" {
+		var err error
+		parentNodeType, err = workspace.GetNodeType(ctx, dgraph, selectorParent)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	newNode := workspace.Node{
@@ -193,38 +222,74 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	case workspace.TypeHeuristic:
 		opt, ok := any(options).(dbHeuristic.Options)
 		if !ok {
-			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+			return nil, serror.New(errInvalidOptions)
 		}
 
 		if err := heuristics.IsConfigValid(opt); err != nil {
-			return "", nil, fmt.Errorf("%w: %w", err, db.ErrInvalidRequestArgument)
+			return nil, err
+		}
+
+		validParentTypes, err := heuristics.GetValidParentTypes(opt.Type)
+		if err != nil {
+			return nil, err
+		}
+
+		// a parent must be present and its parent must be a transaction or another heuristic with the matching type
+		if parentNodeType == nil || !isParentTypeValid(validParentTypes,
+			[]string{parentNodeType.TransactionType, parentNodeType.HeuristicType}) {
+			return nil, serror.New(errInvalidParent)
 		}
 
 		newNode.HeuristicOptions = &opt
 	case workspace.TypeTxProp:
 		opt, ok := any(options).(workspace.TxPropOptions)
 		if !ok {
-			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+			return nil, serror.New(errInvalidOptions)
 		}
+
+		// if a parent is present, it must be a selector
+		if parentNodeType != nil && parentNodeType.Type != nil &&
+			!isParentTypeValid([]string{workspace.SelectorDType}, []string{parentNodeType.Type[0]}) {
+			return nil, serror.New(errInvalidParent)
+		}
+
 		newNode.TxPropOptions = &opt
 	case workspace.TypeTxGraph:
 		opt, ok := any(options).(workspace.TxGraphOptions)
 		if !ok {
-			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+			return nil, serror.New(errInvalidOptions)
 		}
+
+		// a parent must be present and dgraph type must be 'Transaction'
+		if parentNodeType == nil || parentNodeType.Type == nil ||
+			!isParentTypeValid([]string{"Transaction"}, []string{parentNodeType.Type[0]}) {
+			return nil, serror.New(errInvalidParent)
+		}
+
 		newNode.TxGraphOptions = &opt
 	default:
-		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "options", options, "type", selectorType)
+		return nil, serror.New(errInvalidOptions)
 	}
 
-	if selectorParent != "" {
-		isValid, err := isValidParent(ctx, dgraph, selectorParent, workspaceUID, userUID)
+	if parentNodeType != nil {
+		isValid, err := isValidParent(ctx, dgraph, selectorParent, *parentNodeType, workspaceUID, userUID)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 		if !isValid {
-			return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument, "parent", selectorParent)
+			return nil, serror.New(errInvalidParent)
 		}
+	}
+	return &newNode, nil
+}
+
+// AddSelector adds and validates a new selector to the workspace. It returns the UID of the updated workspace.
+func AddSelector[O Options](ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options O,
+	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, []workspace.Node, error) {
+	newNode, err := checkOptions(ctx, dgraph, options, selectorType, selectorParent, workspaceUID, userUID)
+	if err != nil {
+		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument,
+			"options", options, "type", selectorType, "parent", selectorParent)
 	}
 
 	optionStr, err := json.Marshal(options)
@@ -261,7 +326,7 @@ func AddSelector[O Options](ctx context.Context, dgraph external.Database, works
 	}
 
 	// add node
-	w.Nodes = append(w.Nodes, newNode)
+	w.Nodes = append(w.Nodes, *newNode)
 
 	if err = encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, w.Nodes, w.ClusterHeight); err != nil {
 		return "", nil, err
