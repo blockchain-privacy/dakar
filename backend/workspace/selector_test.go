@@ -124,7 +124,7 @@ func Test_isValidParent(t *testing.T) {
 
 	// invalid because node type is empty
 	isValid, err := isValidParent(ctx, dbHandle, selectorUID1, workspace.NodeType{}, workspaceUID1, userUID1)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.False(t, isValid)
 
 	// invalid because wrong status
