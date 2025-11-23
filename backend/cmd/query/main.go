@@ -42,13 +42,6 @@ type PrivacyChartModule struct {
 	Directory string `yaml:"directory"`
 }
 
-type ExclusionSimulationModule struct {
-	Active            bool   `yaml:"active"`
-	UserUID           string `yaml:"userUID"`
-	LookBackTimeHours int    `yaml:"lookBackTimeHours"`
-	NodeID            string `yaml:"nodeID"`
-}
-
 type StatsModule struct {
 	Active                 bool   `yaml:"active"`
 	Filename               string `yaml:"filename"`
@@ -126,7 +119,6 @@ type Config struct {
 	PrivacyCharts         PrivacyChartModule          `yaml:"privacyCharts"`
 	UniqueAddresses       UniqueAddressesModule       `yaml:"uniqueAddresses"`
 	TimestampAnalytics    TimestampAnalyticsModule    `yaml:"timestampAnalytics"`
-	ExclusionSimulations  ExclusionSimulationModule   `yaml:"exclusionSimulations"`
 	OriginGap             OriginGapModule             `yaml:"originGap"`
 	ExportBlocks          ExportBlocksModule          `yaml:"exportBlocks"`
 	ExportTransactions    ExportTransactionsModule    `yaml:"exportTransactions"`
@@ -197,7 +189,6 @@ func main() {
 	var g *graph.ReversibleGraph
 
 	if cfg.TimestampAnalytics.Active ||
-		cfg.ExclusionSimulations.Active ||
 		cfg.OriginGap.Active ||
 		cfg.DestinationCount.Active ||
 		cfg.HeuristicAnalysis.Active {
@@ -246,11 +237,6 @@ func main() {
 
 	if cfg.TimestampAnalytics.Active {
 		doDestinationTimestampAnalysis(g, cfg.TimestampAnalytics.TransactionType, cfg.TimestampAnalytics.Filename)
-	}
-
-	if cfg.ExclusionSimulations.Active {
-		doSimulation(ctx, dgraph, g, cfg.ExclusionSimulations.NodeID,
-			cfg.ExclusionSimulations.UserUID, cfg.ExclusionSimulations.LookBackTimeHours)
 	}
 
 	if cfg.OriginGap.Active {
