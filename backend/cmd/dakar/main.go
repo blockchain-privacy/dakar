@@ -331,7 +331,7 @@ func main() {
 	workspaceMutex := workspace.NewMutex()
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
 	graphWrapper.RegisterMetrics(prometheus.DefaultRegisterer)
-	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper)
+	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper, 5)
 	w.RegisterMetrics(prometheus.DefaultRegisterer)
 
 	var classifierStarted bool

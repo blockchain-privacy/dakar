@@ -11,6 +11,7 @@ import (
 	"backend/external"
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,6 +32,11 @@ type Work interface {
 	Run(context.Context, *Mutex, external.Database, *graph.Wrapper) error
 }
 
+type workItem struct {
+	work Work
+	done chan struct{}
+}
+
 // Worker works on the data defined in Work
 type Worker struct {
 	jobsAdded     prometheus.Counter
@@ -44,15 +50,29 @@ type Worker struct {
 	loopInterval time.Duration
 
 	workspaceMutex *Mutex
+
+	// workQueue is a channel which receives workItem. Items are run via workers.
+	// This method of adding Work should only be used for ephemeral items, because if the server is shutdown the queue is lost.
+	// For Work packages which should be persisted add them as selectors, that are picked up via GetWork().
+	workQueue chan workItem
+
+	// workerCount is the number of workers that work on workQueue
+	workerCount int
+
+	// disableDatabaseWork disables the worker which periodically retrieves selectors for the database.
+	// Intended for testing.
+	disableDatabaseWork bool
 }
 
 // NewWorker constructs a new Worker
-func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper) *Worker {
+func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper, workerCount int) *Worker {
 	return &Worker{
 		graphWrapper:   g,
 		db:             c,
 		loopInterval:   time.Second * 5,
 		workspaceMutex: m,
+		workQueue:      make(chan workItem, 20),
+		workerCount:    workerCount,
 	}
 }
 
@@ -82,40 +102,79 @@ func (w *Worker) SetLoopInterval(loopInterval time.Duration) {
 
 // Start starts the worker. To stop the worker cancel the context.
 func (w *Worker) Start(ctx context.Context) {
-	ticker := time.NewTicker(w.loopInterval)
-	defer ticker.Stop()
-mainLoop:
-	for {
-		select {
-		case <-ctx.Done():
-			info("stopping Work")
-			break mainLoop
-		case <-ticker.C:
-			// check if transaction graph is ready
-			if !w.graphWrapper.IsTransactionGraphLoaded() {
-				continue
-			}
+	wg := sync.WaitGroup{}
+	for range w.workerCount {
+		wg.Go(func() { w.startInternalWorker(ctx) })
+	}
 
-			items, err := GetWork(ctx, w.db)
-			if err != nil {
-				warn(err)
-				continue
-			}
-
-			w.jobsAdded.Add(float64(len(items)))
-
-			for _, work := range items {
-				workContext, cancel := db.GetTaskContext()
-				if err := work.Run(workContext, w.workspaceMutex, w.db, w.graphWrapper); err != nil {
-					warn(err)
-					w.jobsError.Inc()
+	if !w.disableDatabaseWork {
+		ticker := time.Tick(w.loopInterval)
+	mainLoop:
+		for {
+			select {
+			case <-ctx.Done():
+				info("stopping Work")
+				break mainLoop
+			case <-ticker:
+				// check if transaction graph is ready
+				if !w.graphWrapper.IsTransactionGraphLoaded() {
+					continue
 				}
-				cancel()
 
-				w.jobsCompleted.Inc()
+				items, err := GetWork(ctx, w.db)
+				if err != nil {
+					warn(err)
+					continue
+				}
+
+				w.jobsAdded.Add(float64(len(items)))
+
+				for _, work := range items {
+					w.doWork(work)
+				}
 			}
 		}
 	}
+
+	wg.Wait()
+}
+
+// AddWork returns true and a channel that returns, if the given Work item was added to the queue.
+func (w *Worker) AddWork(ctx context.Context, work Work) (chan struct{}, bool) {
+	ch := make(chan struct{}, 1)
+	select {
+	case w.workQueue <- workItem{work: work, done: ch}:
+		return ch, true
+	case <-ctx.Done():
+	}
+
+	return nil, false
+}
+
+// startInternalWorker starts a worker that runs work from the workQueue
+func (w *Worker) startInternalWorker(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case item := <-w.workQueue:
+			w.jobsAdded.Add(1)
+			w.doWork(item.work)
+			item.done <- struct{}{}
+		}
+	}
+}
+
+// doWork runs a Work item
+func (w *Worker) doWork(work Work) {
+	workContext, cancel := db.GetTaskContext()
+	if err := work.Run(workContext, w.workspaceMutex, w.db, w.graphWrapper); err != nil {
+		warn(err)
+		w.jobsError.Inc()
+	}
+	cancel()
+
+	w.jobsCompleted.Inc()
 }
 
 // GetWork checks the database for not yet executed selectors, and constructs Work if any were found.

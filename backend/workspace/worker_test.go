@@ -9,6 +9,7 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/db/workspace"
+	"backend/external"
 	"context"
 	"sync"
 	"testing"
@@ -19,12 +20,12 @@ import (
 )
 
 func TestNewWorker(t *testing.T) {
-	w := NewWorker(NewMutex(), nil, nil)
+	w := NewWorker(NewMutex(), nil, nil, 0)
 	require.NotNil(t, w)
 }
 
 func TestWorker_SetLoopInterval(_ *testing.T) {
-	w := NewWorker(NewMutex(), nil, nil)
+	w := NewWorker(NewMutex(), nil, nil, 0)
 	w.SetLoopInterval(1)
 	w.SetLoopInterval(time.Second * 100)
 }
@@ -76,7 +77,7 @@ func TestWorker_work(t *testing.T) {
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 	require.NoError(t, wrapper.LoadGraphs(graph.NewDashConfig()))
 
-	w := NewWorker(NewMutex(), dbHandle, wrapper)
+	w := NewWorker(NewMutex(), dbHandle, wrapper, 0)
 	w.RegisterMetrics(prometheus.NewRegistry())
 	w.SetLoopInterval(1)
 
@@ -101,6 +102,61 @@ func TestWorker_work(t *testing.T) {
 
 		// prevent infinite loop in case something went wrong
 		if time.Since(now) > time.Second*30 {
+			t.Error("worker took to long to finish work")
+			break
+		}
+	}
+
+	// stop worker
+	cancel()
+	wg.Wait()
+}
+
+type counterWork struct {
+}
+
+func (p *counterWork) Run(context.Context, *Mutex, external.Database, *graph.Wrapper) error {
+	return nil
+}
+
+func TestAddWork(t *testing.T) {
+	w := NewWorker(NewMutex(), nil, nil, 5)
+	w.disableDatabaseWork = true
+	w.RegisterMetrics(prometheus.NewRegistry())
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	wg := sync.WaitGroup{}
+	wg.Go(func() { w.Start(ctx) })
+
+	// queue work
+	const workQueueItems = 200
+	channels := make([]chan struct{}, workQueueItems)
+	wg2 := sync.WaitGroup{}
+	wg2.Go(func() {
+		for i := range workQueueItems {
+			ch, ok := w.AddWork(ctx, &counterWork{})
+			if !ok {
+				t.Error("couldn't add work")
+				return
+			}
+
+			channels[i] = ch
+		}
+	})
+
+	// wait for queuing to be finished
+	wg2.Wait()
+	ticker := time.Tick(time.Second * 30)
+	for _, ch := range channels {
+		select {
+		case <-ch:
+			// wait for all work items to be done
+			continue
+
+		case <-ticker:
+			// prevent infinite loop in case something went wrong
 			t.Error("worker took to long to finish work")
 			break
 		}

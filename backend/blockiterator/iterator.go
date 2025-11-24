@@ -192,14 +192,13 @@ func StartIteration(iterator BlockIterator, targetIterationDuration time.Duratio
 // if an interrupt was received, returns true.
 func waitForNextDBBlockID(it BlockIterator) (bool, error) {
 	ctx := it.Props().Context
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
+	ticker := time.Tick(time.Second * 5)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return true, nil
-		case <-ticker.C:
+		case <-ticker:
 			// if iterator state is not empty anymore
 			if !it.Empty() {
 				return false, nil
