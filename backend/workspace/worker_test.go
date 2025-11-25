@@ -121,7 +121,7 @@ func (p *counterWork) Run(context.Context, *Mutex, external.Database, *graph.Wra
 
 func TestAddWork(t *testing.T) {
 	w := NewWorker(NewMutex(), nil, nil, 5)
-	w.disableDatabaseWorker = true
+	w.SetWaitForInMemoryGraph(false)
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	ctx, cancel := context.WithCancel(t.Context())

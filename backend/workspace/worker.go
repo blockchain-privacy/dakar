@@ -52,29 +52,27 @@ type Worker struct {
 	workspaceMutex *Mutex
 
 	// workQueue is a channel which receives workItem. Items are run via workers.
-	// This method of adding Work should only be used for ephemeral items, because if the server is shutdown the queue is lost.
-	// For Work packages which should be persisted add them as selectors, that are picked up via GetWork().
 	workQueue chan workItem
 
 	// workerCount is the number of workers that work on workQueue
 	workerCount int
 
-	// disableDatabaseWorker disables the worker which periodically retrieves selectors for the database.
-	// The generic workers which work on the workQueue are still active.
-	// They might panic if the graph wrapper or db handle is not set.
+	// waitForInMemoryGraph makes Start() wait until the in-memory graph is loaded, before starting the workers.
+	// It also enables the selector search worker. If disabled, workers might panic if the graph wrapper is not set.
 	// Intended for testing.
-	disableDatabaseWorker bool
+	waitForInMemoryGraph bool
 }
 
 // NewWorker constructs a new Worker
 func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper, workerCount int) *Worker {
 	return &Worker{
-		graphWrapper:   g,
-		db:             c,
-		loopInterval:   time.Second * 5,
-		workspaceMutex: m,
-		workQueue:      make(chan workItem, 20),
-		workerCount:    workerCount,
+		graphWrapper:         g,
+		db:                   c,
+		loopInterval:         time.Second * 5,
+		workspaceMutex:       m,
+		workQueue:            make(chan workItem, 30), // max items getWork() returns is 20, so set it slightly higher
+		workerCount:          workerCount,
+		waitForInMemoryGraph: true,
 	}
 }
 
@@ -102,9 +100,9 @@ func (w *Worker) SetLoopInterval(loopInterval time.Duration) {
 	w.loopInterval = loopInterval
 }
 
-// SetDisableDatabaseWorker sets if the database worker should be disabled
-func (w *Worker) SetDisableDatabaseWorker(disable bool) {
-	w.disableDatabaseWorker = disable
+// SetWaitForInMemoryGraph sets if Start() should wait until the in-memory graph is loaded, before starting the workers.
+func (w *Worker) SetWaitForInMemoryGraph(flag bool) {
+	w.waitForInMemoryGraph = flag
 }
 
 // waitForGraph returns if the graph is loaded
@@ -125,38 +123,14 @@ func (w *Worker) waitForGraph(ctx context.Context) bool {
 
 // Start starts the worker. To stop the worker cancel the context.
 func (w *Worker) Start(ctx context.Context) {
-	if !w.disableDatabaseWorker {
+	wg := sync.WaitGroup{}
+	if w.waitForInMemoryGraph {
 		w.waitForGraph(ctx)
+		wg.Go(func() { w.findWorkInDatabase(ctx) })
 	}
 
-	wg := sync.WaitGroup{}
 	for range w.workerCount {
 		wg.Go(func() { w.startInternalWorker(ctx) })
-	}
-
-	if !w.disableDatabaseWorker {
-		ticker := time.Tick(w.loopInterval)
-	mainLoop:
-		for {
-			select {
-			case <-ctx.Done():
-				info("stopping Work")
-				break mainLoop
-			case <-ticker:
-				items, err := GetWork(ctx, w.db)
-				if err != nil {
-					warn(err)
-					continue
-				}
-
-				w.jobsAdded.Add(float64(len(items)))
-
-				for _, work := range items {
-					// ignore error, it has already been logged
-					_ = w.doWork(ctx, work)
-				}
-			}
-		}
 	}
 
 	wg.Wait()
@@ -201,8 +175,48 @@ func (w *Worker) doWork(ctx context.Context, work Work) error {
 	return nil
 }
 
-// GetWork checks the database for not yet executed selectors, and constructs Work if any were found.
-func GetWork(ctx context.Context, c external.Database) ([]Work, error) {
+// findWorkInDatabase loops:
+// - searches database for waiting selectors
+// - adds them to the worker queue
+// - waits for them to be finished
+func (w *Worker) findWorkInDatabase(ctx context.Context) {
+	ticker := time.Tick(w.loopInterval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			info("stopping Work")
+			return
+		case <-ticker:
+			items, err := getWork(ctx, w.db)
+			if err != nil {
+				warn(err)
+				continue
+			}
+			var waitingChannels []chan error
+			// queue work
+			for _, work := range items {
+				if ch := w.AddWork(ctx, work); ch != nil {
+					waitingChannels = append(waitingChannels, ch)
+				}
+			}
+
+			// wait for all work to be finished before starting the next loop
+			for _, ch := range waitingChannels {
+				select {
+				case <-ctx.Done():
+					info("stopping Work")
+					return
+				case <-ch:
+					// if there is an error, ignore it. In this case the warning was already printed in the worker
+				}
+			}
+		}
+	}
+}
+
+// getWork checks the database for not yet executed selectors, and constructs Work if any were found.
+func getWork(ctx context.Context, c external.Database) ([]Work, error) {
 	timeoutContext, cancel := db.AddShortTaskContext(ctx)
 	defer cancel()
 
