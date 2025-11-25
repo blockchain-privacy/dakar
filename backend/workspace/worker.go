@@ -34,7 +34,7 @@ type Work interface {
 
 type workItem struct {
 	work Work
-	done chan struct{}
+	done chan error
 }
 
 // Worker works on the data defined in Work
@@ -59,9 +59,11 @@ type Worker struct {
 	// workerCount is the number of workers that work on workQueue
 	workerCount int
 
-	// disableDatabaseWork disables the worker which periodically retrieves selectors for the database.
+	// disableDatabaseWorker disables the worker which periodically retrieves selectors for the database.
+	// The generic workers which work on the workQueue are still active.
+	// They might panic if the graph wrapper or db handle is not set.
 	// Intended for testing.
-	disableDatabaseWork bool
+	disableDatabaseWorker bool
 }
 
 // NewWorker constructs a new Worker
@@ -100,14 +102,39 @@ func (w *Worker) SetLoopInterval(loopInterval time.Duration) {
 	w.loopInterval = loopInterval
 }
 
+// SetDisableDatabaseWorker sets if the database worker should be disabled
+func (w *Worker) SetDisableDatabaseWorker(disable bool) {
+	w.disableDatabaseWorker = disable
+}
+
+// waitForGraph returns if the graph is loaded
+func (w *Worker) waitForGraph(ctx context.Context) bool {
+	ticker := time.Tick(w.loopInterval)
+	for {
+		select {
+		case <-ctx.Done():
+			return false
+		case <-ticker:
+			// check if transaction graph is ready
+			if w.graphWrapper.IsTransactionGraphLoaded() {
+				return true
+			}
+		}
+	}
+}
+
 // Start starts the worker. To stop the worker cancel the context.
 func (w *Worker) Start(ctx context.Context) {
+	if !w.disableDatabaseWorker {
+		w.waitForGraph(ctx)
+	}
+
 	wg := sync.WaitGroup{}
 	for range w.workerCount {
 		wg.Go(func() { w.startInternalWorker(ctx) })
 	}
 
-	if !w.disableDatabaseWork {
+	if !w.disableDatabaseWorker {
 		ticker := time.Tick(w.loopInterval)
 	mainLoop:
 		for {
@@ -116,11 +143,6 @@ func (w *Worker) Start(ctx context.Context) {
 				info("stopping Work")
 				break mainLoop
 			case <-ticker:
-				// check if transaction graph is ready
-				if !w.graphWrapper.IsTransactionGraphLoaded() {
-					continue
-				}
-
 				items, err := GetWork(ctx, w.db)
 				if err != nil {
 					warn(err)
@@ -130,7 +152,8 @@ func (w *Worker) Start(ctx context.Context) {
 				w.jobsAdded.Add(float64(len(items)))
 
 				for _, work := range items {
-					w.doWork(work)
+					// ignore error, it has already been logged
+					_ = w.doWork(ctx, work)
 				}
 			}
 		}
@@ -139,16 +162,17 @@ func (w *Worker) Start(ctx context.Context) {
 	wg.Wait()
 }
 
-// AddWork returns true and a channel that returns, if the given Work item was added to the queue.
-func (w *Worker) AddWork(ctx context.Context, work Work) (chan struct{}, bool) {
-	ch := make(chan struct{}, 1)
+// AddWork a non-nil channel, if the given Work item was queued. The channel returns when the Work has been run.
+func (w *Worker) AddWork(ctx context.Context, work Work) chan error {
+	ch := make(chan error, 1)
 	select {
 	case w.workQueue <- workItem{work: work, done: ch}:
-		return ch, true
+		w.jobsAdded.Add(1)
+		return ch
 	case <-ctx.Done():
 	}
 
-	return nil, false
+	return nil
 }
 
 // startInternalWorker starts a worker that runs work from the workQueue
@@ -158,23 +182,23 @@ func (w *Worker) startInternalWorker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case item := <-w.workQueue:
-			w.jobsAdded.Add(1)
-			w.doWork(item.work)
-			item.done <- struct{}{}
+			item.done <- w.doWork(ctx, item.work)
 		}
 	}
 }
 
 // doWork runs a Work item
-func (w *Worker) doWork(work Work) {
-	workContext, cancel := db.GetTaskContext()
+func (w *Worker) doWork(ctx context.Context, work Work) error {
+	workContext, cancel := db.AddTaskContext(ctx)
+	defer cancel()
 	if err := work.Run(workContext, w.workspaceMutex, w.db, w.graphWrapper); err != nil {
 		warn(err)
 		w.jobsError.Inc()
+		return err
 	}
-	cancel()
 
 	w.jobsCompleted.Inc()
+	return nil
 }
 
 // GetWork checks the database for not yet executed selectors, and constructs Work if any were found.

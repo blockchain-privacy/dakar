@@ -121,7 +121,7 @@ func (p *counterWork) Run(context.Context, *Mutex, external.Database, *graph.Wra
 
 func TestAddWork(t *testing.T) {
 	w := NewWorker(NewMutex(), nil, nil, 5)
-	w.disableDatabaseWork = true
+	w.disableDatabaseWorker = true
 	w.RegisterMetrics(prometheus.NewRegistry())
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -132,12 +132,12 @@ func TestAddWork(t *testing.T) {
 
 	// queue work
 	const workQueueItems = 200
-	channels := make([]chan struct{}, workQueueItems)
+	channels := make([]chan error, workQueueItems)
 	wg2 := sync.WaitGroup{}
 	wg2.Go(func() {
 		for i := range workQueueItems {
-			ch, ok := w.AddWork(ctx, &counterWork{})
-			if !ok {
+			ch := w.AddWork(ctx, &counterWork{})
+			if ch == nil {
 				t.Error("couldn't add work")
 				return
 			}
@@ -151,7 +151,8 @@ func TestAddWork(t *testing.T) {
 	ticker := time.Tick(time.Second * 30)
 	for _, ch := range channels {
 		select {
-		case <-ch:
+		case err := <-ch:
+			require.NoError(t, err)
 			// wait for all work items to be done
 			continue
 

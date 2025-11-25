@@ -42,10 +42,10 @@ type Server struct {
 	graphWrapper *graph.Wrapper
 	// HTTP mux
 	handler *http.ServeMux
-	// duration after which every handler timeout
-	handlerTimeout time.Duration
 	// what blockchain data this MCP server handles (e.g. dash or btc)
 	blockchainMode string
+	// if auth middleware shall be disabled
+	disableAuth bool
 }
 
 func NewServer(db external.Database, worker *workspace.Worker, graphWrapper *graph.Wrapper, blockchainMode string) *Server {
@@ -55,7 +55,6 @@ func NewServer(db external.Database, worker *workspace.Worker, graphWrapper *gra
 		graphWrapper:   graphWrapper,
 		handler:        http.NewServeMux(),
 		blockchainMode: blockchainMode,
-		handlerTimeout: time.Minute * 3,
 	}
 }
 
@@ -87,14 +86,34 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 			"It only works with the %s blockchain. Don't explain the data to the user, only respond with it", blockchainTitle(s.blockchainMode)),
 	})
 
-	mcp.AddTool[TransactionParams, *db.FrontendTransaction](mcpServer, &mcp.Tool{
-		Name: "get_transaction", Description: "get full transaction details." + blockchainDisclaimer(s.blockchainMode)}, s.getTransaction())
+	const (
+		toolGetTransaction   = "get_transaction"
+		toolListHeuristics   = "list_heuristics"
+		toolExecuteHeuristic = "execute_heuristic"
+	)
 
-	h := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return mcpServer }, nil)
+	mcp.AddTool[TransactionParams, *db.FrontendTransaction](mcpServer, &mcp.Tool{
+		Name: toolGetTransaction, Description: "get full transaction details." + blockchainDisclaimer(s.blockchainMode)},
+		s.getTransaction())
+	mcp.AddTool[any, *ListHeuristicsResult](mcpServer, &mcp.Tool{
+		Name: toolListHeuristics, Description: "get a list of available CoinJoin heuristics." +
+			blockchainDisclaimer(s.blockchainMode)}, s.listHeuristics())
+	mcp.AddTool[ExecuteHeuristicParams, *ExecuteHeuristicResult](mcpServer, &mcp.Tool{
+		Name: toolExecuteHeuristic, Description: fmt.Sprintf("runs a heuristic. get possible heuristic types "+
+			"and parameter restrictions from the %s tool. %s", toolListHeuristics,
+			blockchainDisclaimer(s.blockchainMode))}, s.executeHeuristic())
+
+	h := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return mcpServer }, &mcp.StreamableHTTPOptions{
+		SessionTimeout: time.Minute * 2,
+	})
 
 	handler := http.NewServeMux()
 
-	handler.Handle("/", s.adapt(h, server.Authorization()))
+	if s.disableAuth {
+		handler.Handle("/", h)
+	} else {
+		handler.Handle("/", s.adapt(h, server.Authorization()))
+	}
 
 	srv := &http.Server{
 		Addr:              ":" + strconv.FormatUint(uint64(port), 10),
@@ -102,6 +121,12 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 		ReadTimeout:       time.Minute,
 		ReadHeaderTimeout: time.Second * 5,
 	}
+
+	srv.RegisterOnShutdown(func() {
+		for session := range mcpServer.Sessions() {
+			_ = session.Close()
+		}
+	})
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -117,13 +142,5 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 // adapt calls mw.Adapt() and inserts an http.TimeoutHandler into the adapter chain
 func (s *Server) adapt(h http.Handler, adapters ...mw.Adapter) http.Handler {
-	return mw.Adapt(h, append([]mw.Adapter{s.timeout()}, adapters...)...)
-}
-
-func (s *Server) timeout() mw.Adapter {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.TimeoutHandler(h, s.handlerTimeout, "request timed out").ServeHTTP(w, r)
-		})
-	}
+	return mw.Adapt(h, adapters...)
 }

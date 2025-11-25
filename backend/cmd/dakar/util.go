@@ -192,20 +192,17 @@ func waitForRPCClient(client external.RPCClient) error {
 }
 
 // shutdownServer sends a shutdown signal to the server with a timeout of 10 seconds
-func shutdownServer(srv *http.Server) {
+func shutdownServer(srv *http.Server, name string) {
 	if srv == nil {
 		return
 	}
-	info("Shutting down server")
+	info("Shutting down server", "name", name)
 
 	ctx, cancel := db.GetShortTaskContext()
-	defer func() {
-		// extra handling here
-		cancel()
-	}()
+	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		warn(serror.FromFormat("Server was shutdown and returned error: %w", err))
+		warn(serror.FromFormat("server '%s' was shutdown and returned error: %w", name, err))
 	}
 }
 
