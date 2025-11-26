@@ -10,12 +10,15 @@ import (
 	"backend/db/workspace"
 	"backend/external"
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func info(msg string, v ...any) {
@@ -190,7 +193,11 @@ func (w *Worker) findWorkInDatabase(ctx context.Context) {
 		case <-ticker:
 			items, err := getWork(ctx, w.db)
 			if err != nil {
-				warn(err)
+				// print error only, if errors was not due to the context being cancelled
+				if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled {
+					warn(err)
+				}
+
 				continue
 			}
 			var waitingChannels []chan error

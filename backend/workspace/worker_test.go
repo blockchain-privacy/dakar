@@ -77,17 +77,12 @@ func TestWorker_work(t *testing.T) {
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 	require.NoError(t, wrapper.LoadGraphs(graph.NewDashConfig()))
 
-	w := NewWorker(NewMutex(), dbHandle, wrapper, 0)
+	w := NewWorker(NewMutex(), dbHandle, wrapper, 5)
 	w.RegisterMetrics(prometheus.NewRegistry())
 	w.SetLoopInterval(1)
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		w.Start(ctx)
-	}()
+	wg.Go(func() { w.Start(ctx) })
 
 	// if the number of waiting selectors is 0, then the worker has finished
 	now := time.Now()
