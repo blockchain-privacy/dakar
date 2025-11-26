@@ -20,12 +20,12 @@ import (
 )
 
 func TestNewWorker(t *testing.T) {
-	w := NewWorker(NewMutex(), nil, nil, 0)
+	w := NewWorker(NewMutex(), nil, nil)
 	require.NotNil(t, w)
 }
 
 func TestWorker_SetLoopInterval(_ *testing.T) {
-	w := NewWorker(NewMutex(), nil, nil, 0)
+	w := NewWorker(NewMutex(), nil, nil)
 	w.SetLoopInterval(1)
 	w.SetLoopInterval(time.Second * 100)
 }
@@ -77,7 +77,7 @@ func TestWorker_work(t *testing.T) {
 	require.NoError(t, status.SetLastClassifiedBlockID(ctx, dbHandle, int64(db.ClassifierFileLastBlock)))
 	require.NoError(t, wrapper.LoadGraphs(graph.NewDashConfig()))
 
-	w := NewWorker(NewMutex(), dbHandle, wrapper, 5)
+	w := NewWorker(NewMutex(), dbHandle, wrapper)
 	w.RegisterMetrics(prometheus.NewRegistry())
 	w.SetLoopInterval(1)
 
@@ -115,7 +115,7 @@ func (p *counterWork) Run(context.Context, *Mutex, external.Database, *graph.Wra
 }
 
 func TestAddWork(t *testing.T) {
-	w := NewWorker(NewMutex(), nil, nil, 5)
+	w := NewWorker(NewMutex(), nil, nil)
 	w.SetWaitForInMemoryGraph(false)
 	w.RegisterMetrics(prometheus.NewRegistry())
 

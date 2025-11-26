@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"runtime"
 	"sync"
 	"time"
 
@@ -57,7 +58,8 @@ type Worker struct {
 	// workQueue is a channel which receives workItem. Items are run via workers.
 	workQueue chan workItem
 
-	// workerCount is the number of workers that work on workQueue
+	// workerCount is the number of workers that work on workQueue.
+	// If set to zero, Start() will spawn GOMAXPROCS/2 workers.
 	workerCount int
 
 	// waitForInMemoryGraph makes Start() wait until the in-memory graph is loaded, before starting the workers.
@@ -67,14 +69,13 @@ type Worker struct {
 }
 
 // NewWorker constructs a new Worker
-func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper, workerCount int) *Worker {
+func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper) *Worker {
 	return &Worker{
 		graphWrapper:         g,
 		db:                   c,
 		loopInterval:         time.Second * 5,
 		workspaceMutex:       m,
 		workQueue:            make(chan workItem, 30), // max items getWork() returns is 20, so set it slightly higher
-		workerCount:          workerCount,
 		waitForInMemoryGraph: true,
 	}
 }
@@ -108,6 +109,12 @@ func (w *Worker) SetWaitForInMemoryGraph(flag bool) {
 	w.waitForInMemoryGraph = flag
 }
 
+// SetWorkerCount sets the number of workers. Must be called before Start() to have an effect.
+// If workerCount is set to zero, Start() will spawn GOMAXPROCS/2 workers.
+func (w *Worker) SetWorkerCount(workerCount int) {
+	w.workerCount = workerCount
+}
+
 // waitForGraph returns if the graph is loaded
 func (w *Worker) waitForGraph(ctx context.Context) bool {
 	ticker := time.Tick(w.loopInterval)
@@ -132,8 +139,15 @@ func (w *Worker) Start(ctx context.Context) {
 		wg.Go(func() { w.findWorkInDatabase(ctx) })
 	}
 
-	for range w.workerCount {
-		wg.Go(func() { w.startInternalWorker(ctx) })
+	workerCount := max(1, runtime.GOMAXPROCS(0)/2)
+	if w.workerCount > 0 {
+		workerCount = w.workerCount
+	}
+
+	info("starting workers", "count", workerCount)
+
+	for range workerCount {
+		wg.Go(func() { w.startWorker(ctx) })
 	}
 
 	wg.Wait()
@@ -152,8 +166,8 @@ func (w *Worker) AddWork(ctx context.Context, work Work) chan error {
 	return nil
 }
 
-// startInternalWorker starts a worker that runs work from the workQueue
-func (w *Worker) startInternalWorker(ctx context.Context) {
+// startWorker starts a worker that runs work from the workQueue
+func (w *Worker) startWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():

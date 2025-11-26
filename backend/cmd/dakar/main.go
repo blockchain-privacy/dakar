@@ -329,12 +329,13 @@ func main() {
 	workspaceMutex := workspace.NewMutex()
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
 	graphWrapper.RegisterMetrics(prometheus.DefaultRegisterer)
-	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper, 5)
+	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper)
 	w.RegisterMetrics(prometheus.DefaultRegisterer)
+	w.SetWorkerCount(newConfig.Modules.Heuristics.WorkerCount)
 
 	var classifierStarted bool
 
-	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics {
+	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics.Active {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {

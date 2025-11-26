@@ -64,16 +64,21 @@ type FMIModule struct {
 	TargetDuration int  `yaml:"targetDuration"`
 }
 
+type HeuristicsModule struct {
+	Active      bool `yaml:"active"`
+	WorkerCount int  `yaml:"workerCount"`
+}
+
 type ModulesConfig struct {
-	HTTP       APIModule     `yaml:"api"`
-	Metrics    MetricsModule `yaml:"metrics"`
-	User       UserModule    `yaml:"user"`
-	MCP        MCPModule     `yaml:"mcp"`
-	Crawler    CrawlerModule `yaml:"crawler"`
-	FMI        FMIModule     `yaml:"fmi"`
-	Classifier Classifier    `yaml:"classifier"`
-	HMI        bool          `yaml:"hmi"`
-	Heuristics bool          `yaml:"heuristics"`
+	HTTP       APIModule        `yaml:"api"`
+	Metrics    MetricsModule    `yaml:"metrics"`
+	User       UserModule       `yaml:"user"`
+	MCP        MCPModule        `yaml:"mcp"`
+	Crawler    CrawlerModule    `yaml:"crawler"`
+	FMI        FMIModule        `yaml:"fmi"`
+	Classifier Classifier       `yaml:"classifier"`
+	Heuristics HeuristicsModule `yaml:"heuristics"`
+	HMI        bool             `yaml:"hmi"`
 }
 
 type Config struct {
@@ -120,9 +125,12 @@ var defaultConfig = Config{
 			Active:         true,
 			TargetDuration: 10,
 		},
-		Heuristics: false,
-		Crawler:    CrawlerModule{Active: true, InitialCacheSize: 25000},
-		HMI:        false,
+		Heuristics: HeuristicsModule{
+			Active:      true,
+			WorkerCount: 0,
+		},
+		Crawler: CrawlerModule{Active: true, InitialCacheSize: 25000},
+		HMI:     false,
 	},
 }
 
