@@ -212,7 +212,6 @@ import SearchDialog from '@/components/common/SearchDialog.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import {useRoute} from 'vue-router';
 import {useHotkey} from 'vuetify';
-import {VHotkey} from 'vuetify/labs/VHotkey';
 import {blenderPlus} from '@/customIcons/index.js';
 
 const route = useRoute();

@@ -247,6 +247,7 @@
           <v-infinite-scroll
             ref="inputScroll"
             margin="100"
+            empty-text=""
             @load="showMoreInputs"
           >
             <template
@@ -271,10 +272,6 @@
                 :thickness="2"
               />
             </template>
-            <template #empty>
-              <!-- needed so no scrollbars appear -->
-              <p style="height: 3px" />
-            </template>
             <template #loading>
               <!-- empty -->
             </template>
@@ -289,6 +286,7 @@
           <v-infinite-scroll
             ref="outputScroll"
             margin="100"
+            empty-text=""
             @load="showMoreOutputs"
           >
             <template
@@ -312,10 +310,6 @@
                 v-if="y+1<displayedOutputs.length"
                 :thickness="2"
               />
-            </template>
-            <template #empty>
-              <!-- needed so no scrollbars appear -->
-              <p style="height: 3px" />
             </template>
             <template #loading>
               <!-- empty -->
