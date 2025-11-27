@@ -47,6 +47,9 @@ type Worker struct {
 	jobsError     prometheus.Counter
 	jobsCompleted prometheus.Counter
 
+	// runDuration is the duration it takes to run a Work item
+	runDuration prometheus.Histogram
+
 	graphWrapper *graph.Wrapper
 	db           external.Database
 
@@ -96,6 +99,12 @@ func (w *Worker) RegisterMetrics(req prometheus.Registerer) {
 		Help: "The total number of jobs completed by the worker",
 	})
 	req.MustRegister(w.jobsCompleted)
+	w.runDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "dakar_worker_run_duration",
+		Help:    "The duration it takes to run a work item",
+		Buckets: []float64{0.5, 1, 2, 5, 10, 20, 30},
+	})
+	req.MustRegister(w.runDuration)
 }
 
 // SetLoopInterval sets the amount of time to wait between each work loop.
@@ -180,6 +189,8 @@ func (w *Worker) startWorker(ctx context.Context) {
 
 // doWork runs a Work item
 func (w *Worker) doWork(ctx context.Context, work Work) error {
+	timer := prometheus.NewTimer(w.runDuration)
+	defer timer.ObserveDuration()
 	workContext, cancel := db.AddTaskContext(ctx)
 	defer cancel()
 	if err := work.Run(workContext, w.workspaceMutex, w.db, w.graphWrapper); err != nil {

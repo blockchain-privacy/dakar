@@ -75,11 +75,22 @@ func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.D
 	} else {
 		// despite the error, we don't return here because we want to store the error state in the db
 		status = workspace.StatusError
-		warn(err, "options", s.opt)
+		err = serror.AddContext(err, "options", s.opt)
 	}
 
 	// 2. Store work
-	return updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+	updateErr := updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+	if updateErr != nil {
+		// both running and updating the selector returned an error
+		if err != nil {
+			return serror.AddContext(err, "updateSelector error", updateErr)
+		}
+		// only updating the selector returned an error
+		return updateErr
+	}
+
+	// running may have returned an error
+	return err
 }
 
 type TxGraphWork struct {
@@ -123,11 +134,22 @@ func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.
 	} else {
 		// despite the error, we don't return here because we want to store the error state in the db
 		status = workspace.StatusError
-		warn(err, "options", s.opt)
+		err = serror.AddContext(err, "options", s.opt)
 	}
 
 	// 2. Store work
-	return updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+	updateErr := updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+	if updateErr != nil {
+		// both running and updating the selector returned an error
+		if err != nil {
+			return serror.AddContext(err, "updateSelector error", updateErr)
+		}
+		// only updating the selector returned an error
+		return updateErr
+	}
+
+	// running may have returned an error
+	return err
 }
 
 func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.UIDNode, error) {
@@ -389,11 +411,22 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 	} else {
 		// despite the error, we don't return here because we want to store the error state in the db
 		status = workspace.StatusError
-		warn(err)
 	}
 
 	// 2. Store work
-	return updateSelector(ctx, workspaceMutex, c, h.selectorUID, h.workspaceUID, h.userUID, status, newNodes, len(newNodes))
+	updateErr := updateSelector(ctx, workspaceMutex, c, h.selectorUID,
+		h.workspaceUID, h.userUID, status, newNodes, len(newNodes))
+	if updateErr != nil {
+		// both running and updating the selector returned an error
+		if err != nil {
+			return serror.AddContext(err, "updateSelector error", updateErr)
+		}
+		// only updating the selector returned an error
+		return updateErr
+	}
+
+	// running may have returned an error
+	return err
 }
 
 func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
