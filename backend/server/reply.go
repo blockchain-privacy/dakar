@@ -314,7 +314,7 @@ func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply s
 }
 
 func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
-	workspaceMutex *workspace.Mutex) (reply addWorkspaceSelectorReply, status int) {
+	workspaceMutex *workspace.Mutex, worker *workspace.Worker) (reply addWorkspaceSelectorReply, status int) {
 	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -356,7 +356,9 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
 	}
 
-	if err != nil {
+	if err == nil {
+		worker.TriggerSearch()
+	} else {
 		if errors.Is(err, db.ErrInvalidRequestArgument) {
 			status = http.StatusBadRequest
 		} else {

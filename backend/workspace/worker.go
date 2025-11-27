@@ -60,6 +60,8 @@ type Worker struct {
 
 	// workQueue is a channel which receives workItem. Items are run via workers.
 	workQueue chan workItem
+	// triggerSearch is a channel which when sent to, triggers a new database search for selectors.
+	triggerSearch chan struct{}
 
 	// workerCount is the number of workers that work on workQueue.
 	// If set to zero, Start() will spawn GOMAXPROCS/2 workers.
@@ -79,6 +81,7 @@ func NewWorker(m *Mutex, c external.Database, g *graph.Wrapper) *Worker {
 		loopInterval:         time.Second * 5,
 		workspaceMutex:       m,
 		workQueue:            make(chan workItem, 30), // max items getWork() returns is 20, so set it slightly higher
+		triggerSearch:        make(chan struct{}),
 		waitForInMemoryGraph: true,
 	}
 }
@@ -122,6 +125,15 @@ func (w *Worker) SetWaitForInMemoryGraph(flag bool) {
 // If workerCount is set to zero, Start() will spawn GOMAXPROCS/2 workers.
 func (w *Worker) SetWorkerCount(workerCount int) {
 	w.workerCount = workerCount
+}
+
+// TriggerSearch tries to trigger a search for selectors. If successful, this skips the selector search timer.
+// This is a no-op, if another trigger is already in progress.
+func (w *Worker) TriggerSearch() {
+	select {
+	case w.triggerSearch <- struct{}{}:
+	default:
+	}
 }
 
 // waitForGraph returns if the graph is loaded
@@ -215,33 +227,35 @@ func (w *Worker) findWorkInDatabase(ctx context.Context) {
 		case <-ctx.Done():
 			info("stopping Work")
 			return
+		case <-w.triggerSearch:
 		case <-ticker:
-			items, err := getWork(ctx, w.db)
-			if err != nil {
-				// print error only, if errors was not due to the context being cancelled
-				if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled {
-					warn(err)
-				}
+		}
 
-				continue
-			}
-			var waitingChannels []chan error
-			// queue work
-			for _, work := range items {
-				if ch := w.AddWork(ctx, work); ch != nil {
-					waitingChannels = append(waitingChannels, ch)
-				}
+		items, err := getWork(ctx, w.db)
+		if err != nil {
+			// print error only, if errors was not due to the context being cancelled
+			if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled {
+				warn(err)
 			}
 
-			// wait for all work to be finished before starting the next loop
-			for _, ch := range waitingChannels {
-				select {
-				case <-ctx.Done():
-					info("stopping Work")
-					return
-				case <-ch:
-					// if there is an error, ignore it. In this case the warning was already printed in the worker
-				}
+			continue
+		}
+		var waitingChannels []chan error
+		// queue work
+		for _, work := range items {
+			if ch := w.AddWork(ctx, work); ch != nil {
+				waitingChannels = append(waitingChannels, ch)
+			}
+		}
+
+		// wait for all work to be finished before starting the next loop
+		for _, ch := range waitingChannels {
+			select {
+			case <-ctx.Done():
+				info("stopping Work")
+				return
+			case <-ch:
+				// if there is an error, ignore it. In this case the warning was already printed in the worker
 			}
 		}
 	}
