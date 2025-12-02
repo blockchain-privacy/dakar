@@ -40,17 +40,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/kratosadmin@npm:^0.0.26":
-  version: 0.0.26
-  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.26::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.26.tgz"
-  checksum: 10c0/7e7fc606fa0e2facd0d9315e9fa0cb95dff2bfed6ac12190e68634b906f962246d5461c3bcba6684661ff81368c417e222fdde04afeddadc07d689e55fb12c38
+"@blockchain-privacy/kratosadmin@npm:^0.0.27":
+  version: 0.0.27
+  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.27::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.27.tgz"
+  checksum: 10c0/d42a3f7627c157c108a420674d63c20cb722da0eda15d0a1d35b7392bbe9bda32db66d2dc4210b90ae3edb63ee8d365f2692da9ee1633e1bf485d0d7f2e5b6d1
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/wikiapi@npm:^0.0.1":
-  version: 0.0.1
-  resolution: "@blockchain-privacy/wikiapi@npm:0.0.1::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75353814%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fwikiapi%2F-%2F%40blockchain-privacy%2Fwikiapi-0.0.1.tgz"
-  checksum: 10c0/769b422105cfb58f195ca58748a49473b61accbcb775c398486fe46db57fe1691d6751425e872d94b36aab6020c8af3431fa40bc2fe73a81b66c090f467a8069
+"@blockchain-privacy/wikiapi@npm:^0.0.2":
+  version: 0.0.2
+  resolution: "@blockchain-privacy/wikiapi@npm:0.0.2::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75353814%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fwikiapi%2F-%2F%40blockchain-privacy%2Fwikiapi-0.0.2.tgz"
+  checksum: 10c0/acc1d20ef0551da26aaed0cbb53d2bd9bdd3564545c4a1bab2aa85edb50b6bd9d7cdc03bc5412baf92ad0c500c44071480ceb041c0161d4167ea3a43fef684d7
   languageName: node
   linkType: hard
 
@@ -509,10 +509,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.22.11":
-  version: 1.22.11
-  resolution: "@ory/client-fetch@npm:1.22.11"
-  checksum: 10c0/0d4f75eb95c22ab9f251e8858e492d6c4466c7736dccd7644f63b56b4c094c370f8c9078e04b2fab0ee87442c05945033799c2ef37dfd971560be07f4f2df203
+"@ory/client-fetch@npm:^1.22.13":
+  version: 1.22.13
+  resolution: "@ory/client-fetch@npm:1.22.13"
+  checksum: 10c0/a8577b2b79b0dc14fc3e48cb32cfbacfe68889f2612c5e737a5b1e659e351827f0391538c0e77d6ef0bae55974b49650bba501963b347ed0734c57a0dfbf5783
   languageName: node
   linkType: hard
 
@@ -1640,12 +1640,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain-privacy/kratosadmin": "npm:^0.0.26"
-    "@blockchain-privacy/wikiapi": "npm:^0.0.1"
+    "@blockchain-privacy/kratosadmin": "npm:^0.0.27"
+    "@blockchain-privacy/wikiapi": "npm:^0.0.2"
     "@blockchain/dakar": "npm:^1.1.68"
     "@fontsource/roboto": "npm:^5.2.9"
     "@mdi/js": "npm:^7.4.47"
-    "@ory/client-fetch": "npm:^1.22.11"
+    "@ory/client-fetch": "npm:^1.22.13"
     "@vitejs/plugin-vue": "npm:^6.0.2"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1658,10 +1658,10 @@ __metadata:
     d3-zoom: "npm:^3.0.0"
     eslint: "npm:^9.39.1"
     eslint-config-xo: "npm:^0.49.0"
-    eslint-plugin-vue: "npm:^10.6.0"
+    eslint-plugin-vue: "npm:^10.6.2"
     pinia: "npm:^3.0.4"
     sass: "npm:^1.94.2"
-    vite: "npm:^7.2.4"
+    vite: "npm:^7.2.6"
     vite-plugin-vuetify: "npm:^2.1.2"
     vite-svg-loader: "npm:^5.1.0"
     vitest: "npm:^4.0.14"
@@ -1916,9 +1916,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-vue@npm:^10.6.0":
-  version: 10.6.0
-  resolution: "eslint-plugin-vue@npm:10.6.0"
+"eslint-plugin-vue@npm:^10.6.2":
+  version: 10.6.2
+  resolution: "eslint-plugin-vue@npm:10.6.2"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.4.0"
     natural-compare: "npm:^1.4.0"
@@ -1936,7 +1936,7 @@ __metadata:
       optional: true
     "@typescript-eslint/parser":
       optional: true
-  checksum: 10c0/78fa8d69dbd65f6166a990f45f562b81d555bad5902437fbc3026ef2e90c76888e22e054eff592476a7e685e551a1d2aef49798ec74109ca98f1331c193bc7bd
+  checksum: 10c0/3d3705e6906f6a55529ba99d1ab4e952f2178e109bdab21cc486ef8fee6cd4d4434a4bcb9e77b4d4a8d511dbb2f99deeaeaf22d2847ab3c2ab3d130358a4f8a0
   languageName: node
   linkType: hard
 
@@ -3558,9 +3558,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^7.2.4":
-  version: 7.2.4
-  resolution: "vite@npm:7.2.4"
+"vite@npm:^7.2.6":
+  version: 7.2.6
+  resolution: "vite@npm:7.2.6"
   dependencies:
     esbuild: "npm:^0.25.0"
     fdir: "npm:^6.5.0"
@@ -3609,7 +3609,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/26aa0cad01d6e00f17c837b2a0587ab52f6bd0d0e64606b4220cfc58fa5fa76a4095ef3ea27c886bea542a346363912c4fad9f9462ef1e6757262fedfd5196b2
+  checksum: 10c0/d444a159ab8f0f854d596d1938f201b449d59ed4d336e587be9dc89005467214d85848c212c2495f76a8421372ffe4d061d023d659600f1aaa3ba5ac13e804f7
   languageName: node
   linkType: hard
 
