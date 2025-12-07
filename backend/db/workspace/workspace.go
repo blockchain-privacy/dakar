@@ -225,12 +225,14 @@ func GetWorkspaceState(ctx context.Context, c external.Database, uid string, use
 		return "", serror.New(db.ErrEmptyRequestArgument)
 	}
 
+	// request uid and state, so if the state is empty a workspace item is still returned and passed the check below
 	query := `query Q($user:string,$workspace:string){
 			var(func: uid($user)){
 				w as User.workspaces@filter(uid($workspace))
 			}
 
 			q(func: uid(w)){
+				uid
 				Workspace.state
 			}
 		}`
