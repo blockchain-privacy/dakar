@@ -12,11 +12,10 @@
         :id="svgID"
         style="width: 100%; grid-area: 1/1"
       />
-      <v-progress-circular
+      <v-skeleton-loader
         v-if="loading"
-        class="ma-auto"
+        type="image"
         style="grid-area: 1/1"
-        indeterminate
       />
       <v-icon
         v-if="mode"

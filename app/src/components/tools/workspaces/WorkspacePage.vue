@@ -35,11 +35,10 @@
       :text="infoMsg"
       type="info"
     />
-
     <v-data-iterator
       v-if="workspaceList.length > 0"
       :items="workspaceList"
-      :items-per-page="4"
+      :items-per-page="8"
       :search="search"
       :sort-by="sortBy"
     >
