@@ -104,38 +104,30 @@ onUpdated(() => {
 
 // Functions
 async function init() {
-	loading.value = true;
 	workspaceData.value = await getWorkspaceData();
-
 	oldUID = props.uid;
+
 	nodeGraph.setEnableInteractions(false);
 	nodeGraph.setEnableThumbnailMode(true);
 	nodeGraph.initSvg(svgID.value);
-	nodeGraph.addNodes(workspaceData.value.nodes);
+	nodeGraph.addNodes(workspaceData.value);
 	nodeGraph.centerGraph();
-	loading.value = false;
 }
 
 async function getWorkspaceData() {
-	let data;
+	loading.value = true;
+	let data = [];
 	try {
-		const response = await dakarClients[props.mode].workspace.workspacesUidGet({uid: props.uid});
-		if (!response.descriptors) {
-			throw Error('heuristic descriptor list is empty');
-		}
+		const response = await dakarClients[props.mode].workspace.workspacesStateUidGet({uid: props.uid});
 
-		if (response.workspace) {
-			data = response.workspace;
-			data.loaded = true;
-		} else {
-			data = {loaded: false};
+		if (response.state) {
+			data = JSON.parse(response.state);
 		}
 	} catch (e) {
 		errorMsg.value = e.message;
 	}
 
-	// If the workspace does not yet contain any nodes, set an empty array
-	data.nodes ??= [];
+	loading.value = false;
 
 	return data;
 }
