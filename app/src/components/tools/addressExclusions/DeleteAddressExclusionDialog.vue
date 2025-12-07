@@ -9,7 +9,7 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Delete {{ title }} Address Exclusion</span>
+        <span class="text-h5">Delete Address Exclusion</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1 text-break">
@@ -52,7 +52,6 @@ const msgStore = useMsgStore();
 const model = defineModel({type: Boolean});
 const props = defineProps({
 	addressHash: {type: String, required: true},
-	title: {type: String, required: true},
 	blockchainMode: {type: String, required: true},
 });
 const emit = defineEmits(['deleted']);
