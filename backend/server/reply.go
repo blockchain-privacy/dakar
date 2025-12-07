@@ -1511,6 +1511,30 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 	return
 }
 
+func getGetWorkspaceStateReply(dgraph external.Database, r *http.Request) (reply getWorkspaceStateReply, status int) {
+	tUser, err := ExtractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	workspaceUID := r.PathValue("uid")
+	if workspaceUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	reply.State, err = dbwork.GetWorkspaceState(r.Context(), dgraph, workspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
 func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int) {
 	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
