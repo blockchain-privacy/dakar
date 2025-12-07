@@ -5,13 +5,12 @@
 <template>
   <template v-if="showExclusionChip">
     <v-chip
-      v-tooltip="{'text': tooltipText, 'location':'bottom'}"
+      v-tooltip="{'text': tooltipText, 'location':'bottom', 'open-delay': 400}"
       rounded
       color="primary"
     >
       <template #append>
         <v-icon
-          start
           :icon="mdiCloseCircle"
           @click="deleteExclusionDialog = true"
         />
@@ -21,6 +20,7 @@
     <delete-address-exclusion-dialog
       v-model="deleteExclusionDialog"
       :address-hash="addressHash"
+      :blockchain-mode="route.params.blockchainMode"
       @deleted="showExclusionChip = false"
     />
   </template>
