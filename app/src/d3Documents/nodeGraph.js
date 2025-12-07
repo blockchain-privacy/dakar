@@ -139,6 +139,8 @@ export default class NodeGraph {
 	#changedData = new Map();
 	// Node type
 	#nodeTypeColorMap = null;
+	// If enabled, node descriptions are not rendered
+	#enableThumbnailMode = false;
 	enableInteractions = true;
 
 	constructor(nodeTypeColorMap) {
@@ -147,6 +149,10 @@ export default class NodeGraph {
 
 	setEnableInteractions(flag) {
 		this.enableInteractions = flag;
+	}
+
+	setEnableThumbnailMode(flag) {
+		this.#enableThumbnailMode = flag;
 	}
 
 	getFilteredMap() {
@@ -385,29 +391,31 @@ export default class NodeGraph {
 
 				this.#rootGroup.attr('transform', event.transform);
 			})
-			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e instanceof WheelEvent) && !e.button)
+			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e instanceof WheelEvent) && !e.button && !this.#enableThumbnailMode)
 			.scaleExtent([0.5, 3]);
 		this.#rootSvg.call(this.#zoom);
 
 		// Add lasso
 		const self = this;
-		this.#lasso = d3lasso()
-			.closePathDistance(2000)
-			.closePathSelect(true)
-			.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
-			.targetArea(this.#rootSvg)
-			.on('draw', () => {
-				self.#lasso.possibleItems().classed('lasso-selected', true);
-				self.#lasso.notPossibleItems().classed('lasso-selected', false);
-			})
-			.on('end', () => {
-				self.lassoSelectedNodes = self.#lasso.selectedItems();
-				if (this.#lassoSelectionCallback !== null) {
-					this.#lassoSelectionCallback();
-				}
-			});
+		if (!this.#enableThumbnailMode) {
+			this.#lasso = d3lasso()
+				.closePathDistance(2000)
+				.closePathSelect(true)
+				.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
+				.targetArea(this.#rootSvg)
+				.on('draw', () => {
+					self.#lasso.possibleItems().classed('lasso-selected', true);
+					self.#lasso.notPossibleItems().classed('lasso-selected', false);
+				})
+				.on('end', () => {
+					self.lassoSelectedNodes = self.#lasso.selectedItems();
+					if (this.#lassoSelectionCallback !== null) {
+						this.#lassoSelectionCallback();
+					}
+				});
 
-		this.#rootSvg.call(this.#lasso);
+			this.#rootSvg.call(this.#lasso);
+		}
 
 		const defs = this.#rootSvg.append('svg:defs');
 
@@ -975,6 +983,10 @@ export default class NodeGraph {
 					.transition().delay(animationDelay).duration(longAnimationDuration).attr('r', 0).remove();
 			});
 
+		if (this.#enableThumbnailMode) {
+			return;
+		}
+
 		// Set event handlers
 		entityGroup
 			.on('click', function (e, d) {
@@ -1306,7 +1318,9 @@ export default class NodeGraph {
 			arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
 		});
 
-		this.#lasso.items(node.selectAll('.node,.note'));
+		if (!this.#enableThumbnailMode) {
+			this.#lasso.items(node.selectAll('.node,.note'));
+		}
 
 		this.#changedData.clear();
 	}
