@@ -10,6 +10,7 @@
       label="Sort by"
       hide-details
       return-object
+      :variant="variant"
     />
     <v-btn
       :icon="direction?mdiSortDescending:mdiSortAscending"
@@ -27,6 +28,7 @@ const sort = defineModel('sort', {type: Object});
 const direction = defineModel('direction', {type: Boolean});
 defineProps({
 	items: {type: Array, required: true},
+	variant: {type: String, required: false, default: 'outlined'},
 });
 
 </script>
