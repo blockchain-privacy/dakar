@@ -303,7 +303,7 @@ import {
 	computed, onMounted, onUpdated, ref,
 } from 'vue';
 import {
-	convertAmount, getColorMap, plural, setUndefinedTransactionColor,
+	convertAmount, getTransactionColorMap, plural, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {
@@ -327,7 +327,7 @@ const route = useRoute();
 
 const emit = defineEmits(['clusterSelected', 'clusterDeselected']);
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
 const tableHeadersWithoutCluster = [

@@ -17,7 +17,7 @@
 <script setup>
 import {computed} from 'vue';
 import {
-	convertAmount, getCoinUnit, getColorMap, setUndefinedTransactionColor,
+	convertAmount, getCoinUnit, getTransactionColorMap, setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import {useRoute} from 'vue-router';
 
@@ -25,7 +25,7 @@ const props = defineProps({outputs: {type: Array, required: true}});
 const noTypeKey = 'no type';
 const notSpent = 'not spent';
 const route = useRoute();
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, noTypeKey);
 colorMap.set(notSpent, 'lightgrey');
 

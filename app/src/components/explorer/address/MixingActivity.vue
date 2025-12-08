@@ -232,7 +232,7 @@
 
 <script setup>
 import BarChart from '@/d3Documents/barChart.js';
-import {getColorMap, getDakarClient} from '@/utilities';
+import {getTransactionColorMap, getDakarClient} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
@@ -258,7 +258,7 @@ const dakar = getDakarClient(route.params.blockchainMode);
 useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
 useHotkey('esc', () => nodeGraph.resetLasso());
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 let svgBarChart = null;
 const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;

@@ -42,7 +42,7 @@ import {
 	PRIVACY_TYPE_WHIRLPOOL_ORIGIN,
 } from '@/constants/index.js';
 import {computed} from 'vue';
-import {getColorMap} from '@/utilities/index.js';
+import {getTransactionColorMap} from '@/utilities/index.js';
 import {useRoute} from 'vue-router';
 
 const props = defineProps({
@@ -51,7 +51,7 @@ const props = defineProps({
 });
 const route = useRoute();
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 
 const color = computed(() => colorMap.get(props.transactionType));
 

@@ -49,14 +49,12 @@ import {
 	computed,
 	onMounted, onUpdated, ref, useId,
 } from 'vue';
-import {getColorMap, getDakarClients, setUndefinedTransactionColor} from '@/utilities/index.js';
-import Alert from '@/components/common/Alert.vue';
 import {
-	BLOCKCHAIN_ATTRIBUTES,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
-	WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_TRANSACTION,
-} from '@/constants/index.js';
+	getDakarClients,
+	getGraphColorMap,
+} from '@/utilities/index.js';
+import Alert from '@/components/common/Alert.vue';
+import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 
 const componentID = useId();
@@ -75,15 +73,7 @@ const errorMsg = ref('');
 const loading = ref(true);
 let oldUID = '';
 
-const colorMap = getColorMap(props.mode);
-colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
-setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
-
-colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
-colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
-colorMap.set(SELECTOR_TYPE_TX_PROP, '#000075');
-
-const nodeGraph = new NodeGraph(colorMap);
+const nodeGraph = new NodeGraph(getGraphColorMap(props.mode));
 
 // Computed
 const svgID = computed(() => `svg_workspace_card_${componentID}`);
