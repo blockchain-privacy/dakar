@@ -26,8 +26,11 @@
       />
     </div>
     <div class="d-flex flex-column">
-      <div class="text-caption ms-auto v-card-subtitle">
-        {{ subtitle }}
+      <div
+        v-tooltip="{'text': created.toLocaleString(), 'location':'top', 'open-delay': 400}"
+        class="text-caption ms-auto v-card-subtitle"
+      >
+        {{ getRelativeTime(created) }}
       </div>
       <v-card-title class="d-flex justify-space-between align-center">
         <div
@@ -63,7 +66,7 @@ const props = defineProps({
 	mode: {type: String, required: true},
 	uid: {type: String, required: true},
 	title: {type: String, required: true},
-	subtitle: {type: String, required: true},
+	created: {type: Date, required: true},
 	to: {type: Object, required: true},
 });
 
@@ -119,6 +122,39 @@ async function getWorkspaceData() {
 	loading.value = false;
 
 	return data;
+}
+
+// Returns the relative time to the current date.
+function getRelativeTime(targetDate) {
+	const diffInMilliseconds = targetDate - new Date();
+	const diffInSeconds = Math.floor(diffInMilliseconds / 1000);
+	const secondsInMinute = 60;
+	const secondsInHour = 3600;
+	const secondsInDay = 86400;
+	const secondsInMonth = 2592000; // Approximation of seconds in 30 days
+	const secondsInYear = 31536000; // Approximation of seconds in 365 days
+
+	let timeUnit;
+	let timeValue;
+
+	if (Math.abs(diffInSeconds) < secondsInMinute) {
+		timeUnit = 'second';
+		timeValue = diffInSeconds;
+	} else if (Math.abs(diffInSeconds) < secondsInHour) {
+		timeUnit = 'minute';
+		timeValue = Math.floor(diffInSeconds / secondsInMinute);
+	} else if (Math.abs(diffInSeconds) < secondsInDay) {
+		timeUnit = 'hour';
+		timeValue = Math.floor(diffInSeconds / secondsInHour);
+	} else if (Math.abs(diffInSeconds) < secondsInMonth) {
+		timeUnit = 'day';
+		timeValue = Math.floor(diffInSeconds / secondsInDay);
+	} else if (Math.abs(diffInSeconds) < secondsInYear) {
+		timeUnit = 'month';
+		timeValue = Math.floor(diffInSeconds / secondsInMonth);
+	}
+
+	return new Intl.RelativeTimeFormat('en').format(timeValue, timeUnit);
 }
 
 </script>

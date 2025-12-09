@@ -78,7 +78,7 @@
             :uid="item.raw.uid"
             :mode="item.raw.mode"
             :title="item.raw.name"
-            :subtitle="new Date(item.raw.modTimeUnix).toLocaleString()"
+            :created="new Date(item.raw.modTimeUnix)"
           >
             <div>
               <v-btn-group>
