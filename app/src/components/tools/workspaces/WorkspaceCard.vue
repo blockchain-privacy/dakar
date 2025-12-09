@@ -26,12 +26,15 @@
       />
     </div>
     <div class="d-flex flex-column">
-      <div
-        v-tooltip="{'text': created.toLocaleString(), 'location':'top', 'open-delay': 400}"
-        class="text-caption ms-auto v-card-subtitle"
+      <v-chip
+        v-tooltip="{'text': `Modified ${created.toLocaleString()}`, 'location':'top', 'open-delay': 400}"
+        rounded
+        size="small"
+        :prepend-icon="mdiCalendar"
+        class="me-2 ms-auto"
       >
-        {{ getRelativeTime(created) }}
-      </div>
+        {{ relativeTime }}
+      </v-chip>
       <v-card-title class="d-flex justify-space-between align-center">
         <div
           style="text-overflow: ellipsis; overflow: hidden"
@@ -50,7 +53,7 @@
 
 import {
 	computed,
-	onMounted, onUpdated, ref, useId,
+	onMounted, onUnmounted, onUpdated, ref, useId,
 } from 'vue';
 import {
 	getDakarClients,
@@ -59,6 +62,7 @@ import {
 import Alert from '@/components/common/Alert.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
+import {mdiCalendar} from '@mdi/js';
 
 const componentID = useId();
 
@@ -74,15 +78,24 @@ const dakarClients = getDakarClients();
 const workspaceData = ref(null);
 const errorMsg = ref('');
 const loading = ref(true);
+const computeUpdate = ref(0);
 let oldUID = '';
-
+let intervalHandle = null;
 const nodeGraph = new NodeGraph(getGraphColorMap(props.mode));
 
 // Computed
 const svgID = computed(() => `svg_workspace_card_${componentID}`);
+const relativeTime = computed(() => {
+	const _ = computeUpdate.value;
+	return getRelativeTime(props.created);
+});
 
 // Hooks
 onMounted(() => {
+	intervalHandle = setInterval(() => {
+		// Change ref so computed value gets updated
+		computeUpdate.value += 1;
+	}, 1000);
 	init();
 });
 
@@ -92,6 +105,12 @@ onUpdated(() => {
 	}
 
 	init();
+});
+
+onUnmounted(() => {
+	if (intervalHandle !== null) {
+		clearInterval(intervalHandle);
+	}
 });
 
 // Functions
@@ -142,16 +161,16 @@ function getRelativeTime(targetDate) {
 		timeValue = diffInSeconds;
 	} else if (Math.abs(diffInSeconds) < secondsInHour) {
 		timeUnit = 'minute';
-		timeValue = Math.floor(diffInSeconds / secondsInMinute);
+		timeValue = Math.round(diffInSeconds / secondsInMinute);
 	} else if (Math.abs(diffInSeconds) < secondsInDay) {
 		timeUnit = 'hour';
-		timeValue = Math.floor(diffInSeconds / secondsInHour);
+		timeValue = Math.round(diffInSeconds / secondsInHour);
 	} else if (Math.abs(diffInSeconds) < secondsInMonth) {
 		timeUnit = 'day';
-		timeValue = Math.floor(diffInSeconds / secondsInDay);
+		timeValue = Math.round(diffInSeconds / secondsInDay);
 	} else if (Math.abs(diffInSeconds) < secondsInYear) {
 		timeUnit = 'month';
-		timeValue = Math.floor(diffInSeconds / secondsInMonth);
+		timeValue = Math.round(diffInSeconds / secondsInMonth);
 	}
 
 	return new Intl.RelativeTimeFormat('en').format(timeValue, timeUnit);
