@@ -171,6 +171,9 @@ function getRelativeTime(targetDate) {
 	} else if (Math.abs(diffInSeconds) < secondsInYear) {
 		timeUnit = 'month';
 		timeValue = Math.round(diffInSeconds / secondsInMonth);
+	} else {
+		timeUnit = 'year';
+		timeValue = Math.round(diffInSeconds / secondsInYear);
 	}
 
 	return new Intl.RelativeTimeFormat('en').format(timeValue, timeUnit);
