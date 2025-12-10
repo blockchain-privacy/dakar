@@ -224,7 +224,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient, r *htt
 }
 
 func getSelectorStatus(workspaceMutex *workspace.Mutex, dgraph external.Database, r *http.Request) (reply selectorStatusReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -277,7 +277,7 @@ func getSelectorStatus(workspaceMutex *workspace.Mutex, dgraph external.Database
 }
 
 func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply selectorResultsReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -313,49 +313,9 @@ func getSelectorResultsReply(dgraph external.Database, r *http.Request) (reply s
 	return
 }
 
-//
-//func getHeuristicExecutionReply(dgraph external.Database, worker *worker.Worker, r *http.Request,
-//	workspaceMutex *workspace.Mutex) (reply heuristicExecutionReply, status int) {
-//	tUser, err := extractTokenUser(r.Context())
-//	if err != nil {
-//		status = http.StatusUnauthorized
-//		warn(err)
-//		return
-//	}
-//
-//	type request struct {
-//		NewHeuristic *dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic"`
-//		WorkspaceUID string                                `json:"workspaceUID"`
-//	}
-//
-//	var heuristicRequest request
-//
-//	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
-//		status = http.StatusBadRequest
-//		warn(serror.New(err))
-//		return
-//	}
-//
-//	if heuristicRequest.NewHeuristic == nil {
-//		status = http.StatusBadRequest
-//		warn(serror.FromStr("empty heuristic request"))
-//		return
-//	}
-//
-//	reply.WorkID, err = workspace.AddHeuristic(r.Context(), dgraph, worker, workspaceMutex,
-//		*heuristicRequest.NewHeuristic, heuristicRequest.WorkspaceUID, tUser.ID)
-//	if err != nil {
-//		status = http.StatusInternalServerError
-//		warn(err)
-//		return
-//	}
-//
-//	return
-//}
-
 func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 	workspaceMutex *workspace.Mutex) (reply addWorkspaceSelectorReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -513,7 +473,7 @@ func getShortestTransactionPathReply(dgraph external.Database, r *http.Request) 
 
 // getClusterLookupReply returns the result of a cluster lookup
 func getClusterLookupReply(dgraph external.Database, r *http.Request) (reply clusterLookupReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -566,7 +526,7 @@ func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *htt
 
 	const errReport = "error getting selector report"
 
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		http.Error(w, errReport, http.StatusBadRequest)
 		warn(err)
@@ -632,7 +592,7 @@ func writeClusterReport(dgraph external.Database, w http.ResponseWriter, r *http
 
 	const errReport = "error getting cluster report"
 
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		http.Error(w, errReport, http.StatusNotFound)
 		warn(err)
@@ -740,7 +700,7 @@ const (
 )
 
 func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -858,7 +818,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 }
 
 func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -976,7 +936,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply ms
 }
 
 func getClusterOverviewReply(r *http.Request, dgraph external.Database) (reply clusterOverviewReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -997,7 +957,7 @@ func getClusterOverviewReply(r *http.Request, dgraph external.Database) (reply c
 }
 
 func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1022,7 +982,7 @@ func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msg
 }
 
 func getDeleteAllClustersReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1040,7 +1000,7 @@ func getDeleteAllClustersReply(dgraph external.Database, r *http.Request) (reply
 }
 
 func getAttributionOverviewReply(dgraph external.Database, r *http.Request) (reply attributionOverviewReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1061,7 +1021,7 @@ func getAttributionOverviewReply(dgraph external.Database, r *http.Request) (rep
 
 func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
 	isPublicDeletion bool) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1092,7 +1052,7 @@ func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
 }
 
 func getDeleteAllAttributionsReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1110,7 +1070,7 @@ func getDeleteAllAttributionsReply(dgraph external.Database, r *http.Request) (r
 }
 
 func getAttributionSearchReply(dgraph external.Database, r *http.Request) (reply attributionOverviewReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1135,7 +1095,7 @@ func getAttributionSearchReply(dgraph external.Database, r *http.Request) (reply
 }
 
 func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1221,7 +1181,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 }
 
 func getAddressExclusionOverviewReply(dgraph external.Database, r *http.Request) (reply addressExclusionOverviewReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1242,7 +1202,7 @@ func getAddressExclusionOverviewReply(dgraph external.Database, r *http.Request)
 }
 
 func getDeleteAddressExclusionReply(dgraph external.Database, r *http.Request) int {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		warn(err)
 		return http.StatusUnauthorized
@@ -1262,7 +1222,7 @@ func getDeleteAddressExclusionReply(dgraph external.Database, r *http.Request) i
 }
 
 func getDeleteAllAddressExclusionsReply(dgraph external.Database, r *http.Request) int {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		warn(err)
 		return http.StatusUnauthorized
@@ -1278,7 +1238,7 @@ func getDeleteAllAddressExclusionsReply(dgraph external.Database, r *http.Reques
 
 func getAddressExclusionStatusReply(dgraph external.Database, r *http.Request) (
 	reply addressExclusionStatusReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1380,7 +1340,7 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 
 func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply addWorkspaceNodesReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1452,7 +1412,7 @@ func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspa
 
 func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply addWorkspaceNoteReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1497,7 +1457,7 @@ func getAddWorkspaceNoteReply(dgraph external.Database, workspaceMutex *workspac
 }
 
 func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply workspacesReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1521,7 +1481,7 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 
 func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply getWorkspaceReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1550,7 +1510,7 @@ func getGetWorkspaceReply(dgraph external.Database, workspaceMutex *workspace.Mu
 }
 
 func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1574,7 +1534,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 }
 
 func getRenameWorkspaceReply(dgraph external.Database, r *http.Request) (status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1610,7 +1570,7 @@ func getRenameWorkspaceReply(dgraph external.Database, r *http.Request) (status 
 }
 
 func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mutex, r *http.Request) (status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1647,7 +1607,7 @@ func getUpdateWorkspace(dgraph external.Database, workspaceMutex *workspace.Mute
 
 func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply deleteWorkspaceNodeReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1684,7 +1644,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, workspaceMutex *works
 }
 
 func getDeleteWorkspaceReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)
@@ -1713,7 +1673,7 @@ func getDeleteWorkspaceReply(dgraph external.Database, r *http.Request) (reply m
 }
 
 func getWorkspaceConnectionReply(dgraph external.Database, r *http.Request) (reply workspaceConnectionReply, status int) {
-	tUser, err := extractTokenUser(r.Context())
+	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
 		warn(err)

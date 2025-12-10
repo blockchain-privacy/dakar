@@ -15,6 +15,7 @@ import (
 	"backend/db/upgrades"
 	"backend/external"
 	"backend/jsonrpc"
+	"backend/mcpserver"
 	"backend/processor"
 	"backend/server"
 	"backend/userserver"
@@ -449,6 +450,14 @@ func main() {
 		userHTTPServer = userserver.NewServer(graphDB).StartServer(&wg, newConfig.Modules.User.Port)
 	}
 
+	// start mcp api endpoint
+	var mcpHTTPServer *http.Server
+	if newConfig.Modules.MCP.Active {
+		wg.Add(1)
+		mcpHTTPServer = mcpserver.NewServer(graphDB, w, graphWrapper, newConfig.BlockchainMode).
+			StartServer(&wg, newConfig.Modules.MCP.Port)
+	}
+
 	// start metrics endpoint
 	var metricsHTTPServer *http.Server
 	if newConfig.Modules.Metrics.Active {
@@ -472,6 +481,7 @@ func main() {
 			shutdownServer(apiHTTPServer)
 			shutdownServer(userHTTPServer)
 			shutdownServer(metricsHTTPServer)
+			shutdownServer(mcpHTTPServer)
 		case <-chCrawlingStopped:
 			terminateApp()
 			crawlerStopped = true
@@ -497,6 +507,7 @@ func main() {
 		shutdownServer(apiHTTPServer)
 		shutdownServer(userHTTPServer)
 		shutdownServer(metricsHTTPServer)
+		shutdownServer(mcpHTTPServer)
 	}
 
 	wg.Wait()

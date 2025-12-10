@@ -33,9 +33,9 @@
         />
         <div
           v-else-if="consentRejected"
-          class="text-subtitle-1"
+          class="text-subtitle-1 text-center"
         >
-          Permission consent has been rejected. You can close this page now.
+          You have denied the consent. You can close this page now.
         </div>
         <template v-else-if="consentData.show">
           <div class="text-subtitle-1 text-center">
@@ -97,7 +97,7 @@ import {
 import {useRoute, useRouter} from 'vue-router';
 import Alert from '@/components/common/Alert.vue';
 import DakarImg from '@/assets/dakar.svg?url';
-import {mdiAccount, mdiRefresh} from '@mdi/js';
+import {mdiAccount, mdiDatabase, mdiRefresh} from '@mdi/js';
 
 const route = useRoute();
 const router = useRouter();
@@ -141,6 +141,18 @@ function addScopeMeta(scopes) {
 					title: scope,
 					description: 'Allows the requesting application to refresh the authentication session.',
 					icon: mdiRefresh,
+				};
+			case 'offline_access':
+				return {
+					title: scope,
+					description: 'Allows the requesting application to refresh the authentication session.',
+					icon: mdiRefresh,
+				};
+			case 'dakar':
+				return {
+					title: scope,
+					description: 'Allows the requesting application full access to Dakar\'s data. This includes creating, modifying and deleting your workspaces.',
+					icon: mdiDatabase,
 				};
 			default:
 				return {title: scope};

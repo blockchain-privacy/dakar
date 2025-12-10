@@ -67,17 +67,29 @@ export default defineConfig({
 				// Remove '/auth' prefix
 				rewrite: path => path.replace(/^\/auth/, ''),
 			},
-			// Hydra endpoints, need to be a root level to be compatible with MCP
-			'/userinfo': {
+			'/hydra': {
 				target: 'http://localhost:4444',
 				changeOrigin: true,
+				// Remove '/hydra' prefix
+				rewrite: path => path.replace(/^\/hydra/, ''),
 			},
-			'/oauth2': {
+			// Mcp auth discovery, see https://modelcontextprotocol.io/specification/draft/basic/authorization#authorization-server-metadata-discovery
+			'/.well-known/oauth-authorization-server/dashmcp': {
 				target: 'http://localhost:4444',
 				changeOrigin: true,
+				rewrite: path => path.replace(/(\/dashmcp\/?)$/, ''),
 			},
-			'/.well-known': {
+			'/.well-known/oauth-authorization-server/btcmcp': {
 				target: 'http://localhost:4444',
+				changeOrigin: true,
+				rewrite: path => path.replace(/(\/btcmcp\/?)$/, ''),
+			},
+			'/dashmcp': {
+				target: 'http://localhost:4455',
+				changeOrigin: true,
+			},
+			'/btcmcp': {
+				target: 'http://localhost:4455',
 				changeOrigin: true,
 			},
 		},
