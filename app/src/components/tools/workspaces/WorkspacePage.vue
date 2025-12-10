@@ -56,7 +56,7 @@
         />
       </div>
     </fade-transition>
-    <error-message :text="errorMsg" />
+    <alert :text="errorMsg" />
     <v-data-table
       v-if="workspaceList.length > 0"
       v-model:sort-by="sortBy"
@@ -178,7 +178,7 @@ import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import BlockchainModeTextDialog from '@/components/tools/workspaces/BlockchainModeTextDialog.vue';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
-import ErrorMessage from '@/components/common/ErrorMessage.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const route = useRoute();
 const msgStore = useMsgStore();

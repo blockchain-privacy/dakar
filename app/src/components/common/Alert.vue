@@ -4,7 +4,7 @@
       v-if="text"
       class="my-2"
       :text="text"
-      type="error"
+      :type="type"
       variant="tonal"
     />
   </v-expand-transition>
@@ -12,7 +12,10 @@
 
 <script setup>
 
-defineProps({text: {type: String, required: true}});
+defineProps({
+	text: {type: String, required: true},
+	type: {type: String, required: false, default: 'error'},
+});
 
 </script>
 <style scoped>

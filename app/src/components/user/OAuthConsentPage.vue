@@ -27,7 +27,7 @@
         </h3>
       </div>
       <v-card-text>
-        <error-message
+        <alert
           v-if="errorMsg"
           :text="errorMsg"
         />
@@ -95,7 +95,7 @@ import {
 	inject, onMounted, ref,
 } from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import ErrorMessage from '@/components/common/ErrorMessage.vue';
+import Alert from '@/components/common/Alert.vue';
 import DakarImg from '@/assets/dakar.svg?url';
 import {mdiAccount, mdiRefresh} from '@mdi/js';
 

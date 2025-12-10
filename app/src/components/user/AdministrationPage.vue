@@ -9,7 +9,7 @@
       justify="center"
     >
       <v-col cols="12">
-        <error-message :text="errorMsg" />
+        <alert :text="errorMsg" />
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -17,7 +17,7 @@
           :search="search"
           :loading="isLoading || !identities"
           item-key="id"
-          class="my-10 elevation-4"
+          class="mb-10 elevation-4"
         >
           <template #top>
             <v-toolbar flat>
@@ -40,16 +40,16 @@
               >
                 <v-icon>{{ mdiRefresh }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
-                  Refresh
+                  Refresh All
                 </div>
               </v-btn>
               <v-btn
                 variant="outlined"
-                @click="showCreateDialog"
+                @click="showCreateIdentityDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
-                  Create Identity
+                  Create
                 </div>
               </v-btn>
             </v-toolbar>
@@ -214,6 +214,14 @@
                 single-line
                 hide-details
               />
+              <v-spacer />
+              <v-btn
+                variant="outlined"
+                @click="showCreateClientDialog"
+              >
+                <v-icon :icon="mdiPlus" />
+                Create
+              </v-btn>
             </v-toolbar>
           </template>
           <template #item.updated_at="{ item }">
@@ -228,6 +236,9 @@
           <template #item.grant_types="{ item }">
             <span>{{ item.grant_types.join(', ') }}</span>
           </template>
+          <template #item.response_types="{ item }">
+            <span>{{ item.response_types.join(', ') }}</span>
+          </template>
           <template #item.actions="{ item }">
             <v-menu>
               <template #activator="{ props }">
@@ -240,6 +251,12 @@
                 </v-btn>
               </template>
               <v-list>
+                <v-list-item @click="showEditClientDialog(item)">
+                  <template #prepend>
+                    <v-icon :icon="mdiPencil" />
+                  </template>
+                  Edit
+                </v-list-item>
                 <v-list-item @click="showDeleteClientDialog(item.client_id)">
                   <template #prepend>
                     <v-icon :icon="mdiDelete" />
@@ -256,6 +273,13 @@
           :create-new-user="createNewUser"
           :identity="editedItem"
           @saved="refreshUsers()"
+        />
+        <create-client-dialog
+          v-if="showCreateClientDialogModel"
+          v-model="showCreateClientDialogModel"
+          :is-edit="updateClient"
+          :client="updateClientData"
+          @created="refreshUsers()"
         />
         <deletion-dialog
           v-if="identityToDelete"
@@ -319,15 +343,16 @@
 <script setup>
 import {
 	mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
-	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
+	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical, mdiPlus,
 } from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
 import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import ErrorMessage from '@/components/common/ErrorMessage.vue';
+import Alert from '@/components/common/Alert.vue';
 import DeletionDialog from '@/components/user/DeletionDialog.vue';
+import CreateClientDialog from '@/components/user/CreateClientDialog.vue';
 
 const kratosAdmin = inject('kratosadmin');
 const route = useRoute();
@@ -340,6 +365,7 @@ const showIdentityPropertyDialogModel = ref(false);
 const showDeleteClientDialogModel = ref(false);
 const showDeleteConsentDialogModel = ref(false);
 const showDeleteSessionDialogModel = ref(false);
+const showCreateClientDialogModel = ref(false);
 
 const identityToDelete = ref(null);
 const clientToDelete = ref(null);
@@ -411,6 +437,7 @@ const oauthClientsHeaders = [
 	{title: 'Redirect URIs', key: 'redirect_uris'},
 	{title: 'Skip Consent', key: 'skip_consent'},
 	{title: 'Created At', key: 'created_at'},
+	{title: 'Response Types', key: 'response_types'},
 	{title: 'Updated At', key: 'updated_at'},
 	{
 		title: '', key: 'actions', sortable: false, align: 'end',
@@ -418,12 +445,16 @@ const oauthClientsHeaders = [
 ];
 
 const createNewUser = ref(false);
+const updateClient = ref(false);
 const editedItem = ref({
 	id: '', email: '', state: '', roles: {},
 });
 const defaultItem = ref({
 	id: '', email: '', state: '', roles: {},
 });
+// Client data for the client update dialog.
+const updateClientData = ref(null);
+
 const identities = ref(null);
 const sessions = ref(null);
 const oauthSessions = ref(null);
@@ -527,10 +558,24 @@ function showEditDialog(item) {
 	showCreateIdentityDialogModel.value = true;
 }
 
-function showCreateDialog() {
+function showCreateIdentityDialog() {
+	if (isLoading.value) {
+		return;
+	}
+
 	createNewUser.value = true;
 	editedItem.value = {...defaultItem.value};
 	showCreateIdentityDialogModel.value = true;
+}
+
+function showCreateClientDialog() {
+	if (isLoading.value) {
+		return;
+	}
+
+	updateClient.value = false;
+	updateClientData.value = null;
+	showCreateClientDialogModel.value = true;
 }
 
 function showDeleteIdentityDialog(identity) {
@@ -604,6 +649,16 @@ async function deleteClient(clientId) {
 
 	isLoading.value = false;
 	clientToDelete.value = null;
+}
+
+function showEditClientDialog(item) {
+	if (isLoading.value) {
+		return;
+	}
+
+	updateClient.value = true;
+	updateClientData.value = item;
+	showCreateClientDialogModel.value = true;
 }
 
 async function deleteSession(sessionId) {
