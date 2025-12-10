@@ -6,14 +6,16 @@ package workspace
 
 import (
 	"backend/db"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dgraph-io/dgo/v250/protos/api"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 var ErrInvalidOptions = errors.New("invalid options")
@@ -596,4 +598,48 @@ func GetSelectorStatus(ctx context.Context, c external.Database, selectorUID str
 	}
 
 	return r.Selectors[0].Status, nil
+}
+
+func GetNodeType(ctx context.Context, c external.Database, uid string) (*NodeType, error) {
+	if uid == "" {
+		return nil, serror.New(db.ErrEmptyRequestArgument)
+	}
+
+	const query = `query Q($uid:string){
+				q(func: uid($uid)){
+					Selector.type
+					Selector.options
+					Transaction.type
+					dgraph.type
+				}
+			  }`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": uid})
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	// json struct
+	var r struct {
+		Type []NodeType `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	if len(r.Type) != 1 || len(r.Type[0].Type) != 1 {
+		return nil, serror.FromStrWithContext("invalid response", "response", r.Type)
+	}
+
+	// try to extract heuristic options
+	var opt heuristics.Options
+	if err = json.Unmarshal([]byte(r.Type[0].SelectorOptions), &opt); err == nil {
+		r.Type[0].HeuristicType = opt.Type
+	}
+
+	// unset long string to save memory
+	r.Type[0].SelectorOptions = ""
+
+	return &r.Type[0], nil
 }
