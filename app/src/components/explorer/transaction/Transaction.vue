@@ -217,7 +217,7 @@
             <v-tab
               class="flex-grow-1"
               :disabled="!allInputs?.length"
-              :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
+              :text="inputTabTitle"
               value="inputs"
             />
           </v-col>
@@ -229,7 +229,7 @@
             />
             <v-tab
               class="flex-grow-1"
-              :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
+              :text="outputTabTitle"
               value="outputs"
             />
           </v-col>
@@ -429,6 +429,31 @@ const hasUncommonWasabi2Denomination = computed(() => isBTC.value
 
 const outputFrameComponent = computed(() => isTabMode.value ? VTabsWindow : VRow);
 const outputFrameComponentColumn = computed(() => isTabMode.value ? VTabsWindowItem : VCol);
+
+const inputTabTitle = computed(() => {
+	const allInputsLength = props.tx.inputs ? props.tx.inputs.length : 0;
+
+	let title = `${allInputsLength} ${plural('Input', allInputsLength)}`;
+
+	if (allInputs.value.length < allInputsLength) {
+		title = `${allInputs.value.length} of ` + title;
+	}
+
+	return title;
+});
+
+const outputTabTitle = computed(() => {
+	const allOutputsLength = props.tx.outputs ? props.tx.outputs.length : 0;
+
+	let title = `${allOutputsLength} ${plural('Output', allOutputsLength)}`;
+
+	if (allOutputs.value.length < allOutputsLength) {
+		title = `${allOutputs.value.length} of ` + title;
+	}
+
+	return title;
+});
+
 // Hooks
 onUpdated(() => {
 	init();
