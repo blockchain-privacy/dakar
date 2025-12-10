@@ -433,15 +433,14 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 		return
 	}
 
-	ticker := time.NewTicker(config.NewBlockIntervalTime)
-	defer ticker.Stop()
+	ticker := time.Tick(config.NewBlockIntervalTime)
 	for {
 		select {
 		case <-interrupt:
 			processingInterrupted()
 			isInterrupt = true
 			return
-		case <-ticker.C:
+		case <-ticker:
 			currentBlock, err = client.GetBlockVerbose(hashObj)
 			if err != nil {
 				return
