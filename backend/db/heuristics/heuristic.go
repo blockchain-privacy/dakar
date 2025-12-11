@@ -6,6 +6,7 @@ package heuristics
 
 import (
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/external"
@@ -14,10 +15,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"sort"
 	"strconv"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 var errInvalidDatabaseResponse = errors.New("error invalid response")
@@ -532,4 +534,56 @@ func GetInputAmounts(ctx context.Context, c external.Database, tx string,
 	}
 
 	return
+}
+
+// GetNodeType returns the transaction type or heuristic type of the given node UID
+func GetNodeType(ctx context.Context, c external.Database, uid string) (string, string, error) {
+	if uid == "" {
+		return "", "", serror.New(db.ErrEmptyRequestArgument)
+	}
+
+	const query = `query Q($uid:string){
+				q(func: uid($uid)){
+					Transaction.type
+					Selector.options
+					Selector.type
+				}
+			  }`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": uid})
+	if err != nil {
+		return "", "", serror.New(err)
+	}
+
+	// json struct
+	var r struct {
+		Type []struct {
+			TransactionType string `json:"Transaction.type,omitempty"`
+			SelectorType    string `json:"Selector.type,omitempty"`
+			SelectorOptions string `json:"Selector.options,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return "", "", serror.New(err)
+	}
+
+	if len(r.Type) != 1 {
+		return "", "", serror.FromStrWithContext("invalid response", "response", r.Type)
+	}
+
+	var heuristicType string
+	if r.Type[0].SelectorType == constants.TypeHeuristic {
+		// try to extract heuristic options
+		var opt struct {
+			// Type is the type of the heuristic
+			Type string `json:"type,omitempty"`
+		}
+		if err := json.Unmarshal([]byte(r.Type[0].SelectorOptions), &opt); err != nil {
+			return "", "", serror.New(err)
+		}
+		heuristicType = opt.Type
+	}
+
+	return r.Type[0].TransactionType, heuristicType, nil
 }

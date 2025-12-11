@@ -7,6 +7,9 @@ package workspace
 import (
 	"backend/constants"
 	"backend/db"
+	"backend/external"
+	"context"
+	"slices"
 	"time"
 )
 
@@ -16,15 +19,11 @@ const (
 	StatusWaiting = "waiting"
 	StatusError   = "error"
 	StatusSuccess = "success"
-
-	TypeTxProp    = "transactionProperties"
-	TypeTxGraph   = "transactionGraph"
-	TypeHeuristic = "heuristic"
 )
 
 const selectorMaxItems = 200
 
-var validTypes = map[string]bool{TypeTxProp: true, TypeTxGraph: true, TypeHeuristic: true}
+var validTypes = map[string]bool{constants.TypeTxProp: true, constants.TypeTxGraph: true, constants.TypeHeuristic: true}
 
 var validStates = map[string]bool{StatusWaiting: true, StatusError: true, StatusSuccess: true}
 
@@ -68,6 +67,11 @@ func (a AmountRange) IsValid() bool {
 	return (a.Min != nil || a.Max != nil) && (a.Max == nil || a.Min == nil || *a.Min <= *a.Max)
 }
 
+type Options interface {
+	// IsValid returns true if the Options are valid.
+	IsValid(ctx context.Context, c external.Database, parentUID string) bool
+}
+
 type TxPropOptions struct {
 	// StartDate is the start of the time range selection
 	StartDate *time.Time `json:"startDate,omitempty"`
@@ -89,13 +93,14 @@ type TxPropOptions struct {
 	OutputRange *AmountRange `json:"outputRange,omitempty"`
 }
 
-func (o TxPropOptions) IsValid(hasParent bool) bool {
+//nolint:gocyclo
+func (o TxPropOptions) IsValid(ctx context.Context, c external.Database, parentUID string) bool {
 	// if maxItems is set, it has to be in a valid range
 	if o.MaxItems != nil && (*o.MaxItems <= 0 || *o.MaxItems > selectorMaxItems) {
 		return false
 	}
 
-	if !hasParent {
+	if parentUID == "" {
 		// both dates must be set
 		if o.StartDate == nil || o.EndDate == nil {
 			return false
@@ -145,7 +150,33 @@ func (o TxPropOptions) IsValid(hasParent bool) bool {
 		}
 	}
 
+	if parentUID != "" {
+		databaseType, err := db.GetTypeByUID(ctx, c, parentUID)
+		if err != nil || databaseType == "" {
+			return false
+		}
+
+		// if a parent is present, it must be a selector
+		if !isParentTypeValid([]string{SelectorDType}, []string{databaseType}) {
+			return false
+		}
+	}
+
 	return true
+}
+
+// returns true if any item of parentTypes is in allowedParents
+func isParentTypeValid(allowedParents []string, parentTypes []string) bool {
+	if len(allowedParents) == 0 {
+		return false
+	}
+
+	for _, parentType := range parentTypes {
+		if slices.Contains(allowedParents, parentType) {
+			return true
+		}
+	}
+	return false
 }
 
 type TxGraphOptions struct {
@@ -159,13 +190,27 @@ type TxGraphOptions struct {
 	ExcludePrivacyTransactions bool `json:"excludePrivacyTransactions,omitempty"`
 }
 
-func (o TxGraphOptions) IsValid(_ bool) bool {
+func (o TxGraphOptions) IsValid(ctx context.Context, c external.Database, parentUID string) bool {
+	if parentUID == "" {
+		return false
+	}
+
 	// if maxItems is set, it has to be in a valid range
 	if o.MaxItems != nil && (*o.MaxItems <= 0 || *o.MaxItems > selectorMaxItems) {
 		return false
 	}
 
-	return o.MaxItems != nil && o.Depth != nil && *o.Depth > 0 && *o.Depth <= 5
+	if o.MaxItems == nil || o.Depth == nil || *o.Depth <= 0 || *o.Depth > 5 {
+		return false
+	}
+
+	databaseType, err := db.GetTypeByUID(ctx, c, parentUID)
+	if err != nil || databaseType == "" {
+		return false
+	}
+
+	// Dgraph type must be 'Transaction'
+	return isParentTypeValid([]string{db.TransactionDType}, []string{databaseType})
 }
 
 type WorkItem struct {
@@ -184,20 +229,7 @@ type TransactionWithTimestamp struct {
 	Cluster   *int   `json:"cluster,omitempty"`
 }
 
-type HeuristicCluster struct {
-	Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
-}
-
 type Attribution struct {
 	Tag      string `json:"tag,omitempty"`
 	IsPublic bool   `json:"isPublic"`
-}
-
-type NodeType struct {
-	TransactionType string   `json:"Transaction.type,omitempty"`
-	SelectorOptions string   `json:"Selector.options,omitempty"`
-	SelectorType    string   `json:"Selector.type,omitempty"`
-	Type            []string `json:"dgraph.type,omitempty"`
-	// filled from selector options, if applicable
-	HeuristicType string `json:"-"`
 }

@@ -27,7 +27,7 @@ func TestTransaction_SetDType(t *testing.T) {
 
 	tx.SetDType()
 
-	require.Equal(t, []string{transactionDType}, tx.DType)
+	require.Equal(t, []string{TransactionDType}, tx.DType)
 }
 
 func getNumPointer[number int64 | uint64 | uint32 | int32](n number) *number {

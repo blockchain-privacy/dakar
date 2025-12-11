@@ -5,8 +5,8 @@
 package workspace
 
 import (
+	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
 	"encoding/json"
@@ -18,7 +18,6 @@ import (
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
-var ErrInvalidOptions = errors.New("invalid options")
 var ErrInvalidSelector = errors.New("invalid selector")
 
 // appendFilterArgs appends '<and> ge(filterSubject, number)' or '<and> le(filterSubject, number)' filter
@@ -45,10 +44,6 @@ func appendFilterArgs(filter string, filterSubject string, number *int64, greate
 //
 //nolint:gocyclo
 func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, parentUID string) ([]string, int, error) {
-	if !o.IsValid(parentUID != "") {
-		return nil, 0, serror.New(ErrInvalidOptions)
-	}
-
 	var queryBody string
 	var queryFilter string
 
@@ -140,13 +135,13 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 						}`
 	} else {
 		selectorQuery = `
-					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + TypeHeuristic + `)){
+					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + constants.TypeHeuristic + `)){
 						Selector.results{
 							hr as HeuristicCluster.results` + transactionTypeFilter + `
 						}
 					}
 
-					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + TypeHeuristic + `)){
+					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + constants.TypeHeuristic + `)){
 						sr as Selector.results` + transactionTypeFilter + `
 					}
 					t as var(func: uid(hr,sr))
@@ -281,9 +276,6 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 
 // DoGraphSelection returns transactions specified by the options. It also returns the number of total results.
 func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions, parentUID string) ([]string, int, error) {
-	if !o.IsValid(parentUID != "") || parentUID == "" {
-		return nil, 0, serror.New(ErrInvalidOptions)
-	}
 	maxItems := selectorMaxItems
 	if o.MaxItems != nil {
 		maxItems = *o.MaxItems
@@ -432,7 +424,9 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 		// set if not a heuristic
 		Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
 		// set if a heuristic
-		Clusters []HeuristicCluster `json:"clusters,omitempty"`
+		Clusters []struct {
+			Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
+		} `json:"clusters,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
@@ -598,48 +592,4 @@ func GetSelectorStatus(ctx context.Context, c external.Database, selectorUID str
 	}
 
 	return r.Selectors[0].Status, nil
-}
-
-func GetNodeType(ctx context.Context, c external.Database, uid string) (*NodeType, error) {
-	if uid == "" {
-		return nil, serror.New(db.ErrEmptyRequestArgument)
-	}
-
-	const query = `query Q($uid:string){
-				q(func: uid($uid)){
-					Selector.type
-					Selector.options
-					Transaction.type
-					dgraph.type
-				}
-			  }`
-
-	resp, err := c.Query(ctx, query, map[string]string{"$uid": uid})
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	// json struct
-	var r struct {
-		Type []NodeType `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return nil, serror.New(err)
-	}
-
-	if len(r.Type) != 1 || len(r.Type[0].Type) != 1 {
-		return nil, serror.FromStrWithContext("invalid response", "response", r.Type)
-	}
-
-	// try to extract heuristic options
-	var opt heuristics.Options
-	if err = json.Unmarshal([]byte(r.Type[0].SelectorOptions), &opt); err == nil {
-		r.Type[0].HeuristicType = opt.Type
-	}
-
-	// unset long string to save memory
-	r.Type[0].SelectorOptions = ""
-
-	return &r.Type[0], nil
 }
