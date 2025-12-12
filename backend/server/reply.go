@@ -337,27 +337,20 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 		return
 	}
 
-	if selectorRequest.TxPropOptions == nil &&
-		selectorRequest.TxGraphOptions == nil &&
-		selectorRequest.HeuristicOptions == nil {
+	var options dbwork.Options
+	if selectorRequest.TxPropOptions != nil {
+		options = *selectorRequest.TxPropOptions
+	} else if selectorRequest.TxGraphOptions != nil {
+		options = *selectorRequest.TxGraphOptions
+	} else if selectorRequest.HeuristicOptions != nil {
+		options = *selectorRequest.HeuristicOptions
+	} else {
 		status = http.StatusBadRequest
 		return
 	}
 
-	if selectorRequest.TxPropOptions != nil {
-		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.TxPropOptions,
-			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
-	} else if selectorRequest.TxGraphOptions != nil {
-		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.TxGraphOptions,
-			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
-	} else {
-		_, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, *selectorRequest.HeuristicOptions,
-			selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID)
-	}
-
-	if err == nil {
-		worker.TriggerSearch()
-	} else {
+	if _, reply.Nodes, err = workspace.AddSelector(r.Context(), dgraph, workspaceMutex, options,
+		selectorRequest.Type, selectorRequest.Parent, selectorRequest.WorkspaceUID, tUser.ID); err != nil {
 		if errors.Is(err, db.ErrInvalidRequestArgument) {
 			status = http.StatusBadRequest
 		} else {
@@ -367,6 +360,8 @@ func getAddWorkspaceSelectorReply(dgraph external.Database, r *http.Request,
 		warn(err)
 		return
 	}
+
+	worker.TriggerSearch()
 
 	return
 }
