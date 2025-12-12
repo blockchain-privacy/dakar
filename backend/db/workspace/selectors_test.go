@@ -174,9 +174,12 @@ func TestDoSelection(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		if !tt.o.IsValid(t.Context(), dbHandle, "") {
+		flag := tt.o.IsValid(t.Context(), dbHandle, "")
+		if tt.wantErr {
+			require.False(t, flag)
 			continue
 		}
+		require.True(t, flag)
 
 		selection, totalResultCount, err := DoSelection(t.Context(), dbHandle, tt.o, "")
 		if tt.wantErr {
@@ -602,9 +605,12 @@ func TestDoGraphSelection(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		if !tt.o.IsValid(t.Context(), dbHandle, tt.parentUID) {
+		flag := tt.o.IsValid(t.Context(), dbHandle, tt.parentUID)
+		if tt.wantErr {
+			require.False(t, flag)
 			continue
 		}
+		require.True(t, flag)
 
 		selection, totalResultCount, err := DoGraphSelection(t.Context(), dbHandle, tt.o, tt.parentUID)
 		if tt.wantErr {
