@@ -5,23 +5,15 @@
 package mcpserver
 
 import (
-	"backend/analytics/graph"
 	"backend/analytics/heuristics"
 	"backend/db"
-	"backend/external"
-	"backend/workspace"
+	"backend/server"
 	"context"
 	"errors"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
-
-type TransactionParams struct {
-	TransactionHash string `json:"transactionHash" jsonschema:"required"`
-	GetProperty     string `json:"getProperty" jsonschema:"required, allowed values: all (gets all details), type (gets only the transaction type)"`
-}
 
 func (s *Server) getTransaction() mcp.ToolHandlerFor[TransactionParams, *db.FrontendTransaction] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input TransactionParams) (*mcp.CallToolResult, *db.FrontendTransaction, error) {
@@ -48,10 +40,6 @@ func (s *Server) getTransaction() mcp.ToolHandlerFor[TransactionParams, *db.Fron
 	}
 }
 
-type ListHeuristicsResult struct {
-	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty" jsonschema:"the descriptors of all possible heuristics"`
-}
-
 func (s *Server) listHeuristics() mcp.ToolHandlerFor[any, *ListHeuristicsResult] {
 	return func(_ context.Context, _ *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, *ListHeuristicsResult, error) {
 		result := ListHeuristicsResult{Descriptors: make([]heuristics.Descriptor, 0, len(heuristics.ConstructorMap))}
@@ -62,37 +50,32 @@ func (s *Server) listHeuristics() mcp.ToolHandlerFor[any, *ListHeuristicsResult]
 	}
 }
 
-type ExecuteHeuristicParams struct {
-	Type            string `json:"type,omitempty" jsonschema:"required, the type of the heuristic"`
-	Parameter       string `json:"parameter,omitempty" jsonschema:"required, the heuristic parameter"`
-	TransactionHash string `json:"transactionHash,omitempty" jsonschema:"required, the transaction for that the transaction is created for"`
-}
+func (s *Server) executeHeuristic() mcp.ToolHandlerFor[heuristics.HeuristicOptions, *ExecuteHeuristicResult] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, opt heuristics.HeuristicOptions) (*mcp.CallToolResult, *ExecuteHeuristicResult, error) {
+		tUser, err := server.ExtractTokenUser(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
 
-type ExecuteHeuristicResult struct {
-	ResultCount int `json:"resultCount,omitempty" jsonschema:"the number of transactions found by the heuristic"`
-}
+		info("received options", "options", opt)
 
-type dummyWork struct {
-}
+		parentUID, err := db.GetTransactionUID(ctx, s.db, opt.TransactionHash)
+		if err != nil {
+			return nil, nil, err
+		}
 
-func (d *dummyWork) Run(ctx context.Context, _ *workspace.Mutex, _ external.Database, _ *graph.Wrapper) error {
-	ticker := time.Tick(time.Second * 60 * 5)
+		if !opt.IsValid(ctx, s.db, parentUID) {
+			return nil, nil, serror.FromStr("invalid options")
+		}
 
-	select {
-	case <-ctx.Done():
-		info("request context done")
-		return serror.FromStr("context done")
-	case <-ticker:
-		info("request ticker done")
-	}
+		executor, err := heuristics.ConstructExecutors(opt, tUser.ID, parentUID)
+		if err != nil {
+			return nil, nil, err
+		}
 
-	return nil
-}
+		w := heuristicWork{executor: executor}
 
-func (s *Server) executeHeuristic() mcp.ToolHandlerFor[ExecuteHeuristicParams, *ExecuteHeuristicResult] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, _ ExecuteHeuristicParams) (*mcp.CallToolResult, *ExecuteHeuristicResult, error) {
-		info("test")
-		done := s.worker.AddWork(ctx, &dummyWork{})
+		done := s.worker.AddWork(ctx, &w)
 		if done == nil {
 			return nil, nil, serror.FromStr("could not add work")
 		}
@@ -109,6 +92,8 @@ func (s *Server) executeHeuristic() mcp.ToolHandlerFor[ExecuteHeuristicParams, *
 			}
 		}
 
-		return nil, &ExecuteHeuristicResult{ResultCount: 10}, nil
+		info("results", "clusters", w.clusters[:min(len(w.clusters), 10)])
+
+		return nil, &ExecuteHeuristicResult{ResultCount: len(w.clusters)}, nil
 	}
 }

@@ -507,21 +507,22 @@ func getHeuristicTransactions(ctx context.Context, dgraph external.Database, clu
 	return transactions, nil
 }
 
+// HeuristicOptions jsonschema comments are for LLMs via MCP
 type HeuristicOptions struct {
 	// Type is the type of the heuristic
-	Type      string `json:"type,omitempty"`
-	Parameter string `json:"parameter,omitempty"`
+	Type      string `json:"type,omitempty" jsonschema:"required, the type of the heuristics, allowed values per CoinJoin type (Dash, Whirlpool, Wasabi 2.0): Dash: reverse_lookup, one_source,reverse_amount, perfect_match, denomination_type, forward_amount, forward_lookup. Whirlpool: whirlpool_reverse_lookup_by_time, whirlpool_reverse_lookup_by_depth, whirlpool_one_source_by_time, whirlpool_one_source_by_depth, whirlpool_reverse_amount. Wasabi 2.0: wasabi2_reverse_lookup_by_time, wasabi2_reverse_lookup_by_depth, wasabi2_one_source_by_time, wasabi2_one_source_by_depth, wasabi2_reverse_amount, wasabi2_forward_lookup_by_time, wasabi2_forward_lookup_by_depth."`
+	Parameter string `json:"parameter,omitempty" jsonschema:"required, can be text or a number"`
 	// ClusterTypes are used to cluster the results of the heuristic.
 	// If cluster types are set to nil, the result will not be clustered.
 	// If multiple cluster types are set, then the consolidation of these clusters will be used.
-	ClusterTypes []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	ClusterTypes []clustering.ClusterType `json:"clusterTypes,omitempty" jsonschema:"do not use"`
 	// ExcludeAddresses controls whether certain addresses should be excluded from the lookups
-	ExcludeAddresses bool `json:"excludeAddresses"`
+	ExcludeAddresses bool `json:"excludeAddresses" jsonschema:"always set to false"`
 	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
-	ExcludeSpendingGaps bool   `json:"excludeSpendingGaps"`
-	TransactionHash     string `json:"transactionHash,omitempty"`
+	ExcludeSpendingGaps bool   `json:"excludeSpendingGaps" jsonschema:"always set to false"`
+	TransactionHash     string `json:"transactionHash,omitempty" jsonschema:"required, the hash of the transaction for which this heuristic is being created for"`
 	// UserUID is the UID of the user who created this heuristic
-	UserUID string `json:"-"`
+	UserUID string `json:"-" jsonschema:"do not use"`
 }
 
 // GetValidParentTypes returns parent types that are allowed for the given heuristic type.

@@ -6,6 +6,7 @@ package mcpserver
 
 import (
 	"backend/analytics/graph"
+	"backend/analytics/heuristics"
 	"backend/constants"
 	"backend/db"
 	"backend/external"
@@ -99,7 +100,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 	mcp.AddTool[any, *ListHeuristicsResult](mcpServer, &mcp.Tool{
 		Name: toolListHeuristics, Description: "get a list of available CoinJoin heuristics." +
 			blockchainDisclaimer(s.blockchainMode)}, s.listHeuristics())
-	mcp.AddTool[ExecuteHeuristicParams, *ExecuteHeuristicResult](mcpServer, &mcp.Tool{
+	mcp.AddTool[heuristics.HeuristicOptions, *ExecuteHeuristicResult](mcpServer, &mcp.Tool{
 		Name: toolExecuteHeuristic, Description: fmt.Sprintf("runs a heuristic. get possible heuristic types "+
 			"and parameter restrictions from the %s tool. %s", toolListHeuristics,
 			blockchainDisclaimer(s.blockchainMode))}, s.executeHeuristic())
