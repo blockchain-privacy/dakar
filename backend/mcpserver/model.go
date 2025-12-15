@@ -22,18 +22,25 @@ type ListHeuristicsResult struct {
 	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty" jsonschema:"the descriptors of all possible heuristics"`
 }
 
+type ExecuteHeuristicParam struct {
+	Options []heuristics.HeuristicOptions `json:"options,omitempty" jsonschema:"heuristics that will be run in sequential order. Each heuristic receives the results of the previous one."`
+}
+
 type ExecuteHeuristicResult struct {
-	ResultCount int `json:"resultCount,omitempty" jsonschema:"the number of transactions found by the heuristic"`
+	Counts []int `json:"counts,omitempty" jsonschema:"each item contains the number of clusters found by the heuristic. Ordered by heuristic run order"`
 }
 
 type heuristicWork struct {
-	executor heuristics.Executor
-	clusters []dbh.HeuristicCluster
+	// h is the heuristic which will get executed
+	h             heuristics.Heuristic
+	parentUID     string
+	parentResults []dbh.HeuristicCluster
+	results       []dbh.HeuristicCluster
 }
 
 func (d *heuristicWork) Run(ctx context.Context, _ *workspace.Mutex, c external.Database, g *graph.Wrapper) error {
 	var err error
-	d.clusters, err = d.executor.Run(ctx, c, g)
+	d.results, err = d.h.Exec(ctx, c, g, d.parentUID, d.parentResults)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ package mcpserver
 import (
 	"backend/analytics/heuristics"
 	"backend/db"
-	"backend/server"
+	dbh "backend/db/heuristics"
 	"context"
 	"errors"
 
@@ -50,50 +50,75 @@ func (s *Server) listHeuristics() mcp.ToolHandlerFor[any, *ListHeuristicsResult]
 	}
 }
 
-func (s *Server) executeHeuristic() mcp.ToolHandlerFor[heuristics.HeuristicOptions, *ExecuteHeuristicResult] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, opt heuristics.HeuristicOptions) (*mcp.CallToolResult, *ExecuteHeuristicResult, error) {
-		tUser, err := server.ExtractTokenUser(ctx)
-		if err != nil {
-			return nil, nil, err
-		}
-
+func (s *Server) executeHeuristic() mcp.ToolHandlerFor[ExecuteHeuristicParam, *ExecuteHeuristicResult] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, opt ExecuteHeuristicParam) (*mcp.CallToolResult, *ExecuteHeuristicResult, error) {
 		info("received options", "options", opt)
 
-		parentUID, err := db.GetTransactionUID(ctx, s.db, opt.TransactionHash)
-		if err != nil {
-			return nil, nil, err
+		if len(opt.Options) == 0 {
+			return nil, nil, serror.FromStr("received no heuristic options")
 		}
 
-		if !opt.IsValid(ctx, s.db, parentUID) {
-			return nil, nil, serror.FromStr("invalid options")
+		if opt.Options[0].TransactionHash == "" {
+			return nil, nil, serror.FromStr("heuristic option does not contain transaction hash")
 		}
 
-		executor, err := heuristics.ConstructExecutors(opt, tUser.ID, parentUID)
-		if err != nil {
-			return nil, nil, err
-		}
+		var parentResults []dbh.HeuristicCluster
+		var result ExecuteHeuristicResult
+		for i, options := range opt.Options {
+			w := heuristicWork{}
+			// first heuristic needs to validate its parent (transaction)
+			if i == 0 {
+				parentUID, err := db.GetTransactionUID(ctx, s.db, options.TransactionHash)
+				if err != nil {
+					return nil, nil, err
+				}
 
-		w := heuristicWork{executor: executor}
+				if !options.IsValid(ctx, s.db, parentUID) {
+					return nil, nil, serror.FromStr("invalid options")
+				}
+				w.parentUID = parentUID
+			} else {
+				if !options.CheckParameterAndType() {
+					return nil, nil, serror.FromStr("invalid options")
+				}
+				w.parentResults = parentResults
+			}
 
-		done := s.worker.AddWork(ctx, &w)
-		if done == nil {
-			return nil, nil, serror.FromStr("could not add work")
-		}
-
-		select {
-		case <-ctx.Done():
-			info("context timed out")
-			return nil, nil, serror.FromStr("context timed out")
-		case err := <-done:
-			info("finished work")
+			h, err := options.CreateHeuristic()
 			if err != nil {
-				warn(err)
 				return nil, nil, err
 			}
+
+			w.h = h
+
+			done := s.worker.AddWork(ctx, &w)
+			if done == nil {
+				return nil, nil, serror.FromStr("could not add work")
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil, nil, serror.FromStr("context timed out")
+			case err := <-done:
+				if err != nil {
+					warn(err)
+					return nil, nil, err
+				}
+			}
+
+			info("results", "options", options, "clusters", w.results[:min(len(w.results), 10)])
+
+			result.Counts = append(result.Counts, len(w.results))
+
+			if len(w.results) == 0 {
+				// stop, because there is nothing to do for the next heuristic
+				break
+			}
+
+			// save results so they can be passed to the next heuristic
+			parentResults = w.results
 		}
 
-		info("results", "clusters", w.clusters[:min(len(w.clusters), 10)])
-
-		return nil, &ExecuteHeuristicResult{ResultCount: len(w.clusters)}, nil
+		return nil, &result, nil
 	}
 }

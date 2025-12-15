@@ -525,6 +525,21 @@ type HeuristicOptions struct {
 	UserUID string `json:"-" jsonschema:"do not use"`
 }
 
+// CreateHeuristic creates a heuristic and sets the config
+func (o HeuristicOptions) CreateHeuristic() (Heuristic, error) {
+	constructor, ok := ConstructorMap[o.Type]
+	if !ok {
+		return nil, serror.FromStrWithContext("invalid type", "type", o.Type)
+	}
+
+	h := constructor()
+
+	if err := h.SetConfig(o); err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
 // GetValidParentTypes returns parent types that are allowed for the given heuristic type.
 func GetValidParentTypes(heuristicType string) ([]string, error) {
 	constructor, ok := ConstructorMap[heuristicType]
@@ -535,8 +550,38 @@ func GetValidParentTypes(heuristicType string) ([]string, error) {
 	return constructor().GetDescriptor().AllowedParents, nil
 }
 
+// IsValid validates
+// - the heuristic type
+// - the type of the parameter
+// - the type of the parent
 func (o HeuristicOptions) IsValid(ctx context.Context, dgraph external.Database, selectorParent string) bool {
-	if o.Type == "" || o.TransactionHash == "" || selectorParent == "" {
+	if o.TransactionHash == "" || selectorParent == "" {
+		return false
+	}
+
+	if !o.CheckParameterAndType() {
+		return false
+	}
+
+	validParentTypes, err := GetValidParentTypes(o.Type)
+	if err != nil {
+		return false
+	}
+
+	transactionType, heuristicType, err := heuristics.GetNodeType(ctx, dgraph, selectorParent)
+	if err != nil || (transactionType == "" && heuristicType == "") {
+		return false
+	}
+
+	// parent must be a transaction or another heuristic with the matching type
+	return isParentTypeValid(validParentTypes, []string{transactionType, heuristicType})
+}
+
+// CheckParameterAndType validates
+// - the heuristic type
+// - the type of the parameter
+func (o HeuristicOptions) CheckParameterAndType() bool {
+	if o.Type == "" {
 		return false
 	}
 
@@ -560,22 +605,7 @@ func (o HeuristicOptions) IsValid(ctx context.Context, dgraph external.Database,
 		}
 	}
 
-	if clonedHeuristic.SetConfig(c) != nil {
-		return false
-	}
-
-	validParentTypes, err := GetValidParentTypes(o.Type)
-	if err != nil {
-		return false
-	}
-
-	transactionType, heuristicType, err := heuristics.GetNodeType(ctx, dgraph, selectorParent)
-	if err != nil || (transactionType == "" && heuristicType == "") {
-		return false
-	}
-
-	// parent must be a transaction or another heuristic with the matching type
-	return isParentTypeValid(validParentTypes, []string{transactionType, heuristicType})
+	return clonedHeuristic.SetConfig(c) == nil
 }
 
 // returns true if any item of parentTypes is in allowedParents
