@@ -7,10 +7,10 @@ default:
 
 variables:
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
-  DGRAPH_VERSION: v25.0.0
+  DGRAPH_VERSION: v25.1.0
   SWAGGO_VERSION: 1.16.6
   BITCOIND_VERSION: v28.0
-  OPEN_API_GENERATOR_VERSION: v7.16.0
+  OPEN_API_GENERATOR_VERSION: v7.17.0
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
 
 .modcache: &modcache
