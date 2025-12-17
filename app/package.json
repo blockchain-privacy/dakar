@@ -11,12 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@blockchain-privacy/kratosadmin": "^0.0.26",
-    "@blockchain-privacy/wikiapi": "^0.0.1",
+    "@blockchain-privacy/kratosadmin": "^0.0.27",
+    "@blockchain-privacy/wikiapi": "^0.0.2",
     "@blockchain/dakar": "^1.1.68",
     "@fontsource/roboto": "^5.2.9",
     "@mdi/js": "^7.4.47",
-    "@ory/client-fetch": "^1.22.11",
+    "@ory/client-fetch": "^1.22.13",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -29,18 +29,18 @@
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3",
-    "vuetify": "^3.11.0"
+    "vuetify": "^3.11.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.2",
     "eslint": "^9.39.1",
     "eslint-config-xo": "^0.49.0",
-    "eslint-plugin-vue": "^10.6.0",
+    "eslint-plugin-vue": "^10.6.2",
     "sass": "^1.94.2",
-    "vite": "^7.2.4",
+    "vite": "^7.2.6",
     "vite-plugin-vuetify": "^2.1.2",
     "vite-svg-loader": "^5.1.0",
-    "vitest": "^4.0.14",
+    "vitest": "^4.0.15",
     "vue-eslint-parser": "^10.2.0"
   },
   "packageManager": "yarn@4.9.2"

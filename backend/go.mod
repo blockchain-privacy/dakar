@@ -5,11 +5,11 @@ go 1.25.0
 require (
 	github.com/btcsuite/btcd v0.25.0
 	github.com/dgraph-io/dgo/v250 v250.0.0
-	github.com/goccy/go-yaml v1.18.0
+	github.com/goccy/go-yaml v1.19.0
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
-	gitlab.com/blockchain-privacy/gomisc v0.0.3
+	gitlab.com/blockchain-privacy/gomisc v0.0.4
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/grpc v1.77.0
 )
@@ -41,7 +41,7 @@ require (
 	golang.org/x/oauth2 v0.33.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251124214823-79d6a2a48846 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

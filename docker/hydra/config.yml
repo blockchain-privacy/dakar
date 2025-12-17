@@ -14,7 +14,7 @@ urls:
     verification: http://localhost:8082/oauth/verification
     success: http://localhost:8082/oauth/success
   identity_provider:
-    publicUrl: http://localhost:8082
+    publicUrl: http://localhost:8082/auth
     url: http://kratos:4434
 
 secrets:

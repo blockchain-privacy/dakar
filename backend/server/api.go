@@ -491,7 +491,7 @@ func (s *Server) handlerSelectorDetails() http.Handler {
 //	@Router			/workspaces/selector/ [post]
 func (s *Server) handlerAddWorkspaceSelector() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceSelectorReply(s.db, r, s.workspaceMutex)
+		reply, status := getAddWorkspaceSelectorReply(s.db, r, s.workspaceMutex, s.worker)
 
 		SendReply(w, reply, status)
 	})
