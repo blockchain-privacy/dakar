@@ -106,6 +106,8 @@
           v-else-if="isHeuristic || isTxProp || isTxGraph"
           :selector-type="auxiliaryData.selectorType"
           :selector-data="entityData"
+          @cluster-selected="handleClusterSelected"
+          @cluster-deselected="handleClusterDeselected"
         />
         <div v-else>
           Type not recognized
@@ -325,7 +327,7 @@ function setSelectableEntities() {
 function setSelectableSelectorElements() {
 	for (const tx of entityData.value.transactions) {
 		if (tx.txhash) {
-			selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION, cluster: tx.cluster});
 		}
 	}
 }
@@ -498,14 +500,30 @@ function selectAllAddresses() {
 
 function deselectAllTransactions() {
 	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
-		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
-		.map(d => d.id));
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION).map(d => d.id));
 }
 
 function deselectAllAddresses() {
 	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
-		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
-		.map(d => d.id));
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER).map(d => d.id));
+}
+
+function handleClusterSelected(clusterID) {
+	if (clusterID === undefined || clusterID === null) {
+		return;
+	}
+
+	workspaceStore.setWorkspaceNodes([...selectableEntities.values()]
+		.filter(d => d.cluster === clusterID));
+}
+
+function handleClusterDeselected(clusterID) {
+	if (clusterID === undefined || clusterID === null) {
+		return;
+	}
+
+	workspaceStore.removeNodesFromMap([...selectableEntities.values()]
+		.filter(d => d.cluster === clusterID).map(d => d.id));
 }
 
 </script>

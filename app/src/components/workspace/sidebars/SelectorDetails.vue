@@ -72,7 +72,6 @@
           </v-card-text>
         </v-card>
       </div>
-
       <named-divider
         title="Properties"
         title-class="text-subtitle-1"
@@ -217,10 +216,10 @@
           Not enough data to display diagram
         </v-card-title>
         <v-card-text v-if="!enoughDataForGraph && durationInMinutes > 0">
-          {{ `Only ${durationInMinutes} ${plural('minute', durationInMinutes)} between earliest and latest origin.` }}
+          {{ `Only ${durationInMinutes} ${plural('minute', durationInMinutes)} between oldest and most recent origin transaction.` }}
         </v-card-text>
         <v-card-text v-if="!enoughDataForGraph && durationInMinutes === 0">
-          All origins occur in the same point of time.
+          All origins occur at the same point of time.
         </v-card-text>
       </v-card>
       <template v-if="selectorData.transactions?.length > 0">
@@ -239,7 +238,7 @@
           <template #item.txhash="{item}">
             <td>
               <workspace-link
-                style="max-width: 300px"
+                style="max-width: 200px"
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                        params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
               >
@@ -262,6 +261,20 @@
               {{ new Date(item.ts).toLocaleDateString() }}
             </td>
           </template>
+          <template #item.actions="{item}">
+            <v-btn-group density="compact">
+              <v-btn
+                v-tooltip="{'text': 'Select all transactions belonging to this cluster', 'location':'top', 'open-delay': 400}"
+                :icon="mdiSelectAll"
+                @click="handleClusterSelected(item.cluster)"
+              />
+              <v-btn
+                v-tooltip="{'text': 'Deselect all transactions belonging to this cluster', 'location':'top', 'open-delay': 400}"
+                :icon="mdiSelectRemove"
+                @click="handleClusterDeselected(item.cluster)"
+              />
+            </v-btn-group>
+          </template>
         </v-data-table>
       </template>
     </v-card-text>
@@ -281,7 +294,7 @@ import {
 	mdiClockAlertOutline,
 	mdiIncognitoOff,
 	mdiMerge,
-	mdiPlaylistRemove,
+	mdiPlaylistRemove, mdiSelectAll, mdiSelectRemove,
 	mdiTune,
 } from '@mdi/js';
 import BarChart from '@/d3Documents/barChart.js';
@@ -312,6 +325,8 @@ const props = defineProps({
 
 const route = useRoute();
 
+const emit = defineEmits(['clusterSelected', 'clusterDeselected']);
+
 const colorMap = getColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
@@ -329,16 +344,13 @@ const tableHeadersWithoutCluster = [
 
 const tableHeadersWithCluster = [
 	{
-		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
+		key: 'txhash', title: 'Transaction', sortable: false,
 	},
+	{key: 'cluster', title: 'Cluster'},
+	{key: 'txtype', title: 'Type'},
+	{key: 'ts', title: 'Timestamp'},
 	{
-		key: 'cluster', title: 'Cluster', align: 'left',
-	},
-	{
-		key: 'txtype', title: 'Type', align: 'right',
-	},
-	{
-		key: 'ts', title: 'Timestamp', align: 'right',
+		key: 'actions', title: 'Actions', align: 'end', sortable: false,
 	},
 ];
 
@@ -390,6 +402,14 @@ function init() {
 	svgBarChart.drawStacked(props.selectorData.transactions, colorMap);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;
+}
+
+function handleClusterSelected(clusterID) {
+	emit('clusterSelected', clusterID);
+}
+
+function handleClusterDeselected(clusterID) {
+	emit('clusterDeselected', clusterID);
 }
 
 </script>
