@@ -614,7 +614,7 @@ func (s *Server) handlerAddWorkspaceNodes() http.Handler {
 // Add Note godoc
 //
 //	@Summary		Add a note or update a note
-//	@Description	Add a new note (empty uid) to a workspace or update an existing one. 100 character limit for the note text.
+//	@Description	Add a new note (empty uid) to a workspace or update an existing one. 100-character limit for the note text.
 //	@Tags			workspace
 //	@Accept			json
 //	@Produce		json
@@ -697,6 +697,24 @@ func (s *Server) handlerRenameWorkspace() http.Handler {
 func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getGetWorkspaceReply(s.db, s.workspaceMutex, r)
+
+		SendReply(w, reply, status)
+	})
+}
+
+// Get Workspace State godoc
+//
+//	@Summary	Returns the state of the specified workspace. Calling this endpoint performs no workspace update checks.
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		uid	path		string	true	"Workspace UID"
+//	@Success	200	{object}	server.getWorkspaceStateReply
+//	@Failure	400	{object}	server.getWorkspaceStateReply
+//	@Failure	500	{object}	server.getWorkspaceStateReply
+//	@Router		/workspaces/state/{uid} [get]
+func (s *Server) handlerGetWorkspaceState() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getGetWorkspaceStateReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -785,7 +803,7 @@ func (s *Server) setupHandlers() {
 
 	// Common data
 	s.handler.Handle(BuildPattern(http.MethodGet, routeTransaction, "hash"),
-		// transaction data never changes so set cache time to infinte
+		// transaction data never changes so set cache time to be infinite
 		s.adapt(s.handlerTransaction(), mw.MaxBody5MiB(), s.cacheFactory(time.Duration(0))))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeBlock, "hash"),
 		s.adapt(s.handlerBlock(), mw.MaxBody5MiB(), s.cacheFactory(time.Minute*10)))
@@ -867,6 +885,8 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerAddWorkspace(), Authorization()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, "uid"),
 		s.adapt(s.handlerGetWorkspace(), Authorization()))
+	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspacesState, "uid"),
+		s.adapt(s.handlerGetWorkspaceState(), Authorization()))
 	s.handler.Handle(BuildPattern(http.MethodPut, routeWorkspaces, ""),
 		s.adapt(s.handlerUpdateWorkspace(), Authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, "uid"),

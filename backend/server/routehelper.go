@@ -146,6 +146,10 @@ type getWorkspaceReply struct {
 	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty"`
 }
 
+type getWorkspaceStateReply struct {
+	State string `json:"state,omitempty"`
+}
+
 type TokenUser struct {
 	ID string `json:"uid,omitempty"`
 }

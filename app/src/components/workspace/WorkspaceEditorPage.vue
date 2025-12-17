@@ -248,7 +248,7 @@ import {
 } from '@/constants';
 import {
 	capitalize, filterDescriptors,
-	getColorMap, getDakarClient, handleError, setUndefinedTransactionColor,
+	getTransactionColorMap, getDakarClient, handleError, getGraphColorMap,
 } from '@/utilities';
 import {
 	computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch,
@@ -281,13 +281,7 @@ useHotkey('cmd+a', handleSelectAllNodesHotkey);
 useHotkey('delete', handleMenuDeleteSelected);
 useHotkey('esc', handleEscapeHotkey);
 
-const colorMap = getColorMap(route.params.blockchainMode);
-colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
-setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
-
-colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
-colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
-colorMap.set(SELECTOR_TYPE_TX_PROP, '#000075');
+const colorMap = getGraphColorMap(route.params.blockchainMode);
 
 const nodeTypeLabels = [
 	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: colorMap.get(SELECTOR_TYPE_TX_PROP)},
@@ -443,7 +437,7 @@ watch(
 const transactionTypeLabels = computed(() => {
 	const labels = [];
 
-	getColorMap(route.params.blockchainMode).forEach((v, k) => {
+	getTransactionColorMap(route.params.blockchainMode).forEach((v, k) => {
 		labels.push({text: k, color: v});
 	});
 

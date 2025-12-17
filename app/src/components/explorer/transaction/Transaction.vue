@@ -334,7 +334,7 @@ import {
 import OutputItem from './OutputItem.vue';
 import {
 	convertAmount,
-	getColorMap,
+	getTransactionColorMap,
 	isDestination,
 	isModeBTC, isUncommonWasabi2Denomination,
 	plural, setUndefinedTransactionColor,
@@ -385,7 +385,7 @@ const showTransactionDetails = toRef(props.showDetails);
 let svgInputGraph = null;
 let svgOutputGraph = null;
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
@@ -589,7 +589,7 @@ function getTransactionFilter(outputs) {
 		return [];
 	}
 
-	const colorMap = getColorMap(route.params.blockchainMode);
+	const colorMap = getTransactionColorMap(route.params.blockchainMode);
 	const filteredColorMap = new Map();
 
 	outputs.forEach(o => {

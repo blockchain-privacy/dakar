@@ -13,10 +13,10 @@
   "dependencies": {
     "@blockchain-privacy/kratosadmin": "^0.0.27",
     "@blockchain-privacy/wikiapi": "^0.0.2",
-    "@blockchain/dakar": "^1.1.68",
+    "@blockchain/dakar": "^1.1.69",
     "@fontsource/roboto": "^5.2.9",
     "@mdi/js": "^7.4.47",
-    "@ory/client-fetch": "^1.22.13",
+    "@ory/client-fetch": "^1.22.15",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -29,7 +29,7 @@
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3",
-    "vuetify": "^3.11.2"
+    "vuetify": "^3.11.3"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.2",

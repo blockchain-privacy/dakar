@@ -54,10 +54,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.68":
-  version: 1.1.68
-  resolution: "@blockchain/dakar@npm:1.1.68::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.68.tgz"
-  checksum: 10c0/860d37e82d5f7469ec64e6bf5d8174050fa6c2478907806790b03b284928445b700eb78fa586bfb96e22e91cb5b342c1baad29f89b7a87df2b3464230f4d956e
+"@blockchain/dakar@npm:^1.1.69":
+  version: 1.1.69
+  resolution: "@blockchain/dakar@npm:1.1.69::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.69.tgz"
+  checksum: 10c0/9b2c78a100f4c4c69aff7a08cacb20e543efcb2eade9208ebb81bc3b2d7fee1f362ff3ee08e6559f91c6ea13bb3201cfc308aa30387c83e702a1c7a3b223bba4
   languageName: node
   linkType: hard
 
@@ -509,10 +509,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client-fetch@npm:^1.22.13":
-  version: 1.22.13
-  resolution: "@ory/client-fetch@npm:1.22.13"
-  checksum: 10c0/a8577b2b79b0dc14fc3e48cb32cfbacfe68889f2612c5e737a5b1e659e351827f0391538c0e77d6ef0bae55974b49650bba501963b347ed0734c57a0dfbf5783
+"@ory/client-fetch@npm:^1.22.15":
+  version: 1.22.15
+  resolution: "@ory/client-fetch@npm:1.22.15"
+  checksum: 10c0/027a28fcf7f23d97da964f2e590bd996660857c3e58e4d90530be0e9e4d5e95dd5825a0ca1f2d0d6520634217dda280feb26a9a0b0e4d64b421a41e1cdb7ba5d
   languageName: node
   linkType: hard
 
@@ -1642,10 +1642,10 @@ __metadata:
   dependencies:
     "@blockchain-privacy/kratosadmin": "npm:^0.0.27"
     "@blockchain-privacy/wikiapi": "npm:^0.0.2"
-    "@blockchain/dakar": "npm:^1.1.68"
+    "@blockchain/dakar": "npm:^1.1.69"
     "@fontsource/roboto": "npm:^5.2.9"
     "@mdi/js": "npm:^7.4.47"
-    "@ory/client-fetch": "npm:^1.22.13"
+    "@ory/client-fetch": "npm:^1.22.15"
     "@vitejs/plugin-vue": "npm:^6.0.2"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1668,7 +1668,7 @@ __metadata:
     vue: "npm:^3.5.25"
     vue-eslint-parser: "npm:^10.2.0"
     vue-router: "npm:^4.6.3"
-    vuetify: "npm:^3.11.2"
+    vuetify: "npm:^3.11.3"
   languageName: unknown
   linkType: soft
 
@@ -3717,9 +3717,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.11.2":
-  version: 3.11.2
-  resolution: "vuetify@npm:3.11.2"
+"vuetify@npm:^3.11.3":
+  version: 3.11.3
+  resolution: "vuetify@npm:3.11.3"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=2.1.0"
@@ -3732,7 +3732,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/74d04a31317ffc7d492e86ad828aaf541d3006952d51304e09c4bf90684468699d4f1def6be469c6edc156df04e66739324d86051fd1024f4cad10c9e59edae3
+  checksum: 10c0/a96790b3c9d38ced26e7ae4760dff3d20c9452ad14f19270156c8c1fb23394de35e68c3ba1572b24ac0cbc5bfef4f128f04153d1740e24216df918e02e704089
   languageName: node
   linkType: hard
 

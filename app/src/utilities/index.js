@@ -12,7 +12,8 @@ import {
 	ROUTE_NAME_LOGIN_PAGE,
 	DENOMINATIONS_WASABI2, PRIVACY_TYPE_WHIRLPOOL_DESTINATION, WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS,
+	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS, WORKSPACE_NODE_TYPE_CLUSTER, SELECTOR_TYPE_TX_GRAPH,
+	SELECTOR_TYPE_TX_PROP,
 } from '@/constants';
 import {inject} from 'vue';
 
@@ -263,7 +264,7 @@ export function pluralIrregular(subject, plural, count) {
 
 // Returns a mapping between transaction types and their colors.
 // If a blockchain mode is provided, only transaction types of the given mode are returned.
-export function getColorMap(mode) {
+export function getTransactionColorMap(mode) {
 	// Colors from https://sashamaps.net/docs/resources/20-colors/
 	const dashTransactionTypes = [
 		{name: 'origin', color: '#800000'},
@@ -303,6 +304,19 @@ export function getColorMap(mode) {
 		default:
 	}
 
+	return colorMap;
+}
+
+// Returns a mapping between all graph nodes and their colors.
+// If a blockchain mode is provided, only transaction types of the given mode are returned.
+export function getGraphColorMap(mode) {
+	const colorMap = getTransactionColorMap(mode);
+	colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
+	setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
+
+	colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
+	colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
+	colorMap.set(SELECTOR_TYPE_TX_PROP, '#000075');
 	return colorMap;
 }
 

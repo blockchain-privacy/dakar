@@ -287,7 +287,7 @@ import {
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {
-	amountToIntegers, capitalize, filterDescriptors, getCoinJoinTypeCaption, getColorMap, plural,
+	amountToIntegers, capitalize, filterDescriptors, getCoinJoinTypeCaption, getTransactionColorMap, plural,
 } from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
@@ -378,7 +378,7 @@ const transactionTypeItems = [];
 
 // Hooks
 onMounted(() => {
-	getColorMap(route.params.blockchainMode).forEach((v, k) => {
+	getTransactionColorMap(route.params.blockchainMode).forEach((v, k) => {
 		transactionTypeItems.push({title: capitalize(k), value: k, color: v});
 	});
 });
