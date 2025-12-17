@@ -268,7 +268,6 @@ import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSid
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
-import {VHotkey} from 'vuetify/labs/VHotkey';
 import {useHotkey} from 'vuetify';
 import ShortcutDialog from '@/components/workspace/ShortcutDialog.vue';
 

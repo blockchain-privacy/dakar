@@ -48,8 +48,6 @@
 </template>
 
 <script setup>
-import {VHotkey} from 'vuetify/labs/VHotkey';
-
 const model = defineModel({type: Boolean});
 
 const shortcuts = [
