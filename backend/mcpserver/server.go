@@ -7,7 +7,6 @@ package mcpserver
 import (
 	"backend/analytics/graph"
 	"backend/constants"
-	"backend/db"
 	"backend/external"
 	"backend/server"
 	"backend/workspace"
@@ -72,18 +71,19 @@ func blockchainTitle(key string) string {
 
 func blockchainDisclaimer(key string) string {
 	// leading space is intended
-	return fmt.Sprintf(" This tool responds with data from the %s blockchain.", blockchainTitle(key))
+	return fmt.Sprintf(" responds only with data from the %s blockchain.", blockchainTitle(key))
 }
 
 // StartServer creates a user server on the given port
 func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
+	chainTitle := blockchainTitle(s.blockchainMode)
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    "dakar-mcp",
 		Version: "1.0.0",
 		Title:   "Dakar - CoinJoin Forensic Analysis",
 	}, &mcp.ServerOptions{
-		Instructions: fmt.Sprintf("This MCP server provides tools to analyse CoinJoin transactions. "+
-			"It only works with the %s blockchain. Don't explain the data to the user, only respond with it", blockchainTitle(s.blockchainMode)),
+		Instructions: fmt.Sprintf("Dakar MCP server provides tools to analyse CoinJoin transactions. "+
+			"Dakar %s MCP server only works with the %s blockchain.", chainTitle, chainTitle),
 	})
 
 	const (
@@ -92,14 +92,12 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 		toolExecuteHeuristic = "execute_heuristic"
 	)
 
-	mcp.AddTool[TransactionParams, *db.FrontendTransaction](mcpServer, &mcp.Tool{
-		Name: toolGetTransaction, Description: "get full transaction details." + blockchainDisclaimer(s.blockchainMode)},
-		s.getTransaction())
-	mcp.AddTool[any, *ListHeuristicsResult](mcpServer, &mcp.Tool{
-		Name: toolListHeuristics, Description: "get a list of available CoinJoin heuristics." +
-			blockchainDisclaimer(s.blockchainMode)}, s.listHeuristics())
-	mcp.AddTool[ExecuteHeuristicParams, *ExecuteHeuristicResult](mcpServer, &mcp.Tool{
-		Name: toolExecuteHeuristic, Description: fmt.Sprintf("runs a heuristic. get possible heuristic types "+
+	mcp.AddTool(mcpServer, &mcp.Tool{Name: toolGetTransaction,
+		Description: "get full transaction details." + blockchainDisclaimer(s.blockchainMode)}, s.getTransaction())
+	mcp.AddTool(mcpServer, &mcp.Tool{Name: toolListHeuristics,
+		Description: "get a list of available CoinJoin heuristics." + blockchainDisclaimer(s.blockchainMode)}, s.listHeuristics())
+	mcp.AddTool(mcpServer, &mcp.Tool{Name: toolExecuteHeuristic,
+		Description: fmt.Sprintf("runs a heuristic. get possible heuristic types "+
 			"and parameter restrictions from the %s tool. %s", toolListHeuristics,
 			blockchainDisclaimer(s.blockchainMode))}, s.executeHeuristic())
 

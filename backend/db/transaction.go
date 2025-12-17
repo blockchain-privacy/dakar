@@ -15,8 +15,8 @@ import (
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
-// transactionDType is the dgraph database type for the Transaction type
-const transactionDType = "Transaction"
+// TransactionDType is the Dgraph database type for the Transaction type
+const TransactionDType = "Transaction"
 
 // Transaction is the database representation of a blockchain transaction
 type Transaction struct {
@@ -53,7 +53,7 @@ func (t *Transaction) String() string {
 
 // SetDType sets the DType for dgraph type recognition
 func (t *Transaction) SetDType() {
-	t.DType = []string{transactionDType}
+	t.DType = []string{TransactionDType}
 }
 
 // CalculateTransactionFee sets the transaction fee based

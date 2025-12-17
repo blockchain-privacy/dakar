@@ -7,7 +7,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/constants"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -19,7 +19,7 @@ import (
 // wasabi2ReverseLookupByDepthHeuristic - see exec for description
 type wasabi2ReverseLookupByDepthHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 	depth         int
 }
 
@@ -31,7 +31,7 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2ReverseLookupByDepthHeuristic) SetConfig(c heuristics.Options) error {
+func (h *wasabi2ReverseLookupByDepthHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -51,7 +51,7 @@ func (h *wasabi2ReverseLookupByDepthHeuristic) SetConfig(c heuristics.Options) e
 	return nil
 }
 
-func (h *wasabi2ReverseLookupByDepthHeuristic) GetConfig() heuristics.Options {
+func (h *wasabi2ReverseLookupByDepthHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

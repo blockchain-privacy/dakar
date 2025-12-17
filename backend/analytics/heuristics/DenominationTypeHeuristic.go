@@ -9,17 +9,18 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
+
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // denominationTypeHeuristic - see exec for description
 type denominationTypeHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewDenominationTypeHeuristic() Heuristic {
@@ -30,7 +31,7 @@ func (h *denominationTypeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *denominationTypeHeuristic) SetConfig(c heuristics.Options) error {
+func (h *denominationTypeHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -44,7 +45,7 @@ func (h *denominationTypeHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *denominationTypeHeuristic) GetConfig() heuristics.Options {
+func (h *denominationTypeHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

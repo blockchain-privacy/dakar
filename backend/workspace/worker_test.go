@@ -6,6 +6,7 @@ package workspace
 
 import (
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/status"
 	"backend/db/workspace"
@@ -60,15 +61,15 @@ func TestWorker_work(t *testing.T) {
 
 	// insert 3 selectors into db
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	wrapper := graph.NewWrapper(ctx, dbHandle)

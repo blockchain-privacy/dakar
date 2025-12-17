@@ -9,19 +9,20 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // forwardHeuristic - see exec for description
 type forwardHeuristic struct {
 	heuristicType   string
-	c               heuristics.Options
+	c               HeuristicOptions
 	lookForwardTime time.Duration
 }
 
@@ -33,7 +34,7 @@ func (h *forwardHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *forwardHeuristic) SetConfig(c heuristics.Options) error {
+func (h *forwardHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -53,7 +54,7 @@ func (h *forwardHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *forwardHeuristic) GetConfig() heuristics.Options {
+func (h *forwardHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 
@@ -86,7 +87,7 @@ func (h *forwardHeuristic) Exec(ctx context.Context, dgraph external.Database, g
 }
 
 func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
-	lookForwardTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	lookForwardTime time.Duration, depth int, options HeuristicOptions) ([]heuristics.HeuristicCluster, error) {
 	if lookForwardTime == 0 && depth == 0 {
 		return nil, nil
 	}

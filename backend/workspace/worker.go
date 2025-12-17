@@ -6,6 +6,7 @@ package workspace
 
 import (
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/workspace"
 	"backend/external"
@@ -274,17 +275,17 @@ func getWork(ctx context.Context, c external.Database) ([]Work, error) {
 	workItems := make([]Work, len(selectorItems))
 	for i, item := range selectorItems {
 		switch item.SelectorType {
-		case workspace.TypeTxProp:
+		case constants.TypeTxProp:
 			workItems[i], err = NewTxPropWork(item)
 			if err != nil {
 				return nil, err
 			}
-		case workspace.TypeTxGraph:
+		case constants.TypeTxGraph:
 			workItems[i], err = NewTxGraphWork(item)
 			if err != nil {
 				return nil, err
 			}
-		case workspace.TypeHeuristic:
+		case constants.TypeHeuristic:
 			workItems[i], err = NewHeuristicWork(item)
 			if err != nil {
 				return nil, err

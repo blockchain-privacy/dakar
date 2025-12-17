@@ -10,7 +10,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -24,7 +24,7 @@ import (
 type oneSourceHeuristic struct {
 	heuristicType string
 	lookBackTime  time.Duration
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewOneSourceHeuristic() Heuristic {
@@ -35,7 +35,7 @@ func (h *oneSourceHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *oneSourceHeuristic) SetConfig(c heuristics.Options) error {
+func (h *oneSourceHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -55,7 +55,7 @@ func (h *oneSourceHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *oneSourceHeuristic) GetConfig() heuristics.Options {
+func (h *oneSourceHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

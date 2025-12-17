@@ -5,23 +5,15 @@
 package mcpserver
 
 import (
-	"backend/analytics/graph"
 	"backend/analytics/heuristics"
 	"backend/db"
-	"backend/external"
-	"backend/workspace"
+	dbh "backend/db/heuristics"
 	"context"
 	"errors"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
-
-type TransactionParams struct {
-	TransactionHash string `json:"transactionHash" jsonschema:"required"`
-	GetProperty     string `json:"getProperty" jsonschema:"required, allowed values: all (gets all details), type (gets only the transaction type)"`
-}
 
 func (s *Server) getTransaction() mcp.ToolHandlerFor[TransactionParams, *db.FrontendTransaction] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input TransactionParams) (*mcp.CallToolResult, *db.FrontendTransaction, error) {
@@ -48,10 +40,6 @@ func (s *Server) getTransaction() mcp.ToolHandlerFor[TransactionParams, *db.Fron
 	}
 }
 
-type ListHeuristicsResult struct {
-	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty" jsonschema:"the descriptors of all possible heuristics"`
-}
-
 func (s *Server) listHeuristics() mcp.ToolHandlerFor[any, *ListHeuristicsResult] {
 	return func(_ context.Context, _ *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, *ListHeuristicsResult, error) {
 		result := ListHeuristicsResult{Descriptors: make([]heuristics.Descriptor, 0, len(heuristics.ConstructorMap))}
@@ -62,53 +50,75 @@ func (s *Server) listHeuristics() mcp.ToolHandlerFor[any, *ListHeuristicsResult]
 	}
 }
 
-type ExecuteHeuristicParams struct {
-	Type            string `json:"type,omitempty" jsonschema:"required, the type of the heuristic"`
-	Parameter       string `json:"parameter,omitempty" jsonschema:"required, the heuristic parameter"`
-	TransactionHash string `json:"transactionHash,omitempty" jsonschema:"required, the transaction for that the transaction is created for"`
-}
+func (s *Server) executeHeuristic() mcp.ToolHandlerFor[ExecuteHeuristicParam, *ExecuteHeuristicResult] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, opt ExecuteHeuristicParam) (*mcp.CallToolResult, *ExecuteHeuristicResult, error) {
+		info("received options", "options", opt)
 
-type ExecuteHeuristicResult struct {
-	ResultCount int `json:"resultCount,omitempty" jsonschema:"the number of transactions found by the heuristic"`
-}
-
-type dummyWork struct {
-}
-
-func (d *dummyWork) Run(ctx context.Context, _ *workspace.Mutex, _ external.Database, _ *graph.Wrapper) error {
-	ticker := time.Tick(time.Second * 60 * 5)
-
-	select {
-	case <-ctx.Done():
-		info("request context done")
-		return serror.FromStr("context done")
-	case <-ticker:
-		info("request ticker done")
-	}
-
-	return nil
-}
-
-func (s *Server) executeHeuristic() mcp.ToolHandlerFor[ExecuteHeuristicParams, *ExecuteHeuristicResult] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, _ ExecuteHeuristicParams) (*mcp.CallToolResult, *ExecuteHeuristicResult, error) {
-		info("test")
-		done := s.worker.AddWork(ctx, &dummyWork{})
-		if done == nil {
-			return nil, nil, serror.FromStr("could not add work")
+		if len(opt.Options) == 0 {
+			return nil, nil, serror.FromStr("received no heuristic options")
 		}
 
-		select {
-		case <-ctx.Done():
-			info("context timed out")
-			return nil, nil, serror.FromStr("context timed out")
-		case err := <-done:
-			info("finished work")
+		if opt.Options[0].TransactionHash == "" {
+			return nil, nil, serror.FromStr("heuristic option does not contain transaction hash")
+		}
+
+		var parentResults []dbh.HeuristicCluster
+		var result ExecuteHeuristicResult
+		for i, options := range opt.Options {
+			w := heuristicWork{}
+			// first heuristic needs to validate its parent (transaction)
+			if i == 0 {
+				parentUID, err := db.GetTransactionUID(ctx, s.db, options.TransactionHash)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				if !options.IsValid(ctx, s.db, parentUID) {
+					return nil, nil, serror.FromStr("invalid options")
+				}
+				w.parentUID = parentUID
+			} else {
+				if !options.CheckParameterAndType() {
+					return nil, nil, serror.FromStr("invalid options")
+				}
+				w.parentResults = parentResults
+			}
+
+			h, err := options.CreateHeuristic()
 			if err != nil {
-				warn(err)
 				return nil, nil, err
 			}
+
+			w.h = h
+
+			done := s.worker.AddWork(ctx, &w)
+			if done == nil {
+				return nil, nil, serror.FromStr("could not add work")
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil, nil, serror.FromStr("context timed out")
+			case err := <-done:
+				if err != nil {
+					warn(err)
+					return nil, nil, err
+				}
+			}
+
+			info("results", "options", options, "clusters", w.results[:min(len(w.results), 10)])
+
+			result.Counts = append(result.Counts, len(w.results))
+
+			if len(w.results) == 0 {
+				// stop, because there is nothing to do for the next heuristic
+				break
+			}
+
+			// save results so they can be passed to the next heuristic
+			parentResults = w.results
 		}
 
-		return nil, &ExecuteHeuristicResult{ResultCount: 10}, nil
+		return nil, &result, nil
 	}
 }

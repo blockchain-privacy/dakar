@@ -5,8 +5,8 @@
 package workspace
 
 import (
+	"backend/analytics/heuristics"
 	"backend/db"
-	dbHeuristic "backend/db/analytics/heuristics"
 )
 
 const DType = "Workspace"
@@ -182,15 +182,15 @@ type Node struct {
 	TransactionType string `json:"txtype,omitempty"`
 
 	// selector
-	SelectorCreated          string               `json:"selectorCreated,omitempty"`
-	SelectorModified         string               `json:"selectorModified,omitempty"`
-	SelectorType             string               `json:"selectorType,omitempty"`
-	SelectorStatus           string               `json:"selectorStatus,omitempty"`
-	SelectorResultCount      *int                 `json:"selectorResultCount,omitempty"`
-	SelectorTotalResultCount *int                 `json:"selectorTotalResultCount,omitempty"`
-	TxPropOptions            *TxPropOptions       `json:"txPropOptions,omitempty"`
-	TxGraphOptions           *TxGraphOptions      `json:"txGraphOptions,omitempty"`
-	HeuristicOptions         *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
+	SelectorCreated          string                       `json:"selectorCreated,omitempty"`
+	SelectorModified         string                       `json:"selectorModified,omitempty"`
+	SelectorType             string                       `json:"selectorType,omitempty"`
+	SelectorStatus           string                       `json:"selectorStatus,omitempty"`
+	SelectorResultCount      *int                         `json:"selectorResultCount,omitempty"`
+	SelectorTotalResultCount *int                         `json:"selectorTotalResultCount,omitempty"`
+	TxPropOptions            *TxPropOptions               `json:"txPropOptions,omitempty"`
+	TxGraphOptions           *TxGraphOptions              `json:"txGraphOptions,omitempty"`
+	HeuristicOptions         *heuristics.HeuristicOptions `json:"heuristicOptions,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`

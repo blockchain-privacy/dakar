@@ -5,9 +5,10 @@
 package workspace
 
 import (
+	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
-	dbHeuristic "backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
 	"encoding/json"
@@ -67,8 +68,8 @@ func getWorkspaceConnectionsRaw(ctx context.Context, c external.Database,
 					}
 
 					# split selectors by type
-					heuristicSelectors as var(func: uid(s))@filter(eq(Selector.type, ` + TypeHeuristic + `))
-					propSelectors as var(func: uid(s))@filter(not eq(Selector.type, ` + TypeHeuristic + `))
+					heuristicSelectors as var(func: uid(s))@filter(eq(Selector.type, ` + constants.TypeHeuristic + `))
+					propSelectors as var(func: uid(s))@filter(not eq(Selector.type, ` + constants.TypeHeuristic + `))
 
 					# find fmi cluster for each address
 					address_cluster(func: uid(uids))@filter(has(addresshash)){
@@ -354,7 +355,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			children = append(children, heuristicClusters)
 		}
 
-		var opt dbHeuristic.Options
+		var opt heuristics.HeuristicOptions
 		if err = json.Unmarshal([]byte(h.Options), &opt); err != nil {
 			err = serror.NewWithContext(err, "opt", h.Options)
 			return
@@ -426,7 +427,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 		}
 
 		switch s.Type {
-		case TypeTxProp:
+		case constants.TypeTxProp:
 			var opt TxPropOptions
 			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
 				err = serror.NewWithContext(err, "opt", s.Options)
@@ -434,7 +435,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			}
 
 			newNode.TxPropOptions = &opt
-		case TypeTxGraph:
+		case constants.TypeTxGraph:
 			var opt TxGraphOptions
 			if err = json.Unmarshal([]byte(s.Options), &opt); err != nil {
 				err = serror.NewWithContext(err, "opt", s.Options)

@@ -9,17 +9,18 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
+
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // reverseAmountHeuristic - see exec for description
 type reverseAmountHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewReverseAmountHeuristic() Heuristic {
@@ -30,7 +31,7 @@ func (h *reverseAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *reverseAmountHeuristic) SetConfig(c heuristics.Options) error {
+func (h *reverseAmountHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -44,7 +45,7 @@ func (h *reverseAmountHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *reverseAmountHeuristic) GetConfig() heuristics.Options {
+func (h *reverseAmountHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

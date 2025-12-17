@@ -9,7 +9,6 @@ import (
 	"backend/analytics/heuristics"
 	"backend/constants"
 	"backend/db/analytics"
-	dbh "backend/db/analytics/heuristics"
 	"backend/external"
 	"context"
 	"encoding/csv"
@@ -220,7 +219,7 @@ func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *g
 	destination analytics.NodeWithHash, lookbackDurations []string, txHeuristics []heuristics.HeuristicConstructor,
 	reverseAmountHeuristic heuristics.HeuristicConstructor) ([]string, error) {
 	amountHeuristic := reverseAmountHeuristic()
-	if err := amountHeuristic.SetConfig(dbh.Options{TransactionHash: destination.Hash}); err != nil {
+	if err := amountHeuristic.SetConfig(heuristics.HeuristicOptions{TransactionHash: destination.Hash}); err != nil {
 		return nil, err
 	}
 
@@ -268,7 +267,7 @@ func executeHeuristics(ctx context.Context, dgraph external.Database, wrapper *g
 		thisHeuristic := txHeuristic()
 		for _, duration := range lookbackDurations {
 			// this heuristic
-			if err := thisHeuristic.SetConfig(dbh.Options{Parameter: duration,
+			if err := thisHeuristic.SetConfig(heuristics.HeuristicOptions{Parameter: duration,
 				TransactionHash: destination.Hash}); err != nil {
 				return nil, err
 			}
