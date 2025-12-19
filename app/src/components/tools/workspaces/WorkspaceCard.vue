@@ -7,7 +7,10 @@
     width="288px"
     :to="to"
   >
-    <div style="display: grid">
+    <div
+      style="display: grid"
+      class="mb-2"
+    >
       <svg
         :id="svgID"
         style="width: 100%; grid-area: 1/1"
