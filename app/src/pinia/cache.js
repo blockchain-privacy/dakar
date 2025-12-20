@@ -3,31 +3,96 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {defineStore} from 'pinia';
+import {ref} from 'vue';
 
-const maxElements = 30;
-export const useCacheStore = defineStore('cache', {
-	state: () => ({
-		cache: new Map(),
-	}),
-	getters: {
-		getCache: state => state.cache,
-	},
-	actions: {
-		setValue(key, value) {
-			this.cache.set(key, value);
-			// Remove first (oldest) element when map has become to large
-			if (this.cache.size > maxElements) {
-				this.cache.delete(this.cache.keys().next().value);
+const maxElements = 50;
+const localStoreKey = 'cacheStore';
+let hasCacheChanged = false;
+
+async function persistCache(m) {
+	if (!hasCacheChanged || document.visibilityState === 'visible') {
+		return;
+	}
+
+	// Compress map and store it encoded in base64
+	const compressedResponse = await new Response(new Blob([JSON.stringify(Array.from(m))], {
+		type: 'application/json',
+	}).stream().pipeThrough(new CompressionStream('gzip')));
+	const blob = await compressedResponse.blob();
+	const buffer = await blob.arrayBuffer();
+
+	localStorage.setItem(localStoreKey, new Uint8Array(buffer).toBase64());
+
+	hasCacheChanged = false;
+}
+
+async function loadCache() {
+	const localItem = localStorage.getItem(localStoreKey);
+	if (localItem !== null) {
+		// Decompress map
+		const blob = new Blob([Uint8Array.fromBase64(localItem)]);
+		const ds = new DecompressionStream('gzip');
+		const decompressedStream = blob.stream().pipeThrough(ds);
+		const parsedItem = await new Response(decompressedStream).json();
+		const filledMap = new Map(parsedItem);
+
+		// Convert timestamp strings to dateTime objects
+		for (const [key, item] of filledMap) {
+			if (item.ts) {
+				item.ts = new Date(item.ts);
+				filledMap.set(key, item);
 			}
-		},
-		getValue(key) {
-			return this.cache.get(key);
-		},
-		resetCache() {
-			this.cache.clear();
-		},
-		removeValue(key) {
-			this.cache.delete(key);
-		},
-	},
+		}
+
+		return filledMap;
+	}
+
+	return new Map();
+}
+
+// Removes all items from the given map that are expired.
+function removeExpiredItems(m) {
+	for (const [key, item] of m) {
+		if (item.ts && (new Date() - item.ts) > item.ttl) {
+			m.delete(key);
+			hasCacheChanged = true;
+		}
+	}
+}
+
+const initialMap = await loadCache();
+// Cache item structure: {ts: dateTime, value: any}
+export const useCacheStore = defineStore('cache', () => {
+	const cache = ref(initialMap);
+	// 1000 * 60 = 60000 milliseconds = 1 minute
+	setInterval(() => removeExpiredItems(cache.value), 60000);
+
+	document.addEventListener('visibilitychange', () => persistCache(cache.value));
+
+	// Set with ttl in minutes
+	function setValueTTL(key, value, ttl) {
+		if (ttl > 0) {
+			cache.value.set(key, {ts: new Date(), value, ttl: ttl * 60000});
+		} else {
+			cache.value.set(key, {value});
+		}
+
+		hasCacheChanged = true;
+		// Remove first (oldest) element when map has become to large
+		if (cache.value.size > maxElements) {
+			cache.value.delete(cache.value.keys().next().value);
+		}
+	}
+
+	function setValue(key, value) {
+		setValueTTL(key, value, 0);
+	}
+
+	function getValue(key) {
+		return cache.value.get(key)?.value;
+	}
+
+	return {
+		cache, setValue, setValueTTL, getValue,
+	};
 });

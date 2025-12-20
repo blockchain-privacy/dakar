@@ -66,6 +66,7 @@ import Alert from '@/components/common/Alert.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {mdiCalendar} from '@mdi/js';
+import {useCacheStore} from '@/pinia/cache.js';
 
 const componentID = useId();
 
@@ -77,6 +78,7 @@ const props = defineProps({
 	to: {type: Object, required: true},
 });
 
+const cacheStore = useCacheStore();
 const dakarClients = getDakarClients();
 const workspaceData = ref(null);
 const errorMsg = ref('');
@@ -118,14 +120,22 @@ onUnmounted(() => {
 
 // Functions
 async function init() {
-	workspaceData.value = await getWorkspaceData();
 	oldUID = props.uid;
+	const svgElement = document.getElementById(svgID.value);
+	const cacheValue = cacheStore.getValue(props.uid);
+	if (cacheValue === undefined) {
+		workspaceData.value = await getWorkspaceData();
+		nodeGraph.setEnableInteractions(false);
+		nodeGraph.setEnableThumbnailMode(true);
+		nodeGraph.initSvg(svgID.value);
+		nodeGraph.addNodes(workspaceData.value);
+		nodeGraph.centerGraph();
+		cacheStore.setValueTTL(props.uid, svgElement.innerHTML, 30);
+		return;
+	}
 
-	nodeGraph.setEnableInteractions(false);
-	nodeGraph.setEnableThumbnailMode(true);
-	nodeGraph.initSvg(svgID.value);
-	nodeGraph.addNodes(workspaceData.value);
-	nodeGraph.centerGraph();
+	svgElement.innerHTML = cacheValue;
+	loading.value = false;
 }
 
 async function getWorkspaceData() {

@@ -354,7 +354,7 @@ async function getAddressData() {
 	try {
 		const response = await dakar.data.blockchainAddressesHashGet({hash: props.identifier});
 		entityData.value = response.address;
-		cacheStore.setValue(props.identifier, response.address);
+		cacheStore.setValueTTL(props.identifier, response.address, 30);
 	} catch (e) {
 		setErrorMessage(e);
 	}
