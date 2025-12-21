@@ -10,7 +10,7 @@ const localStoreKey = 'cacheStore';
 let hasCacheChanged = false;
 
 async function persistCache(m) {
-	if (!hasCacheChanged || document.visibilityState === 'visible' || !isBase64Supported()) {
+	if (!hasCacheChanged || !isBase64Supported()) {
 		return;
 	}
 
@@ -24,6 +24,14 @@ async function persistCache(m) {
 	localStorage.setItem(localStoreKey, new Uint8Array(buffer).toBase64());
 
 	hasCacheChanged = false;
+}
+
+function visibilityChanged(m) {
+	if (document.visibilityState === 'visible') {
+		return;
+	}
+
+	persistCache(m);
 }
 
 // Todo: remove check after mid 2026
@@ -76,7 +84,8 @@ export const useCacheStore = defineStore('cache', () => {
 	// 1000 * 60 = 60000 milliseconds = 1 minute
 	setInterval(() => removeExpiredItems(cache.value), 60000);
 
-	document.addEventListener('visibilitychange', () => persistCache(cache.value));
+	setInterval(() => persistCache(cache.value), 90000);
+	document.addEventListener('visibilitychange', () => visibilityChanged(cache.value));
 
 	// Set with ttl in minutes
 	function setValueTTL(key, value, ttl) {
