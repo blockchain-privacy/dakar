@@ -10,7 +10,7 @@ const localStoreKey = 'cacheStore';
 let hasCacheChanged = false;
 
 async function persistCache(m) {
-	if (!hasCacheChanged || document.visibilityState === 'visible') {
+	if (!hasCacheChanged || document.visibilityState === 'visible' || !isBase64Supported()) {
 		return;
 	}
 
@@ -26,7 +26,16 @@ async function persistCache(m) {
 	hasCacheChanged = false;
 }
 
+// Todo: remove check after mid 2026
+function isBase64Supported() {
+	return Uint8Array.fromBase64 !== undefined;
+}
+
 async function loadCache() {
+	if (!isBase64Supported()) {
+		return new Map();
+	}
+
 	const localItem = localStorage.getItem(localStoreKey);
 	if (localItem !== null) {
 		// Decompress map
