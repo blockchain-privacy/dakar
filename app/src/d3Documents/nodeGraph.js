@@ -373,9 +373,9 @@ export default class NodeGraph {
 	initSvg(svgID, width, height) {
 		// Add attributes to root svg
 		this.#svgID = svgID;
-
+		this.#rootSvg = d3Select(`#${svgID}`);
 		if (!this.#enableThumbnailMode) {
-			this.#rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
+			this.#rootSvg.on('click', () => this.svgClick());
 		}
 
 		this.#rootGroup = this.#rootSvg.append('g').classed('root-group', true);
