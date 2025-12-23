@@ -122,19 +122,21 @@ onUnmounted(() => {
 async function init() {
 	oldUID = props.uid;
 	const svgElement = document.getElementById(svgID.value);
-	const cacheValue = cacheStore.getValue(props.uid);
-	if (cacheValue === undefined) {
+	const cacheValue = cacheStore.getWithMetadata(props.uid);
+	// Fetch the workspace, if it is not in the cache or if the workspace is newer than the cache item
+	if (cacheValue === undefined || cacheValue.ts < props.created) {
+		console.log('getting workspace', props.created - cacheValue.ts);
 		workspaceData.value = await getWorkspaceData();
 		nodeGraph.setEnableInteractions(false);
 		nodeGraph.setEnableThumbnailMode(true);
 		nodeGraph.initSvg(svgID.value);
 		nodeGraph.addNodes(workspaceData.value);
 		nodeGraph.centerGraph();
-		cacheStore.setValueTTL(props.uid, svgElement.innerHTML, 30);
+		cacheStore.setTTL(props.uid, svgElement.innerHTML, 30);
 		return;
 	}
 
-	svgElement.innerHTML = cacheValue;
+	svgElement.innerHTML = cacheValue.value;
 	loading.value = false;
 }
 

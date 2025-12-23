@@ -88,7 +88,7 @@ export const useCacheStore = defineStore('cache', () => {
 	document.addEventListener('visibilitychange', () => visibilityChanged(cache.value));
 
 	// Set with ttl in minutes
-	function setValueTTL(key, value, ttl) {
+	function setTTL(key, value, ttl) {
 		if (ttl > 0) {
 			cache.value.set(key, {ts: new Date(), value, ttl: ttl * 60000});
 		} else {
@@ -102,15 +102,19 @@ export const useCacheStore = defineStore('cache', () => {
 		}
 	}
 
-	function setValue(key, value) {
-		setValueTTL(key, value, 0);
+	function set(key, value) {
+		setTTL(key, value, 0);
 	}
 
-	function getValue(key) {
+	function get(key) {
 		return cache.value.get(key)?.value;
 	}
 
+	function getWithMetadata(key) {
+		return cache.value.get(key);
+	}
+
 	return {
-		cache, setValue, setValueTTL, getValue,
+		cache, set, setTTL, get, getWithMetadata,
 	};
 });
