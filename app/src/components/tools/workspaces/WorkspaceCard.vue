@@ -131,7 +131,7 @@ async function init() {
 		nodeGraph.initSvg(svgID.value);
 		nodeGraph.addNodes(workspaceData.value);
 		nodeGraph.centerGraph();
-		cacheStore.setTTL(props.uid, svgElement.innerHTML, 30);
+		cacheStore.set(props.uid, svgElement.innerHTML);
 		return;
 	}
 
