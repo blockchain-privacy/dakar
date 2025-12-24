@@ -125,7 +125,6 @@ async function init() {
 	const cacheValue = cacheStore.getWithMetadata(props.uid);
 	// Fetch the workspace, if it is not in the cache or if the workspace is newer than the cache item
 	if (cacheValue === undefined || cacheValue.ts < props.created) {
-		console.log('getting workspace', props.created - cacheValue.ts);
 		workspaceData.value = await getWorkspaceData();
 		nodeGraph.setEnableInteractions(false);
 		nodeGraph.setEnableThumbnailMode(true);
