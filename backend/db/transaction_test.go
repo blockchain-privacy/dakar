@@ -121,7 +121,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 	require.Len(t, transactions, 4)
 }
 
-func TestGetOutputAddressCounts(t *testing.T) {
+func TestGetInputOutputAddressCounts(t *testing.T) {
 	dbHandle := GetDBConnection(t, "")
 	ctx, cancel := GetTaskContext()
 	defer cancel()
@@ -192,6 +192,73 @@ func TestGetOutputAddressCounts(t *testing.T) {
 		inputCount, outputCount, err = GetInputOutputAddressCounts(ctx, dbHandle, c.uid)
 		require.NoError(t, err)
 		require.Equal(t, c.numInputs, inputCount, c.txhash)
+		require.Equal(t, c.numOutputs, outputCount, c.txhash)
+	}
+}
+
+func TestGetOutputAddressCounts(t *testing.T) {
+	dbHandle := GetDBConnection(t, "")
+	ctx, cancel := GetTaskContext()
+	defer cancel()
+
+	// invalid input
+	outputCount, err := GetOutputAddressCounts(ctx, dbHandle, "")
+	require.Error(t, err)
+	require.Zero(t, outputCount)
+
+	// invalid input should return no error but two zero counts
+	outputCount, err = GetOutputAddressCounts(ctx, dbHandle, "0x123FFFF")
+	require.NoError(t, err)
+	require.Zero(t, outputCount)
+
+	ChangeDBContent(dbHandle, UseBlockFile)
+
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, nil)
+	require.NoError(t, err)
+	require.Len(t, transactions, 4)
+
+	type testCase struct {
+		txhash     string
+		uid        string
+		numOutputs int
+	}
+
+	cases := []testCase{
+		{
+			txhash:     "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13",
+			numOutputs: 9,
+		},
+		{
+			txhash:     "38c54271cb439357f1c02d4db06c6a2715d77b68e920f6ccb9f13d66fe233384",
+			numOutputs: 1,
+		},
+		{
+			txhash:     "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638",
+			numOutputs: 2,
+		},
+		{
+			txhash:     "1f22cdab5f3543a49f2b0ab8a0ea7858fd4459e94f3074c58c39044bd63a8aff",
+			numOutputs: 1,
+		},
+	}
+	var found int
+	for _, tx := range transactions {
+		for i, c := range cases {
+			if c.txhash == tx.Hash {
+				cases[i].uid = tx.UID
+				found++
+				break
+			}
+		}
+	}
+
+	if len(cases) != found {
+		t.Error(len(cases), "cases, but", found, "found")
+	}
+
+	for _, c := range cases {
+		outputCount, err = GetOutputAddressCounts(ctx, dbHandle, c.uid)
+		require.NoError(t, err)
 		require.Equal(t, c.numOutputs, outputCount, c.txhash)
 	}
 }
