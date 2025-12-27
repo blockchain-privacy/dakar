@@ -330,23 +330,23 @@ func Test_isWasabi2Mixing(t *testing.T) {
 	tb, err := db.GetTransaction(t.Context(), dbHandle, "B")
 	require.NoError(t, err)
 
-	var addresses []db.Address
+	addresses := make([]db.Address, len(ta.Outputs)+len(tb.Outputs))
 	var y int
 	for i, output := range ta.Outputs {
-		addresses = append(addresses, db.Address{
+		addresses[y] = db.Address{
 			UID:     "uid(a" + strconv.Itoa(y) + ")",
 			Hash:    "a" + strconv.Itoa(i),
 			Outputs: []db.Output{output},
-		})
+		}
 		y++
 	}
 
 	for i, output := range tb.Outputs {
-		addresses = append(addresses, db.Address{
+		addresses[y] = db.Address{
 			UID:     "uid(a" + strconv.Itoa(y) + ")",
 			Hash:    "b" + strconv.Itoa(i),
 			Outputs: []db.Output{output},
-		})
+		}
 		y++
 	}
 
