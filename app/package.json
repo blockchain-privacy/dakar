@@ -13,7 +13,7 @@
   "dependencies": {
     "@blockchain-privacy/kratosadmin": "^0.0.27",
     "@blockchain-privacy/wikiapi": "^0.0.2",
-    "@blockchain/dakar": "^1.1.69",
+    "@blockchain/dakar": "^1.1.71",
     "@fontsource/roboto": "^5.2.9",
     "@mdi/js": "^7.4.47",
     "@ory/client-fetch": "^1.22.15",
