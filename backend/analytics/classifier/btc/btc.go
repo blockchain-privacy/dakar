@@ -179,7 +179,6 @@ func isWasabi2MixingProperties(t db.Transaction) bool {
 	return false
 }
 
-// todo test
 // isWasabi2Mixing checks if the transaction is a wasabi 2.0 mixing transaction
 // credit to paper: "Heuristics for Detecting CoinJoin Transactions
 // on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
@@ -188,6 +187,8 @@ func isWasabi2Mixing(ctx context.Context, c external.Database, t db.Transaction)
 		return false
 	}
 
+	// The paper states that each output script should be unique.
+	// Instead, we check that each output address is unique, which is a stronger assumption.
 	outputCount, err := db.GetOutputAddressCounts(ctx, c, t.UID)
 	if err != nil {
 		return false

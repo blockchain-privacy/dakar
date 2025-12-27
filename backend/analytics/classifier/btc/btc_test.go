@@ -8,8 +8,11 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics"
+	"encoding/json"
+	"strconv"
 	"testing"
 
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -272,6 +275,99 @@ func Test_isWasabi2MixingProperties(t *testing.T) {
 
 	for _, c := range cases {
 		require.Equal(t, !c.shouldFail, isWasabi2MixingProperties(c.tx))
+	}
+}
+
+func Test_isWasabi2Mixing(t *testing.T) {
+	dbHandle := db.GetDBConnection(t, "")
+
+	t1 := db.Transaction{
+		Fee:  new(int64),
+		Hash: "A",
+		Inputs: []db.Output{
+			{Amount: db.GetPointer[int64](5001)},
+			{Amount: db.GetPointer[int64](5002)},
+			{Amount: db.GetPointer[int64](5003)},
+			{Amount: db.GetPointer[int64](5004)},
+			{Amount: db.GetPointer[int64](5005)},
+			{Amount: db.GetPointer[int64](5006)},
+			{Amount: db.GetPointer[int64](5007)},
+			{Amount: db.GetPointer[int64](5008)},
+			{Amount: db.GetPointer[int64](5009)},
+			{Amount: db.GetPointer[int64](50010)},
+			{Amount: db.GetPointer[int64](50011)},
+			{Amount: db.GetPointer[int64](50012)},
+			{Amount: db.GetPointer[int64](50013)},
+			{Amount: db.GetPointer[int64](50014)},
+			{Amount: db.GetPointer[int64](50015)},
+		},
+		Outputs: []db.Output{
+			{Amount: db.GetPointer[int64](258280326)},
+			{Amount: db.GetPointer[int64](4782969)},
+			{Amount: db.GetPointer[int64](8388608)},
+			{Amount: db.GetPointer[int64](19683)},
+			{Amount: db.GetPointer[int64](20000)},
+			{Amount: db.GetPointer[int64](1)},
+			{Amount: db.GetPointer[int64](2)},
+			{Amount: db.GetPointer[int64](3)},
+			{Amount: db.GetPointer[int64](4)},
+			{Amount: db.GetPointer[int64](5)},
+		},
+	}
+
+	t2 := t1
+
+	t2.Hash = "B"
+
+	pb, err := json.Marshal([]db.Transaction{t1, t2})
+	require.NoError(t, err)
+
+	require.NoError(t, db.MutationWithRetry(t.Context(), dbHandle, &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true}))
+
+	ta, err := db.GetTransaction(t.Context(), dbHandle, "A")
+	require.NoError(t, err)
+
+	tb, err := db.GetTransaction(t.Context(), dbHandle, "B")
+	require.NoError(t, err)
+
+	var addresses []db.Address
+	var y int
+	for i, output := range ta.Outputs {
+		addresses = append(addresses, db.Address{
+			UID:     "uid(a" + strconv.Itoa(y) + ")",
+			Hash:    "a" + strconv.Itoa(i),
+			Outputs: []db.Output{output},
+		})
+		y++
+	}
+
+	for i, output := range tb.Outputs {
+		addresses = append(addresses, db.Address{
+			UID:     "uid(a" + strconv.Itoa(y) + ")",
+			Hash:    "b" + strconv.Itoa(i),
+			Outputs: []db.Output{output},
+		})
+		y++
+	}
+
+	// add the output of the last element to the second last, so one address points to two outputs. remove the last element
+	addresses[len(addresses)-2].Outputs = append(addresses[len(addresses)-2].Outputs, addresses[len(addresses)-1].Outputs...)
+	addresses = addresses[:len(addresses)-1]
+
+	require.NoError(t, db.UpsertAddresses(t.Context(), dbHandle, addresses))
+
+	type transactionTest struct {
+		tx         db.Transaction
+		shouldFail bool
+	}
+
+	var cases = []transactionTest{
+		{ta, false},
+		{tb, true},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, !c.shouldFail, isWasabi2Mixing(t.Context(), dbHandle, c.tx), c.tx)
 	}
 }
 
