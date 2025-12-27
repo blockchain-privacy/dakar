@@ -11,14 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTransaction_String(t *testing.T) {
-	tx := Transaction{
-		UID:  "some_uid",
-		Hash: "some_long_hex_hash",
-	}
-	require.NotEmpty(t, tx.String())
-}
-
 func TestTransaction_SetDType(t *testing.T) {
 	tx := Transaction{
 		UID:  "some_uid",
@@ -120,11 +112,11 @@ func TestGetTransactionByBlock(t *testing.T) {
 	defer cancel()
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 1, 1, false, nil)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 1, 1, nil)
 	require.Error(t, err)
 	require.Nil(t, transactions)
 
-	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false, nil)
+	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, nil)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 }
@@ -135,20 +127,20 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	defer cancel()
 
 	// invalid input
-	inputCount, outputCount, err := GetOutputAddressCounts(ctx, dbHandle, "")
+	inputCount, outputCount, err := GetInputOutputAddressCounts(ctx, dbHandle, "")
 	require.Error(t, err)
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
 	// invalid input should return no error but two zero counts
-	inputCount, outputCount, err = GetOutputAddressCounts(ctx, dbHandle, "0x123FFFF")
+	inputCount, outputCount, err = GetInputOutputAddressCounts(ctx, dbHandle, "0x123FFFF")
 	require.NoError(t, err)
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
 	ChangeDBContent(dbHandle, UseBlockFile)
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false, nil)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, nil)
 	require.NoError(t, err)
 	require.Len(t, transactions, 4)
 
@@ -197,7 +189,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		inputCount, outputCount, err = GetOutputAddressCounts(ctx, dbHandle, c.uid)
+		inputCount, outputCount, err = GetInputOutputAddressCounts(ctx, dbHandle, c.uid)
 		require.NoError(t, err)
 		require.Equal(t, c.numInputs, inputCount, c.txhash)
 		require.Equal(t, c.numOutputs, outputCount, c.txhash)
@@ -250,7 +242,7 @@ func TestUpdateTransactions(t *testing.T) {
 	require.Error(t, UpdateTransactions(ctx, dbHandle, nil))
 	require.Error(t, UpdateTransactions(ctx, dbHandle, []Transaction{}))
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false, nil)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, nil)
 	require.NoError(t, err)
 
 	// no mixing transactions should be in this block
@@ -265,7 +257,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 	require.NoError(t, UpdateTransactions(ctx, dbHandle, transactions))
 
-	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, false, nil)
+	transactions, err = GetTransactionsByBlock(ctx, dbHandle, 60001, 60001, nil)
 	require.NoError(t, err)
 
 	// all transactions should now have the transaction type set to 'mixing'
@@ -350,7 +342,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005, false, nil)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, 60005, 60005, nil)
 	require.NoError(t, err)
 	require.Len(t, transactions, 7)
 

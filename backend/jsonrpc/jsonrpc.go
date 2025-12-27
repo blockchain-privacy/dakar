@@ -10,11 +10,12 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 const (
@@ -224,15 +225,10 @@ func NewBlockchainClient(host string, user string, password string, cert []byte)
 	return &BlockchainClient{rpc: NewClient(host, user, password, cert)}
 }
 
-type ScriptSig struct {
-	Asm string `json:"asm"`
-}
-
 type Vin struct {
-	Coinbase  string     `json:"coinbase"`
-	Txid      string     `json:"txid"`
-	Vout      int32      `json:"vout"`
-	ScriptSig *ScriptSig `json:"scriptSig"`
+	Coinbase string `json:"coinbase"`
+	Txid     string `json:"txid"`
+	Vout     int32  `json:"vout"`
 }
 
 // IsCoinBase returns a bool to show if a Vin is a Coinbase one or not.
@@ -241,7 +237,6 @@ func (v *Vin) IsCoinBase() bool {
 }
 
 type ScriptPubKeyResult struct {
-	Asm     string `json:"asm"`
 	Hex     string `json:"hex,omitempty"`
 	Type    string `json:"type"`
 	Address string `json:"address"`

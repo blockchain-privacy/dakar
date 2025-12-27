@@ -91,7 +91,7 @@ func TestCountWasabi2Denominations(t *testing.T) {
 	}
 }
 
-func Test_isWasabi2Mixing(t *testing.T) {
+func Test_isWasabi2MixingProperties(t *testing.T) {
 	type transactionTest struct {
 		tx         db.Transaction
 		shouldFail bool
@@ -118,16 +118,16 @@ func Test_isWasabi2Mixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](50015)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "5"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "6"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "7"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "8"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "9"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "10"},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
 		},
 	}
 
@@ -152,16 +152,16 @@ func Test_isWasabi2Mixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](50015)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](100000000000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](1), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](2), KeyAsm: "5"},
-			{Amount: db.GetPointer[int64](3), KeyAsm: "6"},
-			{Amount: db.GetPointer[int64](4), KeyAsm: "7"},
-			{Amount: db.GetPointer[int64](5), KeyAsm: "8"},
-			{Amount: db.GetPointer[int64](6), KeyAsm: "9"},
-			{Amount: db.GetPointer[int64](7), KeyAsm: "10"},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](100000000000)},
+			{Amount: db.GetPointer[int64](1)},
+			{Amount: db.GetPointer[int64](2)},
+			{Amount: db.GetPointer[int64](3)},
+			{Amount: db.GetPointer[int64](4)},
+			{Amount: db.GetPointer[int64](5)},
+			{Amount: db.GetPointer[int64](6)},
+			{Amount: db.GetPointer[int64](7)},
 		},
 	}
 
@@ -186,16 +186,16 @@ func Test_isWasabi2Mixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](50015)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](258280326), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](4782969), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](8388608), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](19683), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](20000), KeyAsm: "5"},
-			{Amount: db.GetPointer[int64](1), KeyAsm: "6"},
-			{Amount: db.GetPointer[int64](2), KeyAsm: "7"},
-			{Amount: db.GetPointer[int64](3), KeyAsm: "8"},
-			{Amount: db.GetPointer[int64](4), KeyAsm: "9"},
-			{Amount: db.GetPointer[int64](5), KeyAsm: "10"},
+			{Amount: db.GetPointer[int64](258280326)},
+			{Amount: db.GetPointer[int64](4782969)},
+			{Amount: db.GetPointer[int64](8388608)},
+			{Amount: db.GetPointer[int64](19683)},
+			{Amount: db.GetPointer[int64](20000)},
+			{Amount: db.GetPointer[int64](1)},
+			{Amount: db.GetPointer[int64](2)},
+			{Amount: db.GetPointer[int64](3)},
+			{Amount: db.GetPointer[int64](4)},
+			{Amount: db.GetPointer[int64](5)},
 		},
 	}
 
@@ -207,8 +207,8 @@ func Test_isWasabi2Mixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](5002)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](258280326), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](4782969), KeyAsm: "2"},
+			{Amount: db.GetPointer[int64](258280326)},
+			{Amount: db.GetPointer[int64](4782969)},
 		},
 	}
 
@@ -248,17 +248,17 @@ func Test_isWasabi2Mixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](874642)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](133200000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](5000000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](150000000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](3799000000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](100000000), KeyAsm: "5"},
-			{Amount: db.GetPointer[int64](1700000), KeyAsm: "6"},
-			{Amount: db.GetPointer[int64](1000000), KeyAsm: "7"},
-			{Amount: db.GetPointer[int64](2000000), KeyAsm: "8"},
-			{Amount: db.GetPointer[int64](482500000), KeyAsm: "9"},
-			{Amount: db.GetPointer[int64](100000000), KeyAsm: "10"},
-			{Amount: db.GetPointer[int64](234403702357), KeyAsm: "11"},
+			{Amount: db.GetPointer[int64](133200000)},
+			{Amount: db.GetPointer[int64](5000000)},
+			{Amount: db.GetPointer[int64](150000000)},
+			{Amount: db.GetPointer[int64](3799000000)},
+			{Amount: db.GetPointer[int64](100000000)},
+			{Amount: db.GetPointer[int64](1700000)},
+			{Amount: db.GetPointer[int64](1000000)},
+			{Amount: db.GetPointer[int64](2000000)},
+			{Amount: db.GetPointer[int64](482500000)},
+			{Amount: db.GetPointer[int64](100000000)},
+			{Amount: db.GetPointer[int64](234403702357)},
 		},
 	}
 
@@ -271,7 +271,7 @@ func Test_isWasabi2Mixing(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.Equal(t, !c.shouldFail, isWasabi2Mixing(c.tx))
+		require.Equal(t, !c.shouldFail, isWasabi2MixingProperties(c.tx))
 	}
 }
 
@@ -292,11 +292,11 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](50000000)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "5"},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
 		},
 	}
 
@@ -311,11 +311,11 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](50002420)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](50000000), KeyAsm: "5"},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
+			{Amount: db.GetPointer[int64](50000000)},
 		},
 	}
 
@@ -330,11 +330,11 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](100000)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "5"},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
 		},
 	}
 
@@ -349,11 +349,11 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](250000)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "5"},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
 		},
 	}
 
@@ -367,11 +367,11 @@ func Test_isWhirlpoolMixing(t *testing.T) {
 			{Amount: db.GetPointer[int64](100000)},
 		},
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "1"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "2"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "3"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "4"},
-			{Amount: db.GetPointer[int64](100000), KeyAsm: "5"},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
+			{Amount: db.GetPointer[int64](100000)},
 		},
 	}
 

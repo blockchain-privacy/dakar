@@ -129,8 +129,7 @@ func TestUpsertBlock(t *testing.T) {
 	ctx, cancel := GetTaskContext()
 	defer cancel()
 
-	transactions, err := GetTransactionsByBlock(ctx, dbHandle,
-		BlockFileFirstBlock, BlockFileFirstBlock, false, nil)
+	transactions, err := GetTransactionsByBlock(ctx, dbHandle, BlockFileFirstBlock, BlockFileFirstBlock, nil)
 	require.NoError(t, err)
 
 	tests := []struct {

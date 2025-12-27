@@ -512,9 +512,6 @@ func Test_processTxVin(t *testing.T) {
 				externalOutputs: nil,
 				vin: jsonrpc.Vin{
 					Txid: "txhash1",
-					ScriptSig: &jsonrpc.ScriptSig{
-						Asm: "some_asm",
-					},
 					Vout: 0,
 				},
 				index: 0,
@@ -532,9 +529,6 @@ func Test_processTxVin(t *testing.T) {
 				externalOutputs: nil,
 				vin: jsonrpc.Vin{
 					Txid: "txhash1",
-					ScriptSig: &jsonrpc.ScriptSig{
-						Asm: "some_asm",
-					},
 					Vout: 0,
 				},
 				index:     0,
@@ -549,9 +543,6 @@ func Test_processTxVin(t *testing.T) {
 				externalOutputs: nil,
 				vin: jsonrpc.Vin{
 					Txid: "txhash1",
-					ScriptSig: &jsonrpc.ScriptSig{
-						Asm: "some_asm",
-					},
 					Vout: 0,
 				},
 				index:     0,

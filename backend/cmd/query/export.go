@@ -226,7 +226,7 @@ func doExportTransactions(ctx context.Context, dgraph external.Database,
 		_ = file.Close()
 	}(file)
 
-	transactions, err := db.GetTransactionsByBlock(ctx, dgraph, startBlock, endBlock, false, transactionTypes)
+	transactions, err := db.GetTransactionsByBlock(ctx, dgraph, startBlock, endBlock, transactionTypes)
 	if err != nil {
 		warn(err)
 		return

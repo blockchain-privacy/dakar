@@ -7,12 +7,12 @@ package db
 import (
 	"backend/external"
 	"context"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
-
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/dgo/v250/protos/api"
 	"strconv"
+
+	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // blockDType is the dgraph database type for the Block type
@@ -171,9 +171,6 @@ func GetFullBlock(ctx context.Context, c external.Database, id int, convertUIDs 
 					inputindex
 					outputindex
 					iscoinbase
-					keyasm
-					sigasm
-					txtype
 					dgraph.type
 				}`
 
