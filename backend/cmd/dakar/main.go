@@ -10,13 +10,13 @@ import (
 	"backend/analytics/graph"
 	"backend/blockiterator"
 	"backend/constants"
+	"backend/crawler"
 	"backend/db"
 	"backend/db/status"
 	"backend/db/upgrades"
 	"backend/external"
 	"backend/jsonrpc"
 	"backend/mcpserver"
-	"backend/processor"
 	"backend/server"
 	"backend/userserver"
 	"backend/workspace"
@@ -62,7 +62,7 @@ func setCommandFlags(c *Commands) {
 }
 
 type iteratorConfigurations struct {
-	processor  processor.Config
+	processor  crawler.Config
 	classifier classifier.Config
 	clustering clustering.Config
 	graph      graph.Config
@@ -73,14 +73,14 @@ func selectConfig(blockchainMode string) (*iteratorConfigurations, error) {
 	switch blockchainMode {
 	case constants.BlockchainModeDash:
 		return &iteratorConfigurations{
-			processor:  processor.NewDashConfig(),
+			processor:  crawler.NewDashConfig(),
 			classifier: classifier.NewDashConfig(),
 			graph:      graph.NewDashConfig(),
 			clustering: clustering.NewDashConfig(),
 		}, nil
 	case constants.BlockchainModeBTC:
 		return &iteratorConfigurations{
-			processor:  processor.NewBitcoinConfig(),
+			processor:  crawler.NewBitcoinConfig(),
 			classifier: classifier.NewBTCConfig(),
 			graph:      graph.NewBTCConfig(),
 			clustering: clustering.NewBTCConfig(),
@@ -317,7 +317,7 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 
-			crawler := processor.NewCrawler(appContext, graphDB, client,
+			crawler := crawler.NewCrawler(appContext, graphDB, client,
 				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.processor)
 			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
 			if processorErr := blockiterator.StartIteration(crawler, 0, nil); processorErr != nil {
