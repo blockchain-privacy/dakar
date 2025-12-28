@@ -26,7 +26,7 @@ import (
 )
 
 func info(msg string, v ...any) {
-	slog.Info(msg, append([]any{"module", "processor"}, v...)...)
+	slog.Info(msg, append([]any{"module", "crawler"}, v...)...)
 }
 
 func warn(err error, v ...any) {

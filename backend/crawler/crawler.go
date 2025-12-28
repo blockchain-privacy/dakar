@@ -65,7 +65,7 @@ func (c *Crawler) RegisterMetrics(req prometheus.Registerer) {
 
 func (c *Crawler) Props() blockiterator.Properties {
 	return blockiterator.Properties{
-		Name:                        "processor",
+		Name:                        "crawler",
 		Context:                     c.ctx,
 		CurrentBlock:                c.state.id,
 		ProcessedBlockCount:         1,

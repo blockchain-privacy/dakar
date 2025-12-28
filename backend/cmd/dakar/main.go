@@ -62,7 +62,7 @@ func setCommandFlags(c *Commands) {
 }
 
 type iteratorConfigurations struct {
-	processor  crawler.Config
+	crawler    crawler.Config
 	classifier classifier.Config
 	clustering clustering.Config
 	graph      graph.Config
@@ -73,14 +73,14 @@ func selectConfig(blockchainMode string) (*iteratorConfigurations, error) {
 	switch blockchainMode {
 	case constants.BlockchainModeDash:
 		return &iteratorConfigurations{
-			processor:  crawler.NewDashConfig(),
+			crawler:    crawler.NewDashConfig(),
 			classifier: classifier.NewDashConfig(),
 			graph:      graph.NewDashConfig(),
 			clustering: clustering.NewDashConfig(),
 		}, nil
 	case constants.BlockchainModeBTC:
 		return &iteratorConfigurations{
-			processor:  crawler.NewBitcoinConfig(),
+			crawler:    crawler.NewBitcoinConfig(),
 			classifier: classifier.NewBTCConfig(),
 			graph:      graph.NewBTCConfig(),
 			clustering: clustering.NewBTCConfig(),
@@ -318,10 +318,10 @@ func main() {
 			}()
 
 			blockCrawler := crawler.NewCrawler(appContext, graphDB, client,
-				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.processor)
+				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.crawler)
 			blockCrawler.RegisterMetrics(prometheus.DefaultRegisterer)
-			if processorErr := blockiterator.StartIteration(blockCrawler, 0, nil); processorErr != nil {
-				warn(processorErr)
+			if err = blockiterator.StartIteration(blockCrawler, 0, nil); err != nil {
+				warn(err)
 			}
 		})
 	}

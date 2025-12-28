@@ -12,7 +12,7 @@ type Config struct {
 	BlockchainName string
 	// BlockTime is the average block time
 	BlockTime time.Duration
-	// NewBlockIntervalTime is the time interval in which the processor checks if a new block is available
+	// NewBlockIntervalTime is the time interval after that the crawler checks for new blocks
 	NewBlockIntervalTime time.Duration
 	// ForkRangeLimit is the number of blocks which the RPC client must
 	// be ahead of the crawler, for the crawler to include new blocks
