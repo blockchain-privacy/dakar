@@ -317,10 +317,10 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 
-			crawler := crawler.NewCrawler(appContext, graphDB, client,
+			blockCrawler := crawler.NewCrawler(appContext, graphDB, client,
 				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.processor)
-			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
-			if processorErr := blockiterator.StartIteration(crawler, 0, nil); processorErr != nil {
+			blockCrawler.RegisterMetrics(prometheus.DefaultRegisterer)
+			if processorErr := blockiterator.StartIteration(blockCrawler, 0, nil); processorErr != nil {
 				warn(processorErr)
 			}
 		})
