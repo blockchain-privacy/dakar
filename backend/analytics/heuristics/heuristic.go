@@ -49,7 +49,7 @@ const (
 	// minimum duration in hours
 	parameterMinDuration = 1
 	// maximum depth
-	parameterMaxDepth = 5
+	parameterMaxDepth = 4
 	parameterMinDepth = 1
 
 	parameterDescriptionLookForward = "Maximum duration (hours)"
