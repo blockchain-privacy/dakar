@@ -485,7 +485,7 @@ func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode,
 // getHeuristicTransactions returns the provided transactions with a cluster UID and their output amounts
 func getHeuristicTransactions(ctx context.Context, dgraph external.Database, clusters []heuristics.HeuristicCluster,
 	allowedTransactionType string) ([]heuristics.HeuristicTransaction, error) {
-	var txUIDs []string
+	var txUIDs []string //nolint:prealloc
 	uidToCluster := map[string]heuristics.ClusterUID{}
 	for i, cluster := range clusters {
 		cUID := heuristics.ClusterUID(strconv.Itoa(i))

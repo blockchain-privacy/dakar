@@ -110,7 +110,7 @@ func (g *ReversibleGraph) Edge(uid, vid int64) graph.Edge {
 
 // Edges returns all the edges in the graph.
 func (g *ReversibleGraph) Edges() graph.Edges {
-	var edges []graph.Edge
+	var edges []graph.Edge //nolint:prealloc
 	for _, u := range g.nodes {
 		for _, e := range g.from[u.ID()] {
 			edges = append(edges, e)
