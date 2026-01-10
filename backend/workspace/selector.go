@@ -61,9 +61,14 @@ func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.D
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
-		newNodes = make([]any, len(results))
-		for i, result := range results {
-			newNodes[i] = db.UIDNode{UID: result}
+		if len(results) > 20_000 {
+			status = workspace.StatusError
+			err = serror.FromStrWithContext("selector returned to many results", "result count", len(results), "options", s.opt)
+		} else {
+			newNodes = make([]any, len(results))
+			for i, result := range results {
+				newNodes[i] = db.UIDNode{UID: result}
+			}
 		}
 	} else {
 		// despite the error, we don't return here because we want to store the error state in the db
@@ -120,9 +125,14 @@ func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoGraphSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
-		newNodes = make([]any, len(results))
-		for i, result := range results {
-			newNodes[i] = db.UIDNode{UID: result}
+		if len(results) > 20_000 {
+			status = workspace.StatusError
+			err = serror.FromStrWithContext("selector returned to many results", "result count", len(results), "options", s.opt)
+		} else {
+			newNodes = make([]any, len(results))
+			for i, result := range results {
+				newNodes[i] = db.UIDNode{UID: result}
+			}
 		}
 	} else {
 		// despite the error, we don't return here because we want to store the error state in the db
@@ -353,9 +363,14 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 	results, err := h.executor.Run(ctx, c, g)
 	var newNodes []any
 	if err == nil {
-		newNodes = make([]any, len(results))
-		for i, result := range results {
-			newNodes[i] = result
+		if len(results) > 20_000 {
+			status = workspace.StatusError
+			err = serror.FromStrWithContext("selector returned to many results", "result count", len(results), "selector uid", h.selectorUID)
+		} else {
+			newNodes = make([]any, len(results))
+			for i, result := range results {
+				newNodes[i] = result
+			}
 		}
 	} else {
 		// despite the error, we don't return here because we want to store the error state in the db
