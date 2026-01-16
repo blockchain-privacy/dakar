@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-package processor
+package crawler
 
 import (
 	"backend/cmd/cliutil"
@@ -26,7 +26,7 @@ import (
 )
 
 func info(msg string, v ...any) {
-	slog.Info(msg, append([]any{"module", "processor"}, v...)...)
+	slog.Info(msg, append([]any{"module", "crawler"}, v...)...)
 }
 
 func warn(err error, v ...any) {

@@ -2,12 +2,13 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-package processor
+package crawler
 
 import (
 	"backend/db"
 	"backend/external"
 	"context"
+
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
