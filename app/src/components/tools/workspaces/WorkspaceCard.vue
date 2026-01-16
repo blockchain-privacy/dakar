@@ -7,7 +7,10 @@
     width="288px"
     :to="to"
   >
-    <div style="display: grid">
+    <div
+      style="display: grid"
+      class="mb-2"
+    >
       <svg
         :id="svgID"
         style="width: 100%; grid-area: 1/1"
@@ -63,6 +66,7 @@ import Alert from '@/components/common/Alert.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {mdiCalendar} from '@mdi/js';
+import {useCacheStore} from '@/pinia/cache.js';
 
 const componentID = useId();
 
@@ -74,6 +78,7 @@ const props = defineProps({
 	to: {type: Object, required: true},
 });
 
+const cacheStore = useCacheStore();
 const dakarClients = getDakarClients();
 const workspaceData = ref(null);
 const errorMsg = ref('');
@@ -115,14 +120,23 @@ onUnmounted(() => {
 
 // Functions
 async function init() {
-	workspaceData.value = await getWorkspaceData();
 	oldUID = props.uid;
+	const svgElement = document.getElementById(svgID.value);
+	const cacheValue = cacheStore.getWithMetadata(props.uid);
+	// Fetch the workspace, if it is not in the cache or if the workspace is newer than the cache item
+	if (cacheValue === undefined || cacheValue.ts < props.created) {
+		workspaceData.value = await getWorkspaceData();
+		nodeGraph.setEnableInteractions(false);
+		nodeGraph.setEnableThumbnailMode(true);
+		nodeGraph.initSvg(svgID.value);
+		nodeGraph.addNodes(workspaceData.value);
+		nodeGraph.centerGraph();
+		cacheStore.set(props.uid, svgElement.innerHTML);
+		return;
+	}
 
-	nodeGraph.setEnableInteractions(false);
-	nodeGraph.setEnableThumbnailMode(true);
-	nodeGraph.initSvg(svgID.value);
-	nodeGraph.addNodes(workspaceData.value);
-	nodeGraph.centerGraph();
+	svgElement.innerHTML = cacheValue.value;
+	loading.value = false;
 }
 
 async function getWorkspaceData() {

@@ -70,6 +70,8 @@ export default class BarChart {
 
 			if (d.dateTime === undefined) {
 				d.dateTime = new Date(d.ts);
+			} else if (!(d.dateTime instanceof Date)) {
+				d.dateTime = new Date(d.ts);
 			}
 
 			if (lowestDate === null || lowestDate > d.dateTime) {
@@ -233,7 +235,13 @@ export default class BarChart {
 			}
 		}
 
-		bars.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
+		bars.attr('transform', d => {
+			if (x(d.x0) === undefined) {
+				return null;
+			}
+
+			return `translate(${x(d.x0)},${y(d.length)})`;
+		});
 
 		// Add the x Axis
 		svgGroup.append('g')

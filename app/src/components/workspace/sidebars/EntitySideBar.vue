@@ -223,7 +223,7 @@ async function updateEntityData() {
 		isLoading.value = true;
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
-		const cacheValue = cacheStore.getValue(props.identifier);
+		const cacheValue = cacheStore.get(props.identifier);
 		entityData.value = null;
 		if (cacheValue !== undefined) {
 			entityData.value = cacheValue;
@@ -340,7 +340,7 @@ async function getTransactionData() {
 	try {
 		const response = await dakar.data.blockchainTransactionsHashGet({hash: props.identifier});
 		entityData.value = response.transactions;
-		cacheStore.setValue(props.identifier, response.transactions);
+		cacheStore.set(props.identifier, response.transactions);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -354,7 +354,7 @@ async function getAddressData() {
 	try {
 		const response = await dakar.data.blockchainAddressesHashGet({hash: props.identifier});
 		entityData.value = response.address;
-		cacheStore.setValue(props.identifier, response.address);
+		cacheStore.setTTL(props.identifier, response.address, 30);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -439,7 +439,7 @@ async function getSelectorData() {
 		}
 
 		entityData.value = tmpEntityData;
-		cacheStore.setValue(props.identifier, tmpEntityData);
+		cacheStore.set(props.identifier, tmpEntityData);
 	} catch (e) {
 		setErrorMessage(e);
 	}

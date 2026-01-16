@@ -37,6 +37,7 @@
     />
     <v-data-iterator
       v-if="workspaceList.length > 0"
+      v-model:page="iteratorPageModel"
       :items="workspaceList"
       :items-per-page="8"
       :search="search"
@@ -68,7 +69,7 @@
       </template>
       <template #default="{ items }">
         <div
-          class="d-flex flex-wrap mt-2 align-center mb-5"
+          class="d-flex flex-wrap mt-2 align-center mb-5 justify-center"
           style="gap: 15px"
         >
           <workspace-card
@@ -214,6 +215,7 @@ const search = ref('');
 const sortBy = ref([]);
 const errorMsg = ref('');
 const infoMsg = ref('');
+const iteratorPageModel = ref(1);
 
 const sortItems = [
 	{value: 'name', title: 'Name'},
@@ -391,6 +393,8 @@ function showDeleteWorkspaceDialog(e, workspace) {
 
 function handleSort() {
 	sortBy.value = [{key: sort.value.value, order: direction.value ? 'desc' : 'asc'}];
+	// Show first page of data iterator
+	iteratorPageModel.value = 1;
 }
 
 </script>

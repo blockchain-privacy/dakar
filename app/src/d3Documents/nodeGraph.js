@@ -139,7 +139,7 @@ export default class NodeGraph {
 	#changedData = new Map();
 	// Node type
 	#nodeTypeColorMap = null;
-	// If enabled, node descriptions are not rendered
+	// If enabled, node descriptions are not rendered and event handlers are disabled
 	#enableThumbnailMode = false;
 	enableInteractions = true;
 
@@ -373,7 +373,11 @@ export default class NodeGraph {
 	initSvg(svgID, width, height) {
 		// Add attributes to root svg
 		this.#svgID = svgID;
-		this.#rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
+		this.#rootSvg = d3Select(`#${svgID}`);
+		if (!this.#enableThumbnailMode) {
+			this.#rootSvg.on('click', () => this.svgClick());
+		}
+
 		this.#rootGroup = this.#rootSvg.append('g').classed('root-group', true);
 		this.#lineGroup = this.#rootGroup.append('g');
 		this.#shadowLineGroup = this.#rootGroup.append('g');
@@ -886,6 +890,10 @@ export default class NodeGraph {
 					.remove();
 			});
 
+		if (this.#enableThumbnailMode) {
+			return;
+		}
+
 		const noteHoverIncrease = 5;
 		const self = this;
 		// Set event handlers
@@ -1155,7 +1163,7 @@ export default class NodeGraph {
 	}
 
 	applyDragHandler(nodes) {
-		if (!nodes) {
+		if (!nodes || this.#enableThumbnailMode) {
 			return;
 		}
 
@@ -1244,34 +1252,37 @@ export default class NodeGraph {
 			.attr('x2', d => reduceX(d.source, d.target, this.#nodeRadius))
 			.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
-		const arrowText = this.#lineGroup
-			.selectAll('.arrowText')
-			.data(links, d => `${d.source}${d.target}`)
-			.join('text')
-			.classed('arrowText', true)
-			.text(d => {
-				if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-					return abbreviateNumber(d.source.selectorResultCount);
-				}
+		let arrowText = null;
+		if (!this.#enableThumbnailMode) {
+			arrowText = this.#lineGroup.selectAll('.arrowText').data(links, d => `${d.source}${d.target}`)
+				.join('text')
+				.classed('arrowText', true)
+				.text(d => {
+					if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+						return abbreviateNumber(d.source.selectorResultCount);
+					}
 
-				return null;
-			})
-			.attr('font-size', 10)
-			.attr('fill', 'currentColor')
-			.attr('text-anchor', 'middle')
-			.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+					return null;
+				})
+				.attr('font-size', 10)
+				.attr('fill', 'currentColor')
+				.attr('text-anchor', 'middle')
+				.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+		}
 
 		const self = this;
-		shadowLinks
-			.on('click', function (e, d) {
-				self.lineClick(e, d, this);
-			})
-			.on('mouseenter', function () {
-				d3Select(this).classed('arrowHovered', true);
-			})
-			.on('mouseleave', function () {
-				d3Select(this).classed('arrowHovered', false);
-			});
+		if (!this.#enableThumbnailMode) {
+			shadowLinks
+				.on('click', function (e, d) {
+					self.lineClick(e, d, this);
+				})
+				.on('mouseenter', function () {
+					d3Select(this).classed('arrowHovered', true);
+				})
+				.on('mouseleave', function () {
+					d3Select(this).classed('arrowHovered', false);
+				});
+		}
 
 		const node = this.#nodeGroup
 			.selectAll('.nodeContainer')
@@ -1315,7 +1326,9 @@ export default class NodeGraph {
 				.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
-			arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+			if (arrowText) {
+				arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+			}
 		});
 
 		if (!this.#enableThumbnailMode) {
