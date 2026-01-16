@@ -70,74 +70,17 @@
           not spent
         </v-col>
       </v-row>
-      <v-expand-transition>
-        <v-row v-if="expanded">
-          <v-col>
-            <v-text-field
-              v-if="keyAsm"
-              hide-details
-              density="compact"
-              label="Key script"
-              class="mb-3"
-              variant="outlined"
-              readonly
-              :model-value="keyAsm"
-            >
-              <template #append>
-                <v-btn
-                  v-if="keyAsm"
-                  v-tooltip="{'text': 'Toggle ASCII encoding of key script', 'location':'bottom'}"
-                  variant="text"
-                  icon
-                  @click="showAscii = !showAscii"
-                >
-                  <v-icon>{{ mdiFormatColorText }}</v-icon>
-                </v-btn>
-              </template>
-            </v-text-field>
-            <v-text-field
-              v-if="keyAsm && showAscii && scriptToAscii(keyAsm)"
-              hide-details
-              density="compact"
-              label="Key script"
-              class="mb-3"
-              variant="outlined"
-              readonly
-              :model-value="scriptToAscii(keyAsm)"
-            />
-            <v-text-field
-              v-if="sigAsm"
-              hide-details
-              density="compact"
-              label="Signature script"
-              variant="outlined"
-              readonly
-              :model-value="sigAsm"
-            />
-          </v-col>
-        </v-row>
-      </v-expand-transition>
     </v-card-text>
-    <v-btn
-      v-if="keyAsm || sigAsm"
-      variant="text"
-      block
-      size="x-small"
-      @click="expanded = !expanded"
-    >
-      <v-icon>{{ expanded ? mdiChevronUp : mdiChevronDown }}</v-icon>
-    </v-btn>
   </v-card>
 </template>
 
 <script setup>
-import {mdiChevronUp, mdiChevronDown, mdiFormatColorText} from '@mdi/js';
 import {convertAmount, getCoinUnit, isWasabi2Denomination} from '@/utilities';
 import {
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
-import {computed, ref} from 'vue';
+import {computed} from 'vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {storeToRefs} from 'pinia';
 import {useExplorerStore} from '@/pinia/explorer.js';
@@ -147,8 +90,6 @@ const props = defineProps({
 	isInput: {type: Boolean, required: true},
 	addressHash: {type: String, required: true},
 	amount: {type: Number, required: true},
-	keyAsm: {type: String, required: false, default: ''},
-	sigAsm: {type: String, required: false, default: ''},
 	inputIndex: {type: Number, required: false, default: -1},
 	outputIndex: {type: Number, required: false, default: -1},
 	txHash: {type: String, required: false, default: ''},
@@ -159,35 +100,10 @@ const props = defineProps({
 
 const route = useRoute();
 const {getHighlightWasabi2Denominations} = storeToRefs(useExplorerStore());
-const expanded = ref(false);
-const showAscii = ref(false);
 
 // Computed
 const coinUnit = computed(() => getCoinUnit(route.params.blockchainMode));
 const isWasabi2Amount = computed(() => getHighlightWasabi2Denominations.value && isWasabi2Denomination(props.amount));
-
-// Functions
-const isHex = str => /^[A-F\d]+$/i.test(str);
-
-function hex2Ascii(hex) {
-	const hexString = hex.toString();// Force conversion
-	let str = '';
-	for (let i = 0; i < hexString.length; i += 2) {
-		str += String.fromCharCode(parseInt(hexString.substring(i, i + 2), 16));
-	}
-
-	return str;
-}
-
-function scriptToAscii(script) {
-	const hex = script.split(' ').find(d => isHex(d));
-
-	if (hex === undefined) {
-		return '';
-	}
-
-	return hex2Ascii(hex);
-}
 
 </script>
 

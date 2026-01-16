@@ -54,10 +54,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.69":
-  version: 1.1.69
-  resolution: "@blockchain/dakar@npm:1.1.69::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.69.tgz"
-  checksum: 10c0/9b2c78a100f4c4c69aff7a08cacb20e543efcb2eade9208ebb81bc3b2d7fee1f362ff3ee08e6559f91c6ea13bb3201cfc308aa30387c83e702a1c7a3b223bba4
+"@blockchain/dakar@npm:^1.1.71":
+  version: 1.1.71
+  resolution: "@blockchain/dakar@npm:1.1.71::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.71.tgz"
+  checksum: 10c0/27b18e5ab37641085d1ef2e09b2e5e011e54b3cd33197ad03ba56cb7b3d55ee87e7237bcf93aaccae51c23d55eccac7e3434805f18f5607f4522e8c83579be8e
   languageName: node
   linkType: hard
 
@@ -1824,7 +1824,7 @@ __metadata:
   dependencies:
     "@blockchain-privacy/kratosadmin": "npm:^0.0.27"
     "@blockchain-privacy/wikiapi": "npm:^0.0.2"
-    "@blockchain/dakar": "npm:^1.1.69"
+    "@blockchain/dakar": "npm:^1.1.71"
     "@fontsource/roboto": "npm:^5.2.9"
     "@mdi/js": "npm:^7.4.47"
     "@ory/client-fetch": "npm:^1.22.15"

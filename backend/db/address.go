@@ -346,20 +346,19 @@ func getFrontendAddressOutputs(ctx context.Context, c external.Database, addrHas
 	return
 }
 
-// UpsertAddresses upserts addresses
+// UpsertAddresses upserts the given addresses. The list must not contain duplicate addresses.
 func UpsertAddresses(ctx context.Context, c external.Database, addresses []Address) error {
 	if addresses == nil {
 		return serror.FromStr("got null pointer for addresses")
 	}
 
-	// the following block creates the query for 4 addresses the query looks like this:
+	// The following block creates the query for 4 addresses:
 	//		query Q($h0: string,$h1: string,$h2: string,$h3: string) {
 	//		a0 as var(func: eq(addresshash, $h0))
 	//		a1 as var(func: eq(addresshash, $h1))
 	//		a2 as var(func: eq(addresshash, $h2))
 	//		a3 as var(func: eq(addresshash, $h3))
 	//		}
-	// $h0 ... $h4 are needed to be later replaced. This prevents string injection
 
 	vars := make(map[string]string)
 	query := strings.Builder{}

@@ -17,9 +17,9 @@ import (
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version directly,
 // or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
-const SchemaVersion = 13
+const SchemaVersion = 14
 
-// SetupSchema installs a schema into dgraph
+// SetupSchema installs a schema into Dgraph
 func SetupSchema(c external.Database) error {
 	return c.SetSchema(context.Background(), `
 			Meta.creationTime: dateTime . # The time when this database was initialized
@@ -63,20 +63,14 @@ func SetupSchema(c external.Database) error {
 
 			outputindex: int .
 			inputindex: int .
-			txtype: string .
 			amount: int .
 			iscoinbase: bool .
-			keyasm: string .
-			sigasm: string .
 
 			type Output {
 				outputindex
 				inputindex
-				txtype
 				amount
 				iscoinbase
-				keyasm
-				sigasm
 				<~tx_inputs>
 				<~tx_outputs>
 				<~addr_outputs>

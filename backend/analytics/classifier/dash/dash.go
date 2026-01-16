@@ -66,7 +66,7 @@ var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
 	// get the transaction of the current block range
-	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, false, nil)
+	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, nil)
 	if err != nil {
 		return false, err
 	}
@@ -269,7 +269,7 @@ func isCollateralCreation(ctx context.Context, dgraph external.Database, t db.Tr
 		return false, nil
 	}
 
-	inputCount, outputCount, err := db.GetOutputAddressCounts(ctx, dgraph, t.UID)
+	inputCount, outputCount, err := db.GetInputOutputAddressCounts(ctx, dgraph, t.UID)
 	if err != nil {
 		return false, err
 	}

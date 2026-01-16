@@ -306,8 +306,6 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 			UID:         createOutputUID(rawTransaction.Txid, index),
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &intAmount,
-			TxType:      d.ScriptPubKey.Type,
-			KeyAsm:      d.ScriptPubKey.Asm,
 			OutputIndex: &index,
 		})
 	}
@@ -356,10 +354,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[int32]
 		return nil
 	}
 
-	refOutput := db.Output{
-		InputIndex: &index,
-		SigAsm:     vin.ScriptSig.Asm,
-	}
+	refOutput := db.Output{InputIndex: &index}
 
 	if v, ok := txHashMap[vin.Txid]; ok {
 		refOutput.UID = createOutputUID(vin.Txid, vin.Vout)

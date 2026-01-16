@@ -93,7 +93,6 @@ func TestUpsertAddresses(t *testing.T) {
 	newAddress := Address{Hash: newAddressHash, Outputs: []Output{{
 		OutputIndex: getNumPointer[int32](1),
 		InputIndex:  getNumPointer[int32](3),
-		TxType:      "",
 		Amount:      getNumPointer[int64](500),
 		DType:       []string{outputDType},
 	}}}
