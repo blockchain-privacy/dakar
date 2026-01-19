@@ -10,6 +10,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
+	dbh "backend/db/heuristics"
 	"backend/db/workspace"
 	"backend/external"
 	"context"
@@ -25,7 +26,10 @@ var (
 	errInvalidParent  = errors.New("invalid selector parent")
 	errInvalidOptions = errors.New("invalid selector option")
 	errInvalidType    = errors.New("invalid selector type")
+	errTooManyResults = errors.New("selector returned to many results")
 )
+
+const maxConnectionsPerSelector = 20_000
 
 type TxPropWork struct {
 	opt          workspace.TxPropOptions
@@ -61,9 +65,9 @@ func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.D
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
-		if len(results) > 20_000 {
+		if len(results) > maxConnectionsPerSelector {
 			status = workspace.StatusError
-			err = serror.FromStrWithContext("selector returned to many results", "result count", len(results), "options", s.opt)
+			err = serror.NewWithContext(errTooManyResults, "result count", len(results), "options", s.opt)
 		} else {
 			newNodes = make([]any, len(results))
 			for i, result := range results {
@@ -125,9 +129,9 @@ func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoGraphSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
-		if len(results) > 20_000 {
+		if len(results) > maxConnectionsPerSelector {
 			status = workspace.StatusError
-			err = serror.FromStrWithContext("selector returned to many results", "result count", len(results), "options", s.opt)
+			err = serror.NewWithContext(errTooManyResults, "result count", len(results), "options", s.opt)
 		} else {
 			newNodes = make([]any, len(results))
 			for i, result := range results {
@@ -356,6 +360,17 @@ func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.
 	return encodeAndStoreWorkspaceState(ctx, dgraph, userUID, workspaceUID, frontEndNodes, &clusterHeight)
 }
 
+// getConnectionCount returns the number of new database graph connections required, if the clusters were inserted.
+func getConnectionCount(clusters []dbh.HeuristicCluster) int {
+	var count int
+	for _, c := range clusters {
+		// transaction count + 1 cluster
+		count += len(c.Results) + 1
+	}
+
+	return count
+}
+
 // Run processes the heuristic and inserts it into the workspace
 func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, g *graph.Wrapper) error {
 	// 1. Do work
@@ -363,9 +378,10 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 	results, err := h.executor.Run(ctx, c, g)
 	var newNodes []any
 	if err == nil {
-		if len(results) > 20_000 {
+		resultCount := getConnectionCount(results)
+		if resultCount > maxConnectionsPerSelector {
 			status = workspace.StatusError
-			err = serror.FromStrWithContext("selector returned to many results", "result count", len(results), "selector uid", h.selectorUID)
+			err = serror.NewWithContext(errTooManyResults, "result count", resultCount, "selector uid", h.selectorUID)
 		} else {
 			newNodes = make([]any, len(results))
 			for i, result := range results {
