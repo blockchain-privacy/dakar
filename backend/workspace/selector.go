@@ -81,7 +81,12 @@ func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.D
 	}
 
 	// 2. Store work
-	updateErr := updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+	updateErr := updateSelector(ctx, workspaceMutex, c, &workspace.Selector{
+		UID:              s.selectorUID,
+		Status:           status,
+		Results:          newNodes,
+		TotalResultCount: &totalResultCount,
+	}, s.workspaceUID, s.userUID)
 	if updateErr != nil {
 		// both running and updating the selector returned an error
 		if err != nil {
@@ -145,7 +150,12 @@ func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.
 	}
 
 	// 2. Store work
-	updateErr := updateSelector(ctx, workspaceMutex, c, s.selectorUID, s.workspaceUID, s.userUID, status, newNodes, totalResultCount)
+	updateErr := updateSelector(ctx, workspaceMutex, c, &workspace.Selector{
+		UID:              s.selectorUID,
+		Status:           status,
+		Results:          newNodes,
+		TotalResultCount: &totalResultCount,
+	}, s.workspaceUID, s.userUID)
 	if updateErr != nil {
 		// both running and updating the selector returned an error
 		if err != nil {
@@ -155,7 +165,7 @@ func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.
 		return updateErr
 	}
 
-	// running may have returned an error
+	// running the selector may have returned an error
 	return err
 }
 
@@ -329,13 +339,8 @@ type HeuristicWork struct {
 
 // updateSelector updates the selector both in the workspace state and in the db.
 func updateSelector(ctx context.Context, workspaceMutex *Mutex, dgraph external.Database,
-	selectorUID string, workspaceUID string, userUID string, status string, newNodes []any, totalResults int) error {
-	if updateErr := workspace.UpdateSelector(ctx, dgraph, &workspace.Selector{
-		UID:              selectorUID,
-		Status:           status,
-		Results:          newNodes,
-		TotalResultCount: &totalResults,
-	}, userUID, workspaceUID); updateErr != nil {
+	selector *workspace.Selector, workspaceUID string, userUID string) error {
+	if updateErr := workspace.UpdateSelector(ctx, dgraph, selector, userUID, workspaceUID); updateErr != nil {
 		return updateErr
 	}
 
@@ -394,8 +399,13 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 	}
 
 	// 2. Store work
-	updateErr := updateSelector(ctx, workspaceMutex, c, h.selectorUID,
-		h.workspaceUID, h.userUID, status, newNodes, len(newNodes))
+	resultCount := len(newNodes)
+	updateErr := updateSelector(ctx, workspaceMutex, c, &workspace.Selector{
+		UID:              h.selectorUID,
+		Status:           status,
+		Results:          newNodes,
+		TotalResultCount: &resultCount,
+	}, h.workspaceUID, h.userUID)
 	if updateErr != nil {
 		// both running and updating the selector returned an error
 		if err != nil {
