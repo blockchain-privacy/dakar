@@ -21,6 +21,7 @@ import (
 // be set after its updates haven been applied.
 var availableUpgrades = map[int]UpgradePackage{
 	14: {upgrades: []schemaUpgrade{DropPredicateASM, AlterSchemaRemoveAsm}},
+	15: {upgrades: []schemaUpgrade{AlterSchemaAddErrorCode}},
 }
 
 func info(msg string, v ...any) {
@@ -153,5 +154,23 @@ func AlterSchemaRemoveAsm(c external.Database) error {
 				<~tx_inputs>
 				<~tx_outputs>
 				<~addr_outputs>
+			}`)
+}
+
+// AlterSchemaAddErrorCode adds the Selector.errorCode predicate
+func AlterSchemaAddErrorCode(c external.Database) error {
+	return c.SetSchema(context.Background(), `
+			Selector.errorCode: string . # reason for the error status, if any
+
+			type Selector {
+				Selector.created
+				Selector.modified
+				Selector.type
+				Selector.status
+				Selector.errorCode
+				Selector.parent
+				Selector.options
+				Selector.results
+				Selector.totalResultCount
 			}`)
 }

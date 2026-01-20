@@ -131,6 +131,7 @@ func getWorkspaceConnectionsRaw(ctx context.Context, c external.Database,
 						modified: Selector.modified
 						type: Selector.type
 						status: Selector.status
+						errorCode: Selector.errorCode
 						parent: Selector.parent {uid}
 						children: ~Selector.parent{uid}
 						options: Selector.options
@@ -145,6 +146,7 @@ func getWorkspaceConnectionsRaw(ctx context.Context, c external.Database,
 						modified: Selector.modified
 						type: Selector.type
 						status: Selector.status
+						errorCode: Selector.errorCode
 						parent: Selector.parent {uid}
 						children: ~Selector.parent{uid}
 						options: Selector.options
@@ -367,6 +369,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			Children:                 children,
 			SelectorType:             h.Type,
 			SelectorStatus:           h.Status,
+			SelectorErrorCode:        h.ErrorCode,
 			SelectorResultCount:      h.ResultCount,
 			SelectorTotalResultCount: h.ResultCount,
 			SelectorCreated:          h.Created,
@@ -420,6 +423,7 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 			Children:                 children,
 			SelectorType:             s.Type,
 			SelectorStatus:           s.Status,
+			SelectorErrorCode:        s.ErrorCode,
 			SelectorResultCount:      s.ResultCount,
 			SelectorTotalResultCount: s.TotalResultCount,
 			SelectorCreated:          s.Created,

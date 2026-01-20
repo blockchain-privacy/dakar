@@ -140,6 +140,7 @@ type connectionRequest struct {
 		Modified    string       `json:"modified,omitempty"`
 		Type        string       `json:"type,omitempty"`
 		Status      string       `json:"status,omitempty"`
+		ErrorCode   string       `json:"errorCode,omitempty"`
 		Options     string       `json:"options,omitempty"`
 		Parent      *db.UIDNode  `json:"parent,omitempty"`
 		Children    []db.UIDNode `json:"children,omitempty"`
@@ -155,6 +156,7 @@ type connectionRequest struct {
 		Modified         string       `json:"modified,omitempty"`
 		Type             string       `json:"type,omitempty"`
 		Status           string       `json:"status,omitempty"`
+		ErrorCode        string       `json:"errorCode,omitempty"`
 		Options          string       `json:"options,omitempty"`
 		Parent           *db.UIDNode  `json:"parent,omitempty"`
 		Children         []db.UIDNode `json:"children,omitempty"`
@@ -186,6 +188,7 @@ type Node struct {
 	SelectorModified         string                       `json:"selectorModified,omitempty"`
 	SelectorType             string                       `json:"selectorType,omitempty"`
 	SelectorStatus           string                       `json:"selectorStatus,omitempty"`
+	SelectorErrorCode        string                       `json:"selectorErrorCode,omitempty"`
 	SelectorResultCount      *int                         `json:"selectorResultCount,omitempty"`
 	SelectorTotalResultCount *int                         `json:"selectorTotalResultCount,omitempty"`
 	TxPropOptions            *TxPropOptions               `json:"txPropOptions,omitempty"`

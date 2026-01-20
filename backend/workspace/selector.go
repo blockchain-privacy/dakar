@@ -29,8 +29,6 @@ var (
 	errTooManyResults = errors.New("selector returned to many results")
 )
 
-const maxConnectionsPerSelector = 20_000
-
 type TxPropWork struct {
 	opt          workspace.TxPropOptions
 	selectorUID  string
@@ -62,11 +60,13 @@ func NewTxPropWork(item workspace.WorkItem) (*TxPropWork, error) {
 func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
+	var errorCode string
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
-		if len(results) > maxConnectionsPerSelector {
+		if len(results) > workspace.MaxResultsPerSelector {
 			status = workspace.StatusError
+			errorCode = workspace.ErrorCodeResultLimitExceeded
 			err = serror.NewWithContext(errTooManyResults, "result count", len(results), "options", s.opt)
 		} else {
 			newNodes = make([]any, len(results))
@@ -86,6 +86,7 @@ func (s TxPropWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.D
 		Status:           status,
 		Results:          newNodes,
 		TotalResultCount: &totalResultCount,
+		ErrorCode:        errorCode,
 	}, s.workspaceUID, s.userUID)
 	if updateErr != nil {
 		// both running and updating the selector returned an error
@@ -131,11 +132,13 @@ func NewTxGraphWork(item workspace.WorkItem) (*TxGraphWork, error) {
 func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, _ *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
+	var errorCode string
 	var newNodes []any
 	results, totalResultCount, err := workspace.DoGraphSelection(ctx, c, s.opt, s.parentUID)
 	if err == nil {
-		if len(results) > maxConnectionsPerSelector {
+		if len(results) > workspace.MaxResultsPerSelector {
 			status = workspace.StatusError
+			errorCode = workspace.ErrorCodeResultLimitExceeded
 			err = serror.NewWithContext(errTooManyResults, "result count", len(results), "options", s.opt)
 		} else {
 			newNodes = make([]any, len(results))
@@ -155,6 +158,7 @@ func (s TxGraphWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.
 		Status:           status,
 		Results:          newNodes,
 		TotalResultCount: &totalResultCount,
+		ErrorCode:        errorCode,
 	}, s.workspaceUID, s.userUID)
 	if updateErr != nil {
 		// both running and updating the selector returned an error
@@ -380,12 +384,14 @@ func getConnectionCount(clusters []dbh.HeuristicCluster) int {
 func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c external.Database, g *graph.Wrapper) error {
 	// 1. Do work
 	status := workspace.StatusSuccess
+	var errorCode string
 	results, err := h.executor.Run(ctx, c, g)
 	var newNodes []any
 	if err == nil {
 		resultCount := getConnectionCount(results)
-		if resultCount > maxConnectionsPerSelector {
+		if resultCount > workspace.MaxResultsPerSelector {
 			status = workspace.StatusError
+			errorCode = workspace.ErrorCodeResultLimitExceeded
 			err = serror.NewWithContext(errTooManyResults, "result count", resultCount, "selector uid", h.selectorUID)
 		} else {
 			newNodes = make([]any, len(results))
@@ -405,6 +411,7 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 		Status:           status,
 		Results:          newNodes,
 		TotalResultCount: &resultCount,
+		ErrorCode:        errorCode,
 	}, h.workspaceUID, h.userUID)
 	if updateErr != nil {
 		// both running and updating the selector returned an error

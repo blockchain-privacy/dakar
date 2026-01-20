@@ -16,9 +16,16 @@ import (
 const SelectorDType = "Selector"
 
 const (
+	// StatusWaiting is set when a selector has been created and is not yet run
 	StatusWaiting = "waiting"
-	StatusError   = "error"
+	// StatusError is set when an error occurred while a selector has been run
+	StatusError = "error"
+	// StatusSuccess is set when no error occurred while a selector has been run
 	StatusSuccess = "success"
+	// MaxResultsPerSelector is the maximum allowed results per selector
+	MaxResultsPerSelector = 7
+	// ErrorCodeResultLimitExceeded is set when the selector returned more than MaxConnectionsPerSelector
+	ErrorCodeResultLimitExceeded = "result_limit_exceeded"
 )
 
 const selectorMaxItems = 200
@@ -43,6 +50,7 @@ type Selector struct {
 	Modified         string      `json:"Selector.modified,omitempty"`
 	Type             string      `json:"Selector.type,omitempty"`
 	Status           string      `json:"Selector.status,omitempty"`
+	ErrorCode        string      `json:"Selector.errorCode,omitempty"`
 	Parent           *db.UIDNode `json:"Selector.parent,omitempty"`
 	Options          string      `json:"Selector.options,omitempty"`
 	Results          []any       `json:"Selector.results,omitempty"`

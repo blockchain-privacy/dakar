@@ -17,7 +17,7 @@ import (
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version directly,
 // or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
-const SchemaVersion = 14
+const SchemaVersion = 15
 
 // SetupSchema installs a schema into Dgraph
 func SetupSchema(c external.Database) error {
@@ -149,6 +149,7 @@ func SetupSchema(c external.Database) error {
 			Selector.modified: dateTime @index(day) .  # modification date of the selector
 			Selector.type: string @index(hash) . # type of the selector
 			Selector.status: string @index(hash) . # status of the selector (waiting, error, success)
+			Selector.errorCode: string . # reason for the error status, if any
 			Selector.parent: uid @reverse . # parent node from which a selector can use data
 			Selector.options: string . # JSON encoded options of the selector
 			Selector.results: [uid] @reverse . # results of the selector
@@ -159,6 +160,7 @@ func SetupSchema(c external.Database) error {
 				Selector.modified
 				Selector.type
 				Selector.status
+				Selector.errorCode
 				Selector.parent
 				Selector.options
 				Selector.results
