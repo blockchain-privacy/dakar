@@ -20,7 +20,6 @@ import (
 // The key is the schema version to which the database should
 // be set after its updates haven been applied.
 var availableUpgrades = map[int]UpgradePackage{
-	14: {upgrades: []schemaUpgrade{DropPredicateASM, AlterSchemaRemoveAsm}},
 	15: {upgrades: []schemaUpgrade{AlterSchemaAddErrorCode}},
 }
 
@@ -128,33 +127,6 @@ func applyUpgrades(ctx context.Context, c external.Database, upgrades map[int]Up
 	}
 
 	return nil
-}
-
-// DropPredicateASM drops the sigasm, keyasm and txtype predicate
-func DropPredicateASM(c external.Database) error {
-	if err := c.DropPredicate(context.Background(), "sigasm"); err != nil {
-		return err
-	}
-
-	if err := c.DropPredicate(context.Background(), "txtype"); err != nil {
-		return err
-	}
-
-	return c.DropPredicate(context.Background(), "keyasm")
-}
-
-// AlterSchemaRemoveAsm removes the sigasm, keyasm and txtype predicate from the Output type
-func AlterSchemaRemoveAsm(c external.Database) error {
-	return c.SetSchema(context.Background(), `
-			type Output {
-				outputindex
-				inputindex
-				amount
-				iscoinbase
-				<~tx_inputs>
-				<~tx_outputs>
-				<~addr_outputs>
-			}`)
 }
 
 // AlterSchemaAddErrorCode adds the Selector.errorCode predicate
