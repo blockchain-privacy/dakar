@@ -15,7 +15,7 @@
     />
     <p
       v-if="title"
-      class="text-subtitle-1"
+      class="text-body-large"
     >
       {{ title }}
     </p>

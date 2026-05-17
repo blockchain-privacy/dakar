@@ -34,13 +34,13 @@ var denominationTypesWhirlpool = [NumWhirlpoolDenominations]int64{100000, 100000
 // - false when not
 func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bool, error) {
 	// get the transaction of the current block range
-	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, true, nil)
+	transactions, err := db.GetTransactionsByBlock(ctx, c, from, to, nil)
 	if err != nil {
 		return false, err
 	}
 
 	// step 1.1: classify all transactions of the current block locally based on their own properties
-	wasabiMixing, whirlpoolMixingUIDs, err := classifyTransactions(transactions)
+	wasabiMixing, whirlpoolMixingUIDs, err := classifyTransactions(ctx, c, transactions)
 	if err != nil {
 		return false, err
 	}
@@ -90,7 +90,7 @@ func Iterate(ctx context.Context, c external.Database, from int64, to int64) (bo
 // classifyWhirlpoolOriginTransactions classifies the given origin transactions
 // and return them with their connected mixing transactions
 func classifyWhirlpoolOriginTransactions(origins []db.Transaction, originToMixingMap map[string][]string) []db.Transaction {
-	var classifiedTransactions []db.Transaction //nolint:prealloc
+	var classifiedTransactions []db.Transaction
 	confirmedMixingTransactions := map[string]bool{}
 	for _, whirlpoolOrigin := range origins {
 		if isWhirlpoolOrigin(whirlpoolOrigin) {
@@ -114,14 +114,15 @@ func classifyWhirlpoolOriginTransactions(origins []db.Transaction, originToMixin
 
 // classifyTransactions detects mixing transactions and sets the transaction type appropriately
 // The returned slice contains all classified transactions or nil if no classified transactions have been found.
-func classifyTransactions(transactions []db.Transaction) (wasabi2Mixing []db.Transaction, whirlpoolMixingUIDs []string, err error) {
+func classifyTransactions(ctx context.Context, c external.Database,
+	transactions []db.Transaction) (wasabi2Mixing []db.Transaction, whirlpoolMixingUIDs []string, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
 		if transaction.Type != "" {
 			continue
 		}
 
-		if isWasabi2Mixing(transaction) {
+		if isWasabi2Mixing(ctx, c, transaction) {
 			wasabi2Mixing = append(wasabi2Mixing, db.Transaction{UID: transaction.UID, Type: constants.TypeWasabi2Mixing})
 			continue
 		}
@@ -134,22 +135,12 @@ func classifyTransactions(transactions []db.Transaction) (wasabi2Mixing []db.Tra
 	return
 }
 
-// isWasabi2Mixing checks if the transaction is a wasabi 2.0 mixing transaction
-// credit to paper: "Heuristics for Detecting CoinJoin Transactions
-// on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
-func isWasabi2Mixing(t db.Transaction) bool {
+// isWasabi2MixingProperties checks if the transaction is a wasabi 2.0 mixing transaction
+// based on the direct properties of the transaction
+func isWasabi2MixingProperties(t db.Transaction) bool {
 	// paper suggest a minimum of 50 inputs, but data shows that transactions with only 15 exist.
 	// also set minimum of outputs to 10.
 	if len(t.Inputs) < 15 || len(t.Outputs) < 10 {
-		return false
-	}
-
-	sigScripts := map[string]bool{}
-	for _, o := range t.Outputs {
-		sigScripts[o.KeyAsm] = true
-	}
-	// output scripts must be unique
-	if len(sigScripts) != len(t.Outputs) {
 		return false
 	}
 
@@ -179,15 +170,32 @@ func isWasabi2Mixing(t db.Transaction) bool {
 	}
 
 	// exclude if transaction only contains common denominations (multiple of 5000)
-	found := false
 	for i, d := range denominationOut {
 		if d > 0 && denominationsTypesWasabi2[i]%5000 != 0 {
-			found = true
-			break
+			return true
 		}
 	}
 
-	return found
+	return false
+}
+
+// isWasabi2Mixing checks if the transaction is a wasabi 2.0 mixing transaction
+// credit to paper: "Heuristics for Detecting CoinJoin Transactions
+// on the Bitcoin Blockchain" https://arxiv.org/abs/2311.12491
+func isWasabi2Mixing(ctx context.Context, c external.Database, t db.Transaction) bool {
+	if !isWasabi2MixingProperties(t) {
+		return false
+	}
+
+	// The paper states that each output script should be unique.
+	// Instead, we check that each output address is unique, which is a stronger assumption.
+	outputCount, err := db.GetOutputAddressCounts(ctx, c, t.UID)
+	if err != nil {
+		return false
+	}
+
+	// output addresses must be unique
+	return outputCount == len(t.Outputs)
 }
 
 // isWhirlpoolMixing checks if the transaction is a whirlpool mixing transaction

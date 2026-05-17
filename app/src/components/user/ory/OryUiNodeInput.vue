@@ -67,7 +67,12 @@
 
 <script setup>
 import {
-	mdiLockOutline, mdiEmail, mdiAccount, mdiEye, mdiEyeOff, mdiFormTextboxPassword,
+	mdiLockOutline,
+	mdiEmail,
+	mdiAccount,
+	mdiEye,
+	mdiEyeOff,
+	mdiFormTextboxPassword,
 } from '@mdi/js';
 import {computed, nextTick, ref} from 'vue';
 
@@ -188,18 +193,12 @@ function evalScript(event, script) {
 
 	// Eval is bad practice, but this the official way to call an ory kratos script
 	// eslint-disable-next-line no-new-func
-	const evalScript = new Function(script);
-	evalScript();
+	const s = new Function(script);
+	s();
 }
 
 </script>
 
 <style scoped>
-
-/* set opacity because some password managers (keepassxc) can not find inputs */
-/* it seems vuetify sets the opacity of inputs to zero when they are not focused */
-:deep(.v-field__input) {
-  opacity: 1;
-}
 
 </style>

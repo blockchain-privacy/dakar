@@ -59,10 +59,10 @@
 </template>
 
 <script setup>
-import SortSelect from '@/components/common/SortSelect.vue';
 import {computed, ref} from 'vue';
-import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {mdiFilter} from '@mdi/js';
+import SortSelect from '@/components/common/SortSelect.vue';
+import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 
 const props = defineProps({
 	transactionTypes: {type: Array, required: true},

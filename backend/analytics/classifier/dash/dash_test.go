@@ -204,13 +204,13 @@ func TestIsCollateralPayment(t *testing.T) {
 	}
 
 	shouldWork1 := db.Transaction{
-		Fee:  db.GetPointer[int64](minCollateral),
+		Fee:  new(int64(minCollateral)),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: new(int64(minCollateral))},
 		},
 		Inputs: []db.Output{
-			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: new(int64(minCollateral))},
 		},
 	}
 
@@ -218,45 +218,45 @@ func TestIsCollateralPayment(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: new(int64(minCollateral))},
 		},
 		Inputs: []db.Output{
-			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: new(int64(minCollateral))},
 		},
 	}
 
 	multipleInputs := db.Transaction{
-		Fee:  db.GetPointer[int64](minCollateral),
+		Fee:  new(int64(minCollateral)),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](minCollateral)},
-			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: new(int64(minCollateral))},
+			{Amount: new(int64(minCollateral))},
 		},
 		Inputs: []db.Output{
-			{Amount: db.GetPointer[int64](minCollateral)},
-			{Amount: db.GetPointer[int64](minCollateral)},
+			{Amount: new(int64(minCollateral))},
+			{Amount: new(int64(minCollateral))},
 		},
 	}
 
 	bigInput := db.Transaction{
-		Fee:  db.GetPointer[int64](minCollateral),
+		Fee:  new(int64(minCollateral)),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](500000000000)},
+			{Amount: new(int64(500000000000))},
 		},
 		Inputs: []db.Output{
-			{Amount: db.GetPointer[int64](500000000000)},
+			{Amount: new(int64(500000000000))},
 		},
 	}
 
 	smallInput := db.Transaction{
-		Fee:  db.GetPointer[int64](minCollateral),
+		Fee:  new(int64(minCollateral)),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: db.GetPointer[int64](1)},
+			{Amount: new(int64(1))},
 		},
 		Inputs: []db.Output{
-			{Amount: db.GetPointer[int64](1)},
+			{Amount: new(int64(1))},
 		},
 	}
 

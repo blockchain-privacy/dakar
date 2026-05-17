@@ -6,9 +6,11 @@ package workspace
 
 import (
 	"backend/analytics/graph"
+	"backend/constants"
 	"backend/db"
 	"backend/db/status"
 	"backend/db/workspace"
+	"backend/external"
 	"context"
 	"sync"
 	"testing"
@@ -59,15 +61,15 @@ func TestWorker_work(t *testing.T) {
 
 	// insert 3 selectors into db
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	_, _, err = AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	wrapper := graph.NewWrapper(ctx, dbHandle)
@@ -81,12 +83,7 @@ func TestWorker_work(t *testing.T) {
 	w.SetLoopInterval(1)
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		w.Start(ctx)
-	}()
+	wg.Go(func() { w.Start(ctx) })
 
 	// if the number of waiting selectors is 0, then the worker has finished
 	now := time.Now()
@@ -101,6 +98,62 @@ func TestWorker_work(t *testing.T) {
 
 		// prevent infinite loop in case something went wrong
 		if time.Since(now) > time.Second*30 {
+			t.Error("worker took to long to finish work")
+			break
+		}
+	}
+
+	// stop worker
+	cancel()
+	wg.Wait()
+}
+
+type counterWork struct {
+}
+
+func (p *counterWork) Run(context.Context, *Mutex, external.Database, *graph.Wrapper) error {
+	return nil
+}
+
+func TestAddWork(t *testing.T) {
+	w := NewWorker(NewMutex(), nil, nil)
+	w.SetWaitForInMemoryGraph(false)
+	w.RegisterMetrics(prometheus.NewRegistry())
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	wg := sync.WaitGroup{}
+	wg.Go(func() { w.Start(ctx) })
+
+	// queue work
+	const workQueueItems = 200
+	channels := make([]chan error, workQueueItems)
+	wg2 := sync.WaitGroup{}
+	wg2.Go(func() {
+		for i := range workQueueItems {
+			ch := w.AddWork(ctx, &counterWork{})
+			if ch == nil {
+				t.Error("couldn't add work")
+				return
+			}
+
+			channels[i] = ch
+		}
+	})
+
+	// wait for queuing to be finished
+	wg2.Wait()
+	ticker := time.Tick(time.Second * 30)
+	for _, ch := range channels {
+		select {
+		case err := <-ch:
+			require.NoError(t, err)
+			// wait for all work items to be done
+			continue
+
+		case <-ticker:
+			// prevent infinite loop in case something went wrong
 			t.Error("worker took to long to finish work")
 			break
 		}

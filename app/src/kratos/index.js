@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE} from '@/constants';
+import {ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE, ROUTE_NAME_OAUTH_ERROR_PAGE} from '@/constants';
 import {isFunction} from '@/utilities';
 
 async function refreshFlow(onRefreshFlow) {
@@ -14,24 +14,30 @@ async function refreshFlow(onRefreshFlow) {
 }
 
 // Returns true if the error was handled
-async function handleErrorCodeAndID(context, error, onRefreshFlow) {
+async function handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth) {
 	switch (error.response.error.id) {
-		case 'session_already_available': // User is already signed in, let's redirect them home!
+		case 'session_already_available':
 			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE});
 			return true;
-		case 'session_aal2_required': // 2FA is enabled and enforced, but user did not perform 2fa yet!
-		case 'session_refresh_required': // We need to re-authenticate to perform this action
-		case 'browser_location_change_required': // Ory Kratos asked us to point the user to this URL.
+		case 'session_aal2_required':
+		case 'session_refresh_required':
+		case 'browser_location_change_required':
 			window.location.href = error.response.redirect_browser_to;
 			return true;
-		case 'self_service_flow_expired': // The flow expired, let's request a new one.
-		case 'self_service_flow_return_to_forbidden': // The return is invalid, we need a new flow
-		case 'security_identity_mismatch': // The requested item was intended for someone else. Let's request a new flow...
+		case 'self_service_flow_expired':
+		case 'self_service_flow_return_to_forbidden':
+		case 'security_identity_mismatch':
 			await refreshFlow(onRefreshFlow);
 			return true;
-		case 'security_csrf_violation': // A CSRF violation occurred, remove session and let user login anew
-			context.navStore.setFailedRoute(context.$route);
+		case 'security_csrf_violation':
 			context.localStore.setSession(null);
+
+			if (isOAuth) {
+				context.$router.push({name: ROUTE_NAME_OAUTH_ERROR_PAGE});
+				return true;
+			}
+
+			context.navStore.setFailedRoute(context.$route);
 			context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 			return true;
 		case 'session_inactive':
@@ -44,7 +50,7 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 	}
 
 	switch (error.response.error.code) {
-		case 410: // Flow expired
+		case 410: // Expired
 			await refreshFlow(onRefreshFlow);
 			return true;
 		case 401: // Unauthorized access
@@ -59,11 +65,9 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow) {
 
 // HandleGetFlowError tries to handle possible ory kratos error scenarios.
 // onRefreshFlow is called when a flow has expired.
-export default async function handleGetFlowError(context, error, onRefreshFlow) {
-	if (error.response?.error) {
-		if (await handleErrorCodeAndID(context, error, onRefreshFlow)) {
-			return Promise.resolve();
-		}
+export default async function handleGetFlowError(context, error, onRefreshFlow, isOAuth) {
+	if (error.response?.error && await handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth)) {
+		return;
 	}
 
 	if (error.response?.error?.reason || error.response?.error?.status) {
@@ -81,19 +85,13 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 			msg += error.response.error.reason;
 		}
 
-		context.msgStore.addMessage({
-			text: msg, type: 'error', temporary: false, category: context.$route.name,
-		});
-		return Promise.resolve();
+		return msg;
 	}
 
 	if (error.message) {
-		context.msgStore.addMessage({
-			text: error.message, type: 'error', temporary: false, category: context.$route.name,
-		});
-		return Promise.resolve();
+		return error.message;
 	}
 
 	// Return error if it was not possible to handle it
-	return Promise.reject(error);
+	throw error;
 }

@@ -7,8 +7,11 @@
     class="mx-auto"
     style="max-width: 1200px;"
   >
-    <p class="text-h5 my-5 d-flex align-center justify-space-between">
-      Settings
+    <alert :text="errorMsg" />
+    <icon-title
+      title="Settings"
+      one-line
+    >
       <v-menu>
         <template #activator="{ props }">
           <v-btn
@@ -34,7 +37,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-    </p>
+    </icon-title>
     <div
       v-if="settingsFlow"
       style="max-width: 700px;"
@@ -56,11 +59,7 @@
       class="mx-auto"
       type="article, actions"
     />
-    <v-divider
-      thickness="3"
-      class="mt-5 mb-15"
-    />
-    <p class="text-h5 mb-5">
+    <p class="text-headline-small mb-5">
       Sessions
     </p>
     <v-data-table
@@ -83,13 +82,41 @@
       <template #item.actions="{ item }">
         <v-icon
           size="small"
-          @click="deleteUserSession(item)"
+          @click="deleteUserSession(item.id)"
         >
           {{ mdiDelete }}
         </v-icon>
       </template>
       <template #no-data>
         No other active sessions found
+      </template>
+    </v-data-table>
+    <p class="text-headline-small mb-5">
+      External Sessions - OAuth 2.0
+    </p>
+    <v-data-table
+      v-model:sort-by="consentSessionSortBy"
+      class="mb-10"
+      :headers="consentSessionHeaders"
+      :items="consentSessions?consentSessions:[]"
+      :loading="consentSessionsLoading"
+    >
+      <template #item.grant_scope="{ item }">
+        <span>{{ item.grant_scope.join(', ') }}</span>
+      </template>
+      <template #item.handled_at="{ item }">
+        <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
+      </template>
+      <template #item.actions="{ item }">
+        <v-icon
+          size="small"
+          @click="deleteConsentSession(item.consent_request.consent_request_id)"
+        >
+          {{ mdiDelete }}
+        </v-icon>
+      </template>
+      <template #no-data>
+        No sessions found
       </template>
     </v-data-table>
     <v-dialog
@@ -99,7 +126,7 @@
       <v-card>
         <v-card-title>Delete Account</v-card-title>
         <v-card-text>
-          <p class="text-subtitle-1">
+          <p class="text-body-large">
             Do you really want to delete your account? This action can not be reversed.
           </p>
         </v-card-text>
@@ -131,17 +158,22 @@ import {
 	mdiLinux,
 	mdiMicrosoftWindows,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
-import OryFlow from './ory/OryFlow.vue';
-import handleGetFlowError from '@/kratos';
-import {handleError} from '@/utilities';
 import {
-	computed, inject, onMounted, ref, watch,
+	computed,
+	inject,
+	onMounted,
+	ref,
+	watch,
 } from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import {storeToRefs} from 'pinia';
+import OryFlow from './ory/OryFlow.vue';
+import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
+import handleGetFlowError from '@/kratos';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
-import {useMsgStore} from '@/pinia/msg';
+import Alert from '@/components/common/Alert.vue';
+import IconTitle from '@/components/common/IconTitle.vue';
 
 const ory = inject('ory');
 const kratosAdmin = inject('kratosadmin');
@@ -149,44 +181,43 @@ const route = useRoute();
 const router = useRouter();
 const localStore = useLocalStore();
 const navStore = useNavStore();
-const msgStore = useMsgStore();
+const {session} = storeToRefs(localStore);
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore, addMessage: msgStore.addMessage,
+	$route: route, $router: router, navStore, localStore,
 };
 
-const settingsFlow = ref(null);
-const userSessions = ref([]);
-const userSessionsLoading = ref(false);
+const errorMsg = ref('');
 const disabledForms = ref([]);
 const showAccountDeletionDialog = ref(false);
+const settingsFlow = ref(null);
+
+const userSessions = ref([]);
+const userSessionsLoading = ref(false);
 const userSessionSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
 const userSessionHeaders = [
+	{title: 'Authentication Date', key: 'authenticatedAt', align: 'start'},
+	{title: 'Expiration Date', key: 'expiresAt'},
+	{title: 'Device', key: 'userAgent'},
+	{title: 'IP Address', key: 'ipAddress'},
 	{
-		title: 'Authentication Date', key: 'authenticatedAt', align: 'start',
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
+];
+
+const consentSessions = ref([]);
+const consentSessionsLoading = ref(false);
+const consentSessionSortBy = ref([{key: 'handled_at', order: 'desc'}]);
+const consentSessionHeaders = [
+	{title: 'Client Name', key: 'consent_request.client.client_name', align: 'start'},
+	{title: 'Permissions', key: 'grant_scope'},
+	{title: 'Handled At', key: 'handled_at'},
 	{
-		title: 'Expiration Date', key: 'expiresAt',
-	},
-	{
-		title: 'Device', key: 'userAgent',
-	},
-	{
-		title: 'IP Address', key: 'ipAddress',
-	},
-	{
-		title: '', key: 'actions', sortable: false,
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
 ];
 
 // Computed
-const session = computed({
-	get() {
-		return localStore.getSession;
-	},
-	set(value) {
-		localStore.setSession(value);
-	},
-});
+const isAccountRecovery = computed(() => settingsFlow.value?.ui?.messages?.some(m => m.id === 1_060_001));
 
 // Watchers
 watch(route, to => {
@@ -198,14 +229,26 @@ watch(route, to => {
 });
 
 // Hooks
-onMounted(() => {
+onMounted(async () => {
 	document.title = `Profile - ${PAGE_TITLE}`;
 
-	// Init the flow and get sessions in parallel
-	Promise.all([initFlow(), getSessions()]);
+	await initFlow();
+	await getSessions();
+	await getConsentSessions();
 });
 
 // Functions
+async function doErrorHandling(ctx, error, onRefreshFlow, isOAuth) {
+	try {
+		const err = await handleGetFlowError(ctx, error, onRefreshFlow, isOAuth);
+		if (err) {
+			errorMsg.value = err;
+		}
+	} catch (error_) {
+		errorMsg.value = error_.message;
+	}
+}
+
 function getDeviceIcon(userAgent) {
 	if (userAgent.length === 0) {
 		return '';
@@ -231,46 +274,57 @@ function getDeviceIcon(userAgent) {
 	return mdiLaptop;
 }
 
-function setSuccessMessage(msg) {
-	// Do not limit message to current route
-	msgStore.addMessage({text: msg, type: 'success', temporary: true});
-}
-
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
-
 async function deleteIdentity() {
+	errorMsg.value = '';
 	try {
-		await kratosAdmin.selfDelete();
-		msgStore.resetMessages();
-		setSuccessMessage('Your account was successfully deleted. Goodbye!');
+		await kratosAdmin.identity.selfIdentitiesDelete();
 		session.value = null;
 		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	showAccountDeletionDialog.value = false;
 }
 
-async function deleteUserSession(session) {
-	if (!session.id) {
+async function deleteUserSession(id) {
+	if (!id) {
 		return;
 	}
 
+	errorMsg.value = '';
+
 	try {
-		await ory.frontend.disableMySession({id: session.id});
-		userSessions.value = userSessions.value.filter(d => d.id !== session.id);
-	} catch (e) {
-		handleError(context, e);
+		await ory.frontend.disableMySession({id});
+		await getSessions();
+	} catch (error) {
+		errorMsg.value = error.message;
+	}
+}
+
+async function deleteConsentSession(consentId) {
+	if (!consentId) {
+		return;
+	}
+
+	errorMsg.value = '';
+
+	try {
+		await kratosAdmin.oauth.selfConsentsConsentIdDelete({consentId});
+		await getConsentSessions();
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 }
 
 async function getSessions() {
+	if (isAccountRecovery.value) {
+		// Can't get session during account recovery
+		return;
+	}
+
 	userSessionsLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		// Get a maximum of 30 sessions
@@ -291,19 +345,40 @@ async function getSessions() {
 
 			return d;
 		});
-	} catch (e) {
-		handleError({addMessage: msgStore.addMessage, $route: route}, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	userSessionsLoading.value = false;
 }
 
+async function getConsentSessions() {
+	if (isAccountRecovery.value) {
+		// Can't get consent session during account recovery
+		return;
+	}
+
+	consentSessionsLoading.value = true;
+	errorMsg.value = '';
+
+	try {
+		const response = await kratosAdmin.oauth.selfConsentsGet();
+
+		consentSessions.value = response.oauthSessions;
+	} catch (error) {
+		errorMsg.value = error.message;
+	}
+
+	consentSessionsLoading.value = false;
+}
+
 async function initSettingsFlow() {
+	errorMsg.value = '';
 	try {
 		const response = await ory.frontend.createBrowserSettingsFlow();
 		setFlowData(response);
-	} catch (e) {
-		await handleGetFlowError(context, e, null);
+	} catch (error) {
+		await doErrorHandling(context, error, null);
 	}
 }
 
@@ -320,6 +395,8 @@ async function handleOrySubmitSettings(formID) {
 		return;
 	}
 
+	errorMsg.value = '';
+
 	// Disable submitting from this form
 	disabledForms.value.push(formID);
 
@@ -334,7 +411,8 @@ async function handleOrySubmitSettings(formID) {
 		}
 
 		foundTrait = true;
-		traits[key.substring(7, key.length)] = value;
+		// Remove 'traits.' from key
+		traits[key.slice(7)] = value;
 		delete body[key];
 	}
 
@@ -357,17 +435,15 @@ async function handleOrySubmitSettings(formID) {
 		await refreshSession();
 
 		if (response.error && response.error.reason) {
-			setErrorMessage(response.error.reason);
+			errorMsg.value = response.error.reason;
 		}
-	} catch (e) {
-		if (e.response?.ui) {
-			setFlowData(e.response);
+	} catch (error) {
+		if (error.response?.ui) {
+			setFlowData(error.response);
 		} else {
-			handleGetFlowError(context, e, async () => {
+			await doErrorHandling(context, error, async () => {
 				await initSettingsFlow();
-				setErrorMessage('The settings flow has expired, please try again.');
-			}).catch(e => {
-				setErrorMessage(e);
+				errorMsg.value = 'The settings flow has expired, please try again.';
 			});
 		}
 	}
@@ -377,22 +453,23 @@ async function handleOrySubmitSettings(formID) {
 }
 
 async function refreshSession() {
+	errorMsg.value = '';
 	try {
 		const response = await ory.frontend.toSession();
 		session.value = response;
-	} catch (e) {
-		await handleGetFlowError(context, e, null);
+	} catch (error) {
+		await doErrorHandling(context, error, null);
 	}
 }
 
 async function tryRefreshSession() {
-	let success = false;
+	let success;
 
 	try {
 		const response = await ory.frontend.toSession();
 		session.value = response;
 		success = true;
-	} catch (_) {
+	} catch {
 		success = false;
 	}
 
@@ -401,17 +478,18 @@ async function tryRefreshSession() {
 
 async function initFlow() {
 	const {flow} = route.query;
+	errorMsg.value = '';
 
 	if (typeof flow === 'string') {
 		try {
 			const response = await ory.frontend.getSettingsFlow({id: flow});
 			setFlowData(response);
 
-			// Try to refresh session. This might fail if the identity
-			// is in the process of being recovered and aal2 is set.
-			await tryRefreshSession();
-		} catch (e) {
-			await handleGetFlowError(context, e, initSettingsFlow);
+			if (!isAccountRecovery.value) {
+				await tryRefreshSession();
+			}
+		} catch (error) {
+			await doErrorHandling(context, error, initSettingsFlow);
 		}
 	} else {
 		// If there's no flow in our route,

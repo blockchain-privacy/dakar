@@ -43,7 +43,7 @@
         </v-menu>
       </icon-title>
       <v-card-text>
-        <p class="text-subtitle-1">
+        <p class="text-body-large">
           <wiki-tooltip description-url="addressExclusions.md">
             Address exclusions
           </wiki-tooltip> allow to exclude outputs linked to addresses from being traversed by CoinJoin heuristics.
@@ -53,9 +53,13 @@
           indeterminate
           class="mt-2"
         />
+        <alert
+          v-else-if="failedLoading"
+          text="Failed loading data. Please try again later."
+        />
         <p
           v-else-if="items.length > 0"
-          class="text-subtitle-1"
+          class="text-body-large"
         >
           The address exclusion list contains {{ Number(addressCount).toLocaleString() }} address exclusions.
           The list below is limited to 30 addresses.
@@ -158,21 +162,20 @@
 
 <script setup>
 import {
-	mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport,
+	mdiPlaylistRemove,
+	mdiDelete,
+	mdiDotsVertical,
+	mdiFileImport,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
-import {getDakarClient, handleError} from '@/utilities';
+import {onMounted, ref} from 'vue';
 import ImportAddressExclusionsDialog from './ImportAddressExclusionsDialog.vue';
 import DeleteAddressExclusionDialog from './DeleteAddressExclusionDialog.vue';
 import DeleteAllAddressExclusionsDialog from './DeleteAllAddressExclusionsDialog.vue';
+import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
+import {getDakarClient} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-
-const route = useRoute();
-const context = {addMessage: useMsgStore().addMessage, $route: route};
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -185,6 +188,7 @@ const addAddressExclusions = ref(false);
 const deleteExclusionDialog = ref(false);
 const deleteAllExclusionsDialog = ref(false);
 const isLoading = ref(false);
+const failedLoading = ref(false);
 const deleteAddressHash = ref('');
 const items = ref([]);
 const addressCount = ref(-1);
@@ -200,6 +204,7 @@ async function loadData() {
 	items.value = [];
 	addressCount.value = -1;
 	isLoading.value = true;
+	failedLoading.value = false;
 
 	try {
 		const response = await dakar.addressExclusion.exclusionsGet();
@@ -208,8 +213,8 @@ async function loadData() {
 			items.value = response.addresses;
 			addressCount.value = response.addressCount;
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch {
+		failedLoading.value = true;
 	}
 
 	isLoading.value = false;

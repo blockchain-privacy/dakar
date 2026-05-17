@@ -26,8 +26,10 @@
 </template>
 
 <script setup>
-import WikiTooltip from '../wiki/WikiTooltip.vue';
 import {mdiIncognito} from '@mdi/js';
+import {computed} from 'vue';
+import {useRoute} from 'vue-router';
+import WikiTooltip from '../wiki/WikiTooltip.vue';
 import {
 	PRIVACY_TYPE_CC,
 	PRIVACY_TYPE_CP,
@@ -41,9 +43,7 @@ import {
 	PRIVACY_TYPE_WHIRLPOOL_MIXING,
 	PRIVACY_TYPE_WHIRLPOOL_ORIGIN,
 } from '@/constants/index.js';
-import {computed} from 'vue';
-import {getColorMap} from '@/utilities/index.js';
-import {useRoute} from 'vue-router';
+import {getTransactionColorMap} from '@/utilities/index.js';
 
 const props = defineProps({
 	transactionType: {type: String, required: true},
@@ -51,7 +51,7 @@ const props = defineProps({
 });
 const route = useRoute();
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 
 const color = computed(() => colorMap.get(props.transactionType));
 

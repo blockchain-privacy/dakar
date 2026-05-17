@@ -7,15 +7,14 @@
     v-model="model"
     title="Shortest Path"
     :icon="mdiChartTimelineVariant"
-    max-width="648px"
+    max-width="700px"
     title-one-line
     disable-full-screen
   >
-    <template #actions />
     <template #body>
       <v-card flat>
         <v-card-text>
-          <div class="text-subtitle-1 mb-5">
+          <div class="text-body-large mb-5">
             Find one of the shortest paths between two transactions. Multiple shortest paths can exist.
           </div>
           <div
@@ -65,7 +64,7 @@
               class="ms-auto"
               color="primary"
               :loading="isLoading"
-              @click="handleSearch"
+              @click="doLookup"
             >
               Search
             </v-btn>
@@ -73,6 +72,10 @@
           <v-divider
             v-if="resultTransactions.length > 0"
             class="my-3"
+          />
+          <alert
+            :text="errorMsg"
+            :type="alertType"
           />
           <v-timeline
             v-if="resultTransactions.length > 0"
@@ -83,11 +86,11 @@
               v-for="(tx) in resultTransactions"
               :key="tx.txhash"
               :dot-color="tx.txtype?'purple':'grey'"
-              max-width="500px"
+              max-width="600px"
             >
               <template #opposite>
                 <span
-                  class="text-h5"
+                  class="text-headline-small"
                   v-text="new Date(tx.bts).toLocaleString()"
                 />
               </template>
@@ -101,18 +104,16 @@
 </template>
 
 <script setup>
-import SideBar from '@/components/common/SideBar.vue';
 import {mdiChartTimelineVariant} from '@mdi/js';
-import {getDakarClient, handleError} from '@/utilities';
-import TransactionItem from '@/components/common/TransactionItem.vue';
 import {onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import SideBar from '@/components/common/SideBar.vue';
+import {getDakarClient} from '@/utilities';
+import TransactionItem from '@/components/common/TransactionItem.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const model = defineModel({type: Boolean});
 const route = useRoute();
-const msgStore = useMsgStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
 const dakar = getDakarClient(route.params.blockchainMode);
 
 const props = defineProps({
@@ -125,6 +126,8 @@ const includePrivacyTransactions = ref(true);
 const anyDirection = ref(false);
 const isLoading = ref(false);
 const resultTransactions = ref([]);
+const errorMsg = ref('');
+const alertType = ref('info');
 
 let oldFrom = '';
 let oldTo = '';
@@ -135,6 +138,7 @@ onUpdated(() => {
 		return;
 	}
 
+	errorMsg.value = '';
 	oldFrom = props.from;
 	oldTo = props.to;
 	resultTransactions.value = [];
@@ -142,24 +146,23 @@ onUpdated(() => {
 
 // Functions
 function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
-	});
+	alertType.value = 'info';
+	errorMsg.value = msg;
 }
 
-async function handleSearch() {
+function setErrorMessage(msg) {
+	alertType.value = 'error';
+	errorMsg.value = msg;
+}
+
+async function doLookup() {
 	if (isLoading.value) {
 		return;
 	}
 
-	msgStore.resetMessages();
-
 	resultTransactions.value = [];
-	await doLookup();
-}
-
-async function doLookup() {
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		const response = await dakar.tools.shortestTransactionPathPost({
@@ -177,13 +180,13 @@ async function doLookup() {
 
 		if (response.transactions && response.transactions.length > 0) {
 			if (props.from.trim() !== response.transactions[0].txhash) {
-				response.transactions = response.transactions.reverse();
+				response.transactions = response.transactions.toReversed();
 			}
 
 			resultTransactions.value = response.transactions;
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		setErrorMessage(error.message);
 	}
 
 	isLoading.value = false;
@@ -192,9 +195,5 @@ async function doLookup() {
 </script>
 
 <style scoped>
-.textBorder {
-  border-style: solid;
-  border-radius: 5px;
-  border-width: 1px;
-}
+
 </style>

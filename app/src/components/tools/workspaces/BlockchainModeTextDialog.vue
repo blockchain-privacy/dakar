@@ -8,9 +8,7 @@
     max-width="500px"
   >
     <v-card>
-      <v-card-title>
-        <span class="text-h5">{{ title }}</span>
-      </v-card-title>
+      <v-card-title>{{ title }}</v-card-title>
       <v-card-text>
         <v-textarea
           v-if="textArea"
@@ -29,7 +27,7 @@
           autofocus
           @keydown.enter="submit"
         />
-        <p class="text-subtitle-2 mb-2">
+        <p class="text-title-small mb-2">
           Blockchain
         </p>
         <v-btn-toggle
@@ -40,6 +38,7 @@
           <v-btn
             v-for="chain in Object.values(BLOCKCHAIN_ATTRIBUTES)"
             :key="chain.mode"
+            variant="text"
             :value="chain.mode"
           >
             <v-icon
@@ -75,6 +74,7 @@
 <script setup>
 import {onMounted, onUpdated, ref} from 'vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
+
 const model = defineModel({type: Boolean});
 const props = defineProps({
 	title: {type: String, required: true},

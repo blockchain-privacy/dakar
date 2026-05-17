@@ -41,11 +41,6 @@ func getTestCoordinator() *TestCoordinator {
 			return
 		}
 
-		if !external.WaitForDatabase(graphDB) {
-			log.Panic("Could not connect to database", err)
-			return
-		}
-
 		singletonCoordinator = &TestCoordinator{dbConnection: graphDB, dbHostname: dbName,
 			dbUser: user, dbPassword: passwd}
 	})
@@ -88,10 +83,6 @@ func GetDBConnectionWithOptions(t *testing.T, setContent bool, fileKey string) e
 			t.Fatal(err)
 		}
 	})
-
-	if !external.WaitForDatabase(graphDB) {
-		t.Fatal("Could not connect to database", err)
-	}
 
 	if setContent {
 		ChangeDBContent(graphDB, fileKey)

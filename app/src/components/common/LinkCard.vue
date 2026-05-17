@@ -19,7 +19,7 @@
         />
       </div>
       <div class="d-flex justify-center pt-1">
-        <div class="text-subtitle-2 title-text">
+        <div class="text-title-small title-text">
           {{ title }}
         </div>
       </div>

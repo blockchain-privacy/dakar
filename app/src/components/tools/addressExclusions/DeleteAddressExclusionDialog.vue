@@ -5,81 +5,69 @@
 <template>
   <v-dialog
     v-model="model"
-    max-width="400px"
+    max-width="500px"
   >
     <v-card class="mx-auto pb-2">
-      <v-card-title>
-        <span class="text-h5">Delete {{ title }} Address Exclusion</span>
-      </v-card-title>
+      <v-card-title>Delete Address Exclusion</v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1 text-break">
+        <div class="text-body-large text-break">
           Are you sure you want to delete the address <code>{{ addressHash }}</code>
           from the address exclusion list?
         </div>
-        <v-row class="mt-4">
-          <v-col class="d-flex justify-end align-center">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              :loading="isLoading"
-              color="red"
-              @click="deleteAddressExclusion"
-            >
-              Delete
-            </v-btn>
-          </v-col>
-        </v-row>
       </v-card-text>
+      <alert :text="errorMsg" />
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          :loading="isLoading"
+          color="red"
+          @click="deleteAddressExclusion"
+        >
+          Delete
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {getDakarClient} from '@/utilities/index.js';
-
-const route = useRoute();
-const msgStore = useMsgStore();
+import Alert from '@/components/common/Alert.vue';
 
 const model = defineModel({type: Boolean});
 const props = defineProps({
 	addressHash: {type: String, required: true},
-	title: {type: String, required: true},
 	blockchainMode: {type: String, required: true},
 });
 const emit = defineEmits(['deleted']);
 const dakar = getDakarClient(props.blockchainMode);
 const isLoading = ref(false);
+const errorMsg = ref('');
 
 // Functions
-function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
-}
-
 async function deleteAddressExclusion() {
 	if (props.addressHash === '') {
-		setPersistentErrorMessage('could not delete address exclusion');
+		errorMsg.value = 'could not delete address exclusion';
 		model.value = false;
 		return;
 	}
 
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		await dakar.addressExclusion.exclusionsHashDelete({hash: props.addressHash});
 		emit('deleted', props.addressHash);
-	} catch (e) {
-		setPersistentErrorMessage(e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;

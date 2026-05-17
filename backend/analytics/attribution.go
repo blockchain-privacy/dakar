@@ -10,8 +10,9 @@ import (
 	"backend/db/analytics/attribution"
 	"backend/external"
 	"context"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type Attribution struct {
@@ -97,7 +98,7 @@ func buildDatabaseAttributionsIfTheyExist(attributions []Attribution,
 	hashToUID map[string]string) []attribution.Attribution {
 	attributionTimestamp := time.Now().UTC().Format(time.RFC3339)
 
-	var dbAttributions []attribution.Attribution //nolint:prealloc
+	var dbAttributions []attribution.Attribution
 	for _, a := range attributions {
 		uid, ok := hashToUID[a.AddressHash]
 		if !ok {

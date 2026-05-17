@@ -26,6 +26,7 @@ const (
 	routeWorkspaces               string = "workspaces"
 	routeWorkspacesNodes          string = "workspaces/nodes"
 	routeWorkspacesNode           string = "workspaces/node"
+	routeWorkspacesState          string = "workspaces/state"
 	routeAddWorkspaceNote         string = "workspaces/note"
 	routeAddWorkspaceSelector     string = "workspaces/selector"
 	routeWorkspaceSelectorStatus  string = "workspaces/selector/status"

@@ -113,7 +113,7 @@ type FrontendAddress struct {
 	InputSum      int64            `json:"inputSum"`
 	OutputSum     int64            `json:"outputSum"`
 	Outputs       []FrontendOutput `json:"outputs"`
-	// IsOutputManipulationSupported is true if the address has to many outputs to allow performant sorting and filtering
+	// IsOutputManipulationSupported is true if the address has too many outputs to allow performant sorting and filtering
 	IsOutputManipulationSupported bool `json:"isOutputManipulationSupported"`
 }
 
@@ -346,20 +346,19 @@ func getFrontendAddressOutputs(ctx context.Context, c external.Database, addrHas
 	return
 }
 
-// UpsertAddresses upserts addresses
+// UpsertAddresses upserts the given addresses. The list must not contain duplicate addresses.
 func UpsertAddresses(ctx context.Context, c external.Database, addresses []Address) error {
 	if addresses == nil {
 		return serror.FromStr("got null pointer for addresses")
 	}
 
-	// the following block creates the query for 4 addresses the query looks like this:
+	// The following block creates the query for 4 addresses:
 	//		query Q($h0: string,$h1: string,$h2: string,$h3: string) {
 	//		a0 as var(func: eq(addresshash, $h0))
 	//		a1 as var(func: eq(addresshash, $h1))
 	//		a2 as var(func: eq(addresshash, $h2))
 	//		a3 as var(func: eq(addresshash, $h3))
 	//		}
-	// $h0 ... $h4 are needed to be later replaced. This prevents string injection
 
 	vars := make(map[string]string)
 	query := strings.Builder{}
@@ -376,7 +375,10 @@ func UpsertAddresses(ctx context.Context, c external.Database, addresses []Addre
 
 		addresses[i].UID = fmt.Sprintf("uid(a%d)", i)
 		addresses[i].SetDType()
-		query.WriteString(fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i))
+		_, err := fmt.Fprintf(&query, "a%d as var(func: eq(addresshash, $h%d))\n", i, i)
+		if err != nil {
+			return serror.New(err)
+		}
 		vars["$h"+strconv.Itoa(i)] = addresses[i].Hash
 	}
 

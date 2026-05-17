@@ -32,7 +32,7 @@
         <!-- use slot so link does not span the word 'Transaction' and the actual transaction hash -->
         Transaction
         <router-link
-          class="shorten ms-1"
+          class="ms-1"
           style="color: inherit;"
           :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash, blockchainMode: route.params.blockchainMode }}"
         >
@@ -127,13 +127,13 @@
                 v-if="tx.inputs?.some(d => d.amount)"
                 class="mx-4 mb-2"
               >
-                <p class="text-subtitle-1 text-center">
+                <p class="text-body-large text-center">
                   Input Amount Distribution
                 </p>
                 <amount-chart :outputs="tx.inputs" />
               </div>
               <div v-show="enoughDataForInputGraph">
-                <p class="text-subtitle-1 text-center">
+                <p class="text-body-large text-center">
                   Input Timeline
                 </p>
                 <svg :id="`transaction_inputs_canvas_${tx.txhash}_${componentID}`" />
@@ -144,13 +144,13 @@
                 v-if="tx.outputs?.some(d => d.amount)"
                 class="mx-4 mb-2"
               >
-                <p class="text-subtitle-1 text-center">
+                <p class="text-body-large text-center">
                   Output Amount Distribution
                 </p>
                 <amount-chart :outputs="tx.outputs" />
               </div>
               <div v-show="enoughDataForOutputGraph">
-                <p class="text-subtitle-1 text-center">
+                <p class="text-body-large text-center">
                   Output Timeline
                 </p>
                 <svg :id="`transaction_outputs_canvas_${tx.txhash}_${componentID}`" />
@@ -217,7 +217,7 @@
             <v-tab
               class="flex-grow-1"
               :disabled="!allInputs?.length"
-              :text="`${tx.inputs?tx.inputs.length:0} ${plural('Input',tx.inputs?tx.inputs.length:0)}`"
+              :text="inputTabTitle"
               value="inputs"
             />
           </v-col>
@@ -229,7 +229,7 @@
             />
             <v-tab
               class="flex-grow-1"
-              :text="`${tx.outputs.length} ${plural('Output',tx.outputs.length)}`"
+              :text="outputTabTitle"
               value="outputs"
             />
           </v-col>
@@ -247,6 +247,7 @@
           <v-infinite-scroll
             ref="inputScroll"
             margin="100"
+            empty-text=""
             @load="showMoreInputs"
           >
             <template
@@ -258,8 +259,6 @@
                 :amount="i.amount"
                 :address-hash="i.addresshash"
                 :tx-hash="i.txhash"
-                :sig-asm="i.sigasm"
-                :key-asm="i.keyasm"
                 :output-index="i.outputindex"
                 :input-index="i.inputindex"
                 :timestamp="i.ts"
@@ -270,10 +269,6 @@
                 v-if="y+1 < displayedInputs.length"
                 :thickness="2"
               />
-            </template>
-            <template #empty>
-              <!-- needed so no scrollbars appear -->
-              <p style="height: 3px" />
             </template>
             <template #loading>
               <!-- empty -->
@@ -289,6 +284,7 @@
           <v-infinite-scroll
             ref="outputScroll"
             margin="100"
+            empty-text=""
             @load="showMoreOutputs"
           >
             <template
@@ -300,8 +296,6 @@
                 :amount="i.amount"
                 :address-hash="i.addresshash"
                 :tx-hash="i.txhash"
-                :sig-asm="i.sigasm"
-                :key-asm="i.keyasm"
                 :output-index="i.outputindex"
                 :input-index="i.inputindex"
                 :timestamp="i.ts"
@@ -312,10 +306,6 @@
                 v-if="y+1<displayedOutputs.length"
                 :thickness="2"
               />
-            </template>
-            <template #empty>
-              <!-- needed so no scrollbars appear -->
-              <p style="height: 3px" />
             </template>
             <template #loading>
               <!-- empty -->
@@ -332,38 +322,53 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp, mdiFormatHeaderPound,
+	mdiChevronUp,
+	mdiFormatHeaderPound,
 	mdiFormatListNumbered,
-	mdiPickaxe, mdiSigma,
+	mdiPickaxe,
+	mdiSigma,
 	mdiTransfer,
 } from '@mdi/js';
+import {
+	computed,
+	ref,
+	toRef,
+	onUpdated,
+	onMounted,
+	watch,
+	nextTick,
+	useTemplateRef,
+	onUnmounted,
+	useId,
+} from 'vue';
+import {storeToRefs} from 'pinia';
+import {
+	VRow,
+	VCol,
+	VTabsWindowItem,
+	VTabsWindow,
+} from 'vuetify/components';
+import {useRoute} from 'vue-router';
+import IconItem from '../../common/IconItem.vue';
 import OutputItem from './OutputItem.vue';
 import {
 	convertAmount,
-	getColorMap,
+	getTransactionColorMap,
 	isDestination,
-	isModeBTC, isUncommonWasabi2Denomination,
-	plural, setUndefinedTransactionColor,
+	isModeBTC,
+	isUncommonWasabi2Denomination,
+	plural,
+	setUndefinedTransactionColor,
 	shortenHash,
 } from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import IconItem from '../../common/IconItem.vue';
-import {
-	computed, ref, toRef, onUpdated, onMounted,
-	watch, nextTick, useTemplateRef, onUnmounted, useId,
-} from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 import BarChart from '@/d3Documents/barChart.js';
-import {storeToRefs} from 'pinia';
 import {useExplorerStore} from '@/pinia/explorer.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-import {
-	VRow, VCol, VTabsWindowItem, VTabsWindow,
-} from 'vuetify/components';
 import AmountChart from '@/components/explorer/transaction/AmountChart.vue';
-import {useRoute} from 'vue-router';
 import ModeChip from '@/components/common/ModeChip.vue';
 import OutputSort from '@/components/explorer/transaction/OutputSort.vue';
 
@@ -391,7 +396,7 @@ const showTransactionDetails = toRef(props.showDetails);
 let svgInputGraph = null;
 let svgOutputGraph = null;
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 const enoughDataForInputGraph = ref(true);
 const enoughDataForOutputGraph = ref(true);
@@ -429,6 +434,31 @@ const hasUncommonWasabi2Denomination = computed(() => isBTC.value
 
 const outputFrameComponent = computed(() => isTabMode.value ? VTabsWindow : VRow);
 const outputFrameComponentColumn = computed(() => isTabMode.value ? VTabsWindowItem : VCol);
+
+const inputTabTitle = computed(() => {
+	const allInputsLength = props.tx.inputs ? props.tx.inputs.length : 0;
+
+	let title = `${allInputsLength} ${plural('Input', allInputsLength)}`;
+
+	if (allInputs.value.length < allInputsLength) {
+		title = `${allInputs.value.length} of ` + title;
+	}
+
+	return title;
+});
+
+const outputTabTitle = computed(() => {
+	const allOutputsLength = props.tx.outputs ? props.tx.outputs.length : 0;
+
+	let title = `${allOutputsLength} ${plural('Output', allOutputsLength)}`;
+
+	if (allOutputs.value.length < allOutputsLength) {
+		title = `${allOutputs.value.length} of ` + title;
+	}
+
+	return title;
+});
+
 // Hooks
 onUpdated(() => {
 	init();
@@ -441,13 +471,7 @@ onMounted(() => {
 		if (width < 1000) {
 			isTabMode.value = true;
 
-			if (!tabs.value) {
-				if (allInputs.value?.length > 0) {
-					tabs.value = 'inputs';
-				} else {
-					tabs.value = 'outputs';
-				}
-			}
+			tabs.value ||= allInputs.value?.length > 0 ? 'inputs' : 'outputs';
 		} else {
 			isTabMode.value = false;
 			tabs.value = null;
@@ -570,12 +594,12 @@ function getTransactionFilter(outputs) {
 		return [];
 	}
 
-	const colorMap = getColorMap(route.params.blockchainMode);
+	const cMap = getTransactionColorMap(route.params.blockchainMode);
 	const filteredColorMap = new Map();
 
 	outputs.forEach(o => {
 		if (o.txtype) {
-			filteredColorMap.set(o.txtype, colorMap.get(o.txtype));
+			filteredColorMap.set(o.txtype, cMap.get(o.txtype));
 		} else {
 			setUndefinedTransactionColor(filteredColorMap, 'other');
 		}

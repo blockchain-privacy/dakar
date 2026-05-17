@@ -8,6 +8,13 @@
     class="flex-column d-flex"
     style="height: 100%;position:relative"
   >
+    <v-snackbar-queue
+      v-model="messages"
+      closable
+      variant="tonal"
+      timeout="20000"
+      :total-visible="3"
+    />
     <div style="height: 100%; width:100%; position: relative">
       <v-card
         v-if="workspaceName"
@@ -47,7 +54,7 @@
       <div
         v-if="workspaceName && wasAutoSaved"
         style=""
-        :class="{'text-caption':true, 'auto-save-sm': $vuetify.display.smAndDown, 'auto-save': $vuetify.display.mdAndUp }"
+        :class="{'text-body-small':true, 'auto-save-sm': $vuetify.display.smAndDown, 'auto-save': $vuetify.display.mdAndUp }"
       >
         <template v-if="isAutoSaving">
           Saving ...
@@ -77,7 +84,7 @@
           no-click-animation
         >
           <v-card>
-            <v-card-text class="text-subtitle-1 d-flex align-center">
+            <v-card-text class="text-body-large d-flex align-center">
               <div style="width:100%">
                 <p class="text-center mb-3">
                   Loading workspace
@@ -165,7 +172,7 @@
           confirm-label="Add"
           @confirm="handleWarningDialogConfirm"
         >
-          <p class="text-subtitle-1">
+          <p class="text-body-large">
             You are about to add <strong>{{ warningDialogNodes.length }}</strong> entities to your workspace.
             Depending on their connections this might take several minutes.
           </p>
@@ -218,10 +225,23 @@
 <script setup>
 import {
 	mdiCheckCircle,
-	mdiDelete, mdiFilterPlus, mdiKeyboard,
+	mdiDelete,
+	mdiFilterPlus,
+	mdiKeyboard,
 	mdiNoteEdit,
 	mdiNotePlus,
 } from '@mdi/js';
+import {
+	computed,
+	nextTick,
+	onMounted,
+	onUnmounted,
+	ref,
+	useTemplateRef,
+	watch,
+} from 'vue';
+import {useRoute} from 'vue-router';
+import {useHotkey} from 'vuetify';
 import CreateSelectorSideBar from './sidebars/CreateSelectorSideBar.vue';
 import {
 	APPLICATION_NAME,
@@ -247,14 +267,12 @@ import {
 	PRIVACY_TYPE_WHIRLPOOL_DESTINATION,
 } from '@/constants';
 import {
-	capitalize, filterDescriptors,
-	getColorMap, getDakarClient, handleError, setUndefinedTransactionColor,
+	capitalize,
+	filterDescriptors,
+	getTransactionColorMap,
+	getDakarClient,
+	getGraphColorMap,
 } from '@/utilities';
-import {
-	computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch,
-} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
@@ -268,23 +286,17 @@ import ShortestPathSideBar from '@/components/workspace/sidebars/ShortestPathSid
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
 import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import FingerprintSideBar from '@/components/workspace/sidebars/FingerprintSideBar.vue';
-import {VHotkey} from 'vuetify/labs/VHotkey';
-import {useHotkey} from 'vuetify/framework';
 import ShortcutDialog from '@/components/workspace/ShortcutDialog.vue';
 
 const route = useRoute();
-const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
 const dakar = getDakarClient(route.params.blockchainMode);
 
-const colorMap = getColorMap(route.params.blockchainMode);
-colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
-setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
+useHotkey('cmd+a', handleSelectAllNodesHotkey);
+useHotkey('delete', handleMenuDeleteSelected);
+useHotkey('esc', handleEscapeHotkey);
 
-colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
-colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
-colorMap.set(SELECTOR_TYPE_TX_PROP, '#000075');
+const colorMap = getGraphColorMap(route.params.blockchainMode);
 
 const nodeTypeLabels = [
 	{text: WORKSPACE_NODE_TYPE_SELECTOR, color: colorMap.get(SELECTOR_TYPE_TX_PROP)},
@@ -336,6 +348,8 @@ const allSideBarModels = [
 	isShortestPathSideBarOpen,
 	isFingerprintSideBarOpen,
 ];
+// Snackbar queue messages
+const messages = ref([]);
 
 const nodeActions = ref([
 	{
@@ -440,7 +454,7 @@ watch(
 const transactionTypeLabels = computed(() => {
 	const labels = [];
 
-	getColorMap(route.params.blockchainMode).forEach((v, k) => {
+	getTransactionColorMap(route.params.blockchainMode).forEach((v, k) => {
 		labels.push({text: k, color: v});
 	});
 
@@ -458,12 +472,10 @@ const isHeuristicBatchEnabled = computed(() => lassoSelectedNodes.value.length >
 
 // Hooks
 function onVisibilityChange() {
-	if (document.visibilityState === 'hidden') {
-		if (autoSaveTimer !== null) {
-			clearTimeout(autoSaveTimer);
-			autoSaveTimer = null;
-			doAutoSave();
-		}
+	if (document.visibilityState === 'hidden' && autoSaveTimer !== null) {
+		clearTimeout(autoSaveTimer);
+		autoSaveTimer = null;
+		doAutoSave();
 	}
 }
 
@@ -474,10 +486,6 @@ onMounted(async () => {
 	}
 
 	document.addEventListener('visibilitychange', onVisibilityChange);
-
-	useHotkey('delete', handleMenuDeleteSelected);
-	useHotkey('cmd+a', handleSelectAllNodesHotkey);
-	useHotkey('esc', handleEscapeHotkey);
 });
 
 onUnmounted(() => {
@@ -489,7 +497,6 @@ onUnmounted(() => {
 	}
 
 	clearTimeout(selectorTimer);
-
 	document.removeEventListener('visibilitychange', onVisibilityChange);
 	workspaceStore.setWorkspaceActive(false);
 });
@@ -523,7 +530,7 @@ function handleEscapeHotkey() {
 }
 
 async function removeGraphNodes(nodes) {
-	if (!nodes.length) {
+	if (nodes.length === 0) {
 		return;
 	}
 
@@ -547,8 +554,8 @@ async function removeGraphNodes(nodes) {
 		});
 
 		nodeGraph.removeNodes(response.deletedNodeUIDs);
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 
 	releaseAutosaveLock();
@@ -751,11 +758,11 @@ async function addMultipleNodes(nodes) {
 		} else if (response.clusterTooLarge) {
 			setWarningMessage(`Cluster has more than ${CLUSTER_MAX_OUTPUTS.toLocaleString()} outputs. The node was not added to the workspace.`);
 		}
-	} catch (e) {
-		if (e.cause?.status === 404) {
+	} catch (error) {
+		if (error.cause?.status === 404) {
 			setInfoMessage('Query returned no results');
 		} else {
-			setErrorMessage(e);
+			setErrorMessage(error);
 		}
 	}
 
@@ -799,7 +806,7 @@ async function addNewNote(noteText, noteUID, childUID) {
 	try {
 		const response = await dakar.workspace.workspacesNotePost({
 			note: {
-				uid: noteUID ? noteUID : '',
+				uid: noteUID ?? '',
 				childUID,
 				text: trimmed,
 				workspaceUID: workspaceUID.value,
@@ -811,8 +818,8 @@ async function addNewNote(noteText, noteUID, childUID) {
 			queueAutoSave();
 			nodeGraph.centerOnNewNodes();
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 
 	releaseAutosaveLock();
@@ -828,20 +835,23 @@ async function newRouting() {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
+	messages.value.push({
+		text: msg,
+		color: 'error',
 	});
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
+	messages.value.push({
+		text: msg,
+		color: 'info',
 	});
 }
 
 function setWarningMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'warning', temporary: true, category: route.name,
+	messages.value.push({
+		text: msg,
+		color: 'warning',
 	});
 }
 
@@ -853,32 +863,32 @@ async function addNewSelector(type, options, node) {
 
 	switch (type) {
 		case SELECTOR_TYPE_HEURISTIC:
-			{
-				// All descriptors, which can be applied to the current node
-				const descriptors = filterDescriptors(heuristicDescriptors.value, [node], false);
-				if (!descriptors.some(d => options.type === d.type)) {
-					// The chosen heuristic is not in the set of possible descriptors, so there is nothing to do.
-					return;
-				}
-
-				if (!node || !node.uid) {
-					setErrorMessage('could not determine parent node');
-					return;
-				}
-
-				parent = node.uid;
-
-				heuristicOptions = options;
-				const txHash = getHeuristicTransaction(nodeGraph.getNodes(), node.uid);
-				if (!txHash) {
-					setErrorMessage('could not determine heuristic transaction');
-					return;
-				}
-
-				heuristicOptions.transactionHash = txHash;
+		{
+			// All descriptors, which can be applied to the current node
+			const descriptors = filterDescriptors(heuristicDescriptors.value, [node], false);
+			if (!descriptors.some(d => options.type === d.type)) {
+				// The chosen heuristic is not in the set of possible descriptors, so there is nothing to do.
+				return;
 			}
 
+			if (!node || !node.uid) {
+				setErrorMessage('could not determine parent node');
+				return;
+			}
+
+			parent = node.uid;
+
+			heuristicOptions = options;
+			const txHash = getHeuristicTransaction(nodeGraph.getNodes(), node.uid);
+			if (!txHash) {
+				setErrorMessage('could not determine heuristic transaction');
+				return;
+			}
+
+			heuristicOptions.transactionHash = txHash;
 			break;
+		}
+
 		case SELECTOR_TYPE_TX_PROP:
 			if (node?.uid) {
 				parent = node.uid;
@@ -906,8 +916,8 @@ async function addNewSelector(type, options, node) {
 				parent, type, heuristicOptions, txPropOptions, txGraphOptions, workspaceUID: workspaceUID.value,
 			},
 		});
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -918,7 +928,7 @@ async function addNewSelectors(type, options, parentNodes) {
 	// LastResponse will contain the last valid recent graph state, after the loop has finished
 	let lastResponse;
 
-	if (parentNodes.length) {
+	if (parentNodes.length > 0) {
 		for (const currentNode of parentNodes) {
 			// Only assign result of addNewSelector if not undefined
 			// eslint-disable-next-line no-await-in-loop
@@ -969,8 +979,8 @@ async function checkWork(selectorUID) {
 		} else {
 			addWork(selectorUID);
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -1035,7 +1045,7 @@ function openCreateSelectorSideBar(selectorType, parentNodes) {
 }
 
 function openEntitySideBar(nodeData) {
-	if (nodeData.selectorStatus === SELECTOR_STATUS_WAITING || nodeData.selectorStatus === SELECTOR_STATUS_WAITING) {
+	if (nodeData.selectorStatus === SELECTOR_STATUS_WAITING) {
 		return;
 	}
 
@@ -1050,36 +1060,36 @@ function openEntitySideBar(nodeData) {
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
 		case WORKSPACE_NODE_TYPE_SELECTOR:
-			// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
-			{
-				entityAuxiliaryData.value = nodeData;
-				entityIdentifier.value = nodeData.uid;
+		// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
+		{
+			entityAuxiliaryData.value = nodeData;
+			entityIdentifier.value = nodeData.uid;
 
-				let displayType = '';
-				let parameterTitle = '';
+			let displayType = '';
+			let parameterTitle = '';
 
-				switch (nodeData.selectorType) {
-					case SELECTOR_TYPE_HEURISTIC:
-						for (const descriptor of heuristicDescriptors.value) {
-							if (descriptor.type === nodeData.heuristicOptions?.type) {
-								displayType = descriptor.title;
-								parameterTitle = descriptor.parameter?.description;
-								break;
-							}
+			switch (nodeData.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC:
+					for (const descriptor of heuristicDescriptors.value) {
+						if (descriptor.type === nodeData.heuristicOptions?.type) {
+							displayType = descriptor.title;
+							parameterTitle = descriptor.parameter?.description;
+							break;
 						}
+					}
 
-						break;
-					case SELECTOR_TYPE_TX_PROP:
-						displayType = 'selector (change me)';
-						break;
-					default:
-				}
-
-				entityAuxiliaryData.value.displayType = displayType;
-				entityAuxiliaryData.value.parameterTitle = parameterTitle;
+					break;
+				case SELECTOR_TYPE_TX_PROP:
+					displayType = 'selector (change me)';
+					break;
+				default:
 			}
 
+			entityAuxiliaryData.value.displayType = displayType;
+			entityAuxiliaryData.value.parameterTitle = parameterTitle;
 			break;
+		}
+
 		default:
 	}
 
@@ -1132,10 +1142,13 @@ function showAddNoteDialog() {
 async function refreshData() {
 	isLoadingWorkspace.value = true;
 	let data;
+
+	messages.value = [];
+
 	try {
 		const response = await dakar.workspace.workspacesUidGet({uid: workspaceUID.value});
 		if (!response.descriptors) {
-			throw Error('heuristic descriptor list is empty');
+			throw new Error('heuristic descriptor list is empty');
 		}
 
 		heuristicDescriptors.value = response.descriptors.map(e => {
@@ -1145,7 +1158,7 @@ async function refreshData() {
 			}
 
 			return e;
-		}).sort((a, b) => {
+		}).toSorted((a, b) => {
 			if (a.title > b.title) {
 				return 1;
 			}
@@ -1167,10 +1180,8 @@ async function refreshData() {
 		} else {
 			data = {loaded: false};
 		}
-
-		msgStore.resetMessages();
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		setErrorMessage(error.message);
 	}
 
 	isLoadingWorkspace.value = false;
@@ -1210,8 +1221,8 @@ async function doAutoSave() {
 				currentState: exportedNodes,
 			},
 		});
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	} finally {
 		isAutoSaving.value = false;
 	}

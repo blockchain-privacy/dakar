@@ -10,7 +10,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -24,7 +24,7 @@ import (
 type whirlpoolOneSourceByTimeHeuristic struct {
 	heuristicType string
 	lookBackTime  time.Duration
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewWhirlpoolOneSourceByTimeHeuristic() Heuristic {
@@ -35,7 +35,7 @@ func (h *whirlpoolOneSourceByTimeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolOneSourceByTimeHeuristic) SetConfig(c heuristics.Options) error {
+func (h *whirlpoolOneSourceByTimeHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -55,7 +55,7 @@ func (h *whirlpoolOneSourceByTimeHeuristic) SetConfig(c heuristics.Options) erro
 	return nil
 }
 
-func (h *whirlpoolOneSourceByTimeHeuristic) GetConfig() heuristics.Options {
+func (h *whirlpoolOneSourceByTimeHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 
@@ -95,7 +95,7 @@ func (h *whirlpoolOneSourceByTimeHeuristic) Exec(ctx context.Context, dgraph ext
 }
 
 func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
-	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	lookBackTime time.Duration, depth int, options HeuristicOptions) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 {
 		return nil, nil
 	}
@@ -138,7 +138,7 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	allTimeLimitedOriginsMap := map[string]heuristics.HeuristicTransaction{}
 	// contains all time limited origins per input transaction
-	var allTxAndOrigins []txAndOrigins //nolint:prealloc
+	var allTxAndOrigins []txAndOrigins
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
@@ -188,7 +188,7 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 	clusters := make(map[heuristics.ClusterUID]bool)
 	// for each input transaction to the destination transaction,
 	// inputClusters holds one map with all its occurring clusters
-	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
+	var inputClusters []map[heuristics.ClusterUID]bool
 	for _, t := range allTxAndOrigins {
 		// get input denominations
 		nDenominations, denominationIndex, getErr := getNumberOfWhirlpoolDenominations(t.inputTransaction, options.TransactionHash)

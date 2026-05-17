@@ -244,7 +244,7 @@ func Test_buildDBOperation(t *testing.T) {
 					"a": &someCluster,
 					"b": {
 						changeTransaction: "0x2",
-						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: db.GetPointer(50000)}, {UID: "0x200", AddressCount: &ten}},
+						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: new(50000)}, {UID: "0x200", AddressCount: &ten}},
 						addresses:         map[string]bool{"0x30": true, "0x40": true},
 					}},
 				clusterIndex: 0},
@@ -268,14 +268,14 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x100", AddressCount: db.GetPointer(30000)},
-				{UID: "0x200", AddressCount: db.GetPointer(8000)},
-				{UID: "0x300", AddressCount: db.GetPointer(5000)},
-				{UID: "0x400", AddressCount: db.GetPointer(4000)},
-				{UID: "0x300", AddressCount: db.GetPointer(9000)},
-				{UID: "0x500", AddressCount: db.GetPointer(1000)},
-				{UID: "0x600", AddressCount: db.GetPointer(1000)},
-				{UID: "0x700", AddressCount: db.GetPointer(6000)},
+				{UID: "0x100", AddressCount: new(30000)},
+				{UID: "0x200", AddressCount: new(8000)},
+				{UID: "0x300", AddressCount: new(5000)},
+				{UID: "0x400", AddressCount: new(4000)},
+				{UID: "0x300", AddressCount: new(9000)},
+				{UID: "0x500", AddressCount: new(1000)},
+				{UID: "0x600", AddressCount: new(1000)},
+				{UID: "0x700", AddressCount: new(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -290,13 +290,13 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x100", AddressCount: db.GetPointer(8000)},
-				{UID: "0x200", AddressCount: db.GetPointer(5000)},
-				{UID: "0x300", AddressCount: db.GetPointer(4000)},
-				{UID: "0x400", AddressCount: db.GetPointer(9000)},
-				{UID: "0x500", AddressCount: db.GetPointer(1000)},
-				{UID: "0x600", AddressCount: db.GetPointer(1000)},
-				{UID: "0x700", AddressCount: db.GetPointer(6000)},
+				{UID: "0x100", AddressCount: new(8000)},
+				{UID: "0x200", AddressCount: new(5000)},
+				{UID: "0x300", AddressCount: new(4000)},
+				{UID: "0x400", AddressCount: new(9000)},
+				{UID: "0x500", AddressCount: new(1000)},
+				{UID: "0x600", AddressCount: new(1000)},
+				{UID: "0x700", AddressCount: new(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -311,12 +311,12 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x300", AddressCount: db.GetPointer(5000)},
-				{UID: "0x400", AddressCount: db.GetPointer(4000)},
-				{UID: "0x500", AddressCount: db.GetPointer(9000)},
-				{UID: "0x600", AddressCount: db.GetPointer(1000)},
-				{UID: "0x700", AddressCount: db.GetPointer(1000)},
-				{UID: "0x800", AddressCount: db.GetPointer(6000)},
+				{UID: "0x300", AddressCount: new(5000)},
+				{UID: "0x400", AddressCount: new(4000)},
+				{UID: "0x500", AddressCount: new(9000)},
+				{UID: "0x600", AddressCount: new(1000)},
+				{UID: "0x700", AddressCount: new(1000)},
+				{UID: "0x800", AddressCount: new(6000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},
@@ -331,7 +331,7 @@ func Test_buildDBOperationLimitClusterSize(t *testing.T) {
 		"a": {
 			changeTransaction: "0x2",
 			mergeList: []clustering.Cluster{
-				{UID: "0x300", AddressCount: db.GetPointer(60000)},
+				{UID: "0x300", AddressCount: new(60000)},
 			},
 
 			addresses: map[string]bool{"0x30": true, "0x40": true},

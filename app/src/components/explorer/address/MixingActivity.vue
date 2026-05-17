@@ -77,6 +77,7 @@
         </v-row>
       </v-card-text>
     </v-card>
+    <alert :text="errorMsg" />
     <template v-if="hasLoaded && !isLoading">
       <v-card
         v-if="showEmptyResponseMsg && !showTooManyAddressesMsg"
@@ -84,7 +85,7 @@
         variant="text"
       >
         <v-card-text
-          class="text-h6"
+          class="text-title-large"
           style="text-align:center"
         >
           No mixing activity detected
@@ -95,7 +96,7 @@
         class="my-3"
         variant="text"
       >
-        <v-card-text class="text-h6 text-center">
+        <v-card-text class="text-title-large text-center">
           Mixing activity lookup is not possible because the cluster
           of this address is connected to too many addresses
         </v-card-text>
@@ -127,7 +128,7 @@
             <v-card-text>
               <p
                 v-if="showNotEnoughDataMsg && !isLoading"
-                class="text-h6"
+                class="text-title-large"
                 style="text-align: center"
               >
                 Not enough data available to draw chart
@@ -185,7 +186,7 @@
           >
             <v-card-text>
               <p
-                class="text-h6"
+                class="text-title-large"
                 style="text-align: center"
               >
                 No data available
@@ -231,31 +232,39 @@
 </template>
 
 <script setup>
+import {
+	computed,
+	nextTick,
+	onBeforeMount,
+	onMounted,
+	ref,
+	toRaw,
+	watch,
+} from 'vue';
+import {useRoute} from 'vue-router';
+import {useHotkey} from 'vuetify';
 import BarChart from '@/d3Documents/barChart.js';
-import {getColorMap, getDakarClient} from '@/utilities';
+import {getTransactionColorMap, getDakarClient} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
-import {
-	computed, nextTick, onBeforeMount, onMounted, ref, toRaw, watch,
-} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import GraphToolbar from '@/components/common/GraphToolbar.vue';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import {setNodesDisplayAttributes} from '@/d3Documents/nodeDisplay.js';
-import {useHotkey} from 'vuetify/framework';
+import Alert from '@/components/common/Alert.vue';
 
 const route = useRoute();
-const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 const dakar = getDakarClient(route.params.blockchainMode);
 
-const colorMap = getColorMap(route.params.blockchainMode);
+useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
+useHotkey('esc', () => nodeGraph.resetLasso());
+
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 let svgBarChart = null;
 const nodeGraph = new NodeGraph(colorMap);
 const tooManyTransactionsThreshold = 500;
@@ -302,6 +311,7 @@ const showNodeDialog = ref(false);
 const hasLoaded = ref(false);
 const transactionTypes = [...colorMap.entries()].map(d => ({text: d[0], color: d[1]}));
 const chipFilterModel = ref([...transactionTypes.keys()]);
+const errorMsg = ref('');
 
 watch(() => props.addressHash, () => {
 	// Prop was changed -> pull new data
@@ -349,17 +359,11 @@ onMounted(() => {
 			setErrorMessage('error setting lasso reset handler');
 		}
 	}
-
-	useHotkey('cmd+a', () => nodeGraph.selectAllNodes());
-	useHotkey('esc', () => nodeGraph.resetLasso());
 });
 
 // Functions
-
 function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
+	errorMsg.value = msg;
 }
 
 function onBarClick(data) {
@@ -391,9 +395,9 @@ async function getMixingActivity() {
 			},
 		});
 		response.ok = true;
-	} catch (e) {
-		if (e.message === 'too_many_addresses') {
-			response.msg = e.message;
+	} catch (error) {
+		if (error.message === 'too_many_addresses') {
+			response.msg = error.message;
 		}
 	}
 
@@ -441,7 +445,7 @@ function getFilteredData(withGraphData) {
 
 	// Construct event objet
 	const eventObj = {};
-	Array.from(events).forEach(val => {
+	[...events].forEach(val => {
 		eventObj[val] = '';
 	});
 	rangePicker.value.events = eventObj;
@@ -621,7 +625,7 @@ async function updateSvgData(pullNewData) {
 }
 
 // Initial load
-updateSvgData(true);
+await updateSvgData(true);
 </script>
 
 <style scoped>

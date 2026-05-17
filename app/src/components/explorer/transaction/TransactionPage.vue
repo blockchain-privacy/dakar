@@ -4,17 +4,12 @@
 
 <template>
   <v-container fluid>
-    <v-row
-      align="center"
-      justify="center"
-    >
+    <v-row class="align-center justify-center">
       <v-col
-        cols="12"
-        sm="12"
         md="12"
-        lg="10"
         xl="8"
       >
+        <alert :text="errorMsg" />
         <template v-if="transactions.length > 0">
           <fade-transition
             v-for="t in transactions"
@@ -42,28 +37,32 @@
 </template>
 
 <script setup>
+import {
+	computed,
+	onMounted,
+	ref,
+	watch,
+} from 'vue';
+import {storeToRefs} from 'pinia';
+import {useRoute, useRouter} from 'vue-router';
 import Transaction from './Transaction.vue';
 import {PAGE_TITLE, ROUTE_NAME_404_PAGE} from '@/constants';
 import {
-	getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
+	getDakarClients,
+	isAdminIdentity,
+	isPrivilegedIdentity,
 } from '@/utilities';
-import {
-	computed, onMounted, ref, watch,
-} from 'vue';
-import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {useRoute, useRouter} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg.js';
+import Alert from '@/components/common/Alert.vue';
 
 const {session} = storeToRefs(useLocalStore());
 const route = useRoute();
 const router = useRouter();
-const msgStore = useMsgStore();
 const dakarClients = getDakarClients();
 
 const transactions = ref([]);
-const context = {$route: route, addMessage: msgStore.addMessage};
+const errorMsg = ref('');
 
 // Computed
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
@@ -97,17 +96,18 @@ async function pullInitialData() {
 	}
 
 	transactions.value = [];
+	errorMsg.value = '';
 	try {
 		const response = await dakarClients[route.params.blockchainMode].data
 			.blockchainTransactionsHashGet({hash: route.params.id});
 		if (response.transactions) {
 			transactions.value = response.transactions;
 		}
-	} catch (e) {
-		if (e.cause?.status === 404) {
+	} catch (error) {
+		if (error.cause?.status === 404) {
 			await router.push({name: ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}});
 		} else {
-			handleError(context, e);
+			errorMsg.value = error.message;
 		}
 	}
 }

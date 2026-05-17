@@ -261,7 +261,7 @@ func (m *FlatMultiInput) Iterate(ctx context.Context) (bool, error) {
 		}
 
 		processedClusters := make(map[*newCluster]bool)
-		var operations []clustering.DBOperation
+		var operations []clustering.DBOperation //nolint:prealloc
 		var clusterIndex int
 
 		operations, err = buildDBOperation(processedClusters, addressMergeMap, clusterIndex)
@@ -483,7 +483,7 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 // in processedClusters are not processed. The clusterIndex controls the temporary UID (_:0x123) of the new clusters.
 func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
 	clusterIndex int) ([]clustering.DBOperation, error) {
-	var operations []clustering.DBOperation //nolint:prealloc
+	var operations []clustering.DBOperation
 
 	for _, i := range items {
 		if processedClusters[i] {

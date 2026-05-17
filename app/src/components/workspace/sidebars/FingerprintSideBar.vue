@@ -32,11 +32,11 @@
 </template>
 
 <script setup>
-import SideBar from '@/components/common/SideBar.vue';
 import {mdiFingerprint} from '@mdi/js';
+import {ref} from 'vue';
+import SideBar from '@/components/common/SideBar.vue';
 import FingerprintTransactions from '@/components/explorer/transaction/FingerprintTransactions.vue';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
-import {ref} from 'vue';
 import {WORKSPACE_NODE_TYPE_TRANSACTION} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 

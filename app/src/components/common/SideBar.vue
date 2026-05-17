@@ -6,6 +6,7 @@
   <v-slide-x-reverse-transition>
     <v-sheet
       v-show="model"
+      ref="sidebarBody"
       class="sidebar"
       elevation="4"
       :style="sheetStyle"
@@ -21,7 +22,7 @@
             :icon="icon"
           />
           <span class="shorten"> {{ title }}</span>
-          <div class="ms-auto">
+          <div class="ms-auto text-title-medium">
             <slot
               v-if="titleOneLine"
               name="actions"
@@ -65,7 +66,9 @@
         </v-card-title>
         <v-divider />
       </div>
-      <slot name="body" />
+      <div :class="{'increaseMargin': expandMargins}">
+        <slot name="body" />
+      </div>
     </v-sheet>
   </v-slide-x-reverse-transition>
 </template>
@@ -73,7 +76,12 @@
 <script setup>
 import {mdiCloseCircle, mdiFullscreen, mdiFullscreenExit} from '@mdi/js';
 import {
-	computed,	onMounted, onUnmounted, ref, useSlots,
+	computed,
+	onMounted,
+	onUnmounted,
+	ref,
+	useSlots,
+	useTemplateRef,
 } from 'vue';
 
 const props = defineProps({
@@ -88,14 +96,27 @@ const props = defineProps({
 const model = defineModel({type: Boolean});
 const slots = useSlots();
 const isFullScreen = ref(false);
+const expandMargins = ref(false);
+const sidebarBody = useTemplateRef('sidebarBody');
+
+let resizeObserver;
 
 // Hooks
 onMounted(() => {
 	window.addEventListener('keydown', keyListener);
+	resizeObserver = new ResizeObserver(entries => {
+		// Need to use ResizeObserver instead of CSS container query,
+		// because that would also apply size containment which restricts
+		// the sidebar from growing (connection sidebar and shortest path sidebar).
+		const {width} = entries[0].contentRect;
+		expandMargins.value = width >= 1545;
+	});
+	resizeObserver.observe(sidebarBody.value.$el);
 });
 
 onUnmounted(() => {
 	window.removeEventListener('keydown', keyListener);
+	resizeObserver.disconnect();
 });
 
 // Computed
@@ -139,4 +160,10 @@ function keyListener(event) {
   white-space: nowrap;
   margin-right: 2px;
 }
+
+.increaseMargin {
+  margin-left: 200px;
+  margin-right: 200px;
+}
+
 </style>

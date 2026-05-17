@@ -165,7 +165,7 @@ func isStateEmpty(state string) bool {
 
 // GetFrontendWorkspace returns the specified workspace
 func GetFrontendWorkspace(ctx context.Context, c external.Database, uid string, userUID string) (*DecodedWorkspace, error) {
-	if userUID == "" {
+	if userUID == "" || uid == "" {
 		return nil, serror.New(db.ErrEmptyRequestArgument)
 	}
 
@@ -217,6 +217,45 @@ func GetFrontendWorkspace(ctx context.Context, c external.Database, uid string, 
 	}
 
 	return &decodedWorkspace, nil
+}
+
+// GetWorkspaceState returns the state of the specified workspace
+func GetWorkspaceState(ctx context.Context, c external.Database, uid string, userUID string) (string, error) {
+	if userUID == "" || uid == "" {
+		return "", serror.New(db.ErrEmptyRequestArgument)
+	}
+
+	// request uid and state, so if the state is empty a workspace item is still returned and passed the check below
+	query := `query Q($user:string,$workspace:string){
+			var(func: uid($user)){
+				w as User.workspaces@filter(uid($workspace))
+			}
+
+			q(func: uid(w)){
+				uid
+				Workspace.state
+			}
+		}`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$user": userUID, "$workspace": uid})
+	if err != nil {
+		return "", serror.New(err)
+	}
+
+	// json struct
+	var r struct {
+		Workspaces []Workspace `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return "", serror.New(err)
+	}
+
+	if len(r.Workspaces) != 1 {
+		return "", serror.FromStr("invalid number of workspaces returned: " + strconv.Itoa(len(r.Workspaces)))
+	}
+
+	return r.Workspaces[0].State, nil
 }
 
 // DeleteWorkspace deletes a user's workspace including all their selectors.

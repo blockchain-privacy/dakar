@@ -8,11 +8,9 @@
     max-width="700px"
   >
     <v-card class="mx-auto pb-2">
-      <v-card-title>
-        <span class="text-h5">Shortcut Overview</span>
-      </v-card-title>
+      <v-card-title>Shortcut Overview</v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           <v-table>
             <thead>
               <tr>
@@ -48,8 +46,6 @@
 </template>
 
 <script setup>
-import {VHotkey} from 'vuetify/labs/VHotkey';
-
 const model = defineModel({type: Boolean});
 
 const shortcuts = [

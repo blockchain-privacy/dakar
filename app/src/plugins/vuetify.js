@@ -2,13 +2,14 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+// eslint-disable-next-line import-x/no-unassigned-import
 import 'vuetify/styles';
 import {createVuetify} from 'vuetify';
 import {aliases, mdi} from 'vuetify/iconsets/mdi-svg';
 // Custom icons
+import {md3} from 'vuetify/blueprints';
 import graph from '../assets/graph.svg';
 
-import {md3} from 'vuetify/blueprints';
 const darkTheme = {
 	dark: true,
 	colors: {

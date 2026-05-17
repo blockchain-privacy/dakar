@@ -14,10 +14,11 @@ import (
 	"backend/db/workspace"
 	"context"
 	"encoding/json"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"net/http"
 	"regexp"
 	"strconv"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
@@ -145,19 +146,23 @@ type getWorkspaceReply struct {
 	Descriptors []heuristics.Descriptor `json:"descriptors,omitempty"`
 }
 
-type tokenUser struct {
+type getWorkspaceStateReply struct {
+	State string `json:"state,omitempty"`
+}
+
+type TokenUser struct {
 	ID string `json:"uid,omitempty"`
 }
 
-// extractTokenUser extracts a tokenUser from the context.
-func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
-	userInfo := ctx.Value(middlewareContextUser)
+// ExtractTokenUser extracts a TokenUser from the context.
+func ExtractTokenUser(ctx context.Context) (t TokenUser, err error) {
+	userInfo := ctx.Value(MiddlewareContextUser)
 	if userInfo == nil {
 		err = serror.FromStr("could not extract token user from context")
 		return
 	}
 
-	tUser, ok := userInfo.(tokenUser)
+	tUser, ok := userInfo.(TokenUser)
 	if !ok || len(tUser.ID) == 0 {
 		err = serror.FromStr("invalid user extracted from context")
 		return

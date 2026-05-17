@@ -39,13 +39,13 @@
     <template v-else-if="isUiNodeTextAttributes(node.attributes)">
       <p
         v-if="node.meta?.label?.text"
-        class="text-center text-subtitle-1"
+        class="text-center text-body-large"
       >
         {{ `${node.meta.label.text}` }}
       </p>
       <p
         v-if="node.attributes?.text?.text"
-        class="text-center text-subtitle-1"
+        class="text-center text-body-large"
       >
         {{ node.attributes.text.text }}
       </p>
@@ -62,6 +62,8 @@
 </template>
 
 <script setup>
+import OryUiNodeInput from './OryUiNodeInput.vue';
+import OryUiMessage from './OryUiMessage.vue';
 import {
 	isUiNodeInputAttributes,
 	isUiNodeImageAttributes,
@@ -69,8 +71,6 @@ import {
 	isUiNodeScriptAttributes,
 	isUiNodeTextAttributes,
 } from '@/components/user/ory/utils';
-import OryUiNodeInput from './OryUiNodeInput.vue';
-import OryUiMessage from './OryUiMessage.vue';
 
 defineProps({
 	node: {type: Object, required: true},

@@ -6,7 +6,7 @@
   <div class="d-flex align-center flex-wrap justify-center">
     <span
       v-if="label"
-      class="ms-2 text-subtitle-2"
+      class="ms-2 text-title-small"
     >
       {{ label }}
     </span>

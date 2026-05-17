@@ -125,7 +125,3 @@ func RunRPCTests(m *testing.M, client *jsonrpc.BlockchainClient) {
 
 	m.Run()
 }
-
-func GetPointer[number any](n number) *number {
-	return &n
-}

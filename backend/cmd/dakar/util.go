@@ -10,12 +10,13 @@ import (
 	"backend/external"
 	"errors"
 	"fmt"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"net/http"
 	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type RPCConfig struct {
@@ -48,6 +49,11 @@ type UserModule struct {
 	Port   uint `yaml:"port"`
 }
 
+type MCPModule struct {
+	Active bool `yaml:"active"`
+	Port   uint `yaml:"port"`
+}
+
 type Classifier struct {
 	Active         bool `yaml:"active"`
 	TargetDuration int  `yaml:"targetDuration"`
@@ -58,20 +64,26 @@ type FMIModule struct {
 	TargetDuration int  `yaml:"targetDuration"`
 }
 
+type HeuristicsModule struct {
+	Active      bool `yaml:"active"`
+	WorkerCount int  `yaml:"workerCount"`
+}
+
 type ModulesConfig struct {
-	HTTP       APIModule     `yaml:"api"`
-	Metrics    MetricsModule `yaml:"metrics"`
-	User       UserModule    `yaml:"user"`
-	Crawler    CrawlerModule `yaml:"crawler"`
-	FMI        FMIModule     `yaml:"fmi"`
-	Classifier Classifier    `yaml:"classifier"`
-	HMI        bool          `yaml:"hmi"`
-	Heuristics bool          `yaml:"heuristics"`
+	HTTP       APIModule        `yaml:"api"`
+	Metrics    MetricsModule    `yaml:"metrics"`
+	User       UserModule       `yaml:"user"`
+	MCP        MCPModule        `yaml:"mcp"`
+	Crawler    CrawlerModule    `yaml:"crawler"`
+	FMI        FMIModule        `yaml:"fmi"`
+	Classifier Classifier       `yaml:"classifier"`
+	Heuristics HeuristicsModule `yaml:"heuristics"`
+	HMI        bool             `yaml:"hmi"`
 }
 
 type Config struct {
 	// BlockchainMode controls various config parameters (see config.go).
-	// Allowed values: "Dash" and "Bitcoin"
+	// Allowed values: "dash" and "btc" (see constants module)
 	BlockchainMode string         `yaml:"blockchainMode"`
 	RPC            RPCConfig      `yaml:"rpc"`
 	Database       DatabaseConfig `yaml:"database"`
@@ -97,6 +109,10 @@ var defaultConfig = Config{
 			Active: true,
 			Port:   8085,
 		},
+		MCP: MCPModule{
+			Active: true,
+			Port:   8666,
+		},
 		Metrics: MetricsModule{
 			Active: true,
 			Port:   8481,
@@ -109,9 +125,12 @@ var defaultConfig = Config{
 			Active:         true,
 			TargetDuration: 10,
 		},
-		Heuristics: false,
-		Crawler:    CrawlerModule{Active: true, InitialCacheSize: 25000},
-		HMI:        false,
+		Heuristics: HeuristicsModule{
+			Active:      true,
+			WorkerCount: 0,
+		},
+		Crawler: CrawlerModule{Active: true, InitialCacheSize: 25000},
+		HMI:     false,
 	},
 }
 
@@ -181,20 +200,17 @@ func waitForRPCClient(client external.RPCClient) error {
 }
 
 // shutdownServer sends a shutdown signal to the server with a timeout of 10 seconds
-func shutdownServer(srv *http.Server) {
+func shutdownServer(srv *http.Server, name string) {
 	if srv == nil {
 		return
 	}
-	info("Shutting down server")
+	info("Shutting down server", "name", name)
 
 	ctx, cancel := db.GetShortTaskContext()
-	defer func() {
-		// extra handling here
-		cancel()
-	}()
+	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		warn(serror.FromFormat("Server was shutdown and returned error: %w", err))
+		warn(serror.FromFormat("server '%s' was shutdown and returned error: %w", name, err))
 	}
 }
 

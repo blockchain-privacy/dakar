@@ -193,7 +193,7 @@ func splitTimestampsIntoSessions(timestamps []int64) [][]int64 {
 	const splitDuration = 60 * 60 * 12
 
 	var sessions [][]int64
-	var session []int64 //nolint:prealloc
+	var session []int64
 	for i, t := range timestamps {
 		session = append(session, t)
 

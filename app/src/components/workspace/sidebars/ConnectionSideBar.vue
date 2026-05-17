@@ -23,6 +23,7 @@
       />
     </template>
     <template #body>
+      <alert :text="errorMsg" />
       <v-card flat>
         <v-card-text>
           <fade-transition>
@@ -35,7 +36,7 @@
                 :icon="mdiCancel"
                 size="90"
               />
-              <div class="text-h6 mt-2">
+              <div class="text-title-large mt-2">
                 No connection data available
               </div>
             </div>
@@ -126,20 +127,22 @@
 
 <script setup>
 import {mdiArrowLeftRight, mdiCancel} from '@mdi/js';
-import SideBar from '@/components/common/SideBar.vue';
 import {computed, onUpdated, ref} from 'vue';
-import {useMsgStore} from '@/pinia/msg.js';
 import {useRoute} from 'vue-router';
-import {
-	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_CLUSTER,
-	ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION,
-} from '@/constants/index.js';
 import {capitalize, convertAmount, getDakarClient} from '../../../utilities/index.js';
+import {
+	WORKSPACE_NODE_TYPE_SELECTOR,
+	WORKSPACE_NODE_TYPE_CLUSTER,
+	ROUTE_NAME_TRANSACTION_PAGE,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+} from '@/constants/index.js';
+import SideBar from '@/components/common/SideBar.vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	connection: {type: Object, required: true},
@@ -151,7 +154,6 @@ const emit = defineEmits(['addNodes']);
 
 const model = defineModel({type: Boolean});
 const route = useRoute();
-const msgStore = useMsgStore();
 const workspaceStore = useWorkspaceStore();
 const dakar = getDakarClient(route.params.blockchainMode);
 
@@ -168,6 +170,7 @@ const filteredHeaders = ref([]);
 const showOnlyHighlightedOutputs = ref(false);
 const showSelectAddresses = ref(true);
 const showSelectTransactions = ref(true);
+const errorMsg = ref('');
 
 const headers = [
 	{
@@ -247,13 +250,6 @@ const title = computed(() => {
 });
 
 // Functions
-
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
-
 async function getConnectionData() {
 	if (!connectionSource.value?.uid || !connectionTarget.value?.uid || !props.workspaceUid) {
 		return;
@@ -261,6 +257,7 @@ async function getConnectionData() {
 
 	transactionList.value = null;
 	transactions.value = null;
+	errorMsg.value = '';
 
 	try {
 		const response = await dakar.workspace.workspacesConnectionPost({
@@ -295,20 +292,16 @@ async function getConnectionData() {
 			showSelectTransactions.value = true;
 			showSelectAddresses.value = false;
 
-			if (hasTxType) {
-				filteredHeaders.value = headers;
-			} else {
-				// Data has no transaction type, so remove it from header
-				filteredHeaders.value = headers.filter(d => d.key !== 'txtype');
-			}
+			// If data has no transaction type, so remove it from header
+			filteredHeaders.value = hasTxType ? headers : headers.filter(d => d.key !== 'txtype');
 		} else if (response.frontendTransactions) {
 			transactions.value = response.frontendTransactions;
 			addTransactionEntitiesToMap(response.frontendTransactions);
 		} else {
 			transactionList.value = [];
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		errorMsg.value = error;
 	}
 }
 
@@ -322,14 +315,18 @@ function addOutputToSelectableEntities(output) {
 	}
 }
 
-function addTransactionEntitiesToMap(transactions) {
-	for (const t of transactions) {
+function addTransactionEntitiesToMap(txs) {
+	for (const t of txs) {
 		if (t.inputs) {
-			t.inputs.forEach(addOutputToSelectableEntities);
+			t.inputs.forEach(element => {
+				addOutputToSelectableEntities(element);
+			});
 		}
 
 		if (t.outputs) {
-			t.outputs.forEach(addOutputToSelectableEntities);
+			t.outputs.forEach(element => {
+				addOutputToSelectableEntities(element);
+			});
 		}
 	}
 
@@ -344,6 +341,7 @@ async function getTransactionData() {
 
 	transactionList.value = null;
 	transactions.value = null;
+	errorMsg.value = '';
 
 	try {
 		const response = await dakar.data.blockchainTransactionsHashGet({hash: connectionSource.value.transactionHash});
@@ -352,8 +350,8 @@ async function getTransactionData() {
 			transactions.value = response.transactions;
 			addTransactionEntitiesToMap(response.transactions);
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		errorMsg.value = error;
 	}
 }
 

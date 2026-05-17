@@ -120,7 +120,7 @@ yarnPath: .yarn/releases/yarn-4.0.0.cjs
 
 npmScopes:
   blockchain:
-    npmRegistryServer: "https://<gitlab_host>/api/v4/projects/410/packages/npm/"
+    npmRegistryServer: "https://<gitlab_host>/api/v4/projects/<project_id>/packages/npm/"
     npmAlwaysAuth: true
     npmAuthToken: "<your-deploy-token>"
 ```
@@ -129,6 +129,32 @@ Format the OpenAPI annotations using:
 
 ```shell
 make openapi-fmt
+```
+
+## Authentication and Authorization
+
+Dakar's API uses the UID stored in the request header field `X-dakar-user`. 
+Dakar does not authenticate any request. This should be done by a dedicated identity management system.
+We provide configuration for the [ory](https://github.com/ory) auth stack, which is also integrated into the web app.
+All configuration files are in dev mode.
+
+### OAuth 2.0 client creation
+Create a device authorization client with the following commands. 
+Use the client id stored in `$code_client` to set up an oauth client.
+```shell
+cd docker
+code_client=$(sudo docker compose --env-file .env.local exec hydra \
+    hydra create client \
+    --endpoint http://<hydra_endpoint>:4445 \
+    --grant-type authorization_code,refresh_token,urn:ietf:params:oauth:grant-type:device_code \
+    --response-type code,id_token \
+    --name <client_name> \
+    --skip-consent \
+    --format json \
+    --scope openid --scope offline \
+    --audience dakar \
+    --token-endpoint-auth-method none)
+echo $code_client
 ```
 
 ## Development

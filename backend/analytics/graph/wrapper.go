@@ -131,7 +131,7 @@ func (w *Wrapper) PartitionNodesByDirectConnections(nodes []string) ([][]string,
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	var partitions [][]string //nolint:prealloc
+	var partitions [][]string
 	for n := range nodeSet {
 		neighbours, err := getConnectedNodes(w.transactionGraph, n, nodeSet)
 		if err != nil {

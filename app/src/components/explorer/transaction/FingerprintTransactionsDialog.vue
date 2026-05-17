@@ -8,7 +8,7 @@
     max-width="700px"
   >
     <v-card>
-      <v-card-title class="text-h5 text-wrap">
+      <v-card-title class="text-wrap">
         Similar Destination Transactions
       </v-card-title>
       <v-card-text>
@@ -25,6 +25,7 @@
 
 <script setup>
 import FingerprintTransactions from '@/components/explorer/transaction/FingerprintTransactions.vue';
+
 const model = defineModel({type: Boolean});
 defineProps({transactionHash: {type: String, required: true}});
 </script>

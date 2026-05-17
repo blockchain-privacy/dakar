@@ -27,7 +27,7 @@
           :icon="mdiHelpCircleOutline"
         />
       </v-list-item-title>
-      <v-list-item-title class="text-subtitle-2">
+      <v-list-item-title class="text-title-small">
         <slot />
       </v-list-item-title>
     </div>

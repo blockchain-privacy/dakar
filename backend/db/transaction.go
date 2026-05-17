@@ -15,8 +15,8 @@ import (
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
-// transactionDType is the dgraph database type for the Transaction type
-const transactionDType = "Transaction"
+// TransactionDType is the Dgraph database type for the Transaction type
+const TransactionDType = "Transaction"
 
 // Transaction is the database representation of a blockchain transaction
 type Transaction struct {
@@ -29,31 +29,9 @@ type Transaction struct {
 	DType   []string `json:"dgraph.type,omitempty"`
 }
 
-func (t *Transaction) String() string {
-	output := fmt.Sprintf("UID: %s, Hash: %s", t.UID, t.Hash)
-
-	if t.Type != "" {
-		output += ", Transaction type:" + t.Type
-	}
-
-	if t.Fee != nil {
-		output += fmt.Sprintf(", Fee: %d", *t.Fee)
-	}
-
-	if t.Outputs != nil {
-		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
-	}
-
-	if t.Inputs != nil {
-		output += fmt.Sprintf(", Input count: %d", len(t.Inputs))
-	}
-
-	return output
-}
-
-// SetDType sets the DType for dgraph type recognition
+// SetDType sets the DType for Dgraph type recognition
 func (t *Transaction) SetDType() {
-	t.DType = []string{transactionDType}
+	t.DType = []string{TransactionDType}
 }
 
 // CalculateTransactionFee sets the transaction fee based
@@ -92,8 +70,6 @@ type FrontendTransactionOutput struct {
 	OutputIndex *int32 `json:"outputindex,omitempty"`
 	IsCoinbase  bool   `json:"iscoinbase"`
 	AddressHash string `json:"addresshash"`
-	SigAsm      string `json:"sigasm,omitempty"`
-	KeyAsm      string `json:"keyasm,omitempty"`
 
 	// This is data from either the transaction where this output is generated or spent
 	TransactionType string `json:"txtype,omitempty"`
@@ -135,8 +111,6 @@ const FrontendTransactionFragments = `
 					amount: amount
 					inputindex: inputindex
 					iscoinbase: iscoinbase
-					keyasm: keyasm
-					sigasm: sigasm
 					~addr_outputs{
 						addresshash: addresshash
 					}
@@ -195,12 +169,7 @@ func GetTransactionsOutputs(ctx context.Context, c external.Database, transactio
 // GetTransactionsByBlock returns the transaction contained in the requested block.
 // If transactionTypeFilter is not nil, only transactions with the specified type are returned.
 func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockID int64,
-	toBlockID int64, withOutputScripts bool, transactionTypeFilter []string) (transactions []Transaction, err error) {
-	var keyAsm string
-	if withOutputScripts {
-		keyAsm = "keyasm"
-	}
-
+	toBlockID int64, transactionTypeFilter []string) (transactions []Transaction, err error) {
 	var typeFilter string
 	if len(transactionTypeFilter) > 0 {
 		for _, t := range transactionTypeFilter {
@@ -235,7 +204,6 @@ func GetTransactionsByBlock(ctx context.Context, c external.Database, fromBlockI
 						amount
 						inputindex
 						outputindex
-						` + keyAsm + `
 					}
 				}
 			  }`
@@ -313,9 +281,9 @@ func GetTransaction(ctx context.Context, c external.Database, txHash string) (tr
 	return
 }
 
-// GetOutputAddressCounts returns the number of distinct addresses associated
+// GetInputOutputAddressCounts returns the number of distinct addresses associated
 // with the inputs and outputs of the transaction uid
-func GetOutputAddressCounts(ctx context.Context, c external.Database,
+func GetInputOutputAddressCounts(ctx context.Context, c external.Database,
 	uid string) (inputCount int, outputcount int, err error) {
 	if uid == "" {
 		err = serror.New(ErrEmptyRequestArgument)
@@ -374,6 +342,60 @@ func GetOutputAddressCounts(ctx context.Context, c external.Database,
 	}
 
 	inputCount = r.Input[0].Count
+	outputcount = r.Output[0].Count
+
+	return
+}
+
+// GetOutputAddressCounts returns the number of distinct addresses associated
+// with the outputs of the transaction uid
+func GetOutputAddressCounts(ctx context.Context, c external.Database,
+	uid string) (outputcount int, err error) {
+	if uid == "" {
+		err = serror.New(ErrEmptyRequestArgument)
+		return
+	}
+
+	const query = `query Q($uid: string){
+				var(func: uid($uid)){
+					tx_outputs {
+						~addr_outputs{
+							oa as addresshash
+						}
+					}
+				}
+				output(func: uid(oa)){
+					count(uid)
+				}
+			   }`
+
+	resp, err := QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": uid})
+	if err != nil {
+		return
+	}
+
+	// json struct
+	var r struct {
+		Output []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"output,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	if len(r.Output) == 0 {
+		err = serror.New(ErrTransactionNotFound)
+		return
+	}
+
+	if len(r.Output) > 1 {
+		err = serror.New(errInvalidResult)
+		return
+	}
+
 	outputcount = r.Output[0].Count
 
 	return
@@ -648,7 +670,7 @@ func UpdateTransactions(ctx context.Context, c external.Database, transactions [
 
 	for _, tx := range transactions {
 		if tx.UID == "" {
-			return serror.FromStr("uid is not set for transaction " + tx.String())
+			return serror.FromStr("uid is not set for transaction " + tx.Hash)
 		}
 	}
 

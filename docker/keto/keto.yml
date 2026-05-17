@@ -1,0 +1,17 @@
+version: v26.2.0
+
+log:
+  level: warn
+
+namespaces:
+  location: file:///home/ory/namespaces.ts
+
+serve:
+  read:
+    host: 0.0.0.0
+    port: 4466
+  write:
+    host: 0.0.0.0
+    port: 4467
+
+dsn: memory

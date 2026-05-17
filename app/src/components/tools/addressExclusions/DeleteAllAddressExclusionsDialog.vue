@@ -8,45 +8,38 @@
     max-width="400px"
   >
     <v-card class="mx-auto pb-2">
-      <v-card-title>
-        <span class="text-h5">Delete All {{ title }} Address Exclusions</span>
-      </v-card-title>
+      <v-card-title>Delete All {{ title }} Address Exclusions</v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           Are you sure you want to delete all {{ count }} address exclusions?
         </div>
-        <v-row class="mt-4">
-          <v-col class="d-flex justify-end align-center">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              color="red"
-              :loading="isLoading"
-              @click="deleteAllAddressExclusions"
-            >
-              Delete
-            </v-btn>
-          </v-col>
-        </v-row>
       </v-card-text>
+      <alert :text="errorMsg" />
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          color="red"
+          :loading="isLoading"
+          @click="deleteAllAddressExclusions"
+        >
+          Delete
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {getDakarClient} from '@/utilities/index.js';
-
-const msgStore = useMsgStore();
-const route = useRoute();
+import Alert from '@/components/common/Alert.vue';
 
 const model = defineModel({type: Boolean});
 const props = defineProps({
@@ -58,25 +51,23 @@ const emit = defineEmits(['deleted']);
 const dakar = getDakarClient(props.blockchainMode);
 
 const isLoading = ref(false);
+const errorMsg = ref('');
 
 // Functions
-function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
-}
-
 async function deleteAllAddressExclusions() {
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		await dakar.addressExclusion.exclusionsDelete();
 		emit('deleted');
-	} catch (e) {
-		setPersistentErrorMessage(e);
+	} catch (error) {
+		errorMsg.value = error.message;
+		return;
+	} finally {
+		isLoading.value = false;
 	}
 
-	isLoading.value = false;
 	model.value = false;
 }
 

@@ -38,15 +38,21 @@
 </template>
 
 <script setup>
-import {
-	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE, WORKSPACE_NODE_TYPE_TRANSACTION, WORKSPACE_NODE_TYPE_CLUSTER,
-} from '@/constants/index.js';
 import {RouterLink} from 'vue-router';
+import {
+	computed,
+	onMounted,
+	ref,
+	watch,
+} from 'vue';
+import {
+	ROUTE_NAME_ADDRESS_PAGE,
+	ROUTE_NAME_TRANSACTION_PAGE,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+	WORKSPACE_NODE_TYPE_CLUSTER,
+} from '@/constants/index.js';
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import '@/assets/main.css';
-import {
-	computed, onMounted, ref, watch,
-} from 'vue';
 
 defineOptions({
 	inheritAttrs: false,

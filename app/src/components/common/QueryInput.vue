@@ -49,23 +49,23 @@
 </template>
 
 <script setup>
-import {
-	BLOCKCHAIN_ATTRIBUTES,
-	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE,
-} from '@/constants/index.js';
-import {getDakarClients} from '@/utilities/index.js';
 import {ref} from 'vue';
 import {useRouter} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg.js';
 import {storeToRefs} from 'pinia';
-import {useLocalStore} from '@/pinia/local.js';
 import {mdiMagnify} from '@mdi/js';
+import {useLocalStore} from '@/pinia/local.js';
+import {getDakarClients} from '@/utilities/index.js';
+import {
+	BLOCKCHAIN_ATTRIBUTES,
+	ROUTE_NAME_ADDRESS_PAGE,
+	ROUTE_NAME_BLOCK_PAGE,
+	ROUTE_NAME_TRANSACTION_PAGE,
+} from '@/constants/index.js';
 import QueryInputResults from '@/components/common/QueryInputResults.vue';
 
 const localStore = useLocalStore();
 const {getSearchHistory} = storeToRefs(localStore);
 const router = useRouter();
-const msgStore = useMsgStore();
 
 defineProps({
 	density: {type: String, required: false, default: undefined},
@@ -94,7 +94,7 @@ function isValidQueryInput(str) {
 		return Number.isInteger(Number(str));
 	}
 
-	return str.match(/^[\da-zA-Z]+$/) !== null;
+	return str.match(/^[\da-zA-Z]+$/v) !== null;
 }
 
 function isValidQuery(q) {
@@ -120,8 +120,6 @@ async function search(q) {
 		setNoResults();
 		return;
 	}
-
-	msgStore.resetMessages();
 
 	isLoading.value = true;
 

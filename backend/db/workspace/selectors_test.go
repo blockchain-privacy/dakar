@@ -174,6 +174,13 @@ func TestDoSelection(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		flag := tt.o.IsValid(t.Context(), dbHandle, "")
+		if tt.wantErr {
+			require.False(t, flag)
+			continue
+		}
+		require.True(t, flag)
+
 		selection, totalResultCount, err := DoSelection(t.Context(), dbHandle, tt.o, "")
 		if tt.wantErr {
 			require.Error(t, err)
@@ -252,7 +259,7 @@ func TestInsertSelector(t *testing.T) {
 
 	// for parent test
 	parentSelectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -283,7 +290,7 @@ func TestInsertSelector(t *testing.T) {
 		},
 		{
 			selector: &Selector{
-				Type:    TypeTxProp,
+				Type:    constants.TypeTxProp,
 				Status:  StatusSuccess,
 				Options: string(optJSON),
 				Results: results,
@@ -295,7 +302,7 @@ func TestInsertSelector(t *testing.T) {
 		// invalid parent UID
 		{
 			selector: &Selector{
-				Type:    TypeTxProp,
+				Type:    constants.TypeTxProp,
 				Status:  StatusError,
 				Options: string(optJSON),
 				Parent:  &db.UIDNode{UID: "0x123"},
@@ -307,7 +314,7 @@ func TestInsertSelector(t *testing.T) {
 		// empty parent UID
 		{
 			selector: &Selector{
-				Type:    TypeTxProp,
+				Type:    constants.TypeTxProp,
 				Status:  StatusError,
 				Options: string(optJSON),
 				Parent:  &db.UIDNode{UID: ""},
@@ -318,7 +325,7 @@ func TestInsertSelector(t *testing.T) {
 		},
 		{
 			selector: &Selector{
-				Type:    TypeTxProp,
+				Type:    constants.TypeTxProp,
 				Status:  StatusSuccess,
 				Options: string(optJSON),
 				Parent:  &db.UIDNode{UID: parentSelectorUID},
@@ -354,7 +361,7 @@ func TestGetSelectorResultsByUID(t *testing.T) {
 	}
 	ctx := t.Context()
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -404,7 +411,7 @@ func TestUpdateSelector(t *testing.T) {
 	}
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -418,7 +425,7 @@ func TestUpdateSelector(t *testing.T) {
 	}{
 		{
 			status:       StatusError,
-			selectorType: TypeTxProp,
+			selectorType: constants.TypeTxProp,
 			wantErr:      false,
 		},
 		{
@@ -462,7 +469,7 @@ func TestDeleteUserSelectors(t *testing.T) {
 	}
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  StatusSuccess,
 		Options: string(optJSON),
 		Results: results,
@@ -494,7 +501,7 @@ func TestGetWaitingSelectors(t *testing.T) {
 	}
 
 	_, err = InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  StatusWaiting,
 		Options: string(optJSON),
 		Results: results,
@@ -542,7 +549,7 @@ func TestGetSelectorStatus(t *testing.T) {
 	require.Error(t, err)
 
 	selectorUID, err := InsertSelector(ctx, dbHandle, &Selector{
-		Type:    TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  StatusWaiting,
 		Options: string(optJSON),
 		Results: results,
@@ -575,29 +582,36 @@ func TestDoGraphSelection(t *testing.T) {
 		},
 		{
 			o: TxGraphOptions{
-				Depth: db.GetPointer(10),
+				Depth: new(10),
 			},
 			parentUID: "",
 			wantErr:   true,
 		},
 		{
 			o: TxGraphOptions{
-				Depth: db.GetPointer(2),
+				Depth: new(2),
 			},
 			parentUID: "",
 			wantErr:   true,
 		},
 		{
 			o: TxGraphOptions{
-				Depth:     db.GetPointer(2),
+				Depth:     new(2),
 				IsForward: true,
-				MaxItems:  db.GetPointer(5),
+				MaxItems:  new(5),
 			},
 			parentUID: uid,
 			wantErr:   false,
 		},
 	}
 	for _, tt := range tests {
+		flag := tt.o.IsValid(t.Context(), dbHandle, tt.parentUID)
+		if tt.wantErr {
+			require.False(t, flag)
+			continue
+		}
+		require.True(t, flag)
+
 		selection, totalResultCount, err := DoGraphSelection(t.Context(), dbHandle, tt.o, tt.parentUID)
 		if tt.wantErr {
 			require.Error(t, err)

@@ -10,12 +10,13 @@ import (
 	"backend/analytics/graph"
 	"backend/blockiterator"
 	"backend/constants"
+	"backend/crawler"
 	"backend/db"
 	"backend/db/status"
 	"backend/db/upgrades"
 	"backend/external"
 	"backend/jsonrpc"
-	"backend/processor"
+	"backend/mcpserver"
 	"backend/server"
 	"backend/userserver"
 	"backend/workspace"
@@ -61,7 +62,7 @@ func setCommandFlags(c *Commands) {
 }
 
 type iteratorConfigurations struct {
-	processor  processor.Config
+	crawler    crawler.Config
 	classifier classifier.Config
 	clustering clustering.Config
 	graph      graph.Config
@@ -72,14 +73,14 @@ func selectConfig(blockchainMode string) (*iteratorConfigurations, error) {
 	switch blockchainMode {
 	case constants.BlockchainModeDash:
 		return &iteratorConfigurations{
-			processor:  processor.NewDashConfig(),
+			crawler:    crawler.NewDashConfig(),
 			classifier: classifier.NewDashConfig(),
 			graph:      graph.NewDashConfig(),
 			clustering: clustering.NewDashConfig(),
 		}, nil
 	case constants.BlockchainModeBTC:
 		return &iteratorConfigurations{
-			processor:  processor.NewBitcoinConfig(),
+			crawler:    crawler.NewBitcoinConfig(),
 			classifier: classifier.NewBTCConfig(),
 			graph:      graph.NewBTCConfig(),
 			clustering: clustering.NewBTCConfig(),
@@ -146,7 +147,7 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (external.RPCClient, error)
 // This is the backend of Dakar. It crawls, classifies and clusters either the Dash
 // or Bitcoin blockchain and exposes its data via a RESTful API.
 //
-// nolint:gocyclo
+//nolint:gocyclo
 func main() {
 	////// SET FLAGS //////
 
@@ -214,12 +215,6 @@ func main() {
 		return
 	}
 	defer graphDB.Close()
-
-	// test if database is active
-	if !external.WaitForDatabase(graphDB) {
-		info("could not connect to database")
-		return
-	}
 
 	if commands.ResetDB {
 		if err = resetDatabaseDialog(graphDB, newConfig.BlockchainMode); err != nil {
@@ -311,20 +306,18 @@ func main() {
 
 	// activate crawler
 	if newConfig.Modules.Crawler.Active {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() {
 				chCrawlingStopped <- true
 			}()
 
-			crawler := processor.NewCrawler(appContext, graphDB, client,
-				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.processor)
-			crawler.RegisterMetrics(prometheus.DefaultRegisterer)
-			if processorErr := blockiterator.StartIteration(crawler, 0, nil); processorErr != nil {
-				warn(processorErr)
+			blockCrawler := crawler.NewCrawler(appContext, graphDB, client,
+				newConfig.Modules.Crawler.InitialCacheSize, iterConfigs.crawler)
+			blockCrawler.RegisterMetrics(prometheus.DefaultRegisterer)
+			if err = blockiterator.StartIteration(blockCrawler, 0, nil); err != nil {
+				warn(err)
 			}
-		}()
+		})
 	}
 
 	workspaceMutex := workspace.NewMutex()
@@ -332,10 +325,11 @@ func main() {
 	graphWrapper.RegisterMetrics(prometheus.DefaultRegisterer)
 	w := workspace.NewWorker(workspaceMutex, graphDB, graphWrapper)
 	w.RegisterMetrics(prometheus.DefaultRegisterer)
+	w.SetWorkerCount(newConfig.Modules.Heuristics.WorkerCount)
 
 	var classifierStarted bool
 
-	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics {
+	if newConfig.Modules.HTTP.Active && newConfig.Modules.Heuristics.Active {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
@@ -345,16 +339,12 @@ func main() {
 			}
 
 			if newConfig.Modules.Classifier.Active {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					if iterErr := blockiterator.StartIteration(graphWrapper, 0, nil); iterErr != nil {
 						warn(iterErr)
 					}
-				}()
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				})
+				wg.Go(func() {
 					defer func() {
 						chClassifyingStopped <- true
 					}()
@@ -366,23 +356,17 @@ func main() {
 						nil); classifierErr != nil {
 						warn(classifierErr)
 					}
-				}()
+				})
 			}
 		}()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			w.Start(appContext)
-		}()
+		wg.Go(func() { w.Start(appContext) })
 	}
 
 	// activate classifier
 	if newConfig.Modules.Classifier.Active && !classifierStarted {
 		// in-memory graphs are not loaded -> start classifier
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() {
 				chClassifyingStopped <- true
 			}()
@@ -393,14 +377,12 @@ func main() {
 				nil); classifierErr != nil {
 				warn(classifierErr)
 			}
-		}()
+		})
 	}
 
 	// activate HMI clustering
 	if newConfig.Modules.HMI {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() {
 				chHMIClusteringStopped <- true
 			}()
@@ -410,14 +392,12 @@ func main() {
 			if clusteringErr := blockiterator.StartIteration(hmi, 0, nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
-		}()
+		})
 	}
 
 	// activate FMI clustering
 	if newConfig.Modules.FMI.Active {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() {
 				chFMIClusteringStopped <- true
 			}()
@@ -428,7 +408,7 @@ func main() {
 				nil); clusteringErr != nil {
 				warn(clusteringErr)
 			}
-		}()
+		})
 	}
 
 	// start api endpoint
@@ -447,6 +427,14 @@ func main() {
 	if newConfig.Modules.HTTP.Active {
 		wg.Add(1)
 		userHTTPServer = userserver.NewServer(graphDB).StartServer(&wg, newConfig.Modules.User.Port)
+	}
+
+	// start mcp api endpoint
+	var mcpHTTPServer *http.Server
+	if newConfig.Modules.MCP.Active {
+		wg.Add(1)
+		mcpHTTPServer = mcpserver.NewServer(graphDB, w, graphWrapper, newConfig.BlockchainMode).
+			StartServer(&wg, newConfig.Modules.MCP.Port)
 	}
 
 	// start metrics endpoint
@@ -469,9 +457,10 @@ func main() {
 		case <-chSignal:
 			interrupted = true
 			terminateApp()
-			shutdownServer(apiHTTPServer)
-			shutdownServer(userHTTPServer)
-			shutdownServer(metricsHTTPServer)
+			shutdownServer(apiHTTPServer, "api")
+			shutdownServer(userHTTPServer, "user")
+			shutdownServer(metricsHTTPServer, "metric")
+			shutdownServer(mcpHTTPServer, "mcp")
 		case <-chCrawlingStopped:
 			terminateApp()
 			crawlerStopped = true
@@ -494,9 +483,10 @@ func main() {
 
 		<-chSignal
 		terminateApp()
-		shutdownServer(apiHTTPServer)
-		shutdownServer(userHTTPServer)
-		shutdownServer(metricsHTTPServer)
+		shutdownServer(apiHTTPServer, "api")
+		shutdownServer(userHTTPServer, "user")
+		shutdownServer(metricsHTTPServer, "metric")
+		shutdownServer(mcpHTTPServer, "mcp")
 	}
 
 	wg.Wait()

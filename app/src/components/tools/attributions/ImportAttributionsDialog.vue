@@ -9,10 +9,10 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Import {{ title }} Attributions</span>
+        Import {{ title }} Attributions
       </v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           Import address attributions by uploading a CSV-file.
           The file must have five columns (<code>address</code>,
           <code>tag</code>,<code>description</code>,<code>source</code> and
@@ -52,38 +52,34 @@
               label="Separator"
             />
           </div>
-          <div class="d-flex align-center justify-end">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              class="mr-2"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              :loading="isLoading"
-              @click="handleCSVUpload"
-            >
-              Upload
-            </v-btn>
-          </div>
         </v-form>
+        <alert :text="errorMsg" />
       </v-card-text>
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          :loading="isLoading"
+          @click="handleCSVUpload"
+        >
+          Upload
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
-import {fileRule, getDakarClient} from '@/utilities';
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {fileRule, getDakarClient} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-
-const route = useRoute();
-const msgStore = useMsgStore();
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -104,6 +100,7 @@ const csv = ref({
 	separator: ',',
 	firstRowContainsHeader: false,
 });
+const errorMsg = ref('');
 
 const separatorItems = [
 	{text: 'Colon (,)', value: ','},
@@ -135,18 +132,6 @@ function codeToMsg(msgCode) {
 	}
 }
 
-function setSuccessMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'success', temporary: true, category: route.name,
-	});
-}
-
-function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
-}
-
 async function handleCSVUpload() {
 	const {valid} = await csvForm.value.validate();
 	if (!valid) {
@@ -154,6 +139,7 @@ async function handleCSVUpload() {
 	}
 
 	isLoading.value = true;
+	errorMsg.value = '';
 	const attributionData = {
 		separator: csv.value.separator,
 		hasHeader: csv.value.firstRowContainsHeader,
@@ -163,14 +149,15 @@ async function handleCSVUpload() {
 	try {
 		await dakar.attribution.attributionsPost(attributionData);
 
-		setSuccessMessage('import was successful');
 		emit('added');
-	} catch (e) {
-		setPersistentErrorMessage(codeToMsg(e.message));
+	} catch (error) {
+		errorMsg.value = codeToMsg(error.message);
+		return;
+	} finally {
+		isLoading.value = false;
+		csv.value.file = undefined;
 	}
 
-	isLoading.value = false;
-	csv.value.file = undefined;
 	model.value = false;
 }
 </script>

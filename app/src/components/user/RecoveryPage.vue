@@ -12,9 +12,10 @@
       style="flex:1"
     >
       <div class="pa-5">
-        <h3 class="text-h3 font-weight-bold text-center mb-2">
+        <h3 class="text-display-medium font-weight-bold text-center ma-0">
           Account Recovery
         </h3>
+        <alert :text="errorMsg" />
         <ory-flow
           v-if="recoveryFlow"
           class="mt-3"
@@ -34,40 +35,41 @@
 </template>
 
 <script setup>
-import {PAGE_TITLE} from '@/constants';
-import handleGetFlowError from '@/kratos';
-import OryFlow from './ory/OryFlow.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import OryFlow from './ory/OryFlow.vue';
+import {PAGE_TITLE} from '@/constants';
+import handleGetFlowError from '@/kratos';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
-import {useMsgStore} from '@/pinia/msg';
+import Alert from '@/components/common/Alert.vue';
 
 const ory = inject('ory');
 const route = useRoute();
 const router = useRouter();
 const localStore = useLocalStore();
 const navStore = useNavStore();
-const msgStore = useMsgStore();
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore,
+	$route: route, $router: router, navStore, localStore,
 };
 
 const recoveryFlow = ref(null);
 const disabledForms = ref([]);
+const errorMsg = ref('');
 
 // Hooks
 onMounted(async () => {
 	document.title = `Account Recovery - ${PAGE_TITLE}`;
 
 	const {flow} = route.query;
+	errorMsg.value = '';
 
 	if (typeof flow === 'string') {
 		try {
 			const response = await ory.frontend.getRecoveryFlow({id: flow});
 			setFlowData(response);
-		} catch (e) {
-			await handleGetFlowError(context, e, initRecoveryFlow);
+		} catch (error) {
+			await doErrorHandling(context, error, initRecoveryFlow);
 		}
 	} else {
 		// If there's no flow in our route,
@@ -77,18 +79,24 @@ onMounted(async () => {
 });
 
 // Functions
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
+async function doErrorHandling(ctx, err, onRefreshFlow, isOAuth) {
+	try {
+		const msg = await handleGetFlowError(ctx, err, onRefreshFlow, isOAuth);
+		if (msg) {
+			errorMsg.value = msg;
+		}
+	} catch (error) {
+		errorMsg.value = error.message;
+	}
 }
 
 async function initRecoveryFlow() {
+	errorMsg.value = '';
 	try {
 		const response = await ory.frontend.createBrowserRecoveryFlow();
 		setFlowData(response);
-	} catch (e) {
-		await handleGetFlowError(context, e, null);
+	} catch (error) {
+		await doErrorHandling(context, error, null);
 	}
 }
 
@@ -104,6 +112,8 @@ async function handleOrySubmitRecovery(formID, btnName) {
 	if (!form || !recoveryFlow.value.ui.action) {
 		return;
 	}
+
+	errorMsg.value = '';
 
 	// Disable submitting from this form
 	disabledForms.value.push(formID);
@@ -134,17 +144,13 @@ async function handleOrySubmitRecovery(formID, btnName) {
 		}
 
 		if (response.error?.reason) {
-			setErrorMessage(response.error.reason);
+			errorMsg.value = response.error.reason;
 		}
-	} catch (e) {
-		if (e.response?.ui) {
-			setFlowData(e.response);
+	} catch (error) {
+		if (error.response?.ui) {
+			setFlowData(error.response);
 		} else {
-			try {
-				await handleGetFlowError(context, e, initRecoveryFlow);
-			} catch (e) {
-				setErrorMessage(e);
-			}
+			await doErrorHandling(context, error, initRecoveryFlow);
 		}
 	}
 

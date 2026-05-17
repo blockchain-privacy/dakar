@@ -2,8 +2,19 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {expect, test} from 'vitest';
-import {extractEntities, filterDescriptors} from '.';
+import {
+	expect,
+	test,
+	describe,
+	it,
+
+} from 'vitest';
+import {
+	extractEntities,
+	filterDescriptors,
+	isMaxLargerThanMin,
+	isValidEmail,
+} from '@/utilities/index.js';
 import {SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS} from '@/constants/index.js';
 
 test('reactor csv', () => {
@@ -144,4 +155,57 @@ test('filterDescriptors', () => {
 	expect(() => filterDescriptors(descriptors, fail)).toThrowError('invalid node type');
 
 	expect(filterDescriptors(descriptors, fail, false)).toHaveLength(2);
+});
+
+test('isMaxLargerThanMin - both min and max are undefined', () => {
+	expect(isMaxLargerThanMin({min: undefined, max: undefined})).toBe(true);
+});
+
+test('isMaxLargerThanMin - max is greater than min', () => {
+	expect(isMaxLargerThanMin({min: 5, max: 10})).toBe(true);
+});
+
+test('isMaxLargerThanMin - max is equal to min', () => {
+	expect(isMaxLargerThanMin({min: 5, max: 5})).toBe(true);
+});
+
+test('isMaxLargerThanMin - max is less than min', () => {
+	expect(isMaxLargerThanMin({min: 10, max: 5})).toBe(false);
+});
+
+test('isMaxLargerThanMin - min is undefined and max is defined', () => {
+	expect(isMaxLargerThanMin({min: undefined, max: 5})).toBe(true);
+});
+
+test('isMaxLargerThanMin - min is defined and max is undefined', () => {
+	expect(isMaxLargerThanMin({min: 5, max: undefined})).toBe(true);
+});
+
+test('isMaxLargerThanMin - both min and max are zero', () => {
+	expect(isMaxLargerThanMin({min: 0, max: 0})).toBe(true);
+});
+
+describe('isValidEmail', () => {
+	const valid = [
+		'user@example.com',
+		'foo.bar+baz@sub.domain.co.uk',
+		'12345@123.123.123.123',
+	];
+
+	const invalid = [
+		'',
+		'plainaddress',
+		'missing@domain',
+		'@no-local-part.com',
+		'user@invalid,com',
+		'user@invalid@com',
+	];
+
+	it.each(valid)('returns true for %s', str => {
+		expect(isValidEmail(str)).toBeTruthy();
+	});
+
+	it.each(invalid)('returns false for %s', str => {
+		expect(isValidEmail(str)).toBeFalsy();
+	});
 });

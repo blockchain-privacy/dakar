@@ -2,13 +2,13 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom, zoomTransform} from 'd3-zoom';
 import {forceCollide, forceLink, forceSimulation} from 'd3-force';
-import {abbreviateNumber, reduceX, reduceY} from '@/d3Documents/util';
 import {mdiExclamationThick} from '@mdi/js';
+import d3lasso from './d3Lasso.js';
+import {abbreviateNumber, reduceX, reduceY} from '@/d3Documents/util';
 import forceLimit from '@/d3Documents/forceLimit';
 import {
 	WORKSPACE_NODE_TYPE_SELECTOR,
@@ -17,7 +17,7 @@ import {
 	SELECTOR_STATUS_WAITING,
 	SELECTOR_STATUS_ERROR,
 } from '@/constants/index.js';
-import d3lasso from './d3Lasso.js';
+import {isFunction} from '@/utilities';
 
 // In ms
 const animationDuration = 175;
@@ -139,6 +139,8 @@ export default class NodeGraph {
 	#changedData = new Map();
 	// Node type
 	#nodeTypeColorMap = null;
+	// If enabled, node descriptions are not rendered and event handlers are disabled
+	#enableThumbnailMode = false;
 	enableInteractions = true;
 
 	constructor(nodeTypeColorMap) {
@@ -147,6 +149,10 @@ export default class NodeGraph {
 
 	setEnableInteractions(flag) {
 		this.enableInteractions = flag;
+	}
+
+	setEnableThumbnailMode(flag) {
+		this.#enableThumbnailMode = flag;
 	}
 
 	getFilteredMap() {
@@ -175,12 +181,7 @@ export default class NodeGraph {
 			return node.children.some(child => this.isAllowedByFilter(this.#nodeMap.get(child)));
 		}
 
-		let allowed = false;
-		if (this.#filterNodeTypes.length > 0) {
-			allowed = this.#filterNodeTypes.includes(node.type);
-		} else {
-			allowed = true;
-		}
+		const allowed = this.#filterNodeTypes.length > 0 ? this.#filterNodeTypes.includes(node.type) : true;
 
 		if (!allowed) {
 			return false;
@@ -194,17 +195,9 @@ export default class NodeGraph {
 	}
 
 	filterNodes(nodeTypes, privacyTypes) {
-		if (nodeTypes) {
-			this.#filterNodeTypes = nodeTypes;
-		} else {
-			this.#filterNodeTypes = [];
-		}
+		this.#filterNodeTypes = nodeTypes ?? [];
 
-		if (privacyTypes) {
-			this.#filterPrivacyTypes = privacyTypes;
-		} else {
-			this.#filterPrivacyTypes = [];
-		}
+		this.#filterPrivacyTypes = privacyTypes ?? [];
 
 		this.#filteredNodeMap.clear();
 		if (!nodeTypes) {
@@ -266,8 +259,8 @@ export default class NodeGraph {
 	selectAllNodes() {
 		const m = this.getFilteredMap();
 
-		const filteredNodeKeys = [...m.keys()];
-		const visibleNodes = this.#nodeGroup.selectAll('.node,.note').filter(d => filteredNodeKeys.includes(d.uid));
+		const filteredNodeKeys = new Set(m.keys());
+		const visibleNodes = this.#nodeGroup.selectAll('.node,.note').filter(d => filteredNodeKeys.has(d.uid));
 
 		visibleNodes.classed('lasso-selected', true);
 		this.lassoSelectedNodes = this.#nodeGroup.selectAll('.lasso-selected');
@@ -367,7 +360,11 @@ export default class NodeGraph {
 	initSvg(svgID, width, height) {
 		// Add attributes to root svg
 		this.#svgID = svgID;
-		this.#rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
+		this.#rootSvg = d3Select(`#${svgID}`);
+		if (!this.#enableThumbnailMode) {
+			this.#rootSvg.on('click', () => this.svgClick());
+		}
+
 		this.#rootGroup = this.#rootSvg.append('g').classed('root-group', true);
 		this.#lineGroup = this.#rootGroup.append('g');
 		this.#shadowLineGroup = this.#rootGroup.append('g');
@@ -385,29 +382,31 @@ export default class NodeGraph {
 
 				this.#rootGroup.attr('transform', event.transform);
 			})
-			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e instanceof WheelEvent) && !e.button)
+			.filter(e => ((!e.ctrlKey && !this.getLassoEnabled()) || e instanceof WheelEvent) && !e.button && !this.#enableThumbnailMode)
 			.scaleExtent([0.5, 3]);
 		this.#rootSvg.call(this.#zoom);
 
 		// Add lasso
 		const self = this;
-		this.#lasso = d3lasso()
-			.closePathDistance(2000)
-			.closePathSelect(true)
-			.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
-			.targetArea(this.#rootSvg)
-			.on('draw', () => {
-				self.#lasso.possibleItems().classed('lasso-selected', true);
-				self.#lasso.notPossibleItems().classed('lasso-selected', false);
-			})
-			.on('end', () => {
-				self.lassoSelectedNodes = self.#lasso.selectedItems();
-				if (this.#lassoSelectionCallback !== null) {
-					this.#lassoSelectionCallback();
-				}
-			});
+		if (!this.#enableThumbnailMode) {
+			this.#lasso = d3lasso()
+				.closePathDistance(2000)
+				.closePathSelect(true)
+				.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
+				.targetArea(this.#rootSvg)
+				.on('draw', () => {
+					self.#lasso.possibleItems().classed('lasso-selected', true);
+					self.#lasso.notPossibleItems().classed('lasso-selected', false);
+				})
+				.on('end', () => {
+					self.lassoSelectedNodes = self.#lasso.selectedItems();
+					if (this.#lassoSelectionCallback !== null) {
+						this.#lassoSelectionCallback();
+					}
+				});
 
-		this.#rootSvg.call(this.#lasso);
+			this.#rootSvg.call(this.#lasso);
+		}
 
 		const defs = this.#rootSvg.append('svg:defs');
 
@@ -415,7 +414,7 @@ export default class NodeGraph {
 		// Arrow is unused for now. In case it is used later on, use reduceY and
 		// reduceX to reduce the length of the links (modify d.target.x and d.target.y)
 		defs.node().innerHTML
-      = `<marker id="${this.#svgID}_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
+			= `<marker id="${this.#svgID}_arrowhead" viewBox="0 -5 10 10" refX="0" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="currentColor"/>
         </marker>
         <marker id="${this.#svgID}_arrowhead_shadow" viewBox="0 -5 10 10" refX="1" refY="0" markerWidth="3" markerHeight="3" orient="auto">
@@ -430,7 +429,7 @@ export default class NodeGraph {
 
 		const style = this.#rootSvg.append('svg:style');
 		style.node().innerHTML
-      = `
+			= `
         .note {
           stroke: currentColor;
           stroke-width: 1;
@@ -540,7 +539,7 @@ export default class NodeGraph {
 			});
 		});
 
-		return Array.from(links.values());
+		return [...links.values()];
 	}
 
 	// CheckNode returns tur if both the UID and type of the node is set
@@ -645,13 +644,8 @@ export default class NodeGraph {
 			}
 		}
 
-		let n;
 		// Enable simulation for nodes added to the center of the graph
-		if (enableSimulation) {
-			n = node;
-		} else {
-			n = setFxFy(node);
-		}
+		const n = enableSimulation ? node : setFxFy(node);
 
 		this.#nodeMap.set(n.uid, n);
 		this.#changedData.set(n.uid, n);
@@ -693,7 +687,7 @@ export default class NodeGraph {
 	}
 
 	getNodes() {
-		return Array.from(this.#nodeMap.values());
+		return [...this.#nodeMap.values()];
 	}
 
 	centerOnNewNodes() {
@@ -831,7 +825,7 @@ export default class NodeGraph {
 					.append('tspan')
 					.attr('x', 0)
 					.attr('dy', '1.2em') // Line spacing
-					.text(d => d ? d : ' '); // Insert space for empty row so vertical spacing works
+					.text(element => element ?? ' '); // Insert space for empty row so vertical spacing works
 
 				const nodeRect = this.getBBox();
 				d.bbHeight = nodeRect.height;
@@ -877,6 +871,10 @@ export default class NodeGraph {
 					.attr('y', 0)
 					.remove();
 			});
+
+		if (this.#enableThumbnailMode) {
+			return;
+		}
 
 		const noteHoverIncrease = 5;
 		const self = this;
@@ -975,6 +973,10 @@ export default class NodeGraph {
 					.transition().delay(animationDelay).duration(longAnimationDuration).attr('r', 0).remove();
 			});
 
+		if (this.#enableThumbnailMode) {
+			return;
+		}
+
 		// Set event handlers
 		entityGroup
 			.on('click', function (e, d) {
@@ -1063,15 +1065,15 @@ export default class NodeGraph {
 		}
 
 		function elide() {
-			const self = d3Select(this);
-			let text = self.text();
+			const d3Self = d3Select(this);
+			let text = d3Self.text();
 
 			// Don't elide text which is 5 characters or smaller
 			if (text.length <= 5) {
 				return;
 			}
 
-			const selfNode = self.node();
+			const selfNode = d3Self.node();
 			let textLength = selfNode.getComputedTextLength();
 
 			// Reduce text by 10% each time and at minimum by 1
@@ -1080,7 +1082,7 @@ export default class NodeGraph {
 			while (textLength > textAreaWidth && text.length > 0) {
 				text = text.slice(0, -cutLength);
 				// \u2026 = ...
-				self.text(text + '\u2026');
+				d3Self.text(text + '\u2026');
 				textLength = selfNode.getComputedTextLength();
 			}
 		}
@@ -1131,7 +1133,7 @@ export default class NodeGraph {
 	setMouseOverAnimation(context, nodeContext, isEnter) {
 		const thisNode = d3Select(nodeContext).select('.node');
 		const nodeRadius = isEnter ? context.#nodeRadius * 1.2 : context.#nodeRadius;
-		const opacity = isEnter ? 0.3 : 1.0;
+		const opacity = isEnter ? 0.3 : 1;
 		thisNode.transition().duration(animationDuration).attr('r', nodeRadius);
 
 		const thisNodeUID = thisNode.data()[0].uid;
@@ -1143,7 +1145,7 @@ export default class NodeGraph {
 	}
 
 	applyDragHandler(nodes) {
-		if (!nodes) {
+		if (!nodes || this.#enableThumbnailMode) {
 			return;
 		}
 
@@ -1232,34 +1234,37 @@ export default class NodeGraph {
 			.attr('x2', d => reduceX(d.source, d.target, this.#nodeRadius))
 			.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
-		const arrowText = this.#lineGroup
-			.selectAll('.arrowText')
-			.data(links, d => `${d.source}${d.target}`)
-			.join('text')
-			.classed('arrowText', true)
-			.text(d => {
-				if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-					return abbreviateNumber(d.source.selectorResultCount);
-				}
+		let arrowText = null;
+		if (!this.#enableThumbnailMode) {
+			arrowText = this.#lineGroup.selectAll('.arrowText').data(links, d => `${d.source}${d.target}`)
+				.join('text')
+				.classed('arrowText', true)
+				.text(d => {
+					if (d.source.type === WORKSPACE_NODE_TYPE_SELECTOR && d.target.type === WORKSPACE_NODE_TYPE_SELECTOR) {
+						return abbreviateNumber(d.source.selectorResultCount);
+					}
 
-				return null;
-			})
-			.attr('font-size', 10)
-			.attr('fill', 'currentColor')
-			.attr('text-anchor', 'middle')
-			.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+					return null;
+				})
+				.attr('font-size', 10)
+				.attr('fill', 'currentColor')
+				.attr('text-anchor', 'middle')
+				.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+		}
 
 		const self = this;
-		shadowLinks
-			.on('click', function (e, d) {
-				self.lineClick(e, d, this);
-			})
-			.on('mouseenter', function () {
-				d3Select(this).classed('arrowHovered', true);
-			})
-			.on('mouseleave', function () {
-				d3Select(this).classed('arrowHovered', false);
-			});
+		if (!this.#enableThumbnailMode) {
+			shadowLinks
+				.on('click', function (e, d) {
+					self.lineClick(e, d, this);
+				})
+				.on('mouseenter', function () {
+					d3Select(this).classed('arrowHovered', true);
+				})
+				.on('mouseleave', function () {
+					d3Select(this).classed('arrowHovered', false);
+				});
+		}
 
 		const node = this.#nodeGroup
 			.selectAll('.nodeContainer')
@@ -1303,10 +1308,14 @@ export default class NodeGraph {
 				.attr('y2', d => reduceY(d.source, d.target, this.#nodeRadius));
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
-			arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+			if (arrowText) {
+				arrowText.attr('transform', d => `translate(${d.source.x + ((d.target.x - d.source.x) / 2)},${d.source.y + ((d.target.y - d.source.y) / 2) - 5})`);
+			}
 		});
 
-		this.#lasso.items(node.selectAll('.node,.note'));
+		if (!this.#enableThumbnailMode) {
+			this.#lasso.items(node.selectAll('.node,.note'));
+		}
 
 		this.#changedData.clear();
 	}
@@ -1345,8 +1354,8 @@ export default class NodeGraph {
 			delete d.fy;
 
 			// Reduce precision to reduce space requirements
-			d.x = Math.round(d.x * 10000) / 10000;
-			d.y = Math.round(d.y * 10000) / 10000;
+			d.x = Math.round(d.x * 10_000) / 10_000;
+			d.y = Math.round(d.y * 10_000) / 10_000;
 			return d;
 		});
 	}

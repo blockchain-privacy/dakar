@@ -10,7 +10,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -24,7 +24,7 @@ import (
 type wasabi2OneSourceByTimeHeuristic struct {
 	heuristicType string
 	lookBackTime  time.Duration
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewWasabi2OneSourceByTimeHeuristic() Heuristic {
@@ -35,7 +35,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) SetConfig(c heuristics.Options) error {
+func (h *wasabi2OneSourceByTimeHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -55,7 +55,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) SetConfig(c heuristics.Options) error 
 	return nil
 }
 
-func (h *wasabi2OneSourceByTimeHeuristic) GetConfig() heuristics.Options {
+func (h *wasabi2OneSourceByTimeHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 
@@ -95,7 +95,7 @@ func (h *wasabi2OneSourceByTimeHeuristic) Exec(ctx context.Context, dgraph exter
 }
 
 func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wrapper, parentHeuristicUID string,
-	lookBackTime time.Duration, depth int, options heuristics.Options) ([]heuristics.HeuristicCluster, error) {
+	lookBackTime time.Duration, depth int, options HeuristicOptions) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
 	}
@@ -141,7 +141,7 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
-	var allTxAndOrigins []txAndOrigins //nolint:prealloc
+	var allTxAndOrigins []txAndOrigins
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
@@ -172,10 +172,10 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 	clusters := make(map[heuristics.ClusterUID]bool)
 	// for each input transaction to the destination transaction,
 	// inputClusters holds one map with all its occurring clusters
-	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
+	var inputClusters []map[heuristics.ClusterUID]bool
 
 	for _, t := range allTxAndOrigins {
-		var inputTxOutputSum int64 //nolint:prealloc
+		var inputTxOutputSum int64
 		for _, output := range t.inputTransaction.Outputs {
 			// skip if output of was not used by destination transaction
 			if output.InputTransaction != options.TransactionHash {

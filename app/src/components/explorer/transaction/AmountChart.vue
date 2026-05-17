@@ -16,16 +16,19 @@
 
 <script setup>
 import {computed} from 'vue';
-import {
-	convertAmount, getCoinUnit, getColorMap, setUndefinedTransactionColor,
-} from '@/utilities/index.js';
 import {useRoute} from 'vue-router';
+import {
+	convertAmount,
+	getCoinUnit,
+	getTransactionColorMap,
+	setUndefinedTransactionColor,
+} from '@/utilities/index.js';
 
 const props = defineProps({outputs: {type: Array, required: true}});
 const noTypeKey = 'no type';
 const notSpent = 'not spent';
 const route = useRoute();
-const colorMap = getColorMap(route.params.blockchainMode);
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, noTypeKey);
 colorMap.set(notSpent, 'lightgrey');
 
@@ -62,15 +65,16 @@ const amountsPerType = computed(() => {
 		typeMap.set(t, val);
 	}
 
-	return Array.from(typeMap, ([type, amount]) => ({type, amount, percent: amount / amountSum * 100})).sort((a, b) => b.amount - a.amount);
+	return Array.from(typeMap, ([type, amount]) => ({type, amount, percent: amount / amountSum * 100}))
+		.toSorted((a, b) => b.amount - a.amount);
 });
 
 // Makes sure that each type is represented by at least 1%, so it is easier to see in the chart.
 // Changes the larger percentages accordingly.
 // Returns an arry with the percent distribution in the same order as amountsPerType.
 const displayPercent = computed(() => {
-	let newBase = 100.0;
-	const minPercent = 1.0;
+	let newBase = 100;
+	const minPercent = 1;
 
 	for (const t of amountsPerType.value) {
 		if (t.percent < minPercent) {
@@ -81,7 +85,7 @@ const displayPercent = computed(() => {
 
 	return amountsPerType.value.map(t => {
 		if (t.percent >= minPercent) {
-			return t.percent / 100.0 * newBase;
+			return t.percent / 100 * newBase;
 		}
 
 		return minPercent;

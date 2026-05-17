@@ -4,11 +4,9 @@
 
 <template>
   <v-container fluid>
-    <v-row
-      align="center"
-      justify="center"
-    >
-      <v-col cols="12">
+    <v-row class="align-center justify-center">
+      <v-col>
+        <alert :text="errorMsg" />
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -16,7 +14,7 @@
           :search="search"
           :loading="isLoading || !identities"
           item-key="id"
-          class="my-10 elevation-4"
+          class="mb-10 elevation-4"
         >
           <template #top>
             <v-toolbar flat>
@@ -39,16 +37,16 @@
               >
                 <v-icon>{{ mdiRefresh }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
-                  Refresh
+                  Refresh All
                 </div>
               </v-btn>
               <v-btn
                 variant="outlined"
-                @click="showCreateDialog"
+                @click="showCreateIdentityDialog"
               >
                 <v-icon>{{ mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
-                  Create Identity
+                  Create
                 </div>
               </v-btn>
             </v-toolbar>
@@ -77,7 +75,7 @@
                   </template>
                   Details
                 </v-list-item>
-                <v-list-item @click="showDeleteDialog(item)">
+                <v-list-item @click="showDeleteIdentityDialog(item)">
                   <template #prepend>
                     <v-icon :icon="mdiDelete" />
                   </template>
@@ -122,50 +120,209 @@
           <template #item.expires_at="{ item }">
             <span>{{ new Date(item.expires_at).toLocaleString() }}</span>
           </template>
+          <template #item.actions="{ item }">
+            <v-menu>
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  variant="text"
+                >
+                  <v-icon>{{ mdiDotsVertical }}</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="showDeleteSessionDialog(item.id)">
+                  <template #prepend>
+                    <v-icon :icon="mdiDelete" />
+                  </template>
+                  Delete
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </template>
+        </v-data-table>
+        <v-data-table
+          v-model:sort-by="oauthSessionsSortBy"
+          :headers="oauthSessionHeaders"
+          :items="oauthSessions?oauthSessions:[]"
+          :search="searchOAuthSessions"
+          :loading="isLoading || !oauthSessions"
+          item-key="id"
+          class="my-10 elevation-4"
+        >
+          <template #top>
+            <v-toolbar flat>
+              <v-toolbar-title>OAuth 2 Sessions</v-toolbar-title>
+              <v-spacer />
+              <v-text-field
+                v-model="searchOAuthSessions"
+                class="me-3"
+                :append-inner-icon="mdiMagnify"
+                label="Filter OAuth 2 sessions"
+                single-line
+                hide-details
+              />
+            </v-toolbar>
+          </template>
+          <template #item.handled_at="{ item }">
+            <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
+          </template>
+          <template #item.actions="{ item }">
+            <v-menu>
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  variant="text"
+                >
+                  <v-icon>{{ mdiDotsVertical }}</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="showDeleteConsentDialog(item.consent_request.consent_request_id)">
+                  <template #prepend>
+                    <v-icon :icon="mdiDelete" />
+                  </template>
+                  Delete
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </template>
+        </v-data-table>
+        <v-data-table
+          v-model:sort-by="oauthClientsSortBy"
+          :headers="oauthClientsHeaders"
+          :items="oauthClients?oauthClients:[]"
+          :search="searchOAuthClients"
+          :loading="isLoading || !oauthClients"
+          item-key="id"
+          class="my-10 elevation-4"
+        >
+          <template #top>
+            <v-toolbar flat>
+              <v-toolbar-title>OAuth 2 Clients</v-toolbar-title>
+              <v-spacer />
+              <v-text-field
+                v-model="searchOAuthClients"
+                class="me-3"
+                :append-inner-icon="mdiMagnify"
+                label="Filter OAuth 2 clients"
+                single-line
+                hide-details
+              />
+              <v-spacer />
+              <v-btn
+                variant="outlined"
+                @click="showCreateClientDialog"
+              >
+                <v-icon :icon="mdiPlus" />
+                Create
+              </v-btn>
+            </v-toolbar>
+          </template>
+          <template #item.updated_at="{ item }">
+            <span>{{ new Date(item.updated_at).toLocaleString() }}</span>
+          </template>
+          <template #item.created_at="{ item }">
+            <span>{{ new Date(item.created_at).toLocaleString() }}</span>
+          </template>
+          <template #item.redirect_uris="{ item }">
+            <span>{{ item.redirect_uris.join(', ') }}</span>
+          </template>
+          <template #item.grant_types="{ item }">
+            <span>{{ item.grant_types.join(', ') }}</span>
+          </template>
+          <template #item.response_types="{ item }">
+            <span>{{ item.response_types.join(', ') }}</span>
+          </template>
+          <template #item.audience="{ item }">
+            <span>{{ item.audience.join(', ') }}</span>
+          </template>
+          <template #item.actions="{ item }">
+            <v-menu>
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  variant="text"
+                >
+                  <v-icon>{{ mdiDotsVertical }}</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="showEditClientDialog(item)">
+                  <template #prepend>
+                    <v-icon :icon="mdiPencil" />
+                  </template>
+                  Edit
+                </v-list-item>
+                <v-list-item @click="showDeleteClientDialog(item.client_id)">
+                  <template #prepend>
+                    <v-icon :icon="mdiDelete" />
+                  </template>
+                  Delete
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </template>
         </v-data-table>
         <edit-identity-dialog
-          v-if="showCreateIdentityDialog"
-          v-model="showCreateIdentityDialog"
+          v-if="showCreateIdentityDialogModel"
+          v-model="showCreateIdentityDialogModel"
           :create-new-user="createNewUser"
           :identity="editedItem"
           @saved="refreshUsers()"
         />
-        <v-dialog
+        <create-client-dialog
+          v-if="showCreateClientDialogModel"
+          v-model="showCreateClientDialogModel"
+          :is-edit="updateClient"
+          :client="updateClientData"
+          @created="refreshUsers()"
+        />
+        <deletion-dialog
           v-if="identityToDelete"
-          v-model="showDeleteIdentityDialog"
-          max-width="500px"
-        >
-          <v-card>
-            <v-card-title>
-              <span class="text-h5">Delete Identity</span>
-            </v-card-title>
-            <v-card-text>
-              <p class="text-subtitle-1">
-                Do you really want to delete this identity?
-              </p>
-              <p class="text-subtitle-1">
-                ID: {{ identityToDelete.id }}
-              </p>
-              <p class="text-subtitle-1">
-                E-mail: {{ identityToDelete.email }}
-              </p>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer />
-              <v-btn @click="closeDeletionDialog">
-                Cancel
-              </v-btn>
-              <v-btn
-                color="red"
-                @click="deleteIdentity(identityToDelete)"
-              >
-                Delete
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+          :id="identityToDelete.id"
+          v-model="showDeleteIdentityDialogModel"
+          title="Delete Identity"
+          confirmation-text="Do you really want to delete this identity?"
+          :properties="[['ID',identityToDelete.id ],['E-mail', identityToDelete.email]]"
+          @canceled="identityToDelete = null"
+          @accepted="deleteIdentity"
+        />
+        <deletion-dialog
+          v-if="clientToDelete"
+          :id="clientToDelete"
+          v-model="showDeleteClientDialogModel"
+          title="Delete Client"
+          confirmation-text="Do you really want to delete this client?"
+          :properties="[['ID',clientToDelete ]]"
+          @canceled="clientToDelete = null"
+          @accepted="deleteClient"
+        />
+        <deletion-dialog
+          v-if="consentToDelete"
+          :id="consentToDelete"
+          v-model="showDeleteConsentDialogModel"
+          title="Delete Consent Session"
+          confirmation-text="Do you really want to delete this consent session?"
+          :properties="[['ID',consentToDelete ]]"
+          @canceled="consentToDelete = null"
+          @accepted="deleteConsent"
+        />
+        <deletion-dialog
+          v-if="sessionToDelete"
+          :id="sessionToDelete"
+          v-model="showDeleteSessionDialogModel"
+          title="Delete Identity Session"
+          confirmation-text="Do you really want to delete this identity session?"
+          :properties="[['ID',sessionToDelete ]]"
+          @canceled="sessionToDelete = null"
+          @accepted="deleteSession"
+        />
         <v-dialog
-          v-model="showIdentityPropertyDialog"
+          v-model="showIdentityPropertyDialogModel"
           max-width="700px"
         >
           <v-card>
@@ -185,28 +342,43 @@
 
 <script setup>
 import {
-	mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
-	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
+	mdiPencil,
+	mdiDelete,
+	mdiRefresh,
+	mdiAccountPlus,
+	mdiMagnify,
+	mdiUnfoldMoreVertical,
+	mdiDotsVertical,
+	mdiPlus,
 } from '@mdi/js';
-import {PAGE_TITLE} from '@/constants';
-import {handleError} from '@/utilities';
-import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
 import {inject, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {PAGE_TITLE} from '@/constants';
+import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
+import Alert from '@/components/common/Alert.vue';
+import DeletionDialog from '@/components/user/DeletionDialog.vue';
+import CreateClientDialog from '@/components/user/CreateClientDialog.vue';
 
 const kratosAdmin = inject('kratosadmin');
-const route = useRoute();
-const msgStore = useMsgStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
 
 const isLoading = ref(false);
-const showCreateIdentityDialog = ref(false);
-const showDeleteIdentityDialog = ref(false);
-const showIdentityPropertyDialog = ref(false);
+const showCreateIdentityDialogModel = ref(false);
+const showDeleteIdentityDialogModel = ref(false);
+const showIdentityPropertyDialogModel = ref(false);
+const showDeleteClientDialogModel = ref(false);
+const showDeleteConsentDialogModel = ref(false);
+const showDeleteSessionDialogModel = ref(false);
+const showCreateClientDialogModel = ref(false);
+
 const identityToDelete = ref(null);
+const clientToDelete = ref(null);
+const sessionToDelete = ref(null);
+const consentToDelete = ref(null);
+
 const search = ref('');
 const searchSessions = ref('');
+const searchOAuthSessions = ref('');
+const searchOAuthClients = ref('');
+const errorMsg = ref('');
 
 const identitiesSortBy = ref([{key: 'modified', order: 'desc'}]);
 
@@ -234,29 +406,62 @@ const sessionHeaders = [
 	{
 		title: 'ID', key: 'id', align: 'start', sortable: false,
 	},
+	{title: 'E-Mail', key: 'identity.traits.email'},
+	{title: 'Active', key: 'active'},
+	{title: 'Authentication Date', key: 'authenticated_at'},
+	{title: 'Expiry Date', key: 'expires_at'},
 	{
-		title: 'E-Mail', key: 'identity.traits.email',
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
+];
+
+const oauthSessionsSortBy = ref([{key: 'handled_at', order: 'desc'}]);
+const oauthSessionHeaders = [
 	{
-		title: 'Active', key: 'active',
+		title: 'ID', key: 'consent_request.subject', align: 'start', sortable: false,
 	},
+	{title: 'E-Mail', key: 'email'},
+	{title: 'Client ID', key: 'consent_request.client.client_id'},
+	{title: 'Handled At', key: 'handled_at'},
 	{
-		title: 'Authentication Date', key: 'authenticated_at',
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
+];
+
+const oauthClientsSortBy = ref([{key: 'updated_at', order: 'desc'}]);
+const oauthClientsHeaders = [
 	{
-		title: 'Expiry Date', key: 'expires_at',
+		title: 'ID', key: 'client_id', align: 'start', sortable: false,
+	},
+	{title: 'Name', key: 'client_name'},
+	{title: 'Scopes', key: 'scope'},
+	{title: 'Grant Types', key: 'grant_types'},
+	{title: 'Redirect URIs', key: 'redirect_uris'},
+	{title: 'Audience', key: 'audience'},
+	{title: 'Skip Consent', key: 'skip_consent'},
+	{title: 'Created At', key: 'created_at'},
+	{title: 'Response Types', key: 'response_types'},
+	{title: 'Updated At', key: 'updated_at'},
+	{
+		title: '', key: 'actions', sortable: false, align: 'end',
 	},
 ];
 
 const createNewUser = ref(false);
+const updateClient = ref(false);
 const editedItem = ref({
 	id: '', email: '', state: '', roles: {},
 });
 const defaultItem = ref({
 	id: '', email: '', state: '', roles: {},
 });
+// Client data for the client update dialog.
+const updateClientData = ref(null);
+
 const identities = ref(null);
 const sessions = ref(null);
+const oauthSessions = ref(null);
+const oauthClients = ref(null);
 const identityPropertyDialogData = ref(null);
 
 onMounted(() => {
@@ -265,21 +470,21 @@ onMounted(() => {
 });
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
+	errorMsg.value = msg;
 }
 
 async function loadUserList() {
 	isLoading.value = true;
+	errorMsg.value = '';
 	try {
-		const response = await kratosAdmin.identitiesGet();
+		const response = await kratosAdmin.identity.identitiesGet();
 
-		identities.value = response.identities;
-		sessions.value = response.sessions;
-		msgStore.resetMessages();
-	} catch (e) {
-		handleError(context, e);
+		identities.value = response.identities || [];
+		sessions.value = response.sessions || [];
+		oauthSessions.value = response.oauthSessions || [];
+		oauthClients.value = response.oauthClients || [];
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;
@@ -292,6 +497,17 @@ async function refreshUsers() {
 	if (!identities.value) {
 		return;
 	}
+
+	// Add email to oauth sessions so they can be easier identified
+	oauthSessions.value = oauthSessions.value.map(d => {
+		const {subject} = d.consent_request;
+		const identity = identities.value.find(i => i.id === subject);
+		if (identity) {
+			d.email = identity.traits.email;
+		}
+
+		return d;
+	});
 
 	identities.value = identities.value.map(d => {
 		// Convert dates to unix time so, they can be sorted in data table
@@ -339,22 +555,63 @@ function showEditDialog(item) {
 
 	createNewUser.value = false;
 	editedItem.value = {...item};
-	showCreateIdentityDialog.value = true;
+	showCreateIdentityDialogModel.value = true;
 }
 
-function showCreateDialog() {
-	createNewUser.value = true;
-	editedItem.value = {...defaultItem.value};
-	showCreateIdentityDialog.value = true;
-}
-
-function showDeleteDialog(identity) {
+function showCreateIdentityDialog() {
 	if (isLoading.value) {
 		return;
 	}
 
-	showDeleteIdentityDialog.value = true;
+	createNewUser.value = true;
+	editedItem.value = {...defaultItem.value};
+	showCreateIdentityDialogModel.value = true;
+}
+
+function showCreateClientDialog() {
+	if (isLoading.value) {
+		return;
+	}
+
+	updateClient.value = false;
+	updateClientData.value = null;
+	showCreateClientDialogModel.value = true;
+}
+
+function showDeleteIdentityDialog(identity) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showDeleteIdentityDialogModel.value = true;
 	identityToDelete.value = identity;
+}
+
+function showDeleteClientDialog(clientID) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showDeleteClientDialogModel.value = true;
+	clientToDelete.value = clientID;
+}
+
+function showDeleteSessionDialog(session) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showDeleteSessionDialogModel.value = true;
+	sessionToDelete.value = session;
+}
+
+function showDeleteConsentDialog(consent) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showDeleteConsentDialogModel.value = true;
+	consentToDelete.value = consent;
 }
 
 function showPropertyDialog(identity) {
@@ -362,27 +619,74 @@ function showPropertyDialog(identity) {
 		return;
 	}
 
-	showIdentityPropertyDialog.value = true;
+	showIdentityPropertyDialogModel.value = true;
 	identityPropertyDialogData.value = JSON.stringify(identity, null, '\t');
 }
 
-async function deleteIdentity(identity) {
+async function deleteIdentity(identityID) {
 	isLoading.value = true;
 
 	try {
-		await kratosAdmin.identitiesUidDelete({uid: identity.id});
+		await kratosAdmin.identity.identitiesUidDelete({uid: identityID});
 		await refreshUsers();
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 
 	isLoading.value = false;
-	closeDeletionDialog();
+	identityToDelete.value = null;
 }
 
-function closeDeletionDialog() {
-	showDeleteIdentityDialog.value = false;
-	identityToDelete.value = null;
+async function deleteClient(clientId) {
+	isLoading.value = true;
+	errorMsg.value = '';
+	try {
+		await kratosAdmin.oauth.clientsClientIdDelete({clientId});
+		await refreshUsers();
+	} catch (error) {
+		setErrorMessage(error);
+	}
+
+	isLoading.value = false;
+	clientToDelete.value = null;
+}
+
+function showEditClientDialog(item) {
+	if (isLoading.value) {
+		return;
+	}
+
+	updateClient.value = true;
+	updateClientData.value = item;
+	showCreateClientDialogModel.value = true;
+}
+
+async function deleteSession(sessionId) {
+	isLoading.value = true;
+	errorMsg.value = '';
+	try {
+		await kratosAdmin.identity.sessionsSessionIdDelete({sessionId});
+		await refreshUsers();
+	} catch (error) {
+		setErrorMessage(error);
+	}
+
+	isLoading.value = false;
+	sessionToDelete.value = null;
+}
+
+async function deleteConsent(consentId) {
+	isLoading.value = true;
+	errorMsg.value = '';
+	try {
+		await kratosAdmin.oauth.consentsConsentIdDelete({consentId});
+		await refreshUsers();
+	} catch (error) {
+		setErrorMessage(error);
+	}
+
+	isLoading.value = false;
+	consentToDelete.value = null;
 }
 
 </script>

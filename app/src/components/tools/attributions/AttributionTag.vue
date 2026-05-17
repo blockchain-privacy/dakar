@@ -16,6 +16,7 @@
 
 <script setup>
 import {computed} from 'vue';
+
 const props = defineProps({attribution: {type: Object, required: true}});
 const tooltipText = computed(() => props.attribution.isPublic
 	? 'This is a public attribution'

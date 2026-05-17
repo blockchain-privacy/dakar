@@ -9,14 +9,15 @@ import (
 	"backend/external"
 	"backend/workspace"
 	"errors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // maxBodySize is the maximum number of bytes a body can contain
@@ -46,7 +47,7 @@ type Server struct {
 	workspaceMutex *workspace.Mutex
 	// HTTP mux
 	handler *http.ServeMux
-	// duration after which every handler timesout
+	// duration after which every handler times out
 	handlerTimeout time.Duration
 }
 

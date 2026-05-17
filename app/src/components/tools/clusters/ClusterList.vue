@@ -44,7 +44,7 @@
         </v-menu>
       </icon-title>
       <v-card-text>
-        <p class="text-subtitle-1 mb-3">
+        <p class="text-body-large mb-3">
           <wiki-tooltip description-url="addressCluster.md">
             Clusters
           </wiki-tooltip>
@@ -53,6 +53,10 @@
         <v-progress-linear
           v-if="isLoading"
           indeterminate
+        />
+        <alert
+          v-else-if="failedLoading"
+          text="Failed loading data. Please try again later."
         />
         <v-row v-else-if="items.length === 0">
           <v-col>
@@ -147,33 +151,33 @@
 
 <script setup>
 import {
-	mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+	mdiMerge,
+	mdiDelete,
+	mdiDotsVertical,
+	mdiFileImport,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
-import {getDakarClient, handleError} from '@/utilities';
+import {onMounted, ref} from 'vue';
+import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import ImportClusterDialog from './ImportClustersDialog.vue';
 import DeleteClusterDialog from './DeleteClusterDialog.vue';
 import DeleteAllClustersDialog from './DeleteAllClustersDialog.vue';
-import WikiTooltip from '../../wiki/WikiTooltip.vue';
+import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
+import {getDakarClient} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
 	blockchainMode: {type: String, required: true},
 });
 
-const route = useRoute();
-const msgStore = useMsgStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
 const dakar = getDakarClient(props.blockchainMode);
 
 const addClusterDialogModel = ref(false);
 const deleteClusterDialogModel = ref(false);
 const deleteAllClustersDialogModel = ref(false);
 const isLoading = ref(false);
+const failedLoading = ref(false);
 const deleteClusterUid = ref('');
 const deleteClusterSize = ref(-1);
 const items = ref([]);
@@ -188,6 +192,7 @@ onMounted(async () => {
 async function loadData() {
 	items.value = [];
 	isLoading.value = true;
+	failedLoading.value = false;
 
 	try {
 		const response = await dakar.cluster.clustersGet();
@@ -200,10 +205,10 @@ async function loadData() {
 			});
 
 			// Sort clusters by time stamp
-			items.value = response.clusters.sort((a, b) => b.ts - a.ts);
+			items.value = response.clusters.toSorted((a, b) => b.ts - a.ts);
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch {
+		failedLoading.value = true;
 	}
 
 	isLoading.value = false;

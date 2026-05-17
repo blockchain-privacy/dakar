@@ -106,52 +106,36 @@ func (g *GraphDB) CreateNamespace(ctx context.Context) (uint64, error) {
 
 // CreateClient creates a new dgraph client connecting to the specified endpoint
 func CreateClient(endpoint string) (Database, error) {
-	dgraphClient, err := dgo.NewClient(endpoint,
-		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
-		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	return &GraphDB{Dgraph: dgraphClient}, nil
-}
-
-// CreateClientWithNamespace create a new dgraph client connecting to the specified endpoint and namespace
-func CreateClientWithNamespace(ctx context.Context, endpoint, user, password string,
-	namespaceID uint64) (Database, error) {
-	dgraphClient, err := dgo.NewClient(endpoint,
-		dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
-		dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	err = dgraphClient.LoginIntoNamespace(ctx, user, password, namespaceID)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-
-	return &GraphDB{Dgraph: dgraphClient}, nil
-}
-
-// WaitForDatabase waits until the database is ready to receive requests
-func WaitForDatabase(c Database) bool {
 	for range 20 {
-		if isConnectionEstablished(c) {
-			return true
+		dgraphClient, err := dgo.NewClient(endpoint,
+			dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
+			dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
+		if err == nil {
+			return &GraphDB{Dgraph: dgraphClient}, nil
 		}
 
 		time.Sleep(time.Second * 5)
 	}
 
-	return false
+	return nil, serror.FromStr("could not connect to database")
 }
 
-// isConnectionEstablished test the database connection
-func isConnectionEstablished(c Database) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancel()
-	_, err := c.Query(ctx, "{q(func: uid(0x1)){uid}}", nil)
+// CreateClientWithNamespace create a new dgraph client connecting to the specified endpoint and namespace
+func CreateClientWithNamespace(ctx context.Context, endpoint, user, password string,
+	namespaceID uint64) (Database, error) {
+	for range 20 {
+		dgraphClient, err := dgo.NewClient(endpoint,
+			dgo.WithGrpcOption(grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024))),
+			dgo.WithGrpcOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
+		if err == nil {
+			err = dgraphClient.LoginIntoNamespace(ctx, user, password, namespaceID)
+			if err == nil {
+				return &GraphDB{Dgraph: dgraphClient}, nil
+			}
+		}
 
-	return err == nil
+		time.Sleep(time.Second * 5)
+	}
+
+	return nil, serror.FromStr("could not connect to database")
 }

@@ -2,18 +2,16 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import App from './App.vue';
-
 import {createApp} from 'vue';
 import {createPinia} from 'pinia';
-
+import App from './App.vue';
 import vuetify from './plugins/vuetify';
-import {router, setupStore} from '@/router';
+import './assets/main.css';
 import oryConfig from './plugins/ory';
 import dakarConfig from './plugins/dakarAPI';
 import wikiapiConfig from './plugins/wikiAPI';
 import kratosadminConfig from './plugins/kratosadmin';
-import './assets/main.css';
+import {router, setupStore} from '@/router';
 
 const pinia = createPinia();
 const app = createApp(App);
@@ -30,7 +28,7 @@ app.provide('ory', oryConfig);
 app.provide('dashdakar', dakarConfig.setup(app.config.globalProperties, '/dashdakar'));
 app.provide('btcdakar', dakarConfig.setup(app.config.globalProperties, '/btcdakar'));
 app.provide('wikiapi', wikiapiConfig.setup(app.config.globalProperties).default);
-app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties).default);
+app.provide('kratosadmin', kratosadminConfig.setup(app.config.globalProperties));
 
 await router.isReady();
 app.mount('#app');

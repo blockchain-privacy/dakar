@@ -49,12 +49,13 @@
       variant="text"
     >
       <v-card-text
-        class="text-h6"
+        class="text-title-large"
         style="text-align: center"
       >
         No clusters found
       </v-card-text>
     </v-card>
+    <alert :text="errorMsg" />
     <div v-if="clusters.length > 0">
       <v-card
         v-for="(c, i) in clusters"
@@ -96,7 +97,7 @@
           />
         </v-card-text>
         <v-card-text v-if="c.txhash">
-          <p class="text-subtitle-1">
+          <p class="text-body-large">
             Last updated by
           </p>
           <cluster-details
@@ -151,21 +152,18 @@
 
 <script setup>
 import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
-import {BLOCKCHAIN_ATTRIBUTES, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
-import {
-	getClusterTypeLabel, getCurrentDate, getDakarClient, handleError,
-} from '@/utilities';
-import ClusterDetails from './ClusterDetails.vue';
+import {onUpdated, ref} from 'vue';
+import {useRoute} from 'vue-router';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
 import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
-import {onUpdated, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import ClusterDetails from './ClusterDetails.vue';
+import {BLOCKCHAIN_ATTRIBUTES, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
+import {getClusterTypeLabel, getCurrentDate, getDakarClient} from '@/utilities';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const route = useRoute();
-const context = {addMessage: useMsgStore().addMessage, $route: route};
 const dakar = getDakarClient(route.params.blockchainMode);
 
 const props = defineProps({addressHash: {type: String, required: true}});
@@ -173,6 +171,7 @@ const props = defineProps({addressHash: {type: String, required: true}});
 // V-model
 const isLoading = ref(false);
 const clusters = ref([]);
+const errorMsg = ref('');
 const isClusterReportLoading = ref(false);
 const showEmptyText = ref(false);
 const tableHeaders = [
@@ -208,6 +207,7 @@ async function doLookup(force = false) {
 	isLoading.value = true;
 	showEmptyText.value = false;
 	clusters.value = [];
+	errorMsg.value = '';
 
 	try {
 		const response = await dakar.cluster.clustersHashGet({hash: props.addressHash.trim()});
@@ -218,8 +218,8 @@ async function doLookup(force = false) {
 		} else {
 			showEmptyText.value = true;
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;
@@ -230,6 +230,7 @@ async function downloadClusterReport() {
 		return;
 	}
 
+	errorMsg.value = '';
 	isClusterReportLoading.value = true;
 	const fileName = props.addressHash.trim();
 
@@ -246,8 +247,8 @@ async function downloadClusterReport() {
 		);
 		a.click();
 		a.remove();
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isClusterReportLoading.value = false;
@@ -264,7 +265,7 @@ function deleteCluster(clusterUid, clusterSize) {
 }
 
 // Initial lookup
-doLookup();
+await doLookup();
 
 </script>
 

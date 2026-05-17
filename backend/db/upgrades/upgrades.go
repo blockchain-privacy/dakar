@@ -5,9 +5,7 @@
 package upgrades
 
 import (
-	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/clustering"
 	"backend/db/status"
 	"backend/external"
 	"context"
@@ -22,8 +20,7 @@ import (
 // The key is the schema version to which the database should
 // be set after its updates haven been applied.
 var availableUpgrades = map[int]UpgradePackage{
-	12: {upgrades: []schemaUpgrade{RefactorBlockchainModeStrings}},
-	13: {upgrades: []schemaUpgrade{FixClusterTransaction}},
+	15: {upgrades: []schemaUpgrade{AlterSchemaAddErrorCode}},
 }
 
 func info(msg string, v ...any) {
@@ -132,63 +129,20 @@ func applyUpgrades(ctx context.Context, c external.Database, upgrades map[int]Up
 	return nil
 }
 
-func RefactorBlockchainModeStrings(c external.Database) error {
-	ctx := context.Background()
-	meta, err := status.GetMeta(ctx, c)
-	if err != nil {
-		return err
-	}
+// AlterSchemaAddErrorCode adds the Selector.errorCode predicate
+func AlterSchemaAddErrorCode(c external.Database) error {
+	return c.SetSchema(context.Background(), `
+			Selector.errorCode: string . # reason for the error status, if any
 
-	switch meta.BlockchainMode {
-	case "Bitcoin":
-		if err := status.SetMeta(ctx, c, status.Meta{BlockchainMode: constants.BlockchainModeBTC}); err != nil {
-			return err
-		}
-	case "Dash":
-		if err := status.SetMeta(ctx, c, status.Meta{BlockchainMode: constants.BlockchainModeDash}); err != nil {
-			return err
-		}
-	default:
-		return serror.FromStrWithContext("invalid blockchain mode", "mode", meta.BlockchainMode)
-	}
-	return nil
-}
-
-func FixClusterTransaction(c external.Database) error {
-	ctx := context.Background()
-	lastNode := "0x0"
-	const step = 10000
-	var processedClusterCount int
-	var modifiedNodeCount int
-	for {
-		nodes, ln, numNodesLoaded, err := clustering.CheckClusterTransactionOverflow(ctx, c, step, lastNode)
-		if err != nil {
-			return err
-		}
-
-		if numNodesLoaded < step {
-			break
-		}
-
-		if ln == "" {
-			panic("last node was empty, prev last node: " + lastNode)
-		}
-
-		lastNode = ln
-
-		if len(nodes) > 0 {
-			err := clustering.SetClusterTransactions(ctx, c, nodes)
-			if err != nil {
-				return serror.AddContext(err, "last node", lastNode)
-			}
-			modifiedNodeCount += len(nodes)
-		}
-
-		processedClusterCount += numNodesLoaded
-
-		if processedClusterCount%1000000 == 0 {
-			info("processed clusters", "processed", processedClusterCount, "modified node count", modifiedNodeCount, "last node", lastNode)
-		}
-	}
-	return nil
+			type Selector {
+				Selector.created
+				Selector.modified
+				Selector.type
+				Selector.status
+				Selector.errorCode
+				Selector.parent
+				Selector.options
+				Selector.results
+				Selector.totalResultCount
+			}`)
 }

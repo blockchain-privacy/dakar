@@ -22,7 +22,7 @@ yarnPath: .yarn/releases/yarn-4.0.0.cjs # set right path/version here
 
 npmScopes:
   blockchain:
-    npmRegistryServer: "https://<gitlab_host>/api/v4/projects/410/packages/npm/"
+    npmRegistryServer: "https://gitlab.com/api/v4/projects/78315009/packages/npm/"
     npmAlwaysAuth: true
     npmAuthToken: "<your-deploy-token>"
 ```

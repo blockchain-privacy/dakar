@@ -1,0 +1,270 @@
+- id: "ory:wikiapi_protected"
+  upstream:
+    preserve_host: true
+    url: "http://wikiapi:4567"
+    strip_path: "/wiki"
+  match:
+    url: "http://localhost:4455/wiki/<.*>"
+    methods:
+      - GET
+      - POST
+  authenticators:
+    - handler: oauth2_introspection
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: "ory:kratosadmin_admin"
+  upstream:
+    preserve_host: true
+    url: "http://kratosadmin:9316"
+    strip_path: "/kratosadmin"
+  match:
+    url: "http://localhost:4455/kratosadmin/<(?!self|verify|logout).*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.kratos_admin | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "kratosadmin_admin"
+        }
+  mutators:
+    - handler: header
+
+- id: "ory:kratosadmin_protected"
+  upstream:
+    preserve_host: true
+    url: "http://kratosadmin:9316"
+    strip_path: "/kratosadmin"
+  match:
+    url: "http://localhost:4455/kratosadmin/self/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.kratos_admin | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "kratosadmin_protected"
+        }
+  mutators:
+    - handler: header
+
+- id: "ory:kratosadmin_public"
+  upstream:
+    preserve_host: true
+    url: "http://kratosadmin:9316"
+    strip_path: "/kratosadmin"
+  match:
+    url: "http://localhost:4455/kratosadmin/<(verify|logout).*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: "ory:dakar_dash_public"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8081"
+    strip_path: "/dashdakar"
+  match:
+    url: "http://localhost:4455/dashdakar/api/v1/blockchain/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: "ory:dakar_dash_mcp_protected"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8666"
+    strip_path: "/dashmcp"
+  match:
+    url: "http://localhost:4455/dashmcp"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: oauth2_introspection
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.dakar_dash | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_dash_protected"
+        }
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Extra.identity.id }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_dash_user }}"
+
+- id: "ory:dakar_dash_protected"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8081"
+    strip_path: "/dashdakar"
+  match:
+    url: "http://localhost:4455/dashdakar/api/v1/<(?!blockchain).*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: oauth2_introspection
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.dakar_dash | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_dash_protected"
+        }
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Extra.identity.id }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_dash_user }}"
+
+- id: "ory:dakar_btc_public"
+  upstream:
+    preserve_host: true
+    url: "http://btc_dakar:8081"
+    strip_path: "/btcdakar"
+  match:
+    url: "http://localhost:4455/btcdakar/api/v1/blockchain/<.*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: "ory:dakar_btc_mcp_protected"
+  upstream:
+    preserve_host: true
+    url: "http://host.docker.internal:8666"
+    strip_path: "/btcmcp"
+  match:
+    url: "http://localhost:4455/btcmcp"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: oauth2_introspection
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.dakar_dash | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_dash_protected"
+        }
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Extra.identity.id }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_dash_user }}"
+
+- id: "ory:dakar_btc_protected"
+  upstream:
+    preserve_host: true
+    url: "http://btc_dakar:8081"
+    strip_path: "/btcdakar"
+  match:
+    url: "http://localhost:4455/btcdakar/api/v1/<(?!blockchain).*>"
+    methods:
+      - GET
+      - POST
+      - DELETE
+      - PUT
+      - HEAD
+  authenticators:
+    - handler: oauth2_introspection
+    - handler: cookie_session
+  authorizer:
+    handler: remote_json
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        {
+          "subject_id": "{{ .Extra.identity.metadata_public.roles.dakar_btc | print }}",
+          "relation": "call",
+          "namespace": "Service",
+          "object": "dakar_btc_protected"
+        }
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-user: "{{ print .Extra.identity.id }}"
+          X-dakar-user: "{{ print .Extra.identity.metadata_public.dakar_btc_user }}"
+

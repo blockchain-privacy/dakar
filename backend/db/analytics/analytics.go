@@ -11,12 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"strconv"
 	"strings"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Time ────────────────────────────────────►
@@ -823,7 +824,7 @@ func GetShortestTransactionPathAnyDirection(ctx context.Context, c external.Data
 	return r.Transactions, nil
 }
 
-// check if deadline was execeded natively or via grpc
+// check if deadline was exceeded natively or via grpc
 func isDeadlineExceeded(err error) bool {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return true

@@ -5,16 +5,10 @@
 package db
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
-)
 
-func TestOutput_String(t *testing.T) {
-	output := Output{}
-	require.NotEmpty(t, output.String())
-	output.Amount = getNumPointer[int64](500)
-	require.NotEmpty(t, output.String())
-}
+	"github.com/stretchr/testify/require"
+)
 
 func TestOutput_SetDType(t *testing.T) {
 	output := Output{}

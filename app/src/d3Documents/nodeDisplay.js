@@ -3,17 +3,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {
-	SELECTOR_STATUS_SUCCESS,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
-	SELECTOR_TYPE_TX_PROP, WORKSPACE_NODE_TYPE_CLUSTER,
-	WORKSPACE_NODE_TYPE_SELECTOR, WORKSPACE_NODE_TYPE_TRANSACTION,
-} from '@/constants/index.js';
-import {
-	mdiArrowCollapseDown, mdiArrowLeft, mdiArrowRight,
-	mdiClockAlertOutline, mdiIncognitoOff, mdiMerge, mdiPlaylistRemove, mdiTune,
+	mdiArrowCollapseDown,
+	mdiArrowLeft,
+	mdiArrowRight,
+	mdiClockAlertOutline,
+	mdiIncognitoOff,
+	mdiMerge,
+	mdiPlaylistRemove,
+	mdiTune,
 } from '@mdi/js';
 import {
-	cashLeft, cashRight, incognitoFilter, sigmaLeft, sigmaRight,
+	SELECTOR_STATUS_SUCCESS,
+	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_TX_GRAPH,
+	SELECTOR_TYPE_TX_PROP,
+	WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_SELECTOR,
+	WORKSPACE_NODE_TYPE_TRANSACTION,
+} from '@/constants/index.js';
+import {
+	cashLeft,
+	cashRight,
+	incognitoFilter,
+	sigmaLeft,
+	sigmaRight,
 } from '@/customIcons/index.js';
 import {abbreviateNumber} from '@/d3Documents/util.js';
 

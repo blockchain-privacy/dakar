@@ -6,7 +6,7 @@ x-logging:
 
 services:
   zero:
-    image: dgraph/dgraph:v25.0.0
+    image: dgraph/dgraph:v25.3.4
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -19,7 +19,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v25.0.0
+    image: dgraph/dgraph:v25.3.4
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -46,7 +46,7 @@ services:
 
   kratos:
     container_name: kratos
-    image: oryd/kratos:v1.3
+    image: oryd/kratos:v26.2.0
     depends_on:
       - postgres
     ports:
@@ -60,18 +60,36 @@ services:
       - SECRETS_COOKIE=${KRATOS_SECRETS_COOKIE}
       - SECRETS_CIPHER=${KRATOS_SECRETS_CIPHER}
     command: serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS}
-#    command: migrate sql -e # enable the three commands and run: sudo docker-compose --env .env.local run kratos
-#    stdin_open: true # docker run -i
-#    tty: true        # docker run -t
+#    command: migrate sql -e up --yes
     volumes:
       - ./kratos:/etc/config/kratos
     networks:
       - dgraph_default
     logging: *default-logging
 
+  hydra:
+    container_name: hydra
+    image: oryd/hydra:v26.2.0
+    ports:
+      - "4444:4444" # public
+      - "4445:4445" # admin
+      - "5555:5555" # token user
+    user: "1000:1000"
+    command: serve -c /etc/config/hydra/config.yml all --dev
+#    command: migrate -c /etc/config/hydra/config.yml sql up -e --yes
+    volumes:
+      - ./hydra/sqlite:/var/lib/sqlite
+      - ./hydra/config.yml:/etc/config/hydra/config.yml
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+    restart: unless-stopped
+    networks:
+      - dgraph_default
+    logging: *default-logging
+
   postgres:
     container_name: postgres
-    image: postgres:14.13
+    image: postgres:18.3
     ports:
       - "5432:5432"
     environment:
@@ -79,7 +97,7 @@ services:
       - POSTGRES_PASSWORD=${KRATOS_POSTGRES_PASSWORD}
       - POSTGRES_DB=kratos
     volumes:
-      - ./kratos/sql:/var/lib/postgresql/data
+      - ./kratos/postgres:/var/lib/postgresql
     networks:
       - dgraph_default
 
@@ -93,7 +111,7 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:22.1
+    image: dashpay/dashd:23.1
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/home/dash
@@ -130,7 +148,6 @@ services:
       - "9316:9316"
     expose:
       - 9316
-#    command: --config /config.yml -updateIdentities
     networks:
       - dgraph_default
     logging: *default-logging
@@ -138,7 +155,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   oathkeeper:
-    image: oryd/oathkeeper:v0.40
+    image: oryd/oathkeeper:v25.4.0
     container_name: oathkeeper
     user: "1000:1000"
     ports:
@@ -155,7 +172,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   keto:
-    image: oryd/keto:v0.14
+    image: oryd/keto:v26.2.0
     container_name: keto
     ports:
       - "4466:4466"
@@ -169,7 +186,7 @@ services:
       - dgraph_default
 
   keto-init:
-    image: oryd/keto:v0.14
+    image: oryd/keto:v26.2.0
     container_name: keto-init
     depends_on:
       - keto
@@ -177,7 +194,7 @@ services:
       - KETO_WRITE_REMOTE=keto:4467
     volumes:
       - ./keto/relationships.json:/home/ory/relationships.json
-    command: relation-tuple create /home/ory/relationships.json --insecure-disable-transport-security
+    command: relation-tuple create -f /home/ory/relationships.json --insecure-disable-transport-security
     restart: on-failure
     networks:
       - dgraph_default

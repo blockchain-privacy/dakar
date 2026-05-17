@@ -9,44 +9,42 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Delete All Custom {{ title }} Clusters</span>
+        Delete All Custom {{ title }} Clusters
       </v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           Are you sure you want to delete all custom clusters?
         </div>
-        <v-row class="mt-4">
-          <v-col class="d-flex justify-end align-center">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              color="red"
-              :loading="isLoading"
-              @click="deleteAllClusters"
-            >
-              Delete
-            </v-btn>
-          </v-col>
-        </v-row>
       </v-card-text>
+      <alert
+        :text="errorMsg"
+        :type="msgType"
+      />
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          color="red"
+          :loading="isLoading"
+          @click="deleteAllClusters"
+        >
+          Delete
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {getDakarClient} from '@/utilities/index.js';
-
-const route = useRoute();
-const msgStore = useMsgStore();
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -57,23 +55,23 @@ const model = defineModel({type: Boolean});
 const emit = defineEmits(['deleted']);
 const dakar = getDakarClient(props.blockchainMode);
 const isLoading = ref(false);
+const errorMsg = ref('');
+const msgType = ref('');
 
 // Functions
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
+	msgType.value = 'error';
+	errorMsg.value = msg;
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
-	});
+	msgType.value = 'info';
+	errorMsg.value = msg;
 }
 
 async function deleteAllClusters() {
 	isLoading.value = true;
-
+	errorMsg.value = '';
 	try {
 		const response = await dakar.cluster.clustersDelete();
 		if (response.msg) {
@@ -81,11 +79,13 @@ async function deleteAllClusters() {
 		}
 
 		emit('deleted');
-	} catch (e) {
-		setPersistentErrorMessage(e);
+	} catch (error) {
+		setPersistentErrorMessage(error);
+		return;
+	} finally {
+		isLoading.value = false;
 	}
 
-	isLoading.value = false;
 	model.value = false;
 }
 

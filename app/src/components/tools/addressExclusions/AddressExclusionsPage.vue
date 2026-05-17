@@ -13,10 +13,10 @@
   </div>
 </template>
 <script setup>
-import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import {computed} from 'vue';
-import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities/index.js';
 import {storeToRefs} from 'pinia';
+import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
+import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities/index.js';
 import {useLocalStore} from '@/pinia/local.js';
 import AddressExclusionList from '@/components/tools/addressExclusions/AddressExclusionList.vue';
 

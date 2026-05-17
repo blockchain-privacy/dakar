@@ -23,6 +23,7 @@ linters:
     - usetesting
     - wastedassign
     - whitespace
+    - nolintlint
   exclusions:
     warn-unused: true
     generated: lax

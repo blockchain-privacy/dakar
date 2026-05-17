@@ -12,6 +12,7 @@
       :prepend-icon="mdiPlus"
     >
       <v-card-text>
+        <alert :text="errorMsg" />
         <v-tabs
           v-model="tab"
           align-tabs="center"
@@ -33,7 +34,7 @@
               ref="queryForm"
               validate-on="submit"
             >
-              <p class="text-subtitle-1">
+              <p class="text-body-large">
                 Query for multiple entities by separating them by any special character.
               </p>
               <v-text-field
@@ -116,11 +117,14 @@
 
 <script setup>
 import {
-	mdiFileUpload, mdiMagnify, mdiPlus,
+	mdiFileUpload,
+	mdiMagnify,
+	mdiPlus,
 } from '@mdi/js';
-import {extractEntities, fileRule, pluralIrregular} from '@/utilities/index.js';
 import {ref, computed} from 'vue';
 import {VFileUpload} from 'vuetify/labs/VFileUpload';
+import {extractEntities, fileRule, pluralIrregular} from '@/utilities/index.js';
+import Alert from '@/components/common/Alert.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['addEntities']);
@@ -136,6 +140,7 @@ const tab = ref(null);
 const showDetectedEntities = ref(false);
 const file = ref(undefined);
 const extractedFileContent = ref([]);
+const errorMsg = ref('');
 
 const inputRules = [q => extractEntities(q).length > 0 || 'query contains no valid entities'];
 
@@ -155,13 +160,13 @@ const detectedEntities = computed(() => {
 const queryItemCount = computed(() => detectedEntities.value.length);
 
 // Functions
-async function onAddEntities(tab) {
-	if (tab === 'query') {
+async function onAddEntities(t) {
+	if (t === 'query') {
 		const {valid} = await queryForm.value.validate();
 		if (!valid) {
 			return;
 		}
-	} else if (tab === 'file') {
+	} else if (t === 'file') {
 		const {valid} = await fileForm.value.validate();
 		if (!valid || !file.value) {
 			return;
@@ -176,14 +181,17 @@ async function onAddEntities(tab) {
 	file.value = undefined;
 }
 
-function handleFileChange() {
+async function handleFileChange() {
 	extractedFileContent.value = [];
-	const reader = new FileReader();
-	reader.onload = () => {
-		extractedFileContent.value = extractEntities(reader.result);
-	};
-
-	reader.readAsText(file.value);
+	const fileBlob = new Blob([file.value]);
+	try {
+		const text = await fileBlob.text();
+		extractedFileContent.value = extractEntities(text);
+	} catch (error) {
+		errorMsg.value = error.message;
+		extractedFileContent.value = [];
+		file.value = undefined;
+	}
 }
 </script>
 

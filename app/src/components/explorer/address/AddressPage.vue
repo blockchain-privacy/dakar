@@ -4,17 +4,12 @@
 
 <template>
   <v-container fluid>
-    <v-row
-      align="center"
-      justify="center"
-    >
+    <v-row class="align-center justify-center">
       <v-col
-        cols="12"
-        sm="12"
         md="12"
-        lg="9"
         xl="8"
       >
+        <alert :text="errorMsg" />
         <address-view
           v-if="address"
           :address-data="address"
@@ -31,20 +26,19 @@
 </template>
 
 <script setup>
-import {PAGE_TITLE, ROUTE_NAME_404_PAGE} from '@/constants';
 import {onMounted, ref, watch} from 'vue';
-import AddressView from '@/components/explorer/address/Address.vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg.js';
-import {getDakarClients, handleError} from '@/utilities/index.js';
+import {PAGE_TITLE, ROUTE_NAME_404_PAGE} from '@/constants';
+import AddressView from '@/components/explorer/address/Address.vue';
+import {getDakarClients} from '@/utilities/index.js';
+import Alert from '@/components/common/Alert.vue';
 
 const route = useRoute();
 const router = useRouter();
-const msgStore = useMsgStore();
 const dakarClients = getDakarClients();
 
 const address = ref(null);
-const context = {$route: route, addMessage: msgStore.addMessage};
+const errorMsg = ref('');
 
 // Watchers
 watch(route, async () => {
@@ -76,17 +70,18 @@ async function pullInitialData() {
 	}
 
 	address.value = null;
+	errorMsg.value = '';
 	try {
 		const response = await dakarClients[route.params.blockchainMode].data
 			.blockchainAddressesHashGet({hash: route.params.id});
 		if (response.address) {
 			address.value = response.address;
 		}
-	} catch (e) {
-		if (e.cause?.status === 404) {
+	} catch (error) {
+		if (error.cause?.status === 404) {
 			await router.push({name: ROUTE_NAME_404_PAGE, params: {catchAll: 'invalid'}});
 		} else {
-			handleError(context, e);
+			errorMsg.value = error.message;
 		}
 	}
 }

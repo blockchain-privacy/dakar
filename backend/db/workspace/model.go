@@ -5,8 +5,8 @@
 package workspace
 
 import (
+	"backend/analytics/heuristics"
 	"backend/db"
-	dbHeuristic "backend/db/analytics/heuristics"
 )
 
 const DType = "Workspace"
@@ -140,6 +140,7 @@ type connectionRequest struct {
 		Modified    string       `json:"modified,omitempty"`
 		Type        string       `json:"type,omitempty"`
 		Status      string       `json:"status,omitempty"`
+		ErrorCode   string       `json:"errorCode,omitempty"`
 		Options     string       `json:"options,omitempty"`
 		Parent      *db.UIDNode  `json:"parent,omitempty"`
 		Children    []db.UIDNode `json:"children,omitempty"`
@@ -155,6 +156,7 @@ type connectionRequest struct {
 		Modified         string       `json:"modified,omitempty"`
 		Type             string       `json:"type,omitempty"`
 		Status           string       `json:"status,omitempty"`
+		ErrorCode        string       `json:"errorCode,omitempty"`
 		Options          string       `json:"options,omitempty"`
 		Parent           *db.UIDNode  `json:"parent,omitempty"`
 		Children         []db.UIDNode `json:"children,omitempty"`
@@ -182,15 +184,16 @@ type Node struct {
 	TransactionType string `json:"txtype,omitempty"`
 
 	// selector
-	SelectorCreated          string               `json:"selectorCreated,omitempty"`
-	SelectorModified         string               `json:"selectorModified,omitempty"`
-	SelectorType             string               `json:"selectorType,omitempty"`
-	SelectorStatus           string               `json:"selectorStatus,omitempty"`
-	SelectorResultCount      *int                 `json:"selectorResultCount,omitempty"`
-	SelectorTotalResultCount *int                 `json:"selectorTotalResultCount,omitempty"`
-	TxPropOptions            *TxPropOptions       `json:"txPropOptions,omitempty"`
-	TxGraphOptions           *TxGraphOptions      `json:"txGraphOptions,omitempty"`
-	HeuristicOptions         *dbHeuristic.Options `json:"heuristicOptions,omitempty"`
+	SelectorCreated          string                       `json:"selectorCreated,omitempty"`
+	SelectorModified         string                       `json:"selectorModified,omitempty"`
+	SelectorType             string                       `json:"selectorType,omitempty"`
+	SelectorStatus           string                       `json:"selectorStatus,omitempty"`
+	SelectorErrorCode        string                       `json:"selectorErrorCode,omitempty"`
+	SelectorResultCount      *int                         `json:"selectorResultCount,omitempty"`
+	SelectorTotalResultCount *int                         `json:"selectorTotalResultCount,omitempty"`
+	TxPropOptions            *TxPropOptions               `json:"txPropOptions,omitempty"`
+	TxGraphOptions           *TxGraphOptions              `json:"txGraphOptions,omitempty"`
+	HeuristicOptions         *heuristics.HeuristicOptions `json:"heuristicOptions,omitempty"`
 
 	// note
 	Text string `json:"text,omitempty"`

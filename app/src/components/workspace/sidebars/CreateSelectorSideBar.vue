@@ -27,7 +27,7 @@
             Adding {{ plural(selectorType, 2) }} to compatible nodes. There are {{ parentNodes.length }} nodes selected.
           </v-alert>
           <template v-if="selectorType === SELECTOR_TYPE_HEURISTIC">
-            <div class="text-subtitle-2 mb-3">
+            <div class="text-title-small mb-3">
               Find senders and receivers of
               <wiki-tooltip description-url="coinjoin.md">
                 CoinJoin
@@ -52,10 +52,10 @@
                 <div class="d-flex flex-column">
                   <span>{{ item.title }}</span>
                   <span
-                    v-if="item.raw.subtitle"
-                    class="text-caption"
+                    v-if="item.subtitle"
+                    class="text-body-small"
                   >
-                    {{ item.raw.subtitle }}
+                    {{ item.subtitle }}
                   </span>
                 </div>
               </template>
@@ -63,18 +63,18 @@
                 <named-divider
                   :title="i.props.title"
                   :vertical-margin="0"
-                  title-class="text-caption"
+                  title-class="text-body-small"
                 />
               </template>
               <template #item="{ props: itemProps, item }">
                 <v-list-item
                   v-bind="itemProps"
-                  :subtitle="item.raw.subtitle"
+                  :subtitle="item.subtitle"
                 />
               </template>
             </v-select>
             <template v-if="heuristicTypeModel">
-              <div class="text-subtitle-2 my-3">
+              <div class="text-title-small my-3">
                 {{ heuristicTypeModel.description }}
               </div>
               <v-text-field
@@ -103,7 +103,7 @@
             </template>
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_PROP">
-            <div class="text-subtitle-2 mb-3">
+            <div class="text-title-small mb-3">
               Select transactions based on their properties.
               <wiki-tooltip description-url="workspaces/propertySelector.md">
                 Learn more
@@ -115,11 +115,11 @@
               :max="SELECTOR_MAX_ITEMS"
             />
             <named-divider title="Select" />
-            <template v-if="!parentNodes.length">
-              <div class="d-flex justify-center mt-2 text-subtitle-1">
+            <template v-if="parentNodes.length === 0">
+              <div class="d-flex justify-center mt-2 text-body-large">
                 Time Range
               </div>
-              <div class="d-flex justify-center mb-2 text-caption">
+              <div class="d-flex justify-center mb-2 text-body-small">
                 <v-icon
                   start
                   :icon="mdiInformationOutline"
@@ -144,7 +144,7 @@
             </template>
             <div
               v-else
-              class="text-subtitle-1"
+              class="text-body-large"
             >
               Using stored transactions of the parent node.
             </div>
@@ -165,7 +165,7 @@
               <template #selection="{ item }">
                 <color-chip
                   :title="item.title"
-                  :color="item.raw.color"
+                  :color="item.color"
                 />
               </template>
               <template #item="i">
@@ -173,7 +173,7 @@
                   <template #prepend="{isSelected}">
                     <v-checkbox-btn :model-value="isSelected" />
                     <color-sheet
-                      :color="i.item.raw.color"
+                      :color="i.item.color"
                       class="me-2"
                     />
                   </template>
@@ -207,7 +207,7 @@
             />
           </template>
           <template v-else-if="selectorType === SELECTOR_TYPE_TX_GRAPH">
-            <div class="text-subtitle-2 mb-3">
+            <div class="text-title-small mb-3">
               Select transactions based on their distance to the starting node.
               <br>
               <wiki-tooltip description-url="workspaces/graphSelector.md">
@@ -221,7 +221,7 @@
               :max="SELECTOR_MAX_ITEMS"
             />
             <v-divider thickness="2" />
-            <div class="text-center text-subtitle-1 my-2">
+            <div class="text-center text-body-large my-2">
               <label for="traversal_direction">Traversal Direction</label>
             </div>
             <div class="d-flex justify-center">
@@ -254,6 +254,7 @@
             />
           </template>
         </v-card-text>
+        <alert :text="errorMsg" />
         <v-card-actions>
           <v-btn
             class="ms-auto"
@@ -270,24 +271,32 @@
 
 <script setup>
 import {useRoute} from 'vue-router';
+import {mdiFilterPlus, mdiInformationOutline, mdiShapeCirclePlus} from '@mdi/js';
 import {
-	mdiFilterPlus, mdiInformationOutline, mdiShapeCirclePlus,
-} from '@mdi/js';
-import {useMsgStore} from '@/pinia/msg';
-import SideBar from '@/components/common/SideBar.vue';
-import {
-	computed, onMounted, onUpdated, ref, toRaw,
+	computed,
+	onMounted,
+	onUpdated,
+	ref,
+	toRaw,
 } from 'vue';
+import SideBar from '@/components/common/SideBar.vue';
 import {
 	CLUSTER_TYPE_CUSTOM,
 	SELECTOR_MAX_ITEMS,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH,
+	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_TX_GRAPH,
 	SELECTOR_TYPE_TX_PROP,
 } from '@/constants/index.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import DateInput from '@/components/workspace/sidebars/DateInput.vue';
 import {
-	amountToIntegers, capitalize, filterDescriptors, getCoinJoinTypeCaption, getColorMap, plural,
+	amountToIntegers,
+	capitalize,
+	filterDescriptors,
+	getCoinJoinTypeCaption,
+	getTransactionColorMap,
+	plural,
+	isMaxLargerThanMin,
 } from '@/utilities/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import ColorSheet from '@/components/common/ColorSheet.vue';
@@ -295,10 +304,10 @@ import {blenderPlus, graphPlus} from '@/customIcons/index.js';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import SliderOption from '@/components/workspace/sidebars/SliderOption.vue';
 import RangeOption from '@/components/workspace/sidebars/RangeOption.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['add-selectors']);
-const msgStore = useMsgStore();
 const route = useRoute();
 
 const props = defineProps({
@@ -307,6 +316,7 @@ const props = defineProps({
 	parentNodes: {type: Array, required: false, default: () => []},
 });
 
+const errorMsg = ref('');
 // Heuristic select model
 const heuristicTypeModel = ref(null);
 // Heuristic select items
@@ -346,12 +356,12 @@ const endDateError = ref(false);
 const maxResultsError = ref(false);
 const parameterRules = new Map([
 	['int', [v => {
-		if (!/^\d+$/.test(v)) {
+		if (!/^\d+$/v.test(v)) {
 			return 'must be a number';
 		}
 
-		const num = parseInt(v, 10);
-		if (isNaN(num) || !Number.isInteger(num)) {
+		const num = Number.parseInt(v, 10);
+		if (Number.isNaN(num) || !Number.isInteger(num)) {
 			return 'must be a number';
 		}
 
@@ -362,8 +372,8 @@ const parameterRules = new Map([
 			return true;
 		}
 
-		const num = parseFloat(v, 10);
-		if (isNaN(num)) {
+		const num = Number.parseFloat(v, 10);
+		if (Number.isNaN(num)) {
 			return 'must be a number';
 		}
 
@@ -371,14 +381,14 @@ const parameterRules = new Map([
 	}]],
 	// String rule is not implemented yet
 	['string', null],
-	['date', [v => Boolean(v)]],
+	['date', [Boolean]],
 ]);
 
 const transactionTypeItems = [];
 
 // Hooks
 onMounted(() => {
-	getColorMap(route.params.blockchainMode).forEach((v, k) => {
+	getTransactionColorMap(route.params.blockchainMode).forEach((v, k) => {
 		transactionTypeItems.push({title: capitalize(k), value: k, color: v});
 	});
 });
@@ -433,12 +443,12 @@ const heuristicRules = computed(() => {
 	const rules = parameterRules.get(heuristicTypeModel.value.parameter.type);
 	if (heuristicTypeModel.value.parameter.type === 'int') {
 		if (heuristicTypeModel.value.parameter.minimum) {
-			rules.push(v => parseInt(v, 10) >= heuristicTypeModel.value.parameter.minimum
+			rules.push(v => Number.parseInt(v, 10) >= heuristicTypeModel.value.parameter.minimum
 				|| `Minimum: ${heuristicTypeModel.value.parameter.minimum}`);
 		}
 
 		if (heuristicTypeModel.value.parameter.maximum) {
-			rules.push(v => parseInt(v, 10) <= heuristicTypeModel.value.parameter.maximum
+			rules.push(v => Number.parseInt(v, 10) <= heuristicTypeModel.value.parameter.maximum
 				|| `Maximum: ${heuristicTypeModel.value.parameter.maximum}`);
 		}
 	}
@@ -468,7 +478,7 @@ function hasMultipleTypes(descriptors) {
 }
 
 function getHeuristicTypes() {
-	if (!props.descriptors || !props.parentNodes.length) {
+	if (!props.descriptors || props.parentNodes.length === 0) {
 		return [];
 	}
 
@@ -481,7 +491,7 @@ function getHeuristicTypes() {
 		d.category ||= 'Other';
 		return d;
 	})
-		.sort((a, b) => {
+		.toSorted((a, b) => {
 			const comparedCategory = b.category.localeCompare(a.category);
 
 			if (comparedCategory === 0) {
@@ -497,12 +507,7 @@ function getHeuristicTypes() {
 				selectorItems.push({title: d.category, type: 'subheader'});
 			}
 
-			if (multipleTypes) {
-				d.subtitle = getCoinJoinTypeCaption(d.type);
-			} else {
-				// Need to clear any previously set subtitles
-				d.subtitle = '';
-			}
+			d.subtitle = multipleTypes ? getCoinJoinTypeCaption(d.type) : '';
 
 			selectorItems.push(d);
 		});
@@ -530,7 +535,7 @@ function getAmount(amount) {
 		return undefined;
 	}
 
-	return amountToIntegers(parseFloat(amount));
+	return amountToIntegers(Number.parseFloat(amount));
 }
 
 // Returns a valid heuristic type. tries to set it to oldHeuristicTypeObject if possible.
@@ -546,13 +551,12 @@ function getInitialHeuristicTypeModel(oldHeuristicTypeObject, newHeuristicTypes)
 }
 
 function buildHeuristicOptions() {
-	let options = null;
 	if (!heuristicOptions.value.type) {
 		setErrorMessage('invalid heuristic type');
-		return;
+		return null;
 	}
 
-	options = structuredClone(toRaw(heuristicOptions.value));
+	const options = structuredClone(toRaw(heuristicOptions.value));
 	options.clusterTypes = heuristicOptions.value.clusterTypes?.length > 0 ? [CLUSTER_TYPE_CUSTOM] : [];
 
 	options.parameter &&= `${options.parameter}`;
@@ -562,7 +566,7 @@ function buildHeuristicOptions() {
 // Returns true if the two dates are more than 60 days apart
 function isDateRangeToBig(startDate, endDate) {
 	// 24 * 60 * 60 * 1000 = 86400000
-	const milliSecondsPerDay = 86400000;
+	const milliSecondsPerDay = 86_400_000;
 	return Math.round(Math.abs((endDate - startDate) / milliSecondsPerDay)) > 60;
 }
 
@@ -574,7 +578,7 @@ function isOptionsEmpty(options) {
 function buildTxPropOptions() {
 	const options = structuredClone(toRaw(txPropOptions.value));
 
-	if (props.parentNodes.length) {
+	if (props.parentNodes.length > 0) {
 		delete options.startDate;
 		delete options.endDate;
 	} else {
@@ -602,7 +606,7 @@ function buildTxPropOptions() {
 	startDateError.value = false;
 	endDateError.value = false;
 
-	options.maxItems = parseInt(options.maxItems, 10);
+	options.maxItems = Number.parseInt(options.maxItems, 10);
 	options.inputSum.min = getAmount(options.inputSum.min);
 	options.inputSum.max = getAmount(options.inputSum.max);
 	options.outputSum.min = getAmount(options.outputSum.min);
@@ -612,6 +616,26 @@ function buildTxPropOptions() {
 	options.inputRange.max = getAmount(options.inputRange.max);
 	options.outputRange.min = getAmount(options.outputRange.min);
 	options.outputRange.max = getAmount(options.outputRange.max);
+
+	if (!isMaxLargerThanMin(options.inputSum)) {
+		setErrorMessage('input sum: minimum of must be smaller or equal to maximum');
+		return;
+	}
+
+	if (!isMaxLargerThanMin(options.outputSum)) {
+		setErrorMessage('output sum: minimum of must be smaller or equal to maximum');
+		return;
+	}
+
+	if (!isMaxLargerThanMin(options.inputRange)) {
+		setErrorMessage('input range: minimum of must be smaller or equal to maximum');
+		return;
+	}
+
+	if (!isMaxLargerThanMin(options.outputRange)) {
+		setErrorMessage('output range: minimum of must be smaller or equal to maximum');
+		return;
+	}
 
 	if (options.excludePrivacyTransactions) {
 		delete options.txTypes;
@@ -655,7 +679,7 @@ async function addNewSelectorAction(event) {
 		return;
 	}
 
-	let options = null;
+	let options;
 
 	switch (props.selectorType) {
 		case SELECTOR_TYPE_HEURISTIC:
@@ -687,9 +711,7 @@ async function addNewSelectorAction(event) {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
+	errorMsg.value = msg;
 }
 
 </script>

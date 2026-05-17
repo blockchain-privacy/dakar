@@ -10,7 +10,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -21,7 +21,7 @@ import (
 // whirlpoolReverseAmountHeuristic - see exec for description
 type whirlpoolReverseAmountHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewWhirlpoolReverseAmountHeuristic() Heuristic {
@@ -32,7 +32,7 @@ func (h *whirlpoolReverseAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolReverseAmountHeuristic) SetConfig(c heuristics.Options) error {
+func (h *whirlpoolReverseAmountHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -46,7 +46,7 @@ func (h *whirlpoolReverseAmountHeuristic) SetConfig(c heuristics.Options) error 
 	return nil
 }
 
-func (h *whirlpoolReverseAmountHeuristic) GetConfig() heuristics.Options {
+func (h *whirlpoolReverseAmountHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

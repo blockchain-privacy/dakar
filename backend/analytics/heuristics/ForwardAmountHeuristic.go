@@ -10,18 +10,19 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // forwardAmountHeuristic - see exec for description
 type forwardAmountHeuristic struct {
-	c               heuristics.Options
+	c               HeuristicOptions
 	heuristicType   string
 	lookForwardTime time.Duration
 }
@@ -34,7 +35,7 @@ func (h *forwardAmountHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *forwardAmountHeuristic) SetConfig(c heuristics.Options) error {
+func (h *forwardAmountHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -54,7 +55,7 @@ func (h *forwardAmountHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *forwardAmountHeuristic) GetConfig() heuristics.Options {
+func (h *forwardAmountHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

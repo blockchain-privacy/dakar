@@ -2,33 +2,43 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {inject} from 'vue';
 import {
 	BLOCKCHAIN_BTC,
 	BLOCKCHAIN_DASH,
 	CLUSTER_TYPE_CUSTOM,
 	CLUSTER_TYPE_FMI,
+	DENOMINATIONS_WASABI2,
 	PRIVACY_TYPE_DESTINATION,
 	PRIVACY_TYPE_WASABI_2_DESTINATION,
+	PRIVACY_TYPE_WHIRLPOOL_DESTINATION,
 	ROUTE_NAME_LOGIN_PAGE,
-	DENOMINATIONS_WASABI2, PRIVACY_TYPE_WHIRLPOOL_DESTINATION, WORKSPACE_NODE_TYPE_SELECTOR,
+	SELECTOR_STATUS_SUCCESS,
+	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_TX_GRAPH,
+	SELECTOR_TYPE_TX_PROP,
+	WORKSPACE_NODE_TYPE_CLUSTER,
+	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_STATUS_SUCCESS,
 } from '@/constants';
-import {inject} from 'vue';
 
 export function getCoinUnit(mode) {
 	switch (mode) {
-		case BLOCKCHAIN_DASH: return 'Dash';
-		case BLOCKCHAIN_BTC: return 'BTC';
-		default: return 'invalid_unit';
+		case BLOCKCHAIN_DASH: {return 'Dash';}
+
+		case BLOCKCHAIN_BTC: {return 'BTC';}
+
+		default: {return 'invalid_unit';}
 	}
 }
 
 export function getDakarClient(mode) {
 	switch (mode) {
-		case BLOCKCHAIN_DASH: return inject('dashdakar');
-		case BLOCKCHAIN_BTC: return inject('btcdakar');
-		default: throw new Error('invalid blockchain mode:', mode);
+		case BLOCKCHAIN_DASH: {return inject('dashdakar');}
+
+		case BLOCKCHAIN_BTC: {return inject('btcdakar');}
+
+		default: {throw new Error('invalid blockchain mode:', mode);}
 	}
 }
 
@@ -46,7 +56,7 @@ export function shortenHash(hash) {
 		return hash;
 	}
 
-	return `${hash.substring(0, elementLen)}...${hash.substring(hash.length - elementLen, hash.length)}`;
+	return `${hash.slice(0, Math.max(0, elementLen))}...${hash.slice(hash.length - elementLen)}`;
 }
 
 // ConvertAmount returns the given integer divided by 100 000 000 and localized
@@ -99,12 +109,26 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 	}
 
 	if (errMsg === '') {
-		if (response.status === 400) {
-			errMsg = 'invalid request';
-		} else if (response.status === 404) {
-			errMsg = 'resource not found';
-		} else {
-			errMsg = `${response.status} ${response.statusText}`;
+		switch (response.status) {
+			case 400: {
+				errMsg = 'Your request was invalid. Please try again.';
+				break;
+			}
+
+			case 404: {
+				errMsg = 'The resource you are trying to access is unavailable.';
+				break;
+			}
+
+			case 500:
+			case 502: {
+				errMsg = 'Error requesting data from server. Please try again later.';
+				break;
+			}
+
+			default: {
+				errMsg = `${response.status} ${response.statusText}`;
+			}
 		}
 	}
 
@@ -112,22 +136,16 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 }
 
 export function handleError(context, error) {
-	let errMsg;
-	if (error.cause?.status === 500 || error.cause?.status === 502) {
-		errMsg = 'Error requesting data from server. Please try again later.';
-	} else {
-		errMsg = error.message;
-	}
-
 	context.addMessage({
-		text: errMsg, type: 'error', temporary: true, category: context.$route.name,
+		text: error.message, type: 'error', temporary: true, category: context.$route.name,
 	});
 }
 
+export const isValidEmail = v => /^\S[^\s@]*@\S[^\s.]*\.\S+$/v.test(v);
 export const emailRules = [
 	v => Boolean(v) || 'E-mail is required',
 	v => (v && v.length < 100) || 'E-mail must be less than 100 characters',
-	v => /.+@.+\..+/.test(v) || 'E-mail must be valid',
+	v => isValidEmail(v) || 'E-mail must be valid',
 ];
 
 export const fileRule = [v => {
@@ -140,9 +158,11 @@ export const fileRule = [v => {
 
 function isRole(session, mode, roleName) {
 	switch (mode) {
-		case BLOCKCHAIN_BTC: return Boolean(session?.identity?.metadata_public?.roles?.dakar_btc === roleName);
-		case BLOCKCHAIN_DASH: return Boolean(session?.identity?.metadata_public?.roles?.dakar_dash === roleName);
-		default: return false;
+		case BLOCKCHAIN_BTC: {return Boolean(session?.identity?.metadata_public?.roles?.dakar_btc === roleName);}
+
+		case BLOCKCHAIN_DASH: {return Boolean(session?.identity?.metadata_public?.roles?.dakar_dash === roleName);}
+
+		default: {return false;}
 	}
 }
 
@@ -169,12 +189,17 @@ export function isAnyAdminIdentity(session) {
 // GetClusterTypeLabel translates the cluster shorthand of cluster types to a readable string
 export function getClusterTypeLabel(clusterType) {
 	switch (clusterType) {
-		case CLUSTER_TYPE_FMI:
+		case CLUSTER_TYPE_FMI: {
 			return 'Multi-Input Cluster';
-		case CLUSTER_TYPE_CUSTOM:
+		}
+
+		case CLUSTER_TYPE_CUSTOM: {
 			return 'User-defined Cluster';
-		default:
+		}
+
+		default: {
 			return clusterType;
+		}
 	}
 }
 
@@ -191,7 +216,7 @@ export function filterDescriptors(descriptors, nodes, validate = true) {
 		for (const n of nodes) {
 			let nodeType;
 			switch (n.type) {
-				case WORKSPACE_NODE_TYPE_SELECTOR:
+				case WORKSPACE_NODE_TYPE_SELECTOR: {
 					if (n.selectorType !== SELECTOR_TYPE_HEURISTIC || n.selectorStatus !== SELECTOR_STATUS_SUCCESS) {
 						// eslint-disable-next-line max-depth
 						if (validate) {
@@ -203,13 +228,18 @@ export function filterDescriptors(descriptors, nodes, validate = true) {
 
 					nodeType = n.heuristicOptions.type;
 					break;
-				case WORKSPACE_NODE_TYPE_TRANSACTION:
+				}
+
+				case WORKSPACE_NODE_TYPE_TRANSACTION: {
 					nodeType = n.txtype;
 					break;
-				default:
+				}
+
+				default: {
 					if (validate) {
 						throw new Error('invalid node type');
 					}
+				}
 			}
 
 			if (d.allowedParents.includes(nodeType)) {
@@ -247,7 +277,7 @@ export function isFunction(functionToCheck) {
 		return false;
 	}
 
-	const fnType = {}.toString.call(functionToCheck);
+	const fnType = Object.prototype.toString.call(functionToCheck);
 	return fnType === '[object Function]' || fnType === '[object AsyncFunction]';
 }
 
@@ -257,13 +287,13 @@ export function plural(subject, count) {
 }
 
 // Appends an 's' at the end of subject if count is higher than one
-export function pluralIrregular(subject, plural, count) {
-	return count === 0 || count > 1 ? plural : subject;
+export function pluralIrregular(subject, pluralVersion, count) {
+	return count === 0 || count > 1 ? pluralVersion : subject;
 }
 
 // Returns a mapping between transaction types and their colors.
 // If a blockchain mode is provided, only transaction types of the given mode are returned.
-export function getColorMap(mode) {
+export function getTransactionColorMap(mode) {
 	// Colors from https://sashamaps.net/docs/resources/20-colors/
 	const dashTransactionTypes = [
 		{name: 'origin', color: '#800000'},
@@ -288,21 +318,58 @@ export function getColorMap(mode) {
 	const colorMap = new Map();
 
 	switch (mode) {
-		case BLOCKCHAIN_DASH:
-			dashTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+		case BLOCKCHAIN_DASH: {
+			for (const t of dashTransactionTypes) {
+				colorMap.set(t.name, t.color);
+			}
+
 			break;
-		case BLOCKCHAIN_BTC:
-			wasabi2TransactionTypes.forEach(t => colorMap.set(t.name, t.color));
-			whirlPoolTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+		}
+
+		case BLOCKCHAIN_BTC: {
+			for (const t of wasabi2TransactionTypes) {
+				colorMap.set(t.name, t.color);
+			}
+
+			for (const t of whirlPoolTransactionTypes) {
+				colorMap.set(t.name, t.color);
+			}
+
 			break;
-		case undefined:
-			dashTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
-			wasabi2TransactionTypes.forEach(t => colorMap.set(t.name, t.color));
-			whirlPoolTransactionTypes.forEach(t => colorMap.set(t.name, t.color));
+		}
+
+		case undefined: {
+			for (const t of dashTransactionTypes) {
+				colorMap.set(t.name, t.color);
+			}
+
+			for (const t of wasabi2TransactionTypes) {
+				colorMap.set(t.name, t.color);
+			}
+
+			for (const t of whirlPoolTransactionTypes) {
+				colorMap.set(t.name, t.color);
+			}
+
 			break;
+		}
+
 		default:
 	}
 
+	return colorMap;
+}
+
+// Returns a mapping between all graph nodes and their colors.
+// If a blockchain mode is provided, only transaction types of the given mode are returned.
+export function getGraphColorMap(mode) {
+	const colorMap = getTransactionColorMap(mode);
+	colorMap.set(WORKSPACE_NODE_TYPE_CLUSTER, '#ffe119');
+	setUndefinedTransactionColor(colorMap, WORKSPACE_NODE_TYPE_TRANSACTION);
+
+	colorMap.set(SELECTOR_TYPE_HEURISTIC, '#4363d8');
+	colorMap.set(SELECTOR_TYPE_TX_GRAPH, '#42d4f4');
+	colorMap.set(SELECTOR_TYPE_TX_PROP, '#000075');
 	return colorMap;
 }
 
@@ -333,7 +400,16 @@ export function extractEntities(text) {
 		return [];
 	}
 
-	const regexp = /[13X7][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59}|[a-fA-F0-9]{64}/g;
+	const regexp = /[13X7][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59}|[a-fA-F0-9]{64}/gv;
 	const matches = [...text.matchAll(regexp)].map(r => r[0]);
 	return [...new Set(matches)];
+}
+
+export function isMaxLargerThanMin(obj) {
+	// Compare undefined so zero check is handled at least line
+	if (obj.min === undefined || obj.max === undefined) {
+		return true;
+	}
+
+	return obj.max >= obj.min;
 }

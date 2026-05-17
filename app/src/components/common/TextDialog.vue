@@ -8,9 +8,7 @@
     max-width="500px"
   >
     <v-card>
-      <v-card-title>
-        <span class="text-h5">{{ title }}</span>
-      </v-card-title>
+      <v-card-title>{{ title }}</v-card-title>
       <v-card-text>
         <v-textarea
           v-if="textArea"
@@ -52,6 +50,7 @@
 </template>
 <script setup>
 import {onMounted, onUpdated, ref} from 'vue';
+
 const model = defineModel({type: Boolean});
 const props = defineProps({
 	title: {type: String, required: true},

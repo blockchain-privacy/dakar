@@ -39,11 +39,11 @@
 </template>
 
 <script setup>
+import {mdiTransfer} from '@mdi/js';
+import {useRoute} from 'vue-router';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {mdiTransfer} from '@mdi/js';
-import {useRoute} from 'vue-router';
 
 defineProps({tx: {type: Object, required: true}});
 const route = useRoute();

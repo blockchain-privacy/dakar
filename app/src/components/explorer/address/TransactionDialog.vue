@@ -8,7 +8,7 @@
     max-width="700px"
   >
     <v-card>
-      <v-card-title class="text-h5">
+      <v-card-title>
         Transaction
         <workspace-link
           disable-select
@@ -19,15 +19,15 @@
         </workspace-link>
       </v-card-title>
       <v-card-text>
-        <p class="text-subtitle-1">
+        <p class="text-body-large">
           Transaction Type: {{ transactionType }}
         </p>
-        <p class="text-subtitle-1">
+        <p class="text-body-large">
           Timestamp: {{ dateTime.toLocaleString() }}
         </p>
         <p
           v-if="inputTxs && inputTxs.length > 0"
-          class="text-subtitle-1"
+          class="text-body-large"
         >
           Input Transactions:
         </p>
@@ -53,9 +53,9 @@
 </template>
 
 <script setup>
+import {useRoute} from 'vue-router';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {useRoute} from 'vue-router';
 
 defineProps({
 	txHash: {type: String, required: true},

@@ -9,10 +9,10 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Import {{ title }} Clusters</span>
+        Import {{ title }} Clusters
       </v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           Import custom address clusters by uploading a CSV-file.
           The file must have two columns, where the first column contains an
           identifier for each cluster and the second column the addresses.
@@ -49,45 +49,41 @@
               label="Separator"
             />
           </div>
-          <div class="d-flex align-center justify-end">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              class="mr-2"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              :loading="isLoading"
-              @click="handleCSVUpload"
-            >
-              Upload
-            </v-btn>
-          </div>
         </v-form>
       </v-card-text>
+      <alert :text="errorMsg" />
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          :loading="isLoading"
+          @click="handleCSVUpload"
+        >
+          Upload
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
 import {fileRule, getDakarClient} from '@/utilities';
-import {useMsgStore} from '@/pinia/msg';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
 	blockchainMode: {type: String, required: true},
 });
 
-const route = useRoute();
-const msgStore = useMsgStore();
 const dakar = getDakarClient(props.blockchainMode);
-
 const model = defineModel({type: Boolean});
 const emit = defineEmits(['added']);
 
@@ -100,6 +96,7 @@ const csv = ref({
 	separator: ',',
 	firstRowContainsHeader: false,
 });
+const errorMsg = ref('');
 
 const separatorItems = [
 	{text: 'Colon (,)', value: ','},
@@ -107,18 +104,6 @@ const separatorItems = [
 ];
 
 // Functions
-function setSuccessMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'success', temporary: true, category: route.name,
-	});
-}
-
-function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
-}
-
 async function handleCSVUpload() {
 	const {valid} = await csvForm.value.validate();
 	if (!valid) {
@@ -126,7 +111,7 @@ async function handleCSVUpload() {
 	}
 
 	isLoading.value = true;
-
+	errorMsg.value = '';
 	try {
 		await dakar.cluster.clustersPost({
 			separator: csv.value.separator,
@@ -134,14 +119,15 @@ async function handleCSVUpload() {
 			file: csv.value.file,
 		});
 
-		setSuccessMessage('import was successful');
 		emit('added');
-	} catch (e) {
-		setPersistentErrorMessage(codeToMsg(e.message));
+	} catch (error) {
+		errorMsg.value = codeToMsg(error.message);
+		return;
+	} finally {
+		isLoading.value = false;
+		csv.value.file = undefined;
 	}
 
-	isLoading.value = false;
-	csv.value.file = undefined;
 	model.value = false;
 }
 
@@ -170,7 +156,6 @@ function codeToMsg(msgCode) {
 			return msgCode;
 	}
 }
-
 </script>
 
 <style scoped>

@@ -86,7 +86,7 @@ func Test_applyUpgrades(t *testing.T) {
 	dbHandle := db.GetDBConnection(t, "")
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: db.GetPointer[int](1)}))
+	require.NoError(t, status.SetMeta(ctx, dbHandle, status.Meta{SchemaVersion: new(1)}))
 
 	tests := []struct {
 		upgrades map[int]UpgradePackage

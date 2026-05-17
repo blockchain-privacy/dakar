@@ -67,14 +67,11 @@ export default function lasso() {
 	let dragFilter = null;
 	let targetArea;
 	const on = {
-		start() {
-		}, draw() {
-		}, end() {
-		},
+		start() {}, draw() {}, end() {},
 	};
 
 	// Function to execute on call
-	function lasso(_this) {
+	function lassoMain(_this) {
 		// Add a new group for the lasso
 		const g = _this.append('g').attr('class', 'lasso');
 
@@ -119,7 +116,7 @@ export default function lasso() {
 			closePath.attr('d', null);
 
 			// Set every item to have a false selection and reset their center point and counters
-			items.nodes().forEach(e => {
+			for (const e of items.nodes()) {
 				e.__lasso.possible = false;
 				e.__lasso.selected = false;
 				e.__lasso.hoverSelect = false;
@@ -127,7 +124,7 @@ export default function lasso() {
 
 				const box = e.getBoundingClientRect();
 				e.__lasso.lassoPoint = [Math.round(box.left + (box.width / 2)), Math.round(box.top + (box.height / 2))];
-			});
+			}
 
 			// If hover is on, add hover function
 			if (hoverSelect) {
@@ -177,7 +174,7 @@ export default function lasso() {
 			drawnCoords.push([x, y]);
 
 			// Calculate the current distance from the lasso origin
-			const distance = Math.sqrt(((x - origin[0]) ** 2) + ((y - origin[1]) ** 2));
+			const distance = Math.hypot(x - origin[0], y - origin[1]);
 
 			// Set the closed path line
 			const closeDrawPath = 'M ' + tx + ' ' + ty + ' L ' + tOrigin[0] + ' ' + tOrigin[1];
@@ -197,10 +194,10 @@ export default function lasso() {
 				closePath.attr('display', 'none');
 			}
 
-			items.nodes().forEach(n => {
+			for (const n of items.nodes()) {
 				n.__lasso.loopSelect = (isPathClosed && closePathSelect) ? (isPointInside(drawnCoords, n.__lasso.lassoPoint)) : false;
 				n.__lasso.possible = n.__lasso.hoverSelect || n.__lasso.loopSelect;
-			});
+			}
 
 			on.draw();
 		}
@@ -209,10 +206,10 @@ export default function lasso() {
 			// Remove mouseover tagging function
 			items.on('mouseover.lasso', null);
 
-			items.nodes().forEach(n => {
+			for (const n of items.nodes()) {
 				n.__lasso.selected = n.__lasso.possible;
 				n.__lasso.possible = false;
-			});
+			}
 
 			// Clear lasso
 			dynPath.attr('d', null);
@@ -225,103 +222,104 @@ export default function lasso() {
 	}
 
 	// Set or get list of items for lasso to select
-	lasso.items = function (_) {
-		if (!arguments.length) {
+	lassoMain.items = function (_) {
+		if (arguments.length === 0) {
 			return items;
 		}
 
 		items = _;
 		const nodes = items.nodes();
-		nodes.forEach(n => {
+		for (const n of nodes) {
 			n.__lasso = {
 				possible: false,
 				selected: false,
 			};
-		});
-		return lasso;
+		}
+
+		return lassoMain;
 	};
 
 	// Return possible items
-	lasso.possibleItems = function () {
+	lassoMain.possibleItems = function () {
 		return items.filter(function () {
 			return this.__lasso.possible;
 		});
 	};
 
 	// Return selected items
-	lasso.selectedItems = function () {
+	lassoMain.selectedItems = function () {
 		return items.filter(function () {
 			return this.__lasso.selected;
 		});
 	};
 
 	// Return not possible items
-	lasso.notPossibleItems = function () {
+	lassoMain.notPossibleItems = function () {
 		return items.filter(function () {
 			return !this.__lasso.possible;
 		});
 	};
 
 	// Return not selected items
-	lasso.notSelectedItems = function () {
+	lassoMain.notSelectedItems = function () {
 		return items.filter(function () {
 			return !this.__lasso.selected;
 		});
 	};
 
 	// Distance required before path auto closes loop
-	lasso.dragFilter = function (_) {
-		if (!arguments.length) {
+	lassoMain.dragFilter = function (_) {
+		if (arguments.length === 0) {
 			return dragFilter;
 		}
 
 		dragFilter = _;
-		return lasso;
+		return lassoMain;
 	};
 
 	// Distance required before path auto closes loop
-	lasso.closePathDistance = function (_) {
-		if (!arguments.length) {
+	lassoMain.closePathDistance = function (_) {
+		if (arguments.length === 0) {
 			return closePathDistance;
 		}
 
 		closePathDistance = _;
-		return lasso;
+		return lassoMain;
 	};
 
 	// Option to loop select or not
-	lasso.closePathSelect = function (_) {
-		if (!arguments.length) {
+	lassoMain.closePathSelect = function (_) {
+		if (arguments.length === 0) {
 			return closePathSelect;
 		}
 
 		closePathSelect = _ === true;
-		return lasso;
+		return lassoMain;
 	};
 
 	// Not sure what this is for
-	lasso.isPathClosed = function (_) {
-		if (!arguments.length) {
+	lassoMain.isPathClosed = function (_) {
+		if (arguments.length === 0) {
 			return isPathClosed;
 		}
 
 		isPathClosed = _ === true;
-		return lasso;
+		return lassoMain;
 	};
 
 	// Option to select on hover or not
-	lasso.hoverSelect = function (_) {
-		if (!arguments.length) {
+	lassoMain.hoverSelect = function (_) {
+		if (arguments.length === 0) {
 			return hoverSelect;
 		}
 
 		hoverSelect = _ === true;
-		return lasso;
+		return lassoMain;
 	};
 
 	// Events
-	lasso.on = function (type, _) {
-		if (!arguments.length) {
+	lassoMain.on = function (type, _) {
+		if (arguments.length === 0) {
 			return on;
 		}
 
@@ -330,22 +328,22 @@ export default function lasso() {
 		}
 
 		const types = ['start', 'draw', 'end'];
-		if (types.indexOf(type) > -1) {
+		if (types.includes(type)) {
 			on[type] = _;
 		}
 
-		return lasso;
+		return lassoMain;
 	};
 
 	// Area where lasso can be triggered from
-	lasso.targetArea = function (_) {
-		if (!arguments.length) {
+	lassoMain.targetArea = function (_) {
+		if (arguments.length === 0) {
 			return targetArea;
 		}
 
 		targetArea = _;
-		return lasso;
+		return lassoMain;
 	};
 
-	return lasso;
+	return lassoMain;
 }

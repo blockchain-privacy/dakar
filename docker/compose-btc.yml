@@ -6,7 +6,7 @@ x-logging:
 
 services:
   btc_zero:
-    image: dgraph/dgraph:v25.0.0
+    image: dgraph/dgraph:v25.3.4
     container_name: btc_zero
     volumes:
       - ${BTC_DGRAPH_PATH}:/dgraph
@@ -16,7 +16,7 @@ services:
       - dgraph_default
 
   btc_alpha:
-    image: dgraph/dgraph:v25.0.0
+    image: dgraph/dgraph:v25.3.4
     container_name: btc_alpha
     volumes:
       - ${BTC_DGRAPH_PATH}:/dgraph

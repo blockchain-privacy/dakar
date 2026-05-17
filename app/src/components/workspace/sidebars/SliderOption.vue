@@ -4,7 +4,7 @@
 
 <template>
   <div>
-    <div class="text-center text-subtitle-1 mt-2">
+    <div class="text-center text-body-large mt-2">
       <label :for="`${componentID}_slider`">{{ label }}</label>
     </div>
     <div class="d-flex align-center">

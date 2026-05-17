@@ -5,14 +5,17 @@
 package workspace
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/db/user"
 	"backend/db/workspace"
 	"backend/external"
+	"encoding/json"
 	"errors"
 	"math/rand/v2"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
@@ -175,8 +178,8 @@ func TestWorkspaceUsageParallel(t *testing.T) {
 			for i, n := range workspaceToNodes[workspaceIndex] {
 				nodes[i] = workspace.Node{
 					UID: n,
-					X:   db.GetPointer[float32](3.0),
-					Y:   db.GetPointer[float32](4.0),
+					X:   new(float32(3)),
+					Y:   new(float32(4)),
 				}
 			}
 
@@ -217,4 +220,106 @@ func TestWorkspaceUsageParallel(t *testing.T) {
 	for err := range errChan {
 		require.NoError(t, err)
 	}
+}
+
+func TestDeleteNodes(t *testing.T) {
+	dbHandle := db.GetDBConnection(t, db.UseBlockFile)
+	users, userToWorkspaces, workspaceToNodes := getUserAndWorkspaces(t, dbHandle)
+	m := NewMutex()
+	u := users[0]
+	ws := userToWorkspaces[0][0]
+	tx1 := workspaceToNodes[0][0]
+	tx2 := workspaceToNodes[0][1]
+	tx3 := workspaceToNodes[0][2]
+
+	// create selector option
+	startDate1, err := time.Parse(time.RFC3339, "2021-10-20T00:00:00+01:00")
+	require.NoError(t, err)
+	endDate1, err := time.Parse(time.RFC3339, "2021-10-22T00:00:00+01:00")
+	require.NoError(t, err)
+
+	val1 := int64(1)
+	valPoint01 := int64(1000000)
+	valPoint1 := int64(10000000)
+
+	opt := workspace.TxPropOptions{
+		StartDate:   &startDate1,
+		EndDate:     &endDate1,
+		InputSum:    &workspace.AmountRange{Min: &val1},
+		InputRange:  &workspace.AmountRange{Min: &valPoint01, Max: &valPoint1},
+		OutputRange: &workspace.AmountRange{Min: &val1, Max: &valPoint1},
+	}
+
+	optJSON, err := json.Marshal(opt)
+	require.NoError(t, err)
+
+	selector1, err := workspace.InsertSelector(t.Context(), dbHandle, &workspace.Selector{
+		Type:    constants.TypeTxProp,
+		Status:  workspace.StatusSuccess,
+		Options: string(optJSON),
+		Parent:  &db.UIDNode{UID: tx1},
+	}, u, ws)
+	require.NoError(t, err)
+
+	selector2, err := workspace.InsertSelector(t.Context(), dbHandle, &workspace.Selector{
+		Type:    constants.TypeTxProp,
+		Status:  workspace.StatusSuccess,
+		Options: string(optJSON),
+		Parent:  &db.UIDNode{UID: tx2},
+	}, u, ws)
+	require.NoError(t, err)
+
+	selector3, err := workspace.InsertSelector(t.Context(), dbHandle, &workspace.Selector{
+		Type:    constants.TypeTxProp,
+		Status:  workspace.StatusSuccess,
+		Options: string(optJSON),
+		Parent:  &db.UIDNode{UID: tx3},
+	}, u, ws)
+	require.NoError(t, err)
+
+	selector4, err := workspace.InsertSelector(t.Context(), dbHandle, &workspace.Selector{
+		Type:    constants.TypeTxProp,
+		Status:  workspace.StatusSuccess,
+		Options: string(optJSON),
+		Parent:  &db.UIDNode{UID: selector3},
+	}, u, ws)
+	require.NoError(t, err)
+
+	// tx3 -> selector3 -> selector4 -> selector5
+	selector5, err := workspace.InsertSelector(t.Context(), dbHandle, &workspace.Selector{
+		Type:    constants.TypeTxProp,
+		Status:  workspace.StatusSuccess,
+		Options: string(optJSON),
+		Parent:  &db.UIDNode{UID: selector4},
+	}, u, ws)
+	require.NoError(t, err)
+
+	// call this so workspace state contains the selector
+	w, err := GetAndRefreshWorkspace(t.Context(), dbHandle, m, ws, u)
+	require.NoError(t, err)
+	require.NotEmpty(t, w.Nodes)
+
+	// deleting transaction should delete its child selector
+	nodes, err := DeleteNodes(t.Context(), dbHandle, m, ws, u, []string{tx1})
+	require.NoError(t, err)
+	require.Contains(t, nodes, selector1)
+	require.Contains(t, nodes, tx1)
+
+	// deleting selector first and then tx
+	nodes, err = DeleteNodes(t.Context(), dbHandle, m, ws, u, []string{selector2, tx2})
+	require.NoError(t, err)
+	require.Contains(t, nodes, selector2)
+	require.Contains(t, nodes, tx2)
+
+	// deleting partial selector chain and transaction afterward
+	nodes, err = DeleteNodes(t.Context(), dbHandle, m, ws, u, []string{selector4, tx3})
+	require.NoError(t, err)
+	require.Contains(t, nodes, tx3)
+	require.Contains(t, nodes, selector3)
+	require.Contains(t, nodes, selector4)
+	require.Contains(t, nodes, selector5)
+
+	// deleting an already deleted selector
+	_, err = DeleteNodes(t.Context(), dbHandle, m, ws, u, []string{selector5})
+	require.Error(t, err)
 }

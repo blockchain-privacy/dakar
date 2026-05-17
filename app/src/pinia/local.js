@@ -32,11 +32,9 @@ function deleteLocalstorageData(key) {
 // route guards even on page load.
 function insertLocalData(state) {
 	const localSettings = getLocalstorageData(LOCALSTORAGE_FIELD_SETTINGS);
-	if (localSettings !== null) {
+	if (localSettings !== null && localSettings.theme !== undefined) {
 		// Explicitly set values, so new settings are merged with old localstorage settings
-		if (localSettings.theme !== undefined) {
-			state.settings.theme = localSettings.theme;
-		}
+		state.settings.theme = localSettings.theme;
 	}
 
 	const localSession = getLocalstorageData(LOCALSTORAGE_FIELD_SESSION);

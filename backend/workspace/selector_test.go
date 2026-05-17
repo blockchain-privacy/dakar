@@ -5,6 +5,7 @@
 package workspace
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/db/user"
 	"backend/db/workspace"
@@ -58,7 +59,7 @@ func TestAddSelector(t *testing.T) {
 
 	// add parent
 	parentSelector, _, err := AddSelector(ctx, dbHandle, m, opt,
-		workspace.TypeTxProp, "", workspaceUID, userUID)
+		constants.TypeTxProp, "", workspaceUID, userUID)
 	require.NoError(t, err)
 
 	// set parent to be successful
@@ -78,12 +79,12 @@ func TestAddSelector(t *testing.T) {
 		},
 		{
 			options:      opt,
-			selectorType: workspace.TypeTxProp,
+			selectorType: constants.TypeTxProp,
 			wantErr:      false,
 		},
 		{
 			options:      opt,
-			selectorType: workspace.TypeTxProp,
+			selectorType: constants.TypeTxProp,
 			parent:       parentSelector,
 			wantErr:      false,
 		},
@@ -111,15 +112,27 @@ func Test_isValidParent(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
+	txUID, err := db.GetTransactionUID(t.Context(), dbHandle, "c8eda15137f6ffcfbe851847e621a6f524da04a2fcec2a3cb15b8a92f6bfe0b6")
+	require.NoError(t, err)
+
 	selectorUID1, err := workspace.InsertSelector(ctx, dbHandle, &workspace.Selector{
-		Type:    workspace.TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  workspace.StatusWaiting,
 		Options: "dummy options",
 	}, userUID1, workspaceUID1)
 	require.NoError(t, err)
 
+	isValid, err := isValidParent(ctx, dbHandle, txUID, workspaceUID1, userUID1)
+	require.NoError(t, err)
+	require.True(t, isValid)
+
+	// invalid because parent uid is empty
+	isValid, err = isValidParent(ctx, dbHandle, "", workspaceUID1, userUID1)
+	require.Error(t, err)
+	require.False(t, isValid)
+
 	// invalid because wrong status
-	isValid, err := isValidParent(ctx, dbHandle, selectorUID1, workspaceUID1, userUID1)
+	isValid, err = isValidParent(ctx, dbHandle, selectorUID1, workspaceUID1, userUID1)
 	require.NoError(t, err)
 	require.False(t, isValid)
 
@@ -129,7 +142,7 @@ func Test_isValidParent(t *testing.T) {
 	require.False(t, isValid)
 
 	selectorUID2, err := workspace.InsertSelector(ctx, dbHandle, &workspace.Selector{
-		Type:    workspace.TypeTxProp,
+		Type:    constants.TypeTxProp,
 		Status:  workspace.StatusSuccess,
 		Options: "dummy options",
 	}, userUID1, workspaceUID1)

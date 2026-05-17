@@ -10,11 +10,10 @@ export function sleep(ms) {
 // Credits: https://stackoverflow.com/questions/9461621/format-a-number-as-2-5k-if-a-thousand-or-more-otherwise-900
 export function abbreviateNumber(number) {
 	// What tier? (determines SI symbol)
-	// eslint-disable-next-line no-bitwise
-	const tier = Math.log10(Math.abs(number)) / 3 | 0;
+	const tier = Math.trunc(Math.log10(Math.abs(number)) / 3);
 
 	// If zero, we don't need a suffix
-	if (tier === 0) {
+	if (tier === 0 || Number.isNaN(tier) || !Number.isFinite(tier)) {
 		return number;
 	}
 
@@ -33,7 +32,7 @@ export function abbreviateNumber(number) {
 
 // Returns the ratio of a shortened line
 export function getRatio(source, target, nodeRadius) {
-	const c = Math.sqrt(((target.x - source.x) ** 2) + ((target.y - source.y) ** 2));
+	const c = Math.hypot(target.x - source.x, target.y - source.y);
 	// 10 is the marker width
 	// c2 must not be negative
 	const c2 = Math.max(c - nodeRadius - 10, 0);

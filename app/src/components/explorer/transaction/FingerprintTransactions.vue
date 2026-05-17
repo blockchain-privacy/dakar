@@ -6,13 +6,13 @@
   <fade-transition>
     <div
       v-if="isLoading"
-      class="text-h6 text-center"
+      class="text-title-large text-center"
     >
       Searching for similar destination transactions ...
       <v-skeleton-loader type="article,article" />
     </div>
     <div v-else-if="fingerprintScores?.length > 0">
-      <p class="text-subtitle-1">
+      <p class="text-body-large">
         The following transactions spend outputs of CoinJoin transactions from
         <wiki-tooltip description-url="destinationFingerprinting.md">
           similar
@@ -35,7 +35,7 @@
       </v-alert>
       <p
         v-if="sessionCount !== -1"
-        class="text-caption"
+        class="text-body-small"
       >
         Number of mixing time frames: {{ sessionCount.toLocaleString() }}
       </p>
@@ -75,7 +75,7 @@
     </div>
     <div
       v-else
-      class="text-h6 text-center"
+      class="text-title-large text-center"
     >
       No similar transactions found
     </div>
@@ -83,13 +83,13 @@
 </template>
 
 <script setup>
+import {onMounted, onUpdated, ref} from 'vue';
+import {useRoute} from 'vue-router';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {onMounted, onUpdated, ref} from 'vue';
 import {getDakarClient} from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-import {useRoute} from 'vue-router';
 
 const props = defineProps({
 	transactionHash: {type: String, required: true},
@@ -131,7 +131,7 @@ async function searchForSimilarTransactions() {
 
 		if (response.fingerprint_scores) {
 			fingerprintScores.value = response.fingerprint_scores
-				.sort((item1, item2) => item1.score - item2.score);
+				.toSorted((item1, item2) => item1.score - item2.score);
 		}
 
 		emit('receivedTransactions', fingerprintScores.value.map(d => d.txhash));
@@ -139,12 +139,8 @@ async function searchForSimilarTransactions() {
 		if (response.session_count) {
 			sessionCount.value = response.session_count;
 		}
-	} catch (e) {
-		if (e.cause?.status === 500) {
-			errorMsg.value = 'Error requesting data from server. Please try again later.';
-		} else {
-			errorMsg.value = e.message;
-		}
+	} catch (error) {
+		errorMsg.value = error.cause?.status === 500 ? 'Error requesting data from server. Please try again later.' : error.message;
 	}
 
 	isLoading.value = false;

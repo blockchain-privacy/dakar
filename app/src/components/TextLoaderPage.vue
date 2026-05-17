@@ -4,22 +4,17 @@
 
 <template>
   <v-container fluid>
-    <v-row
-      align="center"
-      justify="center"
-    >
+    <v-row class="align-center justify-center">
       <v-col
-        cols="12"
-        sm="12"
         md="12"
-        lg="10"
         xl="8"
       >
         <v-card>
-          <v-toolbar flat>
-            <v-toolbar-title>{{ pageTitle }}</v-toolbar-title>
-          </v-toolbar>
+          <v-card-title flat>
+            {{ pageTitle }}
+          </v-card-title>
           <v-card-text>
+            <alert :text="errorMsg" />
             <!-- html is loaded from safe source -->
             <!-- eslint-disable vue/no-v-html -->
             <div
@@ -38,10 +33,9 @@
 </template>
 
 <script setup>
-import {PAGE_TITLE} from '@/constants';
 import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {PAGE_TITLE} from '@/constants';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	pageTitle: {type: String, required: true},
@@ -49,23 +43,16 @@ const props = defineProps({
 });
 
 const loadedHTML = ref('');
-const route = useRoute();
-const msgStore = useMsgStore();
-
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
+const errorMsg = ref('');
 
 onMounted(async () => {
 	document.title = `${props.pageTitle} - ${PAGE_TITLE}`;
-
+	errorMsg.value = '';
 	try {
 		const response = await fetch(props.url);
 		loadedHTML.value = await response.text();
-	} catch (_) {
-		setErrorMessage('Unable to load data, try again later');
+	} catch {
+		errorMsg.value = 'Unable to load data, try again later';
 	}
 });
 

@@ -4,10 +4,7 @@
 
 <template>
   <v-container fluid>
-    <v-row
-      align="center"
-      justify="center"
-    >
+    <v-row class="align-center justify-center">
       <v-col
         cols="12"
         md="10"
@@ -32,8 +29,12 @@
             </v-btn>
           </div>
           <v-card-text>
+            <alert
+              v-if="errorMsg"
+              :text="errorMsg"
+            />
             <v-skeleton-loader
-              v-if="!data"
+              v-else-if="!data"
               type="table-tbody"
             />
             <div v-else>
@@ -215,26 +216,33 @@
 </template>
 <script setup>
 import {
-	mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch, mdiCounter,
+	mdiRefresh,
+	mdiDatabase,
+	mdiDatabaseSync,
+	mdiDatabaseSearch,
+	mdiCounter,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
-import IconItem from './common/IconItem.vue';
-import {getDakarClient, handleError} from '@/utilities';
-import IconTitle from '@/components/common/IconTitle.vue';
 import {
-	computed, ref, onMounted, onBeforeUnmount,
+	computed,
+	ref,
+	onMounted,
+	onBeforeUnmount,
 } from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import IconItem from './common/IconItem.vue';
+import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
+import {getDakarClient} from '@/utilities';
+import IconTitle from '@/components/common/IconTitle.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
 	blockchainMode: {type: String, required: true},
 });
 
-const context = {$route: useRoute(), addMessage: useMsgStore().addMessage};
 const dakar = getDakarClient(props.blockchainMode);
 
+const data = ref(null);
+const errorMsg = ref('');
 const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
 	databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
@@ -247,16 +255,14 @@ const tooltips = {
 	rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
 	rpcBlockchainSize: 'The estimated size of the block and undo files on disk',
 };
-
-const refreshStep = 10000;
+const refreshStep = 10_000;
 let timer = null;
-const data = ref(null);
 
 // Computed
 
 const crawlerSyncProgress = computed(() => {
 	if (!data.value) {
-		return 0.0;
+		return 0;
 	}
 
 	return data.value.status.lastblockid / data.value.blocks * 100;
@@ -264,32 +270,43 @@ const crawlerSyncProgress = computed(() => {
 
 const classifierSyncProgress = computed(() => {
 	if (!data.value) {
-		return 0.0;
+		return 0;
 	}
 
 	const percentage = data.value.status.lastclassifiedid / data.value.status.lastblockid * 100;
 
-	return percentage > 100 ? 100 : percentage;
+	return Math.min(percentage, 100);
 });
 
 const clusteringHMISyncProgress = computed(() => {
 	if (!data.value) {
-		return 0.0;
+		return 0;
 	}
 
 	const percentage = data.value.status.lastclusteredhmiid / data.value.status.lastblockid * 100;
 
-	return percentage > 100 ? 100 : percentage;
+	return Math.min(percentage, 100);
 });
 
 const clusteringFMISyncProgress = computed(() => {
 	if (!data.value) {
-		return 0.0;
+		return 0;
 	}
 
 	const percentage = data.value.status.lastclusteredfmiid / data.value.status.lastblockid * 100;
 
-	return percentage > 100 ? 100 : percentage;
+	return Math.min(percentage, 100);
+});
+
+// Hooks
+onMounted(() => {
+	document.title = `Status - ${PAGE_TITLE}`;
+	// Initially get data
+	refreshData();
+});
+
+onBeforeUnmount(() => {
+	resetTimers();
 });
 
 // Functions
@@ -308,29 +325,19 @@ async function loadStatusData() {
 	try {
 		data.value = await dakar.meta.metaGet();
 		return true;
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 		return false;
 	}
 }
 
 async function refreshData() {
+	errorMsg.value = '';
 	resetTimers();
 	if (await loadStatusData()) {
 		startTimer();
 	}
 }
-
-onMounted(() => {
-	document.title = `Status - ${PAGE_TITLE}`;
-});
-
-onBeforeUnmount(() => {
-	resetTimers();
-});
-
-// Initially get data
-refreshData();
 
 </script>
 

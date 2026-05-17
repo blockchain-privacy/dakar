@@ -7,7 +7,7 @@
     fluid
     class="content"
   >
-    <v-row align="center">
+    <v-row class="align-center">
       <v-col>
         <!-- set width and height so transition looks better -->
         <div
@@ -20,7 +20,7 @@
             transition="fade-transition"
           />
         </div>
-        <p class="text-h2 text-center">
+        <p class="text-display-large text-center ma-0">
           {{ APPLICATION_NAME }}
         </p>
         <div class="d-flex justify-center">
@@ -29,7 +29,7 @@
             style="max-width: 600px"
           />
         </div>
-        <p class="text-h6 text-center">
+        <p class="text-title-large text-center">
           Blockchain Analytics
         </p>
       </v-col>
@@ -39,7 +39,7 @@
       v-if="false"
       class="align-self-end"
     >
-      <v-row justify="center">
+      <v-row>
         <v-col
           md="2"
           class="text-center mx-1"
@@ -82,11 +82,13 @@
 </template>
 
 <script setup>
-import {
-	APPLICATION_NAME, ROUTE_NAME_ABOUT,
-	ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
-} from '@/constants';
 import {onMounted} from 'vue';
+import {
+	APPLICATION_NAME,
+	ROUTE_NAME_ABOUT,
+	ROUTE_NAME_TERMS_OF_USE,
+	ROUTE_NAME_PRIVACY,
+} from '@/constants';
 import DakarAnimatedImg from '@/assets/dakar_animated.svg?url';
 import QueryInput from '@/components/common/QueryInput.vue';
 

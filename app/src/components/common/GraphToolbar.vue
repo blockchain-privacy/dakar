@@ -24,7 +24,7 @@
       </div>
       <p
         v-tooltip="{'text': 'Name of the Workspace', 'location':'top', 'open-delay': 400}"
-        class="text-h6 my-2 workspace-name"
+        class="text-title-large my-2 workspace-name"
       >
         {{ name }}
       </p>
@@ -203,16 +203,22 @@
 
 <script setup>
 import {
-	mdiSelect, mdiCursorPointer, mdiDelete, mdiCached, mdiImageFilterCenterFocus,
-	mdiChartTimelineVariant, mdiCog, mdiFilterPlus, mdiPlus,
+	mdiSelect,
+	mdiCursorPointer,
+	mdiDelete,
+	mdiCached,
+	mdiImageFilterCenterFocus,
+	mdiChartTimelineVariant,
+	mdiCog,
+	mdiFilterPlus,
+	mdiPlus,
 } from '@mdi/js';
-import {onMounted, ref} from 'vue';
+import {ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useHotkey} from 'vuetify';
 import ChipFilter from '@/components/explorer/address/ChipFilter.vue';
 import SearchDialog from '@/components/common/SearchDialog.vue';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
-import {useRoute} from 'vue-router';
-import {useHotkey} from 'vuetify/framework';
-import {VHotkey} from 'vuetify/labs/VHotkey';
 import {blenderPlus} from '@/customIcons/index.js';
 
 const route = useRoute();
@@ -245,16 +251,13 @@ const props = defineProps({
 	disableFilter: {type: Boolean, required: false},
 });
 
+useHotkey('cmd+k', openSearchDialog);
+
 const selectionToggle = ref(1);
 const showFilter = ref(false);
 const typeFilters = ref(props.transactionTypeItems.map((_, i) => i));
 const nodeFilters = ref(props.nodeTypeItems.map((_, i) => i));
 const queryDialogModel = ref(false);
-
-// Hooks
-onMounted(() => {
-	useHotkey('cmd+k', openSearchDialog);
-});
 
 // Functions
 function onSelectionModeChanged(mode) {

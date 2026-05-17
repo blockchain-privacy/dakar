@@ -5,22 +5,25 @@
 <template>
   <template v-if="showExclusionChip">
     <v-chip
-      v-tooltip="{'text': tooltipText, 'location':'bottom'}"
+      v-tooltip="{'text': tooltipText, 'location':'bottom', 'open-delay': 400}"
       rounded
-      color="primary"
+      :color="color"
     >
-      <template #append>
+      <template
+        v-if="!isError"
+        #close
+      >
         <v-icon
-          start
           :icon="mdiCloseCircle"
-          @click="deleteExclusionDialog = true"
+          @click.stop="deleteExclusionDialog = true"
         />
       </template>
-      Excluded
+      {{ title }}
     </v-chip>
     <delete-address-exclusion-dialog
       v-model="deleteExclusionDialog"
       :address-hash="addressHash"
+      :blockchain-mode="route.params.blockchainMode"
       @deleted="showExclusionChip = false"
     />
   </template>
@@ -28,41 +31,41 @@
 
 <script setup>
 import {mdiCloseCircle} from '@mdi/js';
+import {
+	computed,
+	onMounted,
+	ref,
+} from 'vue';
+import {useRoute} from 'vue-router';
+import {storeToRefs} from 'pinia';
 import DeleteAddressExclusionDialog from '@/components/tools/addressExclusions/DeleteAddressExclusionDialog.vue';
 import {
-	computed, onMounted, ref,
-} from 'vue';
-import {
-	getDakarClient, handleError, isAdminIdentity, isPrivilegedIdentity,
+	getDakarClient,
+	isAdminIdentity,
+	isPrivilegedIdentity,
 } from '@/utilities';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {useLocalStore} from '@/pinia/local';
 
 const props = defineProps({addressHash: {type: String, required: true}});
 
 const route = useRoute();
-const localStore = useLocalStore();
-const context = {addMessage: useMsgStore().addMessage, $route: route};
 const dakar = getDakarClient(route.params.blockchainMode);
+const {session} = storeToRefs(useLocalStore());
 
 const deleteExclusionDialog = ref(false);
 const showExclusionChip = ref(false);
+const isError = ref(false);
 
-const tooltipText = 'This address is part of your address exclusion list. Click on the X to remove it from the list.';
+const tooltipTextNoError = 'This address is part of your address exclusion list. Click on the X to remove it from the list.';
+const tooltipTextError = 'Error fetching the address exclusion status';
 
 // Computed
-const session = computed({
-	get() {
-		return localStore.getSession;
-	},
-	set(value) {
-		localStore.setSession(value);
-	},
-});
-
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value, route.params.blockchainMode)
 	|| isAdminIdentity(session.value, route.params.blockchainMode));
+
+const color = computed(() =>	isError.value ? 'error' : 'primary');
+const tooltipText = computed(() => isError.value ? tooltipTextError : tooltipTextNoError);
+const title = computed(() => isError.value ? 'Error' : 'Excluded');
 
 // Hooks
 onMounted(() => {
@@ -77,11 +80,13 @@ async function getExclusionStatus() {
 		return;
 	}
 
+	isError.value = false;
+
 	try {
 		const response = await dakar.addressExclusion.exclusionsHashGet({hash: props.addressHash});
 		showExclusionChip.value = response.isExclusion;
-	} catch (e) {
-		handleError(context, e);
+	} catch {
+		isError.value = true;
 	}
 }
 </script>

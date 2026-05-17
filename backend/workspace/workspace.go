@@ -129,11 +129,8 @@ func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.N
 		uids := workspace.FindDescendantSelectorUIDs(nodeMap, node.UID)
 
 		// delete the actual selectors
-		if err := workspace.DeleteUserSelectors(ctx, dgraph, uids, userUID, workspaceUID); err != nil {
-			if errors.Is(err, db.ErrNoMutationHappened) {
-				return nil, nil
-			}
-
+		if err := workspace.DeleteUserSelectors(ctx, dgraph, uids, userUID, workspaceUID); err != nil &&
+			!errors.Is(err, db.ErrNoMutationHappened) {
 			return nil, err
 		}
 
@@ -151,12 +148,9 @@ func deleteNode(ctx context.Context, dgraph external.Database, node *workspace.N
 		}
 
 		if len(children) > 0 {
-			// delete the actual heuristics
-			if err := workspace.DeleteUserSelectors(ctx, dgraph, children, userUID, workspaceUID); err != nil {
-				if errors.Is(err, db.ErrNoMutationHappened) {
-					return nil, nil
-				}
-
+			// delete the actual selectors
+			if err := workspace.DeleteUserSelectors(ctx, dgraph, children, userUID, workspaceUID); err != nil &&
+				!errors.Is(err, db.ErrNoMutationHappened) {
 				return nil, err
 			}
 		}
@@ -457,7 +451,7 @@ func isWorkspaceOutdated(ctx context.Context, dgraph external.Database, w *works
 		return false, nil
 	}
 
-	var clusterUIDs []string //nolint:prealloc
+	var clusterUIDs []string
 	for _, n := range w.Nodes {
 		if n.Type != workspace.NodeTypeCluster {
 			continue

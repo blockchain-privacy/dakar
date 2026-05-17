@@ -24,82 +24,102 @@
           Add Workspace
         </div>
       </v-btn>
-      <v-btn
-        v-if="workspaceList.length > 0"
-        :active="showSearchField"
-        variant="text"
-        icon
-        @click="showSearchField = !showSearchField"
-      >
-        <v-icon>{{ mdiMagnify }}</v-icon>
-      </v-btn>
       <wiki-tooltip
         description-url="workspaces/workspaces.md"
         :icon="mdiHelpCircleOutline"
         icon-color="primary"
       />
     </icon-title>
-    <fade-transition>
-      <div
-        v-if="showSearchField"
-        class="d-flex align-center justify-center mb-4"
-      >
-        <v-text-field
-          v-model="search"
-          :append-inner-icon="mdiMagnify"
-          label="Filter items"
-          single-line
-          hide-details
-          autofocus
-          style="max-width:800px"
-          @keydown.esc="search = ''; showSearchField = false"
-        />
-      </div>
-    </fade-transition>
-    <v-data-table
+    <alert :text="errorMsg" />
+    <alert
+      :text="infoMsg"
+      type="info"
+    />
+    <v-data-iterator
       v-if="workspaceList.length > 0"
-      v-model:sort-by="sortBy"
-      :search="search"
-      :loading="isLoading"
-      :headers="headers"
+      v-model:page="iteratorPageModel"
       :items="workspaceList"
+      :items-per-page="8"
+      :search="search"
+      :sort-by="sortBy"
     >
-      <template #item.name="{ item }">
-        <router-link
-          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE, params: { id: item.uid, blockchainMode: item.mode }}"
-        >
-          {{ item.name }}
-        </router-link>
-      </template>
-      <template #item.mode="{ item }">
-        <div class="d-flex align-center">
-          <v-icon
-            :icon="BLOCKCHAIN_ATTRIBUTES[item.mode].icon"
-            :color="BLOCKCHAIN_ATTRIBUTES[item.mode].color"
-            start
-            size="x-large"
+      <template #header>
+        <div class="d-flex justify-space-between flex-wrap">
+          <v-text-field
+            v-model="search"
+            placeholder="Search workspaces"
+            :prepend-inner-icon="mdiMagnify"
+            max-width="300px"
+            min-width="200px"
+            variant="outlined"
+            clearable
+            hide-details
+            class="me-2 mb-2"
           />
-          {{ BLOCKCHAIN_ATTRIBUTES[item.mode].title }}
+          <sort-select
+            v-model:sort="sort"
+            v-model:direction="direction"
+            class="mb-2"
+            :items="sortItems"
+            style="max-width: 300px; min-width: 200px;"
+            @update:sort="handleSort"
+            @update:direction="handleSort"
+          />
         </div>
       </template>
-      <template #item.modTimeUnix="{ item }">
-        <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
-      </template>
-      <template #[`item.actions`]="{ item }">
-        <div class="d-flex">
-          <v-icon
-            start
-            class="ms-auto"
-            @click="showRenameDialog(item)"
+      <template #default="{ items }">
+        <div
+          class="d-flex flex-wrap mt-2 align-center mb-5 justify-center"
+          style="gap: 15px"
+        >
+          <workspace-card
+            v-for="item in items"
+            :key="item.raw.uid"
+            :to="{ name: ROUTE_NAME_WORKSPACE_PAGE, params: { id: item.raw.uid, blockchainMode: item.raw.mode }}"
+            :uid="item.raw.uid"
+            :mode="item.raw.mode"
+            :title="item.raw.name"
+            :created="new Date(item.raw.modTimeUnix)"
           >
-            {{ mdiRename }}
-          </v-icon>
-          <v-icon @click="showDeleteWorkspaceDialog(item)">
-            {{ mdiDelete }}
-          </v-icon>
+            <v-btn-group density="compact">
+              <v-btn
+                :icon="mdiRename"
+                variant="text"
+                @click.stop="e => showRenameDialog(e,item.raw)"
+              />
+              <v-btn
+                :icon="mdiDelete"
+                variant="text"
+                @click.stop="e => showDeleteWorkspaceDialog(e,item.raw)"
+              />
+            </v-btn-group>
+          </workspace-card>
         </div>
       </template>
-    </v-data-table>
+      <template #footer="{ page, pageCount, prevPage, nextPage }">
+        <div class="d-flex align-center justify-center pa-4">
+          <v-btn
+            :disabled="page === 1"
+            density="comfortable"
+            :icon="mdiArrowLeft"
+            variant="tonal"
+            rounded
+            @click="prevPage"
+          />
+          <div class="mx-2 text-body-small">
+            Page {{ page }} of {{ pageCount }}
+          </div>
+          <v-btn
+            :disabled="page >= pageCount"
+            density="comfortable"
+            :icon="mdiArrowRight"
+            variant="tonal"
+            rounded
+            @click="nextPage"
+          />
+        </div>
+      </template>
+    </v-data-iterator>
     <v-progress-linear
       v-else-if="isLoading"
       class="ma-5"
@@ -125,7 +145,7 @@
       confirm-color="red"
       @confirm="deleteWorkspace"
     >
-      <p class="text-subtitle-1">
+      <p class="text-body-large">
         Workspace <code>{{ workspaceToDelete.name }}</code>
         will be deleted. Continue?
       </p>
@@ -155,34 +175,44 @@
 
 <script setup>
 import {
-	mdiDelete, mdiMagnify, mdiPlus, mdiRename, mdiHelpCircleOutline,
+	mdiDelete,
+	mdiMagnify,
+	mdiPlus,
+	mdiRename,
+	mdiHelpCircleOutline,
+	mdiArrowLeft,
+	mdiArrowRight,
 } from '@mdi/js';
 import {
-	BLOCKCHAIN_ATTRIBUTES, PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE,
+	computed,
+	onMounted,
+	ref,
+	toRaw,
+} from 'vue';
+import {useDisplay} from 'vuetify';
+import {storeToRefs} from 'pinia';
+import {
+	BLOCKCHAIN_ATTRIBUTES,
+	PAGE_TITLE,
+	ROUTE_NAME_WORKSPACE_PAGE,
 } from '@/constants/index.js';
 import {
-	getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
+	getDakarClients,
+	isAdminIdentity,
+	isPrivilegedIdentity,
 } from '@/utilities/index.js';
 import IconTitle from '@/components/common/IconTitle.vue';
-import FadeTransition from '@/components/common/FadeTransition.vue';
-import {
-	computed, onMounted, ref, toRaw,
-} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg.js';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
-import {useDisplay} from 'vuetify';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import BlockchainModeTextDialog from '@/components/tools/workspaces/BlockchainModeTextDialog.vue';
-import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local.js';
+import Alert from '@/components/common/Alert.vue';
+import WorkspaceCard from '@/components/tools/workspaces/WorkspaceCard.vue';
+import SortSelect from '@/components/common/SortSelect.vue';
 
-const route = useRoute();
-const msgStore = useMsgStore();
 const display = useDisplay();
 const {session} = storeToRefs(useLocalStore());
-const context = {addMessage: msgStore.addMessage, $route: route};
 const dakarClients = getDakarClients();
 
 const workspaceList = ref([]);
@@ -192,23 +222,20 @@ const showRenameWorkspaceDialogModel = ref(false);
 const workspaceToDelete = ref(null);
 const renamedWorkspace = ref(null);
 const isLoading = ref(false);
-const showSearchField = ref(false);
 const search = ref('');
-const sortBy = ref([{key: 'modTimeUnix', order: 'desc'}]);
-const headers = [
-	{
-		title: 'Name', key: 'name', align: 'start', sortable: false,
-	},
-	{
-		title: 'Blockchain', key: 'mode',
-	},
-	{
-		title: 'Last modification', key: 'modTimeUnix',
-	},
-	{
-		title: '', key: 'actions', sortable: false, align: 'end',
-	},
+const sortBy = ref([]);
+const errorMsg = ref('');
+const infoMsg = ref('');
+const iteratorPageModel = ref(1);
+
+const sortItems = [
+	{value: 'name', title: 'Name'},
+	{value: 'mode', title: 'Blockchain'},
+	{value: 'modTimeUnix', title: 'Last modification'},
 ];
+
+const sort = ref(sortItems[2]);
+const direction = ref(true);
 
 const maxWorkspaceNameLength = 50;
 
@@ -220,44 +247,34 @@ const authPerMode = computed(() => Object.values(BLOCKCHAIN_ATTRIBUTES).filter(m
 onMounted(() => {
 	document.title = `Workspaces - ${PAGE_TITLE}`;
 	refreshWorkspaceList();
+	handleSort();
 });
 
 // Functions
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
-}
-
-function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
-	});
-}
-
 async function renameWorkspace(workspace) {
+	errorMsg.value = '';
 	const workspaceName = workspace;
 	if (workspaceName === '') {
-		setErrorMessage('workspace name must not be empty');
+		errorMsg.value = 'workspace name must not be empty';
 		return;
 	}
 
 	if (workspaceName.length > maxWorkspaceNameLength) {
-		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+		errorMsg.value = `workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`;
 		return;
 	}
 
 	const {mode} = renamedWorkspace.value;
 
 	if (mode === '') {
-		setErrorMessage('workspace mode is empty');
+		errorMsg.value = 'workspace mode is empty';
 		return;
 	}
 
 	const workspaceUID = renamedWorkspace.value.uid;
 
 	if (workspaceUID === '') {
-		setErrorMessage('workspace UID is not set');
+		errorMsg.value = 'workspace UID is not set';
 		return;
 	}
 
@@ -267,40 +284,40 @@ async function renameWorkspace(workspace) {
 		await dakarClients[mode].workspace.workspacesRenamePost({
 			workspace: {name: workspaceName, workspaceUID},
 		});
-		msgStore.resetMessages();
+
 		await refreshWorkspaceList();
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;
 }
 
 async function addWorkspace(name, mode) {
+	errorMsg.value = '';
 	showAddWorkspaceDialogModel.value = false;
 	const workspaceName = name.trim();
 	if (workspaceName === '') {
-		setErrorMessage('workspace name must not be empty');
+		errorMsg.value = 'workspace name must not be empty';
 		return;
 	}
 
 	if (workspaceName.length > maxWorkspaceNameLength) {
-		setErrorMessage(`workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`);
+		errorMsg.value = `workspace name is longer than the maximum of ${maxWorkspaceNameLength} characters`;
 		return;
 	}
 
 	if (!mode) {
-		setErrorMessage('workspace mode is empty');
+		errorMsg.value = 'workspace mode is empty';
 		return;
 	}
 
 	isLoading.value = true;
 	try {
 		await dakarClients[mode].workspace.workspacesNamePost({name: workspaceName});
-		msgStore.resetMessages();
 		await refreshWorkspaceList();
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;
@@ -308,6 +325,7 @@ async function addWorkspace(name, mode) {
 
 async function refreshWorkspaceList() {
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	workspaceList.value = [];
 	const resolved = await Promise.allSettled(authPerMode.value.map(chain => dakarClients[chain.mode].workspace.workspacesGet()));
@@ -315,7 +333,7 @@ async function refreshWorkspaceList() {
 	const workspaces = [];
 	for (const [index, response] of resolved.entries()) {
 		if (response.status === 'rejected') {
-			handleError(context, response.reason);
+			errorMsg.value = response.reason.message;
 			continue;
 		}
 
@@ -334,13 +352,15 @@ async function refreshWorkspaceList() {
 }
 
 async function deleteWorkspace() {
+	errorMsg.value = '';
+	infoMsg.value = '';
 	if (!workspaceToDelete.value.mode) {
-		setErrorMessage('workspace mode must not be empty');
+		errorMsg.value = 'workspace mode must not be empty';
 		return;
 	}
 
 	if (!workspaceToDelete.value.uid) {
-		setErrorMessage('workspace iod must not be empty');
+		errorMsg.value = 'workspace uid must not be empty';
 		return;
 	}
 
@@ -350,18 +370,19 @@ async function deleteWorkspace() {
 		const response = await dakarClients[workspaceToDelete.value.mode].workspace
 			.workspacesUidDelete({uid: workspaceToDelete.value.uid});
 		if (response.msg) {
-			setInfoMessage(response.msg);
+			infoMsg.value = response.msg;
 		}
 
 		await refreshWorkspaceList();
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;
 }
 
-function showRenameDialog(workspace) {
+function showRenameDialog(e, workspace) {
+	e.preventDefault();
 	if (isLoading.value) {
 		return;
 	}
@@ -371,13 +392,20 @@ function showRenameDialog(workspace) {
 	showRenameWorkspaceDialogModel.value = true;
 }
 
-function showDeleteWorkspaceDialog(workspace) {
+function showDeleteWorkspaceDialog(e, workspace) {
+	e.preventDefault();
 	if (isLoading.value) {
 		return;
 	}
 
 	showDeleteWorkspaceDialogModel.value = true;
 	workspaceToDelete.value = workspace;
+}
+
+function handleSort() {
+	sortBy.value = [{key: sort.value.value, order: direction.value ? 'desc' : 'asc'}];
+	// Show first page of data iterator
+	iteratorPageModel.value = 1;
 }
 
 </script>

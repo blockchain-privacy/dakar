@@ -71,6 +71,10 @@ func AddShortTaskContext(ctx context.Context) (context.Context, context.CancelFu
 	return context.WithTimeout(ctx, time.Minute)
 }
 
+func AddTaskContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, time.Minute*20)
+}
+
 // WithRetry calls the given function. If dgo.ErrAborted is returned, the function
 // is called a few more times. Between each call retryDuration is waited.
 func WithRetry(f func() error, retryDuration time.Duration) error {

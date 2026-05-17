@@ -5,18 +5,19 @@
 package workspace
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/external"
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/dgraph-io/dgo/v250/protos/api"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
-var ErrInvalidOptions = errors.New("invalid options")
 var ErrInvalidSelector = errors.New("invalid selector")
 
 // appendFilterArgs appends '<and> ge(filterSubject, number)' or '<and> le(filterSubject, number)' filter
@@ -40,13 +41,7 @@ func appendFilterArgs(filter string, filterSubject string, number *int64, greate
 }
 
 // DoSelection returns transactions specified by the options. It also returns the number of total results.
-//
-//nolint:gocyclo
 func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, parentUID string) ([]string, int, error) {
-	if !o.IsValid(parentUID != "") {
-		return nil, 0, serror.New(ErrInvalidOptions)
-	}
-
 	var queryBody string
 	var queryFilter string
 
@@ -138,13 +133,13 @@ func DoSelection(ctx context.Context, c external.Database, o TxPropOptions, pare
 						}`
 	} else {
 		selectorQuery = `
-					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + TypeHeuristic + `)){
+					var(func: uid(` + parentUID + `))@filter(eq(Selector.type, ` + constants.TypeHeuristic + `)){
 						Selector.results{
 							hr as HeuristicCluster.results` + transactionTypeFilter + `
 						}
 					}
 
-					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + TypeHeuristic + `)){
+					var(func: uid(` + parentUID + `))@filter(not eq(Selector.type, ` + constants.TypeHeuristic + `)){
 						sr as Selector.results` + transactionTypeFilter + `
 					}
 					t as var(func: uid(hr,sr))
@@ -279,9 +274,6 @@ func InsertSelector(ctx context.Context, c external.Database, s *Selector,
 
 // DoGraphSelection returns transactions specified by the options. It also returns the number of total results.
 func DoGraphSelection(ctx context.Context, c external.Database, o TxGraphOptions, parentUID string) ([]string, int, error) {
-	if !o.IsValid(parentUID != "") || parentUID == "" {
-		return nil, 0, serror.New(ErrInvalidOptions)
-	}
 	maxItems := selectorMaxItems
 	if o.MaxItems != nil {
 		maxItems = *o.MaxItems
@@ -430,7 +422,9 @@ func GetSelectorResultsByUID(ctx context.Context, c external.Database,
 		// set if not a heuristic
 		Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
 		// set if a heuristic
-		Clusters []HeuristicCluster `json:"clusters,omitempty"`
+		Clusters []struct {
+			Transactions []TransactionWithTimestamp `json:"transactions,omitempty"`
+		} `json:"clusters,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {

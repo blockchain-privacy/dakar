@@ -7,7 +7,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/constants"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -19,7 +19,7 @@ import (
 // whirlpoolReverseLookupByDepthHeuristic - see exec for description
 type whirlpoolReverseLookupByDepthHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 	depth         int
 }
 
@@ -31,7 +31,7 @@ func (h *whirlpoolReverseLookupByDepthHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *whirlpoolReverseLookupByDepthHeuristic) SetConfig(c heuristics.Options) error {
+func (h *whirlpoolReverseLookupByDepthHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -51,7 +51,7 @@ func (h *whirlpoolReverseLookupByDepthHeuristic) SetConfig(c heuristics.Options)
 	return nil
 }
 
-func (h *whirlpoolReverseLookupByDepthHeuristic) GetConfig() heuristics.Options {
+func (h *whirlpoolReverseLookupByDepthHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

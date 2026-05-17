@@ -10,7 +10,7 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
@@ -24,7 +24,7 @@ import (
 type oneSourceHeuristic struct {
 	heuristicType string
 	lookBackTime  time.Duration
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewOneSourceHeuristic() Heuristic {
@@ -35,7 +35,7 @@ func (h *oneSourceHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *oneSourceHeuristic) SetConfig(c heuristics.Options) error {
+func (h *oneSourceHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -55,7 +55,7 @@ func (h *oneSourceHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *oneSourceHeuristic) GetConfig() heuristics.Options {
+func (h *oneSourceHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 
@@ -137,7 +137,7 @@ func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database,
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
-	var allTxAndOrigins []txAndOrigins //nolint:prealloc
+	var allTxAndOrigins []txAndOrigins
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
@@ -168,7 +168,7 @@ func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database,
 	clusters := make(map[heuristics.ClusterUID]bool)
 	// for each input transaction to the destination transaction,
 	// inputClusters holds one map with all its occurring clusters
-	var inputClusters []map[heuristics.ClusterUID]bool //nolint:prealloc
+	var inputClusters []map[heuristics.ClusterUID]bool
 	for _, t := range allTxAndOrigins {
 		// get input denominations
 		nDenominations, denominationIndex, getErr := getNumberOfDashDenominations(t.inputTransaction, h.c.TransactionHash)

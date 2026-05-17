@@ -89,10 +89,10 @@
 </template>
 
 <script setup>
-import OryUiNode from './OryUiNode.vue';
-import {getNodeName} from '@/components/user/ory/utils';
 import {computed, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import OryUiNode from './OryUiNode.vue';
+import {getNodeName} from '@/components/user/ory/utils';
 import OryUiMessage from '@/components/user/ory/OryUiMessage.vue';
 
 const route = useRoute();
@@ -130,7 +130,7 @@ const getFormGroupNames = computed(() => {
 			groupNames.add(e.group);
 		}
 	});
-	return Array.from(groupNames);
+	return [...groupNames];
 });
 
 // GetForms returns an array of node sets ([[node1, node2, ...],[node10, node11, ...]]).

@@ -2,8 +2,6 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-/* eslint-disable no-return-assign */
-
 function constant(x) {
 	return function () {
 		return x;
@@ -11,7 +9,7 @@ function constant(x) {
 }
 
 // Source: https://github.com/vasturiano/d3-force-limit
-export default function () {
+export default function forceLimit() {
 	let nDim;
 	let nodes;
 	let radius = (() => 1); // Accessor: number > 0
@@ -35,7 +33,7 @@ export default function () {
 
 				const range = {x: [x0, x1], y: [y0, y1], z: [z0, z1]}[coord]
 					.map(accessFn => accessFn(node))
-					.sort((a, b) => a - b);
+					.toSorted((a, b) => a - b);
 
 				// Take node radius into account
 				range[0] += r;
@@ -71,8 +69,7 @@ export default function () {
 		});
 	}
 
-	function initialize() {
-	}
+	function initialize() {}
 
 	force.initialize = function (initNodes, ...args) {
 		nodes = initNodes;
@@ -81,39 +78,86 @@ export default function () {
 	};
 
 	force.radius = function (_) {
-		return arguments.length ? (radius = typeof _ === 'function' ? _ : constant(Number(_)), force) : radius;
+		if (arguments.length > 0) {
+			radius = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return radius;
 	};
 
 	force.x0 = function (_) {
-		return arguments.length ? (x0 = typeof _ === 'function' ? _ : constant(Number(_)), force) : x0;
+		if (arguments.length > 0) {
+			x0 = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return x0;
 	};
 
 	force.x1 = function (_) {
-		return arguments.length ? (x1 = typeof _ === 'function' ? _ : constant(Number(_)), force) : x1;
+		if (arguments.length > 0) {
+			x1 = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return x1;
 	};
 
 	force.y0 = function (_) {
-		return arguments.length ? (y0 = typeof _ === 'function' ? _ : constant(Number(_)), force) : y0;
+		if (arguments.length > 0) {
+			y0 = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return y0;
 	};
 
 	force.y1 = function (_) {
-		return arguments.length ? (y1 = typeof _ === 'function' ? _ : constant(Number(_)), force) : y1;
+		if (arguments.length > 0) {
+			y1 = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return y1;
 	};
 
 	force.z0 = function (_) {
-		return arguments.length ? (z0 = typeof _ === 'function' ? _ : constant(Number(_)), force) : z0;
+		if (arguments.length > 0) {
+			z0 = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return z0;
 	};
 
 	force.z1 = function (_) {
-		return arguments.length ? (z1 = typeof _ === 'function' ? _ : constant(Number(_)), force) : z1;
+		if (arguments.length > 0) {
+			z1 = typeof _ === 'function' ? _ : constant(Number(_));
+			return force;
+		}
+
+		return z1;
 	};
 
 	force.cushionWidth = function (_) {
-		return arguments.length ? (cushionWidth = _, force) : cushionWidth;
+		if (arguments.length > 0) {
+			cushionWidth = _;
+
+			return force;
+		}
+
+		return cushionWidth;
 	};
 
 	force.cushionStrength = function (_) {
-		return arguments.length ? (cushionStrength = _, force) : cushionStrength;
+		if (arguments.length > 0) {
+			cushionStrength = _;
+
+			return force;
+		}
+
+		return cushionStrength;
 	};
 
 	return force;

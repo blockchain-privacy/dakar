@@ -25,7 +25,7 @@
       >
         <template #selection="{ item }">
           <v-chip size="small">
-            <span>{{ item.raw.chip }}</span>
+            <span>{{ item.chip }}</span>
           </v-chip>
         </template>
       </v-select>

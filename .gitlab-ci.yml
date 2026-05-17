@@ -1,0 +1,176 @@
+# credits: https://about.gitlab.com/blog/2017/11/27/go-tools-and-gitlab-how-to-do-continuous-integration-like-a-boss/
+image: golang:latest
+
+default:
+  tags:
+    - main
+
+variables:
+  GOPATH: ${CI_PROJECT_DIR}/vendor/go
+  DGRAPH_VERSION: v25.3.4
+  SWAGGO_VERSION: 1.16.6
+  BITCOIND_VERSION: v28.0
+  OPEN_API_GENERATOR_VERSION: v7.21.0
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
+
+.modcache: &modcache
+  key: modcache
+  paths:
+    - vendor/go/pkg/mod/
+
+dependencies:
+  stage: dependencies
+  script:
+    - go mod download
+    - go get -v -d ./...
+  cache: *modcache
+
+stages:
+  - dependencies
+  - test
+  - build
+  - publish
+  - release
+
+before_script:
+  - cd backend
+
+test:
+  stage: test
+  needs: [ "dependencies" ]
+  variables:
+    DB_TESTS: "1" # variable which controls if tests requiring the database should be run
+    RPC_TESTS: "1" # variable which controls if tests requiring the RPC-client should be run
+    DB_HOSTNAME: "dgraph_db" # name of the dgraph database container
+    RPC_HOSTNAME: "bitcoind" # name of the bitcoin container
+  script:
+    # start tests
+    - go install gotest.tools/gotestsum@latest
+    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race ./...
+  services:
+    - name: dgraph/standalone:$DGRAPH_VERSION
+      alias: dgraph_db # database for db module
+      entrypoint:
+        - '/bin/sh'
+        - '-c'
+        - |
+          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /acl_secret
+          /run.sh
+      variables:
+        DGRAPH_ALPHA_ACL: secret-file=/acl_secret
+    - name: lncm/bitcoind:$BITCOIND_VERSION
+      alias: bitcoind # rpc server for rpc testing
+      entrypoint: ["bitcoind"]
+      command: ["-regtest", "-rpcuser=rpc1user", "-rpcpassword=1234pass", "-rpcport=8131", "-rpcallowip=0.0.0.0/0", "-rpcbind=0.0.0.0", "-txindex"]
+  cache:
+    <<: *modcache
+    policy: pull
+  artifacts:
+    when: always
+    reports:
+      junit: backend/report.xml
+
+lint:
+  image: golangci/golangci-lint:latest
+  stage: test
+  script: make lint
+
+vet:
+  stage: test
+  needs: [ "dependencies" ]
+  script: make vet
+  cache:
+    <<: *modcache
+    policy: pull
+
+build:
+  stage: build
+  script: make
+  cache:
+    <<: *modcache
+    policy: pull
+  artifacts:
+    paths:
+      - backend/build
+
+swaggo:
+  stage: build
+  script:
+    - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download//v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
+    - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
+    - make openapi-fmt
+    - make openapi-spec
+  artifacts:
+    paths:
+      - backend/openapi
+
+openapi:
+  needs: [ "swaggo" ]
+  image: openapitools/openapi-generator-cli:$OPEN_API_GENERATOR_VERSION
+  rules:
+    - if: $CI_COMMIT_TAG
+  stage: build
+  script:
+    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
+  artifacts:
+    paths:
+      - backend/openapi/client
+
+npm-client:
+  needs: [ "openapi" ]
+  image: node:latest
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+  script:
+    - yarn set version stable
+    - rm package.json # clean up yarn upgrade
+    - cd openapi/client/typescript-fetch
+    - |
+      cat > .yarnrc.yml << EOF
+      npmScopes:
+        blockchain:
+          npmPublishRegistry: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+          npmAlwaysAuth: true
+          npmAuthToken: "${NPM_AUTH_TOKEN}"
+      EOF
+    - |
+      cat > package.json << EOF
+      {
+        "name": "@blockchain/dakar",
+        "version": "${CI_COMMIT_TAG}",
+        "description": "Dakar client",
+        "packageManager": "yarn@4.0.0",
+        "main": "index.ts",
+        "repository": {
+          "url": "git+https://gitlab.com/blockchain-privacy/dakar.git"
+        },
+        "author": "Dakar authors",
+        "license": "AGPL-3.0-only"
+      }
+      EOF
+    - yarn install
+    - yarn npm publish
+
+upload:
+  needs: [ "build" ]
+  stage: publish
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/dakar "${PACKAGE_REGISTRY_URL}/dakar"
+
+release:
+  needs: [ "upload" ]
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      release-cli create --name "$CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
+        --assets-link "{\"name\":\"dakar\",\"url\":\"${PACKAGE_REGISTRY_URL}/dakar\"}" \

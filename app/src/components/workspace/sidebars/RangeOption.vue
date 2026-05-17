@@ -3,7 +3,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 <template>
-  <div class="d-flex justify-center my-2 text-subtitle-1">
+  <div class="d-flex justify-center my-2 text-body-large">
     <label :for="`${componentID}_range`">{{ label }}</label>
   </div>
   <div class="d-flex align-center mb-5">

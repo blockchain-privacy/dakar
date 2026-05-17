@@ -13,12 +13,22 @@
             size="90"
           />
           <div style="max-width: 400px">
-            <p class="text-h6 text-center mt-2">
-              An error occurred while running this CoinJoin heuristic.
-            </p>
-            <p class="text-h7 text-center mt-2">
-              Try running this heuristic again. Consider using different parameters. If the issue is persists, please report the error with any details.
-            </p>
+            <template v-if="selectorData.selectorErrorCode === SELECTOR_ERROR_CODE_RESULT_LIMIT_EXCEEDED">
+              <p class="text-title-large text-center mt-2">
+                This heuristic exceeded the limit of {{ SELECTOR_RESULT_LIMIT.toLocaleString() }} results.
+              </p>
+              <p class="text-h7 text-center mt-2">
+                Try running this heuristic again with a stronger filter.
+              </p>
+            </template>
+            <template v-else>
+              <p class="text-title-large text-center mt-2">
+                An error occurred while running this CoinJoin heuristic.
+              </p>
+              <p class="text-h7 text-center mt-2">
+                Try running this heuristic again. Consider using different parameters. If the issue is persists, please report the error with any details.
+              </p>
+            </template>
           </div>
         </div>
       </template>
@@ -34,10 +44,10 @@
           min-width="150px"
         >
           <v-card-text>
-            <div class="text-h4">
+            <div class="text-headline-large">
               {{ selectorData.clusterCount?.toLocaleString() }}
             </div>
-            <div class="text-subtitle-1">
+            <div class="text-body-large">
               {{ plural('Cluster', selectorData.clusterCount) }}
             </div>
           </v-card-text>
@@ -49,10 +59,10 @@
           min-width="150px"
         >
           <v-card-text>
-            <div class="text-h4">
+            <div class="text-headline-large">
               {{ selectorData.selectorTotalResultCount?.toLocaleString() }}
             </div>
-            <div class="text-subtitle-1">
+            <div class="text-body-large">
               Total Transactions
             </div>
           </v-card-text>
@@ -63,19 +73,18 @@
           min-width="150px"
         >
           <v-card-text>
-            <div class="text-h4">
+            <div class="text-headline-large">
               {{ transactionCount.toLocaleString() }}
             </div>
-            <div class="text-subtitle-1">
+            <div class="text-body-large">
               {{ selectorType === SELECTOR_TYPE_HEURISTIC?'Transactions':'Stored Transactions' }}
             </div>
           </v-card-text>
         </v-card>
       </div>
-
       <named-divider
         title="Properties"
-        title-class="text-subtitle-1"
+        title-class="text-body-large"
       />
       <div class="d-flex align-center flex-wrap itemContainer justify-center">
         <small-icon-item
@@ -107,9 +116,9 @@
         />
         <small-icon-item
           v-if="selectorData.heuristicTimestamp"
-          :title="selectorData.heuristicTimestamp.toLocaleDateString()"
+          :title="new Date(selectorData.heuristicTimestamp).toLocaleDateString()"
           :icon="mdiCalendar"
-          :tooltip="`Created ${selectorData.heuristicTimestamp.toLocaleString()}`"
+          :tooltip="`Created ${new Date(selectorData.heuristicTimestamp).toLocaleString()}`"
         />
         <small-icon-item
           v-if="selectorData.startDate"
@@ -199,7 +208,7 @@
         <named-divider
           v-if="enoughDataForGraph"
           title="Transactions"
-          title-class="text-subtitle-1"
+          title-class="text-body-large"
           :vertical-margin="0"
         />
         <div class="d-flex align-center justify-center">
@@ -210,17 +219,14 @@
             :class="{'hide':!enoughDataForGraph}"
           />
         </div>
-        <v-card-title
-          v-if="!enoughDataForGraph"
-          class="text-h5"
-        >
+        <v-card-title v-if="!enoughDataForGraph">
           Not enough data to display diagram
         </v-card-title>
         <v-card-text v-if="!enoughDataForGraph && durationInMinutes > 0">
-          {{ `Only ${durationInMinutes} ${plural('minute', durationInMinutes)} between earliest and latest origin.` }}
+          {{ `Only ${durationInMinutes} ${plural('minute', durationInMinutes)} between oldest and most recent origin transaction.` }}
         </v-card-text>
         <v-card-text v-if="!enoughDataForGraph && durationInMinutes === 0">
-          All origins occur in the same point of time.
+          All origins occur at the same point of time.
         </v-card-text>
       </v-card>
       <template v-if="selectorData.transactions?.length > 0">
@@ -239,7 +245,7 @@
           <template #item.txhash="{item}">
             <td>
               <workspace-link
-                style="max-width: 300px"
+                style="max-width: 200px"
                 :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                        params: { id: item.txhash, blockchainMode: route.params.blockchainMode }}"
               >
@@ -262,6 +268,22 @@
               {{ new Date(item.ts).toLocaleDateString() }}
             </td>
           </template>
+          <template #item.actions="{item}">
+            <v-btn-group density="compact">
+              <v-btn
+                v-tooltip="{'text': 'Select all transactions belonging to this cluster', 'location':'top', 'open-delay': 400}"
+                variant="text"
+                :icon="mdiSelectAll"
+                @click="handleClusterSelected(item.cluster)"
+              />
+              <v-btn
+                v-tooltip="{'text': 'Deselect all transactions belonging to this cluster', 'location':'top', 'open-delay': 400}"
+                variant="text"
+                :icon="mdiSelectRemove"
+                @click="handleClusterDeselected(item.cluster)"
+              />
+            </v-btn-group>
+          </template>
         </v-data-table>
       </template>
     </v-card-text>
@@ -282,28 +304,42 @@ import {
 	mdiIncognitoOff,
 	mdiMerge,
 	mdiPlaylistRemove,
+	mdiSelectAll,
+	mdiSelectRemove,
 	mdiTune,
 } from '@mdi/js';
+import {
+	computed,
+	onMounted,
+	onUpdated,
+	ref,
+} from 'vue';
+import {useRoute} from 'vue-router';
 import BarChart from '@/d3Documents/barChart.js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import {
-	computed, onMounted, onUpdated, ref,
-} from 'vue';
-import {
-	convertAmount, getColorMap, plural, setUndefinedTransactionColor,
+	convertAmount,
+	getTransactionColorMap,
+	plural,
+	setUndefinedTransactionColor,
 } from '@/utilities/index.js';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import {
 	ROUTE_NAME_TRANSACTION_PAGE,
+	SELECTOR_ERROR_CODE_RESULT_LIMIT_EXCEEDED,
+	SELECTOR_RESULT_LIMIT,
 	SELECTOR_STATUS_ERROR,
 	SELECTOR_TYPE_HEURISTIC,
 } from '@/constants/index.js';
 import {
-	cashLeft, cashRight, sigmaLeft, sigmaRight, incognitoFilter,
+	cashLeft,
+	cashRight,
+	sigmaLeft,
+	sigmaRight,
+	incognitoFilter,
 } from '@/customIcons/index.js';
 import ColorChip from '@/components/common/ColorChip.vue';
 import SmallIconItem from '@/components/common/SmallIconItem.vue';
-import {useRoute} from 'vue-router';
 
 const props = defineProps({
 	selectorType: {type: String, required: true},
@@ -312,7 +348,9 @@ const props = defineProps({
 
 const route = useRoute();
 
-const colorMap = getColorMap(route.params.blockchainMode);
+const emit = defineEmits(['clusterSelected', 'clusterDeselected']);
+
+const colorMap = getTransactionColorMap(route.params.blockchainMode);
 setUndefinedTransactionColor(colorMap, undefined);
 let svgBarChart = null;
 const tableHeadersWithoutCluster = [
@@ -329,16 +367,13 @@ const tableHeadersWithoutCluster = [
 
 const tableHeadersWithCluster = [
 	{
-		key: 'txhash', title: 'Transaction', sortable: false, align: 'left',
+		key: 'txhash', title: 'Transaction', sortable: false,
 	},
+	{key: 'cluster', title: 'Cluster'},
+	{key: 'txtype', title: 'Type'},
+	{key: 'ts', title: 'Timestamp'},
 	{
-		key: 'cluster', title: 'Cluster', align: 'left',
-	},
-	{
-		key: 'txtype', title: 'Type', align: 'right',
-	},
-	{
-		key: 'ts', title: 'Timestamp', align: 'right',
+		key: 'actions', title: 'Actions', align: 'end', sortable: false,
 	},
 ];
 
@@ -390,6 +425,14 @@ function init() {
 	svgBarChart.drawStacked(props.selectorData.transactions, colorMap);
 	enoughDataForGraph.value = !svgBarChart.empty;
 	durationInMinutes.value = svgBarChart.getDurationInMinutes;
+}
+
+function handleClusterSelected(clusterID) {
+	emit('clusterSelected', clusterID);
+}
+
+function handleClusterDeselected(clusterID) {
+	emit('clusterDeselected', clusterID);
 }
 
 </script>

@@ -12,9 +12,23 @@
       style="flex:1"
     >
       <div class="pa-5">
-        <h3 class="text-h3 font-weight-bold text-center mb-2">
-          Login
+        <div
+          v-if="isOAuth"
+          class="d-flex"
+        >
+          <v-img
+            alt="Dakar Logo"
+            :src="DakarImg"
+            class="mb-4"
+            transition="fade-transition"
+            width="64"
+            max-height="75px"
+          />
+        </div>
+        <h3 class="text-display-medium font-weight-bold text-center ma-0">
+          {{ title }}
         </h3>
+        <alert :text="errorMsg" />
         <ory-flow
           v-if="loginFlow"
           :flow="loginFlow"
@@ -28,7 +42,10 @@
           class="mx-auto"
           type="article, actions"
         />
-        <div class="d-flex align-center mt-2">
+        <div
+          v-if="!isOAuth"
+          class="d-flex align-center mt-2"
+        >
           <v-btn
             class="ms-auto"
             variant="text"
@@ -54,33 +71,47 @@
 
 <script setup>
 import {
-	PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_ACCOUNT_RECOVERY, ROUTE_NAME_LOGIN_PAGE,
-} from '@/constants';
-import handleGetFlowError from '@/kratos';
-import OryFlow from './ory/OryFlow.vue';
-import {
-	computed, inject, onMounted, ref, watch,
+	computed,
+	inject,
+	onMounted,
+	ref,
+	watch,
 } from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
+import OryFlow from './ory/OryFlow.vue';
+import handleGetFlowError from '@/kratos';
+import {
+	PAGE_TITLE,
+	ROUTE_NAME_ENTRY_PAGE,
+	ROUTE_NAME_ACCOUNT_RECOVERY,
+	ROUTE_NAME_LOGIN_PAGE,
+	ROUTE_NAME_OAUTH_LOGIN_PAGE,
+} from '@/constants';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
-import {useMsgStore} from '@/pinia/msg';
+import DakarImg from '@/assets/dakar.svg?url';
+import Alert from '@/components/common/Alert.vue';
 
 const ory = inject('ory');
 const router = useRouter();
 const route = useRoute();
 const localStore = useLocalStore();
 const navStore = useNavStore();
-const msgStore = useMsgStore();
 const {failedRoute} = storeToRefs(navStore);
 const context = {
-	$route: route, $router: router, navStore, localStore, msgStore,
+	$route: route, $router: router, navStore, localStore,
 };
+
+const props = defineProps({
+	title: {type: String, required: false, default: 'Login'},
+	isOAuth: {type: Boolean, required: false},
+});
 
 const loginFlow = ref(null);
 const showLogoutButton = ref(false);
 const disabledForms = ref([]);
+const errorMsg = ref('');
 
 // Computed
 const session = computed({
@@ -94,7 +125,7 @@ const session = computed({
 
 // Watch
 watch(route, to => {
-	if (to.name === ROUTE_NAME_LOGIN_PAGE && !to.query.flow) {
+	if ((to.name === ROUTE_NAME_LOGIN_PAGE || to.name === ROUTE_NAME_OAUTH_LOGIN_PAGE) && !to.query.flow) {
 		// This happens if the users manually navigates to the route of this page,
 		// in this case flow is not set and needs to be reinitialized
 		initFlow();
@@ -111,8 +142,13 @@ onMounted(() => {
 		return;
 	}
 
+	if (props.isOAuth) {
+		initFlow();
+		return;
+	}
+
 	// If session is not set, user might be logged in already -> get session
-	if (session.value) {
+	if (session.value && !props.isOAuth) {
 		leave();
 	} else {
 		tryToGetSession();
@@ -120,12 +156,6 @@ onMounted(() => {
 });
 
 // Functions
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
-
 function goToPage(pageObj) {
 	router.push(pageObj);
 }
@@ -135,8 +165,8 @@ async function tryToGetSession() {
 		const response = await ory.frontend.toSession();
 		session.value = response;
 		leave();
-	} catch (e) {
-		if (e.response?.error?.id === 'session_aal2_required') {
+	} catch (error) {
+		if (error.response?.error?.id === 'session_aal2_required') {
 			await initLoginFlow('aal2');
 			return;
 		}
@@ -163,6 +193,8 @@ function leave() {
 
 // Used to break login flow (when aal2 or higher is required) and go to a different page
 async function logoutAndGoToPage(toObj) {
+	errorMsg.value = '';
+
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
 		if (!response.logout_token) {
@@ -172,12 +204,12 @@ async function logoutAndGoToPage(toObj) {
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
 		goToPage(toObj);
-	} catch (e) {
+	} catch (error) {
 		// Could not log out because no session was found -> go to requested page
-		if (e.response?.error?.id === 'session_inactive') {
+		if (error.response?.error?.id === 'session_inactive') {
 			goToPage(toObj);
 		} else {
-			await handleGetFlowError(context, e, null);
+			await doErrorHandling(context, error, null);
 		}
 	}
 }
@@ -187,6 +219,8 @@ async function handleOrySubmitLogin(formID) {
 	if (!form || !loginFlow.value.ui.action) {
 		return;
 	}
+
+	errorMsg.value = '';
 
 	// Disable submitting from this form
 	disabledForms.value.push(formID);
@@ -209,16 +243,14 @@ async function handleOrySubmitLogin(formID) {
 		}
 
 		if (response.error && response.error.reason) {
-			setErrorMessage(response.error.reason);
+			errorMsg.value = response.error.reason;
 		}
-	} catch (e) {
-		if (e.response?.ui) {
-			setFlowData(e.response);
+	} catch (error) {
+		if (error.response?.ui) {
+			setFlowData(error.response);
 		} else {
-			handleGetFlowError(context, e, () => {
+			doErrorHandling(context, error, () => {
 				initLoginFlow('aal1');
-			}).catch(e => {
-				setErrorMessage(e);
 			});
 		}
 	} finally {
@@ -227,15 +259,26 @@ async function handleOrySubmitLogin(formID) {
 	}
 }
 
+async function doErrorHandling(ctx, error, onRefreshFlow, isOAuth) {
+	try {
+		const err = await handleGetFlowError(ctx, error, onRefreshFlow, isOAuth);
+		if (err) {
+			errorMsg.value = err;
+		}
+	} catch (error_) {
+		errorMsg.value = error_.message;
+	}
+}
+
 async function initFlow() {
 	const {flow} = route.query;
-
+	errorMsg.value = '';
 	if (typeof flow === 'string') {
 		try {
 			const response = await ory.frontend.getLoginFlow({id: flow});
 			setFlowData(response);
-		} catch (e) {
-			await handleGetFlowError(context, e, () => initLoginFlow('aal1'));
+		} catch (error) {
+			await doErrorHandling(context, error, () => initLoginFlow('aal1'), props.isOAuth);
 		}
 	} else {
 		// If there's no flow in our route,
@@ -245,11 +288,15 @@ async function initFlow() {
 }
 
 async function initLoginFlow(aal) {
+	errorMsg.value = '';
+	// If the user is already logged in and if we are in oauth mode, then createBrowserLoginFlow returns null.
+	// workaround: set refresh to true and let user log in again
+	// kratos issue: https://github.com/ory/kratos/issues/4024
 	try {
-		const response = await ory.frontend.createBrowserLoginFlow({refresh: false, aal});
+		const response = await ory.frontend.createBrowserLoginFlow({refresh: props.isOAuth, aal, loginChallenge: route.query.login_challenge});
 		setFlowData(response);
-	} catch (e) {
-		await handleGetFlowError(context, e, null);
+	} catch (error) {
+		await doErrorHandling(context, error, null);
 	}
 }
 
@@ -257,7 +304,7 @@ function setFlowData(d) {
 	loginFlow.value = d;
 	showLogoutButton.value = Boolean(d.requested_aal) && d.requested_aal !== 'aal1';
 	if (!route.query.flow || route.query.flow !== d.id) {
-		router.replace({query: {flow: d.id}});
+		router.replace({query: {...route.query, flow: d.id}});
 	}
 }
 

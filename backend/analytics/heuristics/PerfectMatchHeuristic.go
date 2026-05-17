@@ -9,17 +9,18 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"fmt"
+
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // perfectMatchHeuristic - see exec for description
 type perfectMatchHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 }
 
 func NewPerfectMatchHeuristic() Heuristic {
@@ -30,7 +31,7 @@ func (h *perfectMatchHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *perfectMatchHeuristic) SetConfig(c heuristics.Options) error {
+func (h *perfectMatchHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -44,7 +45,7 @@ func (h *perfectMatchHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *perfectMatchHeuristic) GetConfig() heuristics.Options {
+func (h *perfectMatchHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 

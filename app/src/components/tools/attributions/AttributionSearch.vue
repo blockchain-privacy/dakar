@@ -20,6 +20,7 @@
           :loading="loading"
           @click:append-inner="handleQuery"
         />
+        <alert :text="errorMsg" />
       </v-form>
     </div>
     <template v-if="!loading && attributions.length > 0">
@@ -44,15 +45,10 @@
 
 <script setup>
 import {mdiMagnify} from '@mdi/js';
-import AttributionDetails from './AttributionDetails.vue';
-import {getDakarClient, handleError} from '@/utilities';
 import {ref, useTemplateRef} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
-
-const route = useRoute();
-const msgStore = useMsgStore();
-const context = {addMessage: msgStore.addMessage, $route: route};
+import AttributionDetails from './AttributionDetails.vue';
+import {getDakarClient} from '@/utilities';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -64,6 +60,7 @@ const dakar = getDakarClient(props.blockchainMode);
 const loading = ref(false);
 const query = ref('');
 const attributions = ref([]);
+const errorMsg = ref('');
 
 const rule = [v => (Boolean(v) && v.trim().length >= 3) || 'query must be at least 3 characters long'];
 
@@ -81,12 +78,13 @@ async function handleQuery() {
 	await loadSearchData(q);
 }
 
-async function loadSearchData(query) {
+async function loadSearchData(q) {
 	loading.value = true;
 	attributions.value = [];
+	errorMsg.value = '';
 
 	try {
-		const response = await dakar.attribution.attributionsSearchQueryGet({query});
+		const response = await dakar.attribution.attributionsSearchQueryGet({q});
 
 		if (response.attributions) {
 			// Parse date
@@ -96,10 +94,10 @@ async function loadSearchData(query) {
 			});
 
 			// Sort attributions by time stamp
-			attributions.value = response.attributions.sort((a, b) => b.ts - a.ts);
+			attributions.value = response.attributions.toSorted((a, b) => b.ts - a.ts);
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	loading.value = false;

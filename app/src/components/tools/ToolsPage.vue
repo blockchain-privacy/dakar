@@ -45,15 +45,18 @@
 
 <script setup>
 import {
-	mdiMerge, mdiPlaylistRemove, mdiTag, mdiToolbox,
+	mdiMerge,
+	mdiPlaylistRemove,
+	mdiTag,
+	mdiToolbox,
 } from '@mdi/js';
+import FadeTransition from '../common/FadeTransition.vue';
 import {
 	ROUTE_NAME_ADDRESS_EXCLUSIONS,
 	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_CLUSTER_OVERVIEW,
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
-import FadeTransition from '../common/FadeTransition.vue';
 
 </script>
 

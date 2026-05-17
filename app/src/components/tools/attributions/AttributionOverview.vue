@@ -10,13 +10,17 @@
           v-if="isLoading"
           indeterminate
         />
+        <alert
+          v-else-if="failedLoading"
+          text="Failed loading data. Please try again later."
+        />
         <div v-else>
           <v-row>
             <v-col
               v-if="items.length > 0"
               class="d-flex"
             >
-              <p class="text-subtitle-1 my-auto mr-auto">
+              <p class="text-body-large my-auto mr-auto">
                 <wiki-tooltip description-url="attributions.md">
                   Attributions
                 </wiki-tooltip> allow linking external information to addresses.
@@ -97,20 +101,19 @@
 
 <script setup>
 import {
-	mdiDelete, mdiDotsVertical,	mdiFileImport, mdiTagPlus,
+	mdiDelete,
+	mdiDotsVertical,
+	mdiFileImport,
+	mdiTagPlus,
 } from '@mdi/js';
-import {PAGE_TITLE} from '@/constants';
-import {getDakarClient, handleError} from '@/utilities';
+import {onMounted, ref} from 'vue';
 import ImportAttributionDialog from './ImportAttributionsDialog.vue';
 import DeleteAllAttributionsDialog from './DeleteAllAttributionsDialog.vue';
 import AttributionDetails from './AttributionDetails.vue';
+import {PAGE_TITLE} from '@/constants';
+import {getDakarClient} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
-
-const route = useRoute();
-const context = {addMessage: useMsgStore().addMessage, $route: route};
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -120,6 +123,7 @@ const props = defineProps({
 const dakar = getDakarClient(props.blockchainMode);
 
 const isLoading = ref(false);
+const failedLoading = ref(false);
 const addAttributionDialog = ref(false);
 const deleteAllAttributionsDialogModel = ref(false);
 const items = ref([]);
@@ -134,6 +138,7 @@ onMounted(async () => {
 async function loadOverviewData() {
 	isLoading.value = true;
 	items.value = [];
+	failedLoading.value = false;
 
 	try {
 		const response = await dakar.attribution.attributionsGet();
@@ -146,10 +151,10 @@ async function loadOverviewData() {
 			});
 
 			// Sort attributions by time stamp
-			items.value = response.attributions.sort((a, b) => b.ts - a.ts);
+			items.value = response.attributions.toSorted((a, b) => b.ts - a.ts);
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch {
+		failedLoading.value = true;
 	}
 
 	isLoading.value = false;

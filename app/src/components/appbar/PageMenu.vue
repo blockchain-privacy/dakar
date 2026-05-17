@@ -10,7 +10,7 @@
       max-width="350px"
     >
       <div>
-        <v-row no-gutters>
+        <v-row density="compact">
           <v-col>
             <link-card
               title="Workspaces"
@@ -36,7 +36,7 @@
             />
           </v-col>
         </v-row>
-        <v-row no-gutters>
+        <v-row density="compact">
           <v-col>
             <link-card
               title="Address Exclusions"
@@ -65,7 +65,7 @@
       </div>
       <template v-if="showUserAdmin">
         <v-divider class="my-2" />
-        <v-row no-gutters>
+        <v-row density="compact">
           <v-col>
             <link-card
               title="User Admin"
@@ -82,17 +82,26 @@
 
 <script setup>
 import {
-	mdiAccountSupervisor, mdiServer,
-	mdiMerge, mdiTag, mdiPlaylistRemove, mdiBookOpen,
+	mdiAccountSupervisor,
+	mdiServer,
+	mdiMerge,
+	mdiTag,
+	mdiPlaylistRemove,
+	mdiBookOpen,
 } from '@mdi/js';
-import {
-	ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
-	ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS, ROUTE_NAME_WIKI_ROOT, ROUTE_NAME_WORKSPACES_PAGE,
-} from '@/constants';
-import LinkCard from '../common/LinkCard.vue';
-import {isAnyAdminIdentity} from '@/utilities';
 import {computed} from 'vue';
 import {storeToRefs} from 'pinia';
+import LinkCard from '../common/LinkCard.vue';
+import {
+	ROUTE_NAME_USER_ADMIN_PAGE,
+	ROUTE_NAME_STATUS_PAGE,
+	ROUTE_NAME_CLUSTER_OVERVIEW,
+	ROUTE_NAME_ATTRIBUTIONS,
+	ROUTE_NAME_ADDRESS_EXCLUSIONS,
+	ROUTE_NAME_WIKI_ROOT,
+	ROUTE_NAME_WORKSPACES_PAGE,
+} from '@/constants';
+import {isAnyAdminIdentity} from '@/utilities';
 import {useLocalStore} from '@/pinia/local';
 
 const {session} = storeToRefs(useLocalStore());

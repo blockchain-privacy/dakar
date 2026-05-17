@@ -1,0 +1,87 @@
+log:
+  level: warn
+  format: json
+
+serve:
+  proxy:
+    cors:
+      enabled: true
+      allowed_origins:
+        - "*"
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+
+errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+  fallback:
+    - json
+  handlers:
+    json:
+      enabled: true
+      config:
+        verbose: false
+
+access_rules:
+  matching_strategy: regexp
+  repositories:
+    - file:///etc/config/oathkeeper/access-rules.yml
+
+authenticators:
+  anonymous:
+    enabled: true
+    config:
+      subject: guest
+
+  cookie_session:
+    enabled: true
+    config:
+      check_session_url: http://kratos:4433/sessions/whoami
+      preserve_path: true
+      extra_from: "@this"
+      subject_from: "identity.id"
+      only:
+        - ory_kratos_session
+
+  oauth2_introspection:
+    enabled: true
+    config:
+      introspection_url: http://hydra:4445/admin/oauth2/introspect
+      scope_strategy: exact
+      required_scope:
+        - dakar
+      trusted_issuers:
+        - http://localhost:8082/hydra/
+
+  noop:
+    enabled: true
+
+authorizers:
+  allow:
+    enabled: true
+  remote_json:
+    enabled: true
+    config:
+      remote: http://keto:4466/relation-tuples/check
+      payload: |
+        { }
+      retry:
+        max_delay: 1s
+        give_up_after: 1s
+
+mutators:
+  noop:
+    enabled: true
+  header:
+    enabled: true
+    config:
+      headers:
+        X-user: "{{ print .Extra.identity.id }}"

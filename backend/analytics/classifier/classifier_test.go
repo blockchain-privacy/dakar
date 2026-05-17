@@ -58,7 +58,7 @@ func TestClassifier_CalculateInitialState(t *testing.T) {
 	yes := true
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  &yes,
-		LastBlockID: db.GetPointer[int64](5),
+		LastBlockID: new(int64(5)),
 	}))
 
 	require.NoError(t, classifier.CalculateInitialState(ctx))
@@ -75,7 +75,7 @@ func TestClassifier_NextBlock(t *testing.T) {
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
 		IsCrawling:  &no,
-		LastBlockID: db.GetPointer[int64](db.BlockFileLastBlock),
+		LastBlockID: new(int64(db.BlockFileLastBlock)),
 	}))
 
 	ctx, cancelFunc := db.GetShortTaskContext()
@@ -106,9 +106,9 @@ func TestClassifier_Iterate(t *testing.T) {
 	defer cancel()
 
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling: db.GetPointer(false),
+		IsCrawling: new(false),
 		// first block of the file
-		LastBlockID: db.GetPointer[int64](db.ClassifierFileFirstBlock),
+		LastBlockID: new(int64(db.ClassifierFileFirstBlock)),
 	}))
 
 	ctx, cancelFunc := db.GetShortTaskContext()
@@ -144,12 +144,12 @@ func TestMultipleBlockIteration(t *testing.T) {
 
 	require.NoError(t, analytics.RemoveTransactionTypeOfAllTransactions(ctx, dbHandle))
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling:  db.GetPointer(false),
-		LastBlockID: db.GetPointer[int64](db.ClassifierFileLastBlock),
+		IsCrawling:  new(false),
+		LastBlockID: new(int64(db.ClassifierFileLastBlock)),
 	}))
 	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
-		IsClassifying:         db.GetPointer(false),
-		LastClassifiedBlockID: db.GetPointer[int64](db.ClassifierFileFirstBlock),
+		IsClassifying:         new(false),
+		LastClassifiedBlockID: new(int64(db.ClassifierFileFirstBlock)),
 	}))
 
 	classifier2 := NewClassifier(ctx, dbHandle, NewDashConfig())
@@ -184,7 +184,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 	yes := true
 	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
 		IsClassifying:         &yes,
-		LastClassifiedBlockID: db.GetPointer[int64](700),
+		LastClassifiedBlockID: new(int64(700)),
 	}))
 	require.NoError(t, setInitialClassifierID(ctx, dbHandle, 0))
 }
@@ -196,14 +196,14 @@ func TestBlockIterator(t *testing.T) {
 	defer cancel()
 
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling: db.GetPointer(false),
+		IsCrawling: new(false),
 		// let's classify 2 blocks
-		LastBlockID: db.GetPointer[int64](db.ClassifierFileFirstBlock + 3),
+		LastBlockID: new(int64(db.ClassifierFileFirstBlock + 3)),
 	}))
 	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
-		IsClassifying: db.GetPointer(false),
+		IsClassifying: new(false),
 		// let's classify 3 blocks
-		LastClassifiedBlockID: db.GetPointer[int64](db.ClassifierFileFirstBlock),
+		LastClassifiedBlockID: new(int64(db.ClassifierFileFirstBlock)),
 	}))
 
 	ctx, cancelFunc := db.GetShortTaskContext()
@@ -227,14 +227,14 @@ func TestBlockIteratorImmediateExit(t *testing.T) {
 	defer cancel()
 
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling: db.GetPointer(false),
+		IsCrawling: new(false),
 		// let's classify 2 blocks
-		LastBlockID: db.GetPointer[int64](db.ClassifierFileFirstBlock + 3),
+		LastBlockID: new(int64(db.ClassifierFileFirstBlock + 3)),
 	}))
 	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
-		IsClassifying: db.GetPointer(false),
+		IsClassifying: new(false),
 		// let's classify 3 blocks
-		LastClassifiedBlockID: db.GetPointer[int64](db.ClassifierFileFirstBlock),
+		LastClassifiedBlockID: new(int64(db.ClassifierFileFirstBlock)),
 	}))
 
 	ctx, cancelFunc := db.GetShortTaskContext()

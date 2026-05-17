@@ -36,9 +36,9 @@
 </template>
 
 <script setup>
+import {useRoute} from 'vue-router';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
-import {useRoute} from 'vue-router';
 
 defineProps({
 	txHash: {type: String, required: true},

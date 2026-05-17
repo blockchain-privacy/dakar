@@ -75,6 +75,7 @@
       />
     </template>
     <template #body>
+      <alert :text="errorMsg" />
       <v-skeleton-loader
         v-if="isLoading"
         class="mx-auto"
@@ -106,6 +107,8 @@
           v-else-if="isHeuristic || isTxProp || isTxGraph"
           :selector-type="auxiliaryData.selectorType"
           :selector-data="entityData"
+          @cluster-selected="handleClusterSelected"
+          @cluster-deselected="handleClusterDeselected"
         />
         <div v-else>
           Type not recognized
@@ -120,25 +123,30 @@ import {
 	mdiBlender,
 	mdiCardBulletedOutline,
 	mdiFileDownloadOutline,
-	mdiFilter, mdiFingerprint,
+	mdiFilter,
+	mdiFingerprint,
 	mdiGraph,
 	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
-import SideBar from '@/components/common/SideBar.vue';
 import {
-	computed, onUpdated, ref, watch,
+	computed,
+	onUpdated,
+	ref,
+	watch,
 } from 'vue';
+import {useRoute} from 'vue-router';
+import SideBar from '@/components/common/SideBar.vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg.js';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import {getCurrentDate, getDakarClient, isDestination} from '@/utilities/index.js';
 import {
-	SELECTOR_TYPE_HEURISTIC, SELECTOR_TYPE_TX_GRAPH, SELECTOR_TYPE_TX_PROP,
+	SELECTOR_TYPE_HEURISTIC,
+	SELECTOR_TYPE_TX_GRAPH,
+	SELECTOR_TYPE_TX_PROP,
 	WORKSPACE_NODE_TYPE_CLUSTER,
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_TRANSACTION,
@@ -146,6 +154,7 @@ import {
 import {useWorkspaceStore} from '@/pinia/workspace.js';
 import AddNodesChip from '@/components/workspace/sidebars/AddNodesChip.vue';
 import SelectorDetails from '@/components/workspace/sidebars/SelectorDetails.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},
@@ -159,7 +168,6 @@ const emit = defineEmits(['addNodes', 'fingerprint-transaction']);
 const model = defineModel({type: Boolean});
 
 const route = useRoute();
-const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
 const workspaceStore = useWorkspaceStore();
 
@@ -169,6 +177,7 @@ const isLoading = ref(true);
 const entityData = ref();
 const showSelectAddresses = ref(true);
 const showSelectTransactions = ref(true);
+const errorMsg = ref('');
 
 let oldIdentifier = null;
 
@@ -221,16 +230,28 @@ async function updateEntityData() {
 		isLoading.value = true;
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
-		const cacheValue = cacheStore.getValue(props.identifier);
+		const cacheValue = cacheStore.get(props.identifier);
 		entityData.value = null;
-		if (cacheValue !== undefined) {
+		if (cacheValue === undefined) {
+			switch (props.type) {
+				case WORKSPACE_NODE_TYPE_TRANSACTION: {
+					await getTransactionData();
+					break;
+				}
+
+				case WORKSPACE_NODE_TYPE_CLUSTER: {
+					await getAddressData();
+					break;
+				}
+
+				case WORKSPACE_NODE_TYPE_SELECTOR: {
+					await getSelectorData();
+					break;
+				}
+ // No default
+			}
+		} else {
 			entityData.value = cacheValue;
-		} else if (props.type === WORKSPACE_NODE_TYPE_TRANSACTION) {
-			await getTransactionData();
-		} else if (props.type === WORKSPACE_NODE_TYPE_CLUSTER) {
-			await getAddressData();
-		} else if (props.type === WORKSPACE_NODE_TYPE_SELECTOR) {
-			await getSelectorData();
 		}
 
 		setSelectableEntities();
@@ -260,7 +281,6 @@ const sideBarIcon = computed(() => {
 });
 
 // Functions
-
 function addOutputToSelectableEntities(output) {
 	if (output.txhash) {
 		selectableEntities.set(output.txhash, {id: output.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
@@ -277,11 +297,15 @@ function setSelectableEntities() {
 		case WORKSPACE_NODE_TYPE_TRANSACTION:
 			for (const t of entityData.value) {
 				if (t.inputs) {
-					t.inputs.forEach(addOutputToSelectableEntities);
+					t.inputs.forEach(element => {
+						addOutputToSelectableEntities(element);
+					});
 				}
 
 				if (t.outputs) {
-					t.outputs.forEach(addOutputToSelectableEntities);
+					t.outputs.forEach(element => {
+						addOutputToSelectableEntities(element);
+					});
 				}
 			}
 
@@ -325,7 +349,7 @@ function setSelectableEntities() {
 function setSelectableSelectorElements() {
 	for (const tx of entityData.value.transactions) {
 		if (tx.txhash) {
-			selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
+			selectableEntities.set(tx.txhash, {id: tx.txhash, type: WORKSPACE_NODE_TYPE_TRANSACTION, cluster: tx.cluster});
 		}
 	}
 }
@@ -335,12 +359,13 @@ async function getTransactionData() {
 		return;
 	}
 
+	errorMsg.value = '';
 	try {
 		const response = await dakar.data.blockchainTransactionsHashGet({hash: props.identifier});
 		entityData.value = response.transactions;
-		cacheStore.setValue(props.identifier, response.transactions);
-	} catch (e) {
-		setErrorMessage(e);
+		cacheStore.set(props.identifier, response.transactions);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -349,12 +374,13 @@ async function getAddressData() {
 		return;
 	}
 
+	errorMsg.value = '';
 	try {
 		const response = await dakar.data.blockchainAddressesHashGet({hash: props.identifier});
 		entityData.value = response.address;
-		cacheStore.setValue(props.identifier, response.address);
-	} catch (e) {
-		setErrorMessage(e);
+		cacheStore.setTTL(props.identifier, response.address, 30);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -364,7 +390,7 @@ async function getSelectorData() {
 	}
 
 	let tmpEntityData;
-
+	errorMsg.value = '';
 	switch (props.auxiliaryData.selectorType) {
 		case SELECTOR_TYPE_HEURISTIC:
 			{
@@ -380,6 +406,7 @@ async function getSelectorData() {
 					clusterCount: props.auxiliaryData.selectorResultCount,
 					selectorUid: props.auxiliaryData.uid,
 					selectorStatus: props.auxiliaryData.selectorStatus,
+					selectorErrorCode: props.auxiliaryData.selectorErrorCode,
 					heuristicTimestamp: new Date(props.auxiliaryData.selectorModified),
 					transactions: [],
 				};
@@ -397,6 +424,8 @@ async function getSelectorData() {
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
 			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
+			tmpEntityData.selectorStatus = props.auxiliaryData.selectorStatus;
+			tmpEntityData.selectorErrorCode = props.auxiliaryData.selectorErrorCode;
 			tmpEntityData.selectorTotalResultCount = props.auxiliaryData.selectorTotalResultCount;
 			tmpEntityData.transactions = [];
 
@@ -412,6 +441,8 @@ async function getSelectorData() {
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
 			tmpEntityData.selectorCount = props.auxiliaryData.selectorResultCount;
+			tmpEntityData.selectorStatus = props.auxiliaryData.selectorStatus;
+			tmpEntityData.selectorErrorCode = props.auxiliaryData.selectorErrorCode;
 			tmpEntityData.selectorTotalResultCount = props.auxiliaryData.selectorTotalResultCount;
 			tmpEntityData.transactions = [];
 
@@ -437,16 +468,14 @@ async function getSelectorData() {
 		}
 
 		entityData.value = tmpEntityData;
-		cacheStore.setValue(props.identifier, tmpEntityData);
-	} catch (e) {
-		setErrorMessage(e);
+		cacheStore.set(props.identifier, tmpEntityData);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
+	errorMsg.value = msg;
 }
 
 async function downloadReport() {
@@ -454,6 +483,7 @@ async function downloadReport() {
 		return;
 	}
 
+	errorMsg.value = '';
 	try {
 		const response = await dakar.workspace.workspacesSelectorReportPost({
 			selector: {
@@ -471,8 +501,8 @@ async function downloadReport() {
 		);
 		a.click();
 		a.remove();
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -498,14 +528,30 @@ function selectAllAddresses() {
 
 function deselectAllTransactions() {
 	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
-		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION)
-		.map(d => d.id));
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_TRANSACTION).map(d => d.id));
 }
 
 function deselectAllAddresses() {
 	workspaceStore.removeNodesFromMap([...workspaceStore.workspaceNodes.values()]
-		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER)
-		.map(d => d.id));
+		.filter(d => d.type === WORKSPACE_NODE_TYPE_CLUSTER).map(d => d.id));
+}
+
+function handleClusterSelected(clusterID) {
+	if (clusterID === undefined || clusterID === null) {
+		return;
+	}
+
+	workspaceStore.setWorkspaceNodes([...selectableEntities.values()]
+		.filter(d => d.cluster === clusterID));
+}
+
+function handleClusterDeselected(clusterID) {
+	if (clusterID === undefined || clusterID === null) {
+		return;
+	}
+
+	workspaceStore.removeNodesFromMap([...selectableEntities.values()]
+		.filter(d => d.cluster === clusterID).map(d => d.id));
 }
 
 </script>

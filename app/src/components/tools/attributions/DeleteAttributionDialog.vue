@@ -5,48 +5,44 @@
 <template>
   <v-dialog
     v-model="model"
-    max-width="400px"
+    max-width="500px"
   >
     <v-card class="mx-auto pb-2">
-      <v-card-title>
-        <span class="text-h5">Delete {{ title }} Attribution</span>
-      </v-card-title>
+      <v-card-title>Delete {{ title }} Attribution</v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           Are you sure you want to delete the attribution <code>{{ tag }}</code>?
         </div>
-        <v-row class="mt-4">
-          <v-col class="d-flex justify-end align-center">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              :loading="isLoading"
-              color="red"
-              @click="deleteAttribution"
-            >
-              Delete
-            </v-btn>
-          </v-col>
-        </v-row>
       </v-card-text>
+      <alert
+        :text="errorMsg"
+        :type="msgType"
+      />
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          :loading="isLoading"
+          color="red"
+          @click="deleteAttribution"
+        >
+          Delete
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {getDakarClient} from '@/utilities/index.js';
-
-const route = useRoute();
-const msgStore = useMsgStore();
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	attributionUid: {type: String, required: true},
@@ -62,29 +58,29 @@ const model = defineModel({type: Boolean});
 const emit = defineEmits(['deleted']);
 
 const isLoading = ref(false);
+const errorMsg = ref('');
+const msgType = ref('');
 
 // Functions
-function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
+function setErrorMessage(msg) {
+	msgType.value = 'error';
+	errorMsg.value = msg;
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
-	});
+	msgType.value = 'info';
+	errorMsg.value = msg;
 }
 
 async function deleteAttribution() {
 	if (props.attributionUid === '') {
-		setPersistentErrorMessage('could not delete attribution');
+		setErrorMessage('could not delete attribution');
 		model.value = false;
 		return;
 	}
 
 	isLoading.value = true;
-
+	errorMsg.value = '';
 	try {
 		const response = props.public
 			? await dakar.attribution.attributionsPublicUidDelete({uid: props.attributionUid})
@@ -95,11 +91,13 @@ async function deleteAttribution() {
 		}
 
 		emit('deleted', props.attributionUid);
-	} catch (e) {
-		setPersistentErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
+		return;
+	} finally {
+		isLoading.value = false;
 	}
 
-	isLoading.value = false;
 	model.value = false;
 }
 </script>

@@ -9,10 +9,10 @@
   >
     <v-card class="mx-auto pb-2">
       <v-card-title>
-        <span class="text-h5">Import {{ title }} Address Exclusions</span>
+        Import {{ title }} Address Exclusions
       </v-card-title>
       <v-card-text>
-        <div class="text-subtitle-1">
+        <div class="text-body-large">
           Import an address exclusion list, which consists of a list of address hashes,
           separated by new line characters. The file must <strong>not</strong> have a header.
           The file may contain at maximum {{ Number(10000).toLocaleString() }} addresses.
@@ -33,38 +33,37 @@
             label="Click here to select a file"
             truncate-length="15"
           />
-          <div class="d-flex align-center justify-end">
-            <v-btn
-              variant="text"
-              :disabled="isLoading"
-              class="mr-2"
-              @click="model = false"
-            >
-              Cancel
-            </v-btn>
-            <v-btn
-              variant="text"
-              :loading="isLoading"
-              @click="handleCSVUpload"
-            >
-              Upload
-            </v-btn>
-          </div>
         </v-form>
       </v-card-text>
+      <alert
+        :text="errorMsg"
+        :type="msgType"
+      />
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          :disabled="isLoading"
+          @click="model = false"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          variant="text"
+          :loading="isLoading"
+          @click="handleCSVUpload"
+        >
+          Upload
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup>
 import {ref} from 'vue';
-import {useRoute} from 'vue-router';
 import {fileRule, getDakarClient} from '@/utilities';
-import {useMsgStore} from '@/pinia/msg';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-
-const route = useRoute();
-const msgStore = useMsgStore();
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	title: {type: String, required: true},
@@ -83,24 +82,18 @@ const csv = ref({
 	valid: false,
 	file: undefined,
 });
+const errorMsg = ref('');
+const msgType = ref('');
 
 // Functions
-function setSuccessMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'success', temporary: true, category: route.name,
-	});
-}
-
 function setInfoMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'info', temporary: true, category: route.name,
-	});
+	msgType.value = 'info';
+	errorMsg.value = msg;
 }
 
-function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: false, category: route.name,
-	});
+function setErrorMessage(msg) {
+	msgType.value = 'error';
+	errorMsg.value = msg;
 }
 
 async function handleCSVUpload() {
@@ -110,6 +103,7 @@ async function handleCSVUpload() {
 	}
 
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	try {
 		const response = await dakar.addressExclusion.exclusionsPost({file: csv.value.file});
@@ -117,14 +111,15 @@ async function handleCSVUpload() {
 			setInfoMessage(response.msg);
 		}
 
-		setSuccessMessage('import was successful');
 		emit('added');
-	} catch (e) {
-		setPersistentErrorMessage(codeToMsg(e.message));
+	} catch (error) {
+		setErrorMessage(codeToMsg(error.message));
+		return;
+	} finally {
+		isLoading.value = false;
+		csv.value.file = undefined;
 	}
 
-	isLoading.value = false;
-	csv.value.file = undefined;
 	model.value = false;
 }
 
@@ -140,7 +135,7 @@ function codeToMsg(msgCode) {
 		case 'file_reading_error':
 			return 'could not read file';
 		case 'file_too_many_addresses':
-			return `file has more than ${Number(10000).toLocaleString()} addresses`;
+			return `file has more than ${Number(10_000).toLocaleString()} addresses`;
 		case 'file_error_importing':
 			return 'error importing file';
 		default:

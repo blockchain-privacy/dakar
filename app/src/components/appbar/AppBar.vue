@@ -89,6 +89,7 @@
         </v-list-item>
         <v-list-item
           id="app-bar-logout"
+          :disabled="isLogoutLoading"
           @click="initLogoutFlow"
         >
           <template #prepend>
@@ -111,14 +112,32 @@
       Login
     </v-btn>
   </v-app-bar>
+  <v-snackbar
+    v-model="snackbarModel"
+    :text="errorMsg"
+    :prepend-icon="mdiCloseCircle"
+    color="error"
+    variant="tonal"
+    :timeout="20000"
+  />
 </template>
 
 <script setup>
 import {
-	mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiPalette,
+	mdiAccount,
+	mdiAccountCircle,
+	mdiCloseCircle,
+	mdiCog,
+	mdiDotsGrid,
+	mdiLogin,
+	mdiLogout,
+	mdiPalette,
 } from '@mdi/js';
-import PageMenu from './PageMenu.vue';
+import {inject, ref} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {storeToRefs} from 'pinia';
 import QueryInput from '../common/QueryInput.vue';
+import PageMenu from './PageMenu.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
 	APPLICATION_NAME,
@@ -127,34 +146,33 @@ import {
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
-import {computed, inject} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
-import {useMsgStore} from '@/pinia/msg';
 import DakarImg from '@/assets/dakar.svg?url';
 
 const ory = inject('ory');
 const localStore = useLocalStore();
 const route = useRoute();
 const router = useRouter();
+const kratosAdmin = inject('kratosadmin');
+const {session} = storeToRefs(localStore);
+const errorMsg = ref('');
+const snackbarModel = ref(false);
+
 const context = {
-	$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore(),
+	$route: route, $router: router, navStore: useNavStore(), localStore,
 };
 
 defineProps({minimize: {type: Boolean, required: true}});
 
-// Computed
-const session = computed({
-	get() {
-		return localStore.getSession;
-	},
-	set(value) {
-		localStore.setSession(value);
-	},
-});
+const isLogoutLoading = ref(false);
 
 // Functions
+function setErrorMessage(msg) {
+	errorMsg.value = msg;
+	snackbarModel.value = true;
+}
+
 // GoToPage should receive a page name from ./constants
 function goToPage(pageName) {
 	// Only change route if not already on page
@@ -163,7 +181,51 @@ function goToPage(pageName) {
 	}
 }
 
+// Extracts the parameter from the given response url. Returns null if the response
+// was not redirected, the url was invalid or the parameter could not be found.
+function extractParam(response, param) {
+	if (!response.redirected || !response.url || !param) {
+		return null;
+	}
+
+	return new URL(response.url).searchParams.get(param);
+}
+
+// This function tries to do an oauth logout.
+// Usually this is achieved by following user-visible redirects. This would create a bad UX.
+// Instead, we extract the logout challenge and do the redirects via fetch.
+async function tryOAuthLogout() {
+	const resp = await fetch('/hydra/oauth2/sessions/logout');
+	const logoutChallenge = extractParam(resp, 'logout_challenge');
+	if (logoutChallenge) {
+		const r = await kratosAdmin.oauth.logoutLogoutChallengePost({logoutChallenge});
+
+		if (!r.redirectTo) {
+			return false;
+		}
+
+		const rr = await fetch(r.redirectTo);
+
+		if (rr.redirected && rr.url) {
+			const redirectURL = new URL(rr.url);
+			// If it is a know url, do routing via the router
+			if (redirectURL.host === window.location.host && redirectURL.pathname === '/') {
+				goToPage(ROUTE_NAME_ENTRY_PAGE);
+				return true;
+			}
+		}
+
+		window.location.href = r.redirectTo;
+		return true;
+	}
+
+	return false;
+}
+
 async function initLogoutFlow() {
+	isLogoutLoading.value = true;
+	errorMsg.value = '';
+	snackbarModel.value = false;
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
 		if (!response.logout_token) {
@@ -172,9 +234,22 @@ async function initLogoutFlow() {
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
 		session.value = null;
-		goToPage(ROUTE_NAME_ENTRY_PAGE);
-	} catch (e) {
-		await handleGetFlowError(context, e, null);
+
+		const redirected = await tryOAuthLogout();
+		if (!redirected) {
+			goToPage(ROUTE_NAME_ENTRY_PAGE);
+		}
+	} catch (error) {
+		try {
+			const err = await handleGetFlowError(context, error, null);
+			if (err) {
+				setErrorMessage(err);
+			}
+		} catch (error_) {
+			setErrorMessage(error_.message);
+		}
+	} finally {
+		isLogoutLoading.value = false;
 	}
 }
 

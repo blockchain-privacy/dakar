@@ -13,12 +13,12 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	"backend/db/analytics/heuristics"
-	"backend/db/workspace"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -49,7 +49,7 @@ const (
 	// minimum duration in hours
 	parameterMinDuration = 1
 	// maximum depth
-	parameterMaxDepth = 5
+	parameterMaxDepth = 4
 	parameterMinDepth = 1
 
 	parameterDescriptionLookForward = "Maximum duration (hours)"
@@ -157,9 +157,9 @@ type Heuristic interface {
 	// GetType returns the heuristic type
 	GetType() string
 	// SetConfig applies the provided configuration values
-	SetConfig(heuristics.Options) error
+	SetConfig(options HeuristicOptions) error
 	// GetConfig returns the configuration of the heuristic
-	GetConfig() heuristics.Options
+	GetConfig() HeuristicOptions
 	// GetDescriptor returns the description of the heuristic and its expected parameter for the frontend
 	GetDescriptor() Descriptor
 }
@@ -213,7 +213,7 @@ func getNumberOfWhirlpoolDenominations(it heuristics.HeuristicTransaction, desti
 // getDashDenominationCountsWithFilter gets the counts of each Dash denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
 func getDashDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dash.NumDenominations]int {
-	var denominations []int64 //nolint:prealloc
+	var denominations []int64
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
 			continue
@@ -227,7 +227,7 @@ func getDashDenominationCountsWithFilter(it heuristics.HeuristicTransaction, fil
 // getWhirlpoolDenominationCountsWithFilter gets the counts of each Whirlpool denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
 func getWhirlpoolDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [btc.NumWhirlpoolDenominations]int {
-	var denominations []int64 //nolint:prealloc
+	var denominations []int64
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
 			continue
@@ -369,7 +369,8 @@ func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransact
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	transactionUID string, lookBackTime time.Duration, maxDepth int, exclusions []string,
-	attributions map[string][]string, c heuristics.Options, allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
+	attributions map[string][]string, c HeuristicOptions,
+	allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
 	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(transactionUID, lookBackTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
@@ -387,7 +388,8 @@ func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *gra
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedDestinations(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	transactionUID string, lookForwardTime time.Duration, maxDepth int, exclusions []string,
-	attributions map[string][]string, c heuristics.Options, allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
+	attributions map[string][]string, c HeuristicOptions,
+	allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
 	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ForwardLookup(transactionUID, lookForwardTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
@@ -406,7 +408,7 @@ func isParentAHeuristic(ctx context.Context, c external.Database, parentUID stri
 		return false, err
 	}
 
-	return parentType == workspace.SelectorDType, nil
+	return parentType == "Selector", nil
 }
 
 // Executor holds information for executing on heuristic and its children
@@ -416,7 +418,8 @@ type Executor struct {
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(config heuristics.Options, userUID string, parentUID string) (executor Executor, err error) {
+func ConstructExecutors(config HeuristicOptions, userUID string,
+	parentUID string) (executor Executor, err error) {
 	constructor, ok := ConstructorMap[config.Type]
 	if !ok {
 		err = serror.New(errHeuristicNotValid)
@@ -440,33 +443,9 @@ func ConstructExecutors(config heuristics.Options, userUID string, parentUID str
 	return
 }
 
-// IsConfigValid checks if the given config can be applied to its heuristic type and if the heuristic parameter is valid
-func IsConfigValid(config heuristics.Options) error {
-	constructor, ok := ConstructorMap[config.Type]
-	if !ok {
-		return serror.FromStrWithContext("invalid heuristic type", "type", config.Type)
-	}
-
-	clonedHeuristic := constructor()
-	c := config
-
-	descriptorParameter := clonedHeuristic.GetDescriptor().Parameter
-	if descriptorParameter != nil && descriptorParameter.Type == parameterTypeInt {
-		p, err := strconv.Atoi(config.Parameter)
-		if err != nil {
-			return serror.New(err)
-		}
-
-		if p < descriptorParameter.MinimumValue || p > descriptorParameter.MaximumValue {
-			return serror.FromStrWithContext("invalid parameter value", "value", p)
-		}
-	}
-
-	return clonedHeuristic.SetConfig(c)
-}
-
 // Run starts the execution of the given heuristic executor.
-func (hx Executor) Run(ctx context.Context, dgraph external.Database, g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
+func (hx Executor) Run(ctx context.Context, dgraph external.Database,
+	g *graph.Wrapper) ([]heuristics.HeuristicCluster, error) {
 	heuristicClusters, err := hx.thisHeuristic.Exec(ctx, dgraph, g, hx.rootUID, nil)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		return nil, err
@@ -526,4 +505,119 @@ func getHeuristicTransactions(ctx context.Context, dgraph external.Database, clu
 	}
 
 	return transactions, nil
+}
+
+// HeuristicOptions jsonschema comments are for LLMs via MCP
+type HeuristicOptions struct {
+	// Type is the type of the heuristic
+	Type      string `json:"type,omitempty" jsonschema:"required, the type of the heuristics, allowed values per CoinJoin type (Dash, Whirlpool, Wasabi 2.0): Dash: reverse_lookup, one_source,reverse_amount, perfect_match, denomination_type, forward_amount, forward_lookup. Whirlpool: whirlpool_reverse_lookup_by_time, whirlpool_reverse_lookup_by_depth, whirlpool_one_source_by_time, whirlpool_one_source_by_depth, whirlpool_reverse_amount. Wasabi 2.0: wasabi2_reverse_lookup_by_time, wasabi2_reverse_lookup_by_depth, wasabi2_one_source_by_time, wasabi2_one_source_by_depth, wasabi2_reverse_amount, wasabi2_forward_lookup_by_time, wasabi2_forward_lookup_by_depth."`
+	Parameter string `json:"parameter,omitempty" jsonschema:"required, can be text or a number"`
+	// ClusterTypes are used to cluster the results of the heuristic.
+	// If cluster types are set to nil, the result will not be clustered.
+	// If multiple cluster types are set, then the consolidation of these clusters will be used.
+	ClusterTypes []clustering.ClusterType `json:"clusterTypes,omitempty" jsonschema:"do not use"`
+	// ExcludeAddresses controls whether certain addresses should be excluded from the lookups
+	ExcludeAddresses bool `json:"excludeAddresses" jsonschema:"always set to false"`
+	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
+	ExcludeSpendingGaps bool   `json:"excludeSpendingGaps" jsonschema:"always set to false"`
+	TransactionHash     string `json:"transactionHash,omitempty" jsonschema:"required, the hash of the transaction for which this heuristic is being created for"`
+	// UserUID is the UID of the user who created this heuristic
+	UserUID string `json:"-" jsonschema:"do not use"`
+}
+
+// CreateHeuristic creates a heuristic and sets the config
+func (o HeuristicOptions) CreateHeuristic() (Heuristic, error) {
+	constructor, ok := ConstructorMap[o.Type]
+	if !ok {
+		return nil, serror.FromStrWithContext("invalid type", "type", o.Type)
+	}
+
+	h := constructor()
+
+	if err := h.SetConfig(o); err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
+// GetValidParentTypes returns parent types that are allowed for the given heuristic type.
+func GetValidParentTypes(heuristicType string) ([]string, error) {
+	constructor, ok := ConstructorMap[heuristicType]
+	if !ok {
+		return nil, serror.FromStrWithContext("invalid heuristic type", "type", heuristicType)
+	}
+
+	return constructor().GetDescriptor().AllowedParents, nil
+}
+
+// IsValid validates
+// - the heuristic type
+// - the type of the parameter
+// - the type of the parent
+func (o HeuristicOptions) IsValid(ctx context.Context, dgraph external.Database, selectorParent string) bool {
+	if o.TransactionHash == "" || selectorParent == "" {
+		return false
+	}
+
+	if !o.CheckParameterAndType() {
+		return false
+	}
+
+	validParentTypes, err := GetValidParentTypes(o.Type)
+	if err != nil {
+		return false
+	}
+
+	transactionType, heuristicType, err := heuristics.GetNodeType(ctx, dgraph, selectorParent)
+	if err != nil || (transactionType == "" && heuristicType == "") {
+		return false
+	}
+
+	// parent must be a transaction or another heuristic with the matching type
+	return isParentTypeValid(validParentTypes, []string{transactionType, heuristicType})
+}
+
+// CheckParameterAndType validates
+// - the heuristic type
+// - the type of the parameter
+func (o HeuristicOptions) CheckParameterAndType() bool {
+	if o.Type == "" {
+		return false
+	}
+
+	constructor, ok := ConstructorMap[o.Type]
+	if !ok {
+		return false
+	}
+
+	clonedHeuristic := constructor()
+	c := o
+
+	descriptorParameter := clonedHeuristic.GetDescriptor().Parameter
+	if descriptorParameter != nil && descriptorParameter.Type == parameterTypeInt {
+		p, err := strconv.Atoi(o.Parameter)
+		if err != nil {
+			return false
+		}
+
+		if p < descriptorParameter.MinimumValue || p > descriptorParameter.MaximumValue {
+			return false
+		}
+	}
+
+	return clonedHeuristic.SetConfig(c) == nil
+}
+
+// returns true if any item of parentTypes is in allowedParents
+func isParentTypeValid(allowedParents []string, parentTypes []string) bool {
+	if len(allowedParents) == 0 {
+		return false
+	}
+
+	for _, parentType := range parentTypes {
+		if slices.Contains(allowedParents, parentType) {
+			return true
+		}
+	}
+	return false
 }

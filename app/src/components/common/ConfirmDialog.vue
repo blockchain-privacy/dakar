@@ -8,9 +8,7 @@
     max-width="500px"
   >
     <v-card>
-      <v-card-title>
-        <span class="text-h5">{{ title }}</span>
-      </v-card-title>
+      <v-card-title>{{ title }}</v-card-title>
       <v-card-text>
         <slot />
       </v-card-text>

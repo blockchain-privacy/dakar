@@ -15,7 +15,7 @@
         <template #prepend>
           <v-icon>{{ mdiMagnify }}</v-icon>
         </template>
-        <v-list-item-title class="text-h6">
+        <v-list-item-title class="text-title-large">
           Search Wiki
         </v-list-item-title>
       </v-list-item>
@@ -88,11 +88,12 @@
               variant="solo"
               @update:model-value="queueSearch"
             />
+            <alert :text="errorMsg" />
             <v-expand-transition>
               <template v-if="hasSearched">
                 <div
                   v-if="searchResults.length ===0"
-                  class="text-center text-subtitle-1 mt-3"
+                  class="text-center text-body-large mt-3"
                 >
                   No results
                 </div>
@@ -112,7 +113,7 @@
                       <!-- html is loaded from safe source -->
                       <!-- eslint-disable vue/no-v-html -->
                       <div
-                        class="text-subtitle-2"
+                        class="text-title-small"
                         v-html="item.fragment"
                       />
                     </v-card-text>
@@ -145,22 +146,30 @@
 
 <script setup>
 import {
-	mdiFileDocument, mdiFolder, mdiMagnify, mdiMenu,
+	mdiFileDocument,
+	mdiFolder,
+	mdiMagnify,
+	mdiMenu,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
-import FadeTransition from '../common/FadeTransition.vue';
 import {
-	computed, inject, onMounted, onUnmounted, ref, watch,
+	computed,
+	inject,
+	onMounted,
+	onUnmounted,
+	ref,
+	watch,
 } from 'vue';
 import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
 import {useDisplay} from 'vuetify';
+import FadeTransition from '../common/FadeTransition.vue';
+import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
+import Alert from '@/components/common/Alert.vue';
 
 const route = useRoute();
 const wikiapi = inject('wikiapi');
-const msgStore = useMsgStore();
 const display = useDisplay();
 
+const errorMsg = ref('');
 const drawerModel = ref(!display.mobile.value);
 const fileHTML = ref('');
 
@@ -278,7 +287,7 @@ const filepathToFile = computed(() => {
 
 // SeparateWords adds a space before each capitalized letter and numbers
 function separateWords(string) {
-	return string.replace(/([A-Z])/g, ' $1').replace(/(\d+(\.\d+)?)/g, ' $1').trim();
+	return string.replaceAll(/([A-Z])/gv, ' $1').replaceAll(/(\d+(\.\d+)?)/gv, ' $1').trim();
 }
 
 // Capitalize capitalizes the given string
@@ -292,19 +301,18 @@ function cleanName(fileName) {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
+	errorMsg.value = msg;
 }
 
 async function getFileIndex() {
+	errorMsg.value = '';
 	try {
 		const response = await wikiapi.indexGet();
 		if (response.index) {
 			fileSet.value = new Set(response.index);
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -315,7 +323,7 @@ async function getFile(filePath) {
 	}
 
 	fileHTML.value = '';
-
+	errorMsg.value = '';
 	document.title = `Wiki - ${cleanName(filePath)} - ${PAGE_TITLE}`;
 
 	try {
@@ -324,8 +332,8 @@ async function getFile(filePath) {
 		if (response.html) {
 			fileHTML.value = response.html;
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 }
 
@@ -337,27 +345,27 @@ function queueSearch(q) {
 	searchTimer = setTimeout(search, 700, q);
 }
 
-async function search(query) {
+async function search(q) {
 	// Only search if files were loaded
 	if (filepathToFile.value.size === 0) {
 		return;
 	}
 
-	if (!query) {
+	if (!q) {
 		return;
 	}
 
-	query = query.trim();
+	q = q.trim();
 
-	if (query.length < 3) {
+	if (q.length < 3) {
 		return;
 	}
 
 	hasSearched.value = true;
 	let ret = [];
-
+	errorMsg.value = '';
 	try {
-		const response = await wikiapi.searchPost({query: {query}});
+		const response = await wikiapi.searchPost({query: {query: q}});
 
 		if (response.searchResults && response.searchResults.length > 0) {
 			ret = response.searchResults
@@ -375,8 +383,8 @@ async function search(query) {
 				})
 				.filter(d => Boolean(d.title));
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		setErrorMessage(error);
 	}
 
 	searchResults.value = ret;

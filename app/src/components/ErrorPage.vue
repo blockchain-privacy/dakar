@@ -3,7 +3,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 <template>
-  <v-container class="fill-height d-flex justify-center">
+  <v-container class="fill-height d-flex justify-center align-center flex-wrap">
     <v-card
       variant="text"
       max-width="600px"
@@ -20,7 +20,10 @@
       <v-card-text>
         {{ errorDescription?errorDescription:description }}
       </v-card-text>
-      <v-card-actions class="d-flex justify-end">
+      <v-card-actions
+        v-if="!hideActions"
+        class="d-flex justify-end"
+      >
         <v-btn :to="{ name: ROUTE_NAME_ENTRY_PAGE}">
           Go to entry page
         </v-btn>
@@ -30,14 +33,15 @@
 </template>
 
 <script setup>
-import {ROUTE_NAME_ENTRY_PAGE, PAGE_TITLE} from '@/constants';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
+import {ROUTE_NAME_ENTRY_PAGE, PAGE_TITLE} from '@/constants';
 
 const props = defineProps({
 	title: {type: String, required: true},
 	description: {type: String, required: true},
 	imageSource: {type: String, required: true},
+	hideActions: {type: Boolean, required: false},
 });
 
 const route = useRoute();

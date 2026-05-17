@@ -2,13 +2,13 @@
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import {isFunction} from '@/utilities';
 import {select as d3Select} from 'd3-selection';
 import {scaleTime, scaleLinear} from 'd3-scale';
 import {timeTickInterval} from 'd3-time';
 import {bin, max, group} from 'd3-array';
 import {axisBottom, axisLeft} from 'd3-axis';
 import {format} from 'd3-format';
+import {isFunction} from '@/utilities';
 
 // AddPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
@@ -70,6 +70,8 @@ export default class BarChart {
 
 			if (d.dateTime === undefined) {
 				d.dateTime = new Date(d.ts);
+			} else if (!(d.dateTime instanceof Date)) {
+				d.dateTime = new Date(d.ts);
 			}
 
 			if (lowestDate === null || lowestDate > d.dateTime) {
@@ -89,7 +91,7 @@ export default class BarChart {
 		}
 
 		// Check if there is enough data to draw the diagram; 1000 * 60 * 60 * 3 = 10800000
-		if (duration < 180000) {
+		if (duration < 180_000) {
 			this.isEmpty = true;
 			this.durationInMinutes = Math.floor(duration / 1000 / 60);
 			return;
@@ -202,7 +204,7 @@ export default class BarChart {
 						.style('border-radius', '6px')
 						.style('padding', '0 5px 0 5px')
 						.style('border', '1px black')
-						.text(d => d.txType)
+						.text(element => element.txType)
 						.style('visibility', 'visible')
 						.style('z-index', 1500)
 						.style('position', 'absolute');
@@ -233,7 +235,13 @@ export default class BarChart {
 			}
 		}
 
-		bars.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
+		bars.attr('transform', d => {
+			if (x(d.x0) === undefined) {
+				return null;
+			}
+
+			return `translate(${x(d.x0)},${y(d.length)})`;
+		});
 
 		// Add the x Axis
 		svgGroup.append('g')

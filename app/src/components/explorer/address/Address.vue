@@ -126,6 +126,7 @@
               @update:direction="handleFilterOrSortChange"
               @update:filter="handleFilterOrSortChange"
             />
+            <alert :text="errorMsg" />
             <v-sheet
               v-if="!isLoading && !emptyResponse"
               min-height="50"
@@ -176,7 +177,7 @@
             </v-sheet>
             <v-row v-if="emptyResponse">
               <v-col class="d-flex justify-center">
-                <p class="text-h6">
+                <p class="text-title-large">
                   No outputs found
                 </p>
               </v-col>
@@ -201,25 +202,32 @@ import {
 	mdiPound,
 	mdiScaleBalance,
 } from '@mdi/js';
+import {
+	computed,
+	onMounted,
+	onUpdated,
+	ref,
+} from 'vue';
+import {useRoute} from 'vue-router';
+import {storeToRefs} from 'pinia';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {
-	convertAmount, getCoinUnit, getDakarClients, handleError, isAdminIdentity, isPrivilegedIdentity,
+	convertAmount,
+	getCoinUnit,
+	getDakarClients,
+	isAdminIdentity,
+	isPrivilegedIdentity,
 } from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import SortAndFilter from '@/components/explorer/address/SortAndFilter.vue';
 import ClusterLookup from '@/components/explorer/address/ClusterLookup.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {
-	computed, onMounted, onUpdated, ref,
-} from 'vue';
-import {useMsgStore} from '@/pinia/msg';
-import {useRoute} from 'vue-router';
-import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import ModeChip from '@/components/common/ModeChip.vue';
+import Alert from '@/components/common/Alert.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
@@ -228,7 +236,6 @@ const props = defineProps({
 });
 
 const route = useRoute();
-const context = {addMessage: useMsgStore().addMessage, $route: route};
 const {session} = storeToRefs(useLocalStore());
 const dakarClients = getDakarClients();
 
@@ -243,6 +250,7 @@ const outputCount = ref(-1);
 const queryMaxCount = ref(-1);
 const outputItems = ref([]);
 const isOutputManipulationSupported = ref(false);
+const errorMsg = ref('');
 
 const itemsPerPage = 20;
 // EmptyResponse is only used for data loaded after the initial data load
@@ -321,6 +329,7 @@ async function getTableData() {
 	}
 
 	isLoading.value = true;
+	errorMsg.value = '';
 
 	// Map sorting and direction to order index
 	let order = sort.value.value * 2;
@@ -345,8 +354,8 @@ async function getTableData() {
 		} else {
 			emptyResponse.value = true;
 		}
-	} catch (e) {
-		handleError(context, e);
+	} catch (error) {
+		errorMsg.value = error.message;
 	}
 
 	isLoading.value = false;

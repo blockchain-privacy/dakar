@@ -7,7 +7,7 @@
     <v-card-title class="d-flex align-center">
       <attribution-tag :attribution="attribution" />
       <v-spacer />
-      <div class="text-subtitle-2">
+      <div class="text-title-small">
         {{ attribution.ts.toLocaleDateString() }}
       </div>
       <v-menu
@@ -67,10 +67,10 @@
 
 <script setup>
 import {mdiDelete, mdiDotsVertical} from '@mdi/js';
-import {ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
+import {ref} from 'vue';
 import DeleteAttributionDialog from './DeleteAttributionDialog.vue';
 import AttributionTag from './AttributionTag.vue';
-import {ref} from 'vue';
+import {ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 
 defineProps({
 	attribution: {type: Object, required: true},
@@ -92,7 +92,7 @@ function isValidHttpUrl(string) {
 
 	try {
 		url = new URL(string);
-	} catch (_) {
+	} catch {
 		return false;
 	}
 

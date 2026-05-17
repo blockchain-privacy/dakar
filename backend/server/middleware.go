@@ -6,14 +6,15 @@ package server
 
 import (
 	"context"
+	"net/http"
+
 	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
-	"net/http"
 )
 
-type contextKeyUser int
+type ContextKeyUser int
 
-const middlewareContextUser contextKeyUser = iota
+const MiddlewareContextUser ContextKeyUser = iota
 
 // sendUnauthorizedMessage sends an unauthorized message
 func sendUnauthorizedMessage(w http.ResponseWriter) {
@@ -27,7 +28,7 @@ func (s *Server) adapt(h http.Handler, adapters ...mw.Adapter) http.Handler {
 	return mw.Adapt(h, append([]mw.Adapter{s.timeout()}, adapters...)...)
 }
 
-func (s *Server) authorization() mw.Adapter {
+func Authorization() mw.Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			dakarUser := r.Header.Get("x-dakar-user")
@@ -39,7 +40,7 @@ func (s *Server) authorization() mw.Adapter {
 
 			// call next handler and add to the request context the identity information
 			h.ServeHTTP(w,
-				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{ID: dakarUser})))
+				r.WithContext(context.WithValue(r.Context(), MiddlewareContextUser, TokenUser{ID: dakarUser})))
 		})
 	}
 }

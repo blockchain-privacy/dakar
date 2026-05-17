@@ -4,11 +4,11 @@
 
 <template>
   <v-app>
-    <app-bar :minimize="isEntryPage" />
+    <app-bar
+      v-if="!isOAuthPage"
+      :minimize="isEntryPage"
+    />
     <v-main>
-      <div style="position: relative">
-        <msg-box />
-      </div>
       <router-view v-slot="{ Component }">
         <fade-transition>
           <component :is="Component" />
@@ -19,14 +19,14 @@
 </template>
 
 <script setup>
-import MsgBox from './components/notification/MsgBox.vue';
+// eslint-disable-next-line import-x/no-unassigned-import
 import '@fontsource/roboto';
-import {ROUTE_NAME_ENTRY_PAGE} from './constants';
-import AppBar from './components/appbar/AppBar.vue';
-import FadeTransition from '@/components/common/FadeTransition.vue';
 import {computed, onBeforeMount} from 'vue';
 import {useRoute} from 'vue-router';
 import {useTheme} from 'vuetify';
+import {ROUTE_NAME_ENTRY_PAGE} from './constants';
+import AppBar from './components/appbar/AppBar.vue';
+import FadeTransition from '@/components/common/FadeTransition.vue';
 import {useLocalStore} from '@/pinia/local';
 
 const route = useRoute();
@@ -35,6 +35,8 @@ const localStore = useLocalStore();
 
 // Computed
 const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
+
+const isOAuthPage = computed(() => route.path.startsWith('/oauth/'));
 
 // Hooks
 onBeforeMount(() => {
@@ -50,7 +52,7 @@ function checkSessionExpiration() {
 	}
 
 	const expiryDate = new Date(localStore.getSession.expires_at);
-	if (isNaN(expiryDate)) {
+	if (Number.isNaN(expiryDate)) {
 		return;
 	}
 

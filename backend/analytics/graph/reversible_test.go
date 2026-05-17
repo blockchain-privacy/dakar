@@ -5,10 +5,11 @@
 package graph
 
 import (
-	"github.com/stretchr/testify/require"
-	"gonum.org/v1/gonum/graph"
 	"math/rand/v2"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"gonum.org/v1/gonum/graph"
 )
 
 func TestNewReversibleGraph(t *testing.T) {
@@ -299,13 +300,13 @@ func getSetEdgeData() []testEdgeInput {
 	// generate random test data
 	for txUID := range txCount {
 		// create up to 100 inputs
-		numInputs := txCount + max(1, r.Int64N(100)) //nolint:gosec
+		numInputs := txCount + max(1, r.Int64N(100))
 		froms := make([]graph.Node, numInputs)
 		as := make([]int64, numInputs)
 
 		for i := range numInputs {
-			froms[i] = TransactionNode{id: txCount + r.Int64N(100)} //nolint:gosec
-			as[i] = txCount + r.Int64N(100)                         //nolint:gosec
+			froms[i] = TransactionNode{id: txCount + r.Int64N(100)}
+			as[i] = txCount + r.Int64N(100)
 		}
 		inputs[txUID] = testEdgeInput{TransactionNode{id: txUID}, froms, as}
 	}

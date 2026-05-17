@@ -49,10 +49,10 @@
 
 <script setup>
 import {mdiTag} from '@mdi/js';
+import {ref} from 'vue';
 import AttributionOverview from './AttributionOverview.vue';
 import AttributionSearch from './AttributionSearch.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {ref} from 'vue';
 
 defineProps({
 	title: {type: String, required: true},

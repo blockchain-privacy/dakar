@@ -10,21 +10,20 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/exclusion"
-	"backend/db/analytics/heuristics"
+	"backend/db/heuristics"
 	"backend/external"
 	"context"
-
-	"gitlab.com/blockchain-privacy/gomisc/serror"
-
 	"fmt"
 	"strconv"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // reverseLookupHeuristic - see exec for description
 type reverseLookupHeuristic struct {
 	heuristicType string
-	c             heuristics.Options
+	c             HeuristicOptions
 	lookBackTime  time.Duration
 }
 
@@ -36,7 +35,7 @@ func (h *reverseLookupHeuristic) GetType() string {
 	return h.heuristicType
 }
 
-func (h *reverseLookupHeuristic) SetConfig(c heuristics.Options) error {
+func (h *reverseLookupHeuristic) SetConfig(c HeuristicOptions) error {
 	if c.TransactionHash == "" {
 		return serror.FromStrWithContext("transaction hash not set", "config", c)
 	}
@@ -56,7 +55,7 @@ func (h *reverseLookupHeuristic) SetConfig(c heuristics.Options) error {
 	return nil
 }
 
-func (h *reverseLookupHeuristic) GetConfig() heuristics.Options {
+func (h *reverseLookupHeuristic) GetConfig() HeuristicOptions {
 	return h.c
 }
 
@@ -91,7 +90,7 @@ func (h *reverseLookupHeuristic) Exec(ctx context.Context, dgraph external.Datab
 
 func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string, lookBackTime time.Duration, depth int,
-	options heuristics.Options, mixingTransactionType string) ([]heuristics.HeuristicCluster, error) {
+	options HeuristicOptions, mixingTransactionType string) ([]heuristics.HeuristicCluster, error) {
 	if lookBackTime == 0 && depth == 0 {
 		return nil, nil
 	}

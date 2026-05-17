@@ -33,6 +33,7 @@
       min-width="300px"
     >
       <v-card-text>
+        <alert :text="errorMsg" />
         <!-- html is loaded from safe source -->
         <!-- eslint-disable vue/no-v-html -->
         <div
@@ -61,14 +62,11 @@
 
 <script setup>
 import {mdiOpenInNew} from '@mdi/js';
-import {ROUTE_NAME_WIKI} from '@/constants';
 import {inject, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useMsgStore} from '@/pinia/msg';
+import {ROUTE_NAME_WIKI} from '@/constants';
+import Alert from '@/components/common/Alert.vue';
 
-const route = useRoute();
 const wikiapi = inject('wikiapi');
-const msgStore = useMsgStore();
 
 const props = defineProps({
 	descriptionUrl: {type: String, required: true},
@@ -79,13 +77,9 @@ const props = defineProps({
 
 const description = ref('');
 const requestedDescription = ref(false);
+const errorMsg = ref('');
 
-function setErrorMessage(msg) {
-	msgStore.addMessage({
-		text: msg, type: 'error', temporary: true, category: route.name,
-	});
-}
-
+// Functions
 async function requestBlurb() {
 	// Check if already tried to request description
 	if (requestedDescription.value) {
@@ -93,14 +87,14 @@ async function requestBlurb() {
 	}
 
 	requestedDescription.value = true;
-
+	errorMsg.value = '';
 	try {
 		const response = await wikiapi.blurbFileNameGet({fileName: props.descriptionUrl});
 		if (response.blurb) {
 			description.value = response.blurb;
 		}
-	} catch (e) {
-		setErrorMessage(e);
+	} catch (error) {
+		errorMsg.value = error;
 	}
 }
 
@@ -126,8 +120,8 @@ async function requestBlurb() {
   max-width: 100%
 }
 
-.wikiBlurbDescription :deep(li){
-  margin-left: 15px;
+.wikiBlurbDescription :deep(ul){
+  padding-left: 20px;
 }
 
 </style>

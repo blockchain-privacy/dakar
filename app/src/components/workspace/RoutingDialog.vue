@@ -5,16 +5,15 @@
 <template>
   <v-dialog
     v-model="model"
-    max-width="300px"
+    max-width="350px"
     contained
     no-click-animation
   >
     <v-card>
       <v-card-text class="d-flex align-center flex-column">
         <v-btn
-          class="mx-auto"
+          class="mx-auto text-title-large"
           variant="text"
-          size="x-large"
           :to="to"
           target="_blank"
           @click="model = false"
@@ -25,7 +24,7 @@
           />
           <div
             class="shorten"
-            style="max-width: 200px; text-transform: none !important;"
+            style="max-width: 270px"
           >
             Go to {{ to.params.id }}
           </div>
@@ -36,10 +35,8 @@
           :vertical-margin="2"
         />
         <v-btn
-          class="mx-auto"
+          class="mx-auto text-title-large"
           variant="text"
-          size="x-large"
-          style="text-transform: none !important;"
           :disabled="disableAddingNodes"
           @click="handleRouteGuardDialogAdd"
         >
@@ -57,6 +54,7 @@
 
 import {mdiOpenInNew, mdiPlus} from '@mdi/js';
 import NamedDivider from '@/components/common/NamedDivider.vue';
+
 const emit = defineEmits(['addEntities']);
 const model = defineModel({type: Boolean});
 const props = defineProps({

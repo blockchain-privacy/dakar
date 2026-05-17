@@ -4,15 +4,29 @@ import eslintJsPlugin from '@eslint/js';
 import xo from 'eslint-config-xo';
 
 // Since v0.47 xo sets the list of allowed files and does not include .vue, so we have to inject it ourselves
-xo[0].files.push('**/*.vue');
+// xo[0].files.push('**/*.vue');
 export default [
 	...pluginVue.configs['flat/base'],
 	...pluginVue.configs['flat/recommended'],
-	...xo,
+	...xo(),
 	{
 		files: ['**/*.js', '**/*.vue'],
 		ignores: ['**/*.gitignore'],
 		rules: {
+			'regexp/prefer-named-capture-group': 'off',
+			'unicorn/prefer-query-selector': 'off',
+			'unicorn/prefer-date-now': 'off',
+			'unicorn/no-this-assignment': 'off',
+			'unicorn/prefer-global-this': 'off',
+			'no-use-extend-native/no-use-extend-native': 'off',
+			'unicorn/filename-case': 'off',
+			'import-x/no-anonymous-default-export': 'off',
+			'n/file-extension-in-import': 'off',
+			'import-x/extensions': 'off',
+			'unicorn/no-array-for-each': 'off',
+			'unicorn/switch-case-braces': 'off',
+			'regexp/sort-character-class-elements': 'off',
+			'unicorn/prevent-abbreviations': 'off',
 			'vue/prefer-true-attribute-shorthand': ['error', 'always'],
 			'vue/multi-word-component-names': 'off',
 			'vue/no-boolean-default': 'error',
