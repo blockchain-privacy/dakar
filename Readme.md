@@ -164,3 +164,21 @@ echo $code_client
     1. Propagate errors with additional information up to the `main` package and log them there. Do not log errors in other package than `main`.
        Only log if there is an error. Do not log metrics.
     2. Wrap all native errors via the [StackError](https://gitlab.com/blockchain-privacy/gomisc/serror) type to enable error tracing.
+
+## Citation Information 
+
+If you use this software in your research or work, please cite it using the following BibTeX entry:
+
+```bibtex
+@Article{Ziegler2026,
+  author    = {Ziegler, Michael Herbert and Nowostawski, Mariusz and Katt, Basel},
+  journal   = {SoftwareX},
+  title     = {{Dakar: A CoinJoin forensic software}},
+  year      = {2026},
+  issn      = {2352-7110},
+  month     = feb,
+  volume    = {33},
+  doi       = {10.1016/j.softx.2026.102523},
+  publisher = {Elsevier BV},
+}
+```
