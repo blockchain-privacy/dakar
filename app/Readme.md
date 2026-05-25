@@ -6,28 +6,15 @@ Additionally, it serves as an analytics platform for Dash private send transacti
 ## Dependencies
 
 * `vue v3` - frontend framework
-* `vuetify v3` - vue component library
+* `vuetify v4` - vue component library
 * `d3` -  chart and graph library
 
 For a more detailed overview check [here](./package.json).
 
-
-## Getting started
+## Front-end setup
 
 * Install [yarn version 4](https://github.com/yarnpkg/berry) or higher
-* To use private javascript packages, write the following content in your `.yarnrc.yml` located in your home folder:
-
-```yaml
-yarnPath: .yarn/releases/yarn-4.0.0.cjs # set right path/version here
-
-npmScopes:
-  blockchain:
-    npmRegistryServer: "https://gitlab.com/api/v4/projects/78315009/packages/npm/"
-    npmAlwaysAuth: true
-    npmAuthToken: "<your-deploy-token>"
-```
-
-## Front-end setup
+* Check [package.json](./package.json) for commands.
 
 ```shell
 yarn install
