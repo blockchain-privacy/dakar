@@ -1,11 +1,9 @@
 // Plugins
+import {fileURLToPath} from 'node:url';
 import vue from '@vitejs/plugin-vue';
 import vuetify, {transformAssetUrls} from 'vite-plugin-vuetify';
 import svgLoader from 'vite-svg-loader';
-
-// Utilities
 import {defineConfig} from 'vite';
-import {fileURLToPath, URL} from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -28,7 +26,7 @@ export default defineConfig({
 	define: {'process.env': {}},
 	resolve: {
 		alias: {
-			'@': fileURLToPath(new URL('./src', import.meta.url)),
+			'@': fileURLToPath(new URL('src', import.meta.url)),
 		},
 		extensions: [
 			'.js',
@@ -55,7 +53,7 @@ export default defineConfig({
 				target: 'http://localhost:4455',
 				changeOrigin: true,
 				// Replace '/wikiapi' prefix with '/wiki'
-				rewrite: path => path.replace(/^\/wikiapi/, '/wiki'),
+				rewrite: path => path.replace(/^\/wikiapi/v, '/wiki'),
 			},
 			'/kratosadmin': {
 				target: 'http://localhost:4455',
@@ -65,24 +63,24 @@ export default defineConfig({
 				target: 'http://localhost:4433',
 				changeOrigin: true,
 				// Remove '/auth' prefix
-				rewrite: path => path.replace(/^\/auth/, ''),
+				rewrite: path => path.replace(/^\/auth/v, ''),
 			},
 			'/hydra': {
 				target: 'http://localhost:4444',
 				changeOrigin: true,
 				// Remove '/hydra' prefix
-				rewrite: path => path.replace(/^\/hydra/, ''),
+				rewrite: path => path.replace(/^\/hydra/v, ''),
 			},
 			// Mcp auth discovery, see https://modelcontextprotocol.io/specification/draft/basic/authorization#authorization-server-metadata-discovery
 			'/.well-known/oauth-authorization-server/dashmcp': {
 				target: 'http://localhost:4444',
 				changeOrigin: true,
-				rewrite: path => path.replace(/(\/dashmcp\/?)$/, ''),
+				rewrite: path => path.replace(/(\/dashmcp\/?)$/v, ''),
 			},
 			'/.well-known/oauth-authorization-server/btcmcp': {
 				target: 'http://localhost:4444',
 				changeOrigin: true,
-				rewrite: path => path.replace(/(\/btcmcp\/?)$/, ''),
+				rewrite: path => path.replace(/(\/btcmcp\/?)$/v, ''),
 			},
 			'/dashmcp': {
 				target: 'http://localhost:4455',
