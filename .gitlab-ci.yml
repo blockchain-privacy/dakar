@@ -18,7 +18,7 @@ dependencies:
   stage: dependencies
   script:
     - go mod download
-    - go get -v -d ./...
+    - go get -v ./...
   cache: *modcache
 
 stages:
