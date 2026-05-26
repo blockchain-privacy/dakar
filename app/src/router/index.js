@@ -1,37 +1,37 @@
 // SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
 // SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
 import {createRouter, createWebHistory} from 'vue-router';
-import EntryPage from '../components/EntryPage.vue';
-import SettingsPage from '../components/user/SettingsPage.vue';
-import ProfilePage from '../components/user/ProfilePage.vue';
-import AdministrationPage from '../components/user/AdministrationPage.vue';
-import LoginPage from '../components/user/LoginPage.vue';
-import TransactionPage from '../components/explorer/transaction/TransactionPage.vue';
-import BlockPage from '../components/explorer/BlockPage.vue';
-import AddressPage from '../components/explorer/address/AddressPage.vue';
-import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
-import StatusPage from '../components/StatusPage.vue';
-import ToolsPage from '../components/tools/ToolsPage.vue';
-import OAuthPage from '../components/user/OAuthPage.vue';
 import * as Constants from '../constants/index.js';
-import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
-import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
-import AddressExclusionsPage from '../components/tools/addressExclusions/AddressExclusionsPage.vue';
-import RecoveryPage from '../components/user/RecoveryPage.vue';
-import OAuthSuccessPage from '../components/user/OAuthSuccessPage.vue';
-import WikiPage from '../components/wiki/WikiPage.vue';
-import TextLoaderPage from '../components/TextLoaderPage.vue';
-import WorkspacePage from '@/components/tools/workspaces/WorkspacePage.vue';
 import {isAnyAdminIdentity, isAnyPrivilegedIdentity} from '@/utilities';
-import ErrorPage from '@/components/ErrorPage.vue';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import NoResultsImg from '@/assets/no_results.webp';
 import BugsImg from '@/assets/bugs.webp';
-import OAuthConsentPage from '@/components/user/OAuthConsentPage.vue';
-import OAuthVerificationPage from '@/components/user/OAuthVerificationPage.vue';
+
+const EntryPage = () => import('../components/EntryPage.vue');
+const SettingsPage = () => import('../components/user/SettingsPage.vue');
+const ProfilePage = () => import('../components/user/ProfilePage.vue');
+const AdministrationPage = () => import('../components/user/AdministrationPage.vue');
+const LoginPage = () => import('../components/user/LoginPage.vue');
+const TransactionPage = () => import('../components/explorer/transaction/TransactionPage.vue');
+const BlockPage = () => import('../components/explorer/BlockPage.vue');
+const AddressPage = () => import('../components/explorer/address/AddressPage.vue');
+const WorkspaceEditorPage = () => import('../components/workspace/WorkspaceEditorPage.vue');
+const StatusPage = () => import('../components/StatusPage.vue');
+const ToolsPage = () => import('../components/tools/ToolsPage.vue');
+const OAuthPage = () => import('../components/user/OAuthPage.vue');
+const ClusterPage = () => import('../components/tools/clusters/ClusterPage.vue');
+const AttributionsPage = () => import('../components/tools/attributions/AttributionsPage.vue');
+const AddressExclusionsPage = () => import('../components/tools/addressExclusions/AddressExclusionsPage.vue');
+const RecoveryPage = () => import('../components/user/RecoveryPage.vue');
+const OAuthSuccessPage = () => import('../components/user/OAuthSuccessPage.vue');
+const WikiPage = () => import('../components/wiki/WikiPage.vue');
+const TextLoaderPage = () => import('../components/TextLoaderPage.vue');
+const WorkspacePage = () => import('@/components/tools/workspaces/WorkspacePage.vue');
+const ErrorPage = () => import('@/components/ErrorPage.vue');
+const OAuthConsentPage = () => import('@/components/user/OAuthConsentPage.vue');
+const OAuthVerificationPage = () => import('@/components/user/OAuthVerificationPage.vue');
 
 let navStore = null;
 let localStore = null;
@@ -103,6 +103,11 @@ export const router = createRouter({
 			path: '/login',
 			name: Constants.ROUTE_NAME_LOGIN_PAGE,
 			component: LoginPage,
+		},
+		{
+			path: '/updates',
+			name: Constants.ROUTE_NAME_UPDATE_PAGE,
+			component: () => import('../components/UpdatesPage.vue'),
 		},
 		{
 			// Wiki root page

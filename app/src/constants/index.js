@@ -25,6 +25,7 @@ export const ROUTE_NAME_OAUTH_ERROR_PAGE = 'OAuth Error Page';
 export const ROUTE_NAME_ACCOUNT_RECOVERY = 'Account Recovery Page';
 export const ROUTE_NAME_USER_ADMIN_PAGE = 'User Administration Page';
 export const ROUTE_NAME_USER_PROFILE_PAGE = 'User Profile Page';
+export const ROUTE_NAME_UPDATE_PAGE = 'Update Page';
 export const ROUTE_NAME_WORKSPACE_PAGE = 'Workspace Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
@@ -45,6 +46,7 @@ export const APPLICATION_NAME = 'Dakar';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const LOCALSTORAGE_FIELD_SESSION = 'session';
 export const LOCALSTORAGE_FIELD_SEARCH_HISTORY = 'searchHistory';
+export const LOCALSTORAGE_FIELD_UPDATE_ID = 'updateID';
 
 // Blockchain
 export const BLOCKCHAIN_DASH = 'dash';
@@ -113,3 +115,6 @@ export const DENOMINATIONS_WASABI2 = new Set([5000, 6561, 8192, 10_000, 13_122, 
   10_000_000_000, 10_460_353_203, 17_179_869_184, 20_000_000_000, 20_920_706_406, 31_381_059_609, 34_359_738_368,
   50_000_000_000, 62_762_119_218, 68_719_476_736, 94_143_178_827, 100_000_000_000, 137_438_953_472]);
 /* eslint-enable @stylistic/indent, @stylistic/array-element-newline */
+
+// ID of the most recent update. This will be stored in localstorage to detect if a user has viewed the most recent update.
+export const UPDATE_ID = 1;

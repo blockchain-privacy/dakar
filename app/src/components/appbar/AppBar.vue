@@ -41,6 +41,18 @@
       variant="outlined"
     />
     <v-btn
+      v-if="!wasUpdateSeen"
+      icon
+      :to="{name: ROUTE_NAME_UPDATE_PAGE}"
+    >
+      <v-badge
+        dot
+        color="error"
+      >
+        <v-icon>{{ mdiBullhorn }}</v-icon>
+      </v-badge>
+    </v-btn>
+    <v-btn
       v-if="session"
       icon
     >
@@ -76,6 +88,21 @@
             <v-icon :icon="mdiCog" />
           </template>
           <v-list-item-title>Settings</v-list-item-title>
+        </v-list-item>
+        <v-list-item
+          id="app-bar-updates"
+          :to="{name: ROUTE_NAME_UPDATE_PAGE}"
+        >
+          <template #prepend>
+            <v-badge
+              dot
+              color="error"
+              :dot-size="wasUpdateSeen?'0':undefined"
+            >
+              <v-icon :icon="mdiBullhorn" />
+            </v-badge>
+          </template>
+          <v-list-item-title>Updates</v-list-item-title>
         </v-list-item>
         <v-list-item>
           <template #prepend>
@@ -126,6 +153,7 @@
 import {
 	mdiAccount,
 	mdiAccountCircle,
+	mdiBullhorn,
 	mdiCloseCircle,
 	mdiCog,
 	mdiDotsGrid,
@@ -133,7 +161,7 @@ import {
 	mdiLogout,
 	mdiPalette,
 } from '@mdi/js';
-import {inject, ref} from 'vue';
+import {computed, inject, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import QueryInput from '../common/QueryInput.vue';
@@ -143,6 +171,7 @@ import {
 	APPLICATION_NAME,
 	ROUTE_NAME_ENTRY_PAGE,
 	ROUTE_NAME_LOGIN_PAGE,
+	ROUTE_NAME_UPDATE_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
@@ -166,6 +195,10 @@ const context = {
 defineProps({minimize: {type: Boolean, required: true}});
 
 const isLogoutLoading = ref(false);
+
+// Computed
+
+const wasUpdateSeen = computed(() => localStore.wasUpdateViewed());
 
 // Functions
 function setErrorMessage(msg) {

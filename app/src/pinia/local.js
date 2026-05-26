@@ -7,6 +7,8 @@ import {
 	LOCALSTORAGE_FIELD_SEARCH_HISTORY,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
+	LOCALSTORAGE_FIELD_UPDATE_ID,
+	UPDATE_ID,
 } from '@/constants/index.js';
 
 function setLocalstorageData(key, settingsData) {
@@ -47,6 +49,11 @@ function insertLocalData(state) {
 		state.searchHistory = localSearchHistory;
 	}
 
+	const updateID = getLocalstorageData(LOCALSTORAGE_FIELD_UPDATE_ID);
+	if (updateID !== null) {
+		state.lastUpdateID = updateID;
+	}
+
 	return state;
 }
 
@@ -57,6 +64,7 @@ const initialState = {
 		theme: 'system',
 	},
 	searchHistory: [],
+	lastUpdateID: 0,
 };
 
 export const useLocalStore = defineStore('local', {
@@ -65,6 +73,7 @@ export const useLocalStore = defineStore('local', {
 		getSession: state => state.session,
 		getSettings: state => state.settings,
 		getSearchHistory: state => state.searchHistory,
+		getLastUpdateID: state => state.lastUpdateID,
 	},
 	actions: {
 		setSession(payload) {
@@ -78,6 +87,13 @@ export const useLocalStore = defineStore('local', {
 		setSettings(payload) {
 			setLocalstorageData(LOCALSTORAGE_FIELD_SETTINGS, payload);
 			this.settings = payload;
+		},
+		setLastUpdateID(payload) {
+			setLocalstorageData(LOCALSTORAGE_FIELD_UPDATE_ID, payload);
+			this.lastUpdateID = payload;
+		},
+		wasUpdateViewed() {
+			return this.lastUpdateID === UPDATE_ID;
 		},
 		addSearchHistoryItem(item) {
 			if (!item) {
