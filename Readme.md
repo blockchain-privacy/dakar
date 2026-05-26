@@ -106,7 +106,7 @@ The API documentation is built with [swaggo](https://github.com/swaggo/swag) usi
 
 The following command
 - compiles the OpenAPI schema the in [openapi](backend/openapi) directory
-- builds the [Typescript client](backend/openapi/client) 
+- builds the [TypeScript client](backend/openapi/client) 
 - and publishes it to the Gitlab registry. 
 
 ```shell
