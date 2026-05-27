@@ -48,7 +48,7 @@
             <th>
               Transaction
             </th>
-            <th style="max-width: 0px">
+            <th style="max-width: 0">
               Avg. Min. Distance (h)
             </th>
           </tr>

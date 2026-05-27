@@ -11,9 +11,5 @@ export const useExplorerStore = defineStore('explorer', {
 	getters: {
 		getHighlightWasabi2Denominations: state => state.highlightWasabi2Denominations,
 	},
-	actions: {
-		setHighlightWasabi2Denominations(payload) {
-			this.highlightWasabi2Denominations = payload;
-		},
-	},
+	actions: {},
 });

@@ -484,6 +484,6 @@ onUnmounted(() => {
 }
 
 .wikiFileContentFullSize{
-  margin: 0px 10px 60px 10px;
+  margin: 0 10px 60px 10px;
 }
 </style>

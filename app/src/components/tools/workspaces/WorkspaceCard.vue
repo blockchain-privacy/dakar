@@ -97,6 +97,7 @@ const nodeGraph = new NodeGraph(getGraphColorMap(props.mode));
 // Computed
 const svgID = computed(() => `svg_workspace_card_${componentID}`);
 const relativeTime = computed(() => {
+	// See mounted hook
 	const _ = computeUpdate.value;
 	return getRelativeTime(props.created);
 });

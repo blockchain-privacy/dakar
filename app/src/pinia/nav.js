@@ -16,10 +16,9 @@ export const useNavStore = defineStore('nav', {
 	}),
 	actions: {
 		setFailedRoute(payload) {
-			const rawRoute = {...toRaw(payload)};
 			// It is not enough to use toRaw, need to also use Object.assign
 			// to get a route object which does not change when the current route changes
-			this.failedRoute = rawRoute;
+			this.failedRoute = {...toRaw(payload)};
 		},
 	},
 });

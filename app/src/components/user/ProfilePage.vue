@@ -455,8 +455,7 @@ async function handleOrySubmitSettings(formID) {
 async function refreshSession() {
 	errorMsg.value = '';
 	try {
-		const response = await ory.frontend.toSession();
-		session.value = response;
+		session.value = await ory.frontend.toSession();
 	} catch (error) {
 		await doErrorHandling(context, error, null);
 	}
@@ -466,8 +465,7 @@ async function tryRefreshSession() {
 	let success;
 
 	try {
-		const response = await ory.frontend.toSession();
-		session.value = response;
+		session.value = await ory.frontend.toSession();
 		success = true;
 	} catch {
 		success = false;

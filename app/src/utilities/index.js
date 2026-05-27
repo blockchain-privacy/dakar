@@ -38,7 +38,7 @@ export function getDakarClient(mode) {
 
 		case BLOCKCHAIN_BTC: {return inject('btcdakar');}
 
-		default: {throw new Error('invalid blockchain mode:', mode);}
+		default: {throw new Error(`invalid blockchain mode: ${mode}`);}
 	}
 }
 

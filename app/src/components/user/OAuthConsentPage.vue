@@ -168,7 +168,7 @@ function addScopeMeta(scopes) {
 async function requestConsent(accepted) {
 	const consentChallenge = route.query.consent_challenge;
 	if (!consentChallenge) {
-		router.push({name: ROUTE_NAME_OAUTH_ERROR_PAGE});
+		await router.push({name: ROUTE_NAME_OAUTH_ERROR_PAGE});
 		return;
 	}
 
@@ -180,7 +180,7 @@ async function requestConsent(accepted) {
 		if (r.redirectTo) {
 			if (accepted === false) {
 				// Consent rejected: call oauth server
-				fetch(r.redirectTo);
+				await fetch(r.redirectTo);
 				consentRejected.value = true;
 				return;
 			}

@@ -152,7 +152,7 @@ test('filterDescriptors', () => {
 		{type: 'transaction', txtype: 'mixing'},
 		{},
 	];
-	expect(() => filterDescriptors(descriptors, fail)).toThrowError('invalid node type');
+	expect(() => filterDescriptors(descriptors, fail)).toThrow('invalid node type');
 
 	expect(filterDescriptors(descriptors, fail, false)).toHaveLength(2);
 });

@@ -60,7 +60,7 @@ func (m *Mutex) Lock(key string) Unlocker {
 // Unlock releases the lock for this entry.
 func (entry *mutexEntry) Unlock() {
 	thisMutexMap := entry.thisMutexMap
-	// decrement and if needed remove the entry atomically
+	// decrement and if needed, remove the entry atomically
 	thisMutexMap.mapLock.Lock()
 	entry.cnt--        // ref count
 	if entry.cnt < 1 { // if it hits zero then we own it and remove from map

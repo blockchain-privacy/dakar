@@ -26,12 +26,12 @@ async function persistCache(m) {
 	hasCacheChanged = false;
 }
 
-function visibilityChanged(m) {
+async function visibilityChanged(m) {
 	if (document.visibilityState === 'visible') {
 		return;
 	}
 
-	persistCache(m);
+	await persistCache(m);
 }
 
 // Todo: remove check after mid 2026

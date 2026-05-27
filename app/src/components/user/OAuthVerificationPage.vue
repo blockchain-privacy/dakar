@@ -80,7 +80,7 @@ onMounted(async () => {
 	challenge.value = route.query.device_challenge;
 
 	if (!challenge.value) {
-		router.push({name: ROUTE_NAME_ENTRY_PAGE});
+		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
 	}
 });
 

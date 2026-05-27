@@ -1326,14 +1326,14 @@ function acceptsChild(node) {
 .shortcuts {
   position: absolute;
   top: 20px;
-  right: 0px;
+  right: 0;
   z-index: 1004;
 }
 
 .shortcuts-sm {
   position: absolute;
   bottom: 20px;
-  left: 0px;
+  left: 0;
   z-index: 1004;
 }
 

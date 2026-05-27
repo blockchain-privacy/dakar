@@ -609,7 +609,7 @@ async function updateSvgData(pullNewData) {
 			nodeGraph.removeAllNodes(false);
 
 			// Needed so svg is not still hidden when doing force simulation
-			nextTick(() => {
+			await nextTick(() => {
 				nodeGraph.addNodes(setNodesDisplayAttributes(filteredItems));
 				nodeGraph.centerGraph();
 			});

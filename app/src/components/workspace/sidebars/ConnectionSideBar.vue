@@ -129,7 +129,7 @@
 import {mdiArrowLeftRight, mdiCancel} from '@mdi/js';
 import {computed, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {capitalize, convertAmount, getDakarClient} from '../../../utilities/index.js';
+import {capitalize, convertAmount, getDakarClient} from '@/utilities/index.js';
 import {
 	WORKSPACE_NODE_TYPE_SELECTOR,
 	WORKSPACE_NODE_TYPE_CLUSTER,

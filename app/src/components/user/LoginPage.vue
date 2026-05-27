@@ -83,8 +83,8 @@ import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {
 	PAGE_TITLE,
-	ROUTE_NAME_ENTRY_PAGE,
 	ROUTE_NAME_ACCOUNT_RECOVERY,
+	ROUTE_NAME_ENTRY_PAGE,
 	ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_OAUTH_LOGIN_PAGE,
 } from '@/constants';
@@ -162,8 +162,7 @@ function goToPage(pageObj) {
 
 async function tryToGetSession() {
 	try {
-		const response = await ory.frontend.toSession();
-		session.value = response;
+		session.value = await ory.frontend.toSession();
 		leave();
 	} catch (error) {
 		if (error.response?.error?.id === 'session_aal2_required') {
@@ -249,7 +248,7 @@ async function handleOrySubmitLogin(formID) {
 		if (error.response?.ui) {
 			setFlowData(error.response);
 		} else {
-			doErrorHandling(context, error, () => {
+			await doErrorHandling(context, error, () => {
 				initLoginFlow('aal1');
 			});
 		}

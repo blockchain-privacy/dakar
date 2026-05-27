@@ -5,11 +5,6 @@
 // Search responses
 import {bitcoinLogo, dashLogo} from '@/customIcons/index.js';
 
-export const RESPONSE_EMPTY = 'response_empty';
-export const RESPONSE_TYPE_TRANSACTION = 'tx';
-export const RESPONSE_TYPE_ADDRESS = 'addr';
-export const RESPONSE_TYPE_BLOCK = 'block';
-
 // Frontend route names
 export const ROUTE_NAME_ENTRY_PAGE = 'Entry Page';
 export const ROUTE_NAME_STATUS_PAGE = 'Status Page';
