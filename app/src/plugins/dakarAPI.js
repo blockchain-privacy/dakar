@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {
-	AttributionApi,
 	ClusterApi,
 	Configuration,
 	DataApi,
@@ -36,7 +35,6 @@ export default {
 
 		const c = newConfig(v, basePathPrefix);
 		return {
-			attribution: new AttributionApi(c),
 			tools: new ToolsApi(c),
 			data: new DataApi(c),
 			meta: new MetaApi(c),

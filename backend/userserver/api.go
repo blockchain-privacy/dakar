@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
 	dbus "gitlab.com/blockchain-privacy/dakar/db/user"
@@ -66,13 +65,6 @@ func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgRep
 	// continue even if the request gets canceled or times out
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-
-	if err := attribution.DeleteAllAttributions(ctx, dgraph, uid); err != nil {
-		reply.Msg = "could not delete users' " + uid + " attributions"
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
 
 	if err := clustering.DeleteAllClusters(ctx, dgraph, uid); err != nil {
 		reply.Msg = "could not delete users' " + uid + " clusters"

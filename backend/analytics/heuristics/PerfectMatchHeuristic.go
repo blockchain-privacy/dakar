@@ -79,8 +79,7 @@ func (h *perfectMatchHeuristic) Exec(ctx context.Context, dgraph external.Databa
 	}
 
 	// get origins from parent heuristic
-	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
+	results, err := heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
 		constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
@@ -115,7 +114,7 @@ func (h *perfectMatchHeuristic) Exec(ctx context.Context, dgraph external.Databa
 		}
 	}
 
-	return createHeuristicClusters(resultClusters, attributionMap), nil
+	return createHeuristicClusters(resultClusters), nil
 }
 
 // returns true if all denominations with the same amount of denom1 are contained in denom2

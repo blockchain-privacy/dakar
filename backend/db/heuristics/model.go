@@ -2,9 +2,9 @@ package heuristics
 
 import (
 	"fmt"
-	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"time"
+
+	"gitlab.com/blockchain-privacy/dakar/db"
 )
 
 type mergedClusterItem struct {
@@ -16,11 +16,10 @@ type mergedClusterItem struct {
 const ClusterDType = "HeuristicCluster"
 
 // HeuristicCluster holds a set of results (origins) of a heuristic
-// which belong to the same cluster (or merged cluster) and its attributions
+// which belong to the same cluster (or merged cluster)
 type HeuristicCluster struct {
-	Results      []db.UIDNode              `json:"HeuristicCluster.results,omitempty"`
-	Attributions []attribution.Attribution `json:"HeuristicCluster.attributions,omitempty"`
-	DType        []string                  `json:"dgraph.type,omitempty"`
+	Results []db.UIDNode `json:"HeuristicCluster.results,omitempty"`
+	DType   []string     `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition

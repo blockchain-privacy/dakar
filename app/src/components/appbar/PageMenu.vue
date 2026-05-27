@@ -21,14 +21,6 @@
           </v-col>
           <v-col>
             <link-card
-              title="Attributions"
-              :icon="mdiTag"
-              :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_ATTRIBUTIONS }"
-            />
-          </v-col>
-          <v-col>
-            <link-card
               title="Custom Clusters"
               :icon="mdiMerge"
               :color="iconColor.default"
@@ -77,7 +69,6 @@ import {
 	mdiAccountSupervisor,
 	mdiServer,
 	mdiMerge,
-	mdiTag,
 	mdiBookOpen,
 } from '@mdi/js';
 import {computed} from 'vue';
@@ -87,7 +78,6 @@ import {
 	ROUTE_NAME_USER_ADMIN_PAGE,
 	ROUTE_NAME_STATUS_PAGE,
 	ROUTE_NAME_CLUSTER_OVERVIEW,
-	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_WIKI_ROOT,
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';

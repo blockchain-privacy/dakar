@@ -88,14 +88,6 @@
             <v-icon>{{ mdiDelete }}</v-icon>
           </v-btn>
         </v-card-title>
-        <v-card-text v-if="c.attributions">
-          <attribution-tag
-            v-for="(a, y) in c.attributions"
-            :key="y"
-            class="mr-2"
-            :attribution="a"
-          />
-        </v-card-text>
         <v-card-text v-if="c.txhash">
           <p class="text-body-large">
             Last updated by
@@ -155,7 +147,6 @@ import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
 import {onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
-import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import ClusterDetails from './ClusterDetails.vue';
 import {BLOCKCHAIN_ATTRIBUTES, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';

@@ -23,6 +23,7 @@ import (
 var availableUpgrades = map[int]UpgradePackage{
 	16: {upgrades: []schemaUpgrade{DropPredicateUserAddressExclusions, AlterSchemaRemoveExclusions}},
 	17: {upgrades: []schemaUpgrade{DropTypeCHMIStatus, DeleteHMIClusters, AlterSchemaClusterChildren, DropPredicateClusterChildren}},
+	18: {upgrades: []schemaUpgrade{DropPredicateAttribution, DropTypeAttribution}},
 }
 
 func info(msg string, v ...any) {
@@ -190,4 +191,36 @@ func DeleteHMIClusters(c external.Database) error {
 	}
 
 	return nil
+}
+
+// DropPredicateAttribution removes all Attribution predicates
+func DropPredicateAttribution(c external.Database) error {
+	if err := c.DropPredicate(context.Background(), "Attribution.user"); err != nil {
+		return err
+	}
+	if err := c.DropPredicate(context.Background(), "Attribution.tag"); err != nil {
+		return err
+	}
+	if err := c.DropPredicate(context.Background(), "Attribution.address"); err != nil {
+		return err
+	}
+	if err := c.DropPredicate(context.Background(), "Attribution.ts"); err != nil {
+		return err
+	}
+	if err := c.DropPredicate(context.Background(), "Attribution.description"); err != nil {
+		return err
+	}
+	if err := c.DropPredicate(context.Background(), "Attribution.source"); err != nil {
+		return err
+	}
+	if err := c.DropPredicate(context.Background(), "Attribution.category"); err != nil {
+		return err
+	}
+
+	return c.DropPredicate(context.Background(), "Attribution.isPublic")
+}
+
+// DropTypeAttribution removes the Attribution type
+func DropTypeAttribution(c external.Database) error {
+	return c.DropType(context.Background(), "Attribution")
 }

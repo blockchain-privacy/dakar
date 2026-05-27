@@ -237,8 +237,3 @@ type TransactionWithTimestamp struct {
 	Type      string `json:"txtype,omitempty"`
 	Cluster   *int   `json:"cluster,omitempty"`
 }
-
-type Attribution struct {
-	Tag      string `json:"tag,omitempty"`
-	IsPublic bool   `json:"isPublic"`
-}

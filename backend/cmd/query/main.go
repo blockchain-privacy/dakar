@@ -92,11 +92,6 @@ type ExportClusterActivityModule struct {
 	Filename string `yaml:"filename"`
 }
 
-type TagPackInserterModule struct {
-	Active    bool   `yaml:"active"`
-	Directory string `yaml:"directory"`
-}
-
 type CollateralsModule struct {
 	Active     bool   `yaml:"active"`
 	CpFilename string `yaml:"cpFilename"`
@@ -125,7 +120,6 @@ type Config struct {
 	ExportPrivacyGraph    ExportPrivacyGraphModule    `yaml:"exportPrivacyGraph"`
 	DestinationCount      DestinationCountModule      `yaml:"destinationCount"`
 	ExportClusterActivity ExportClusterActivityModule `yaml:"exportClusterActivity"`
-	TagPackInserter       TagPackInserterModule       `yaml:"tagPackInserter"`
 	Stats                 StatsModule                 `yaml:"stats"`
 	Collaterals           CollateralsModule           `yaml:"collaterals"`
 	CollateralGap         CollateralGapModule         `yaml:"collateralGap"`
@@ -269,10 +263,6 @@ func main() {
 
 	if cfg.Stats.Active {
 		doStats(ctx, dgraph, cfg.Stats.Filename, cfg.Stats.ExcludeTransactionType)
-	}
-
-	if cfg.TagPackInserter.Active {
-		doInsertTagPacks(ctx, dgraph, cfg.TagPackInserter.Directory)
 	}
 
 	if cfg.Collaterals.Active {

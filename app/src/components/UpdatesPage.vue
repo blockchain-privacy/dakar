@@ -49,6 +49,11 @@ const updates = [
 		date: new Date(2026, 5 - 1, 27),
 	},
 	{
+		title: 'Cluster Attributions',
+		subtitle: 'The attribution feature has been removed. Sources for public attributions are rare, so this feature was hardly used. In workspaces, attributions can still be manually assigned.',
+		date: new Date(2026, 5 - 1, 27),
+	},
+	{
 		title: 'Address Exclusions',
 		subtitle: 'The address exclusion feature has been removed. Due to the nature of CoinJoins, a very high number of exclusions is required for it to be useful. In practice this is unachievable.',
 		date: new Date(2026, 5 - 1, 27),

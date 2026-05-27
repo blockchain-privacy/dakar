@@ -105,8 +105,8 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		return nil, err
 	}
 
-	destinations, _, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
-		lookForwardTime, depth, nil, options, constants.TypeDashMixing)
+	destinations, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
+		lookForwardTime, depth, options, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
@@ -116,5 +116,5 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		resultClusters[dst.Cluster] = append(resultClusters[dst.Cluster], db.UIDNode{UID: dst.UID})
 	}
 
-	return createHeuristicClusters(resultClusters, nil), nil
+	return createHeuristicClusters(resultClusters), nil
 }

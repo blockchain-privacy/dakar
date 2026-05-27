@@ -17,7 +17,7 @@ import (
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version directly,
 // or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
-const SchemaVersion = 17
+const SchemaVersion = 18
 
 // SetupSchema installs a schema into Dgraph
 func SetupSchema(c external.Database) error {
@@ -173,26 +173,6 @@ func SetupSchema(c external.Database) error {
 				Cluster.addressCount
 				Cluster.user
 				Cluster.ts
-			}
-
-			Attribution.user: uid @reverse . # the user which created the attribution
-			Attribution.tag: string @index(term, trigram) . # tag of the attribution
-			Attribution.address: uid @reverse . # the attribution's address
-			Attribution.ts: dateTime @index(day). # creation time of the attribution
-			Attribution.description: string @index(term, trigram) . # description of the attribution
-			Attribution.source: string @index(term, trigram) . # source (link) of the attribution
-			Attribution.category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
-			Attribution.isPublic: bool @index(bool) . # set to true if the attribution is available to everyone
-
-			type Attribution {
-				Attribution.user
-				Attribution.tag
-				Attribution.address
-				Attribution.ts
-				Attribution.description
-				Attribution.source
-				Attribution.category
-				Attribution.isPublic
 			}
 		`)
 }

@@ -27,7 +27,6 @@ export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
 export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
 export const ROUTE_NAME_WORKSPACES_PAGE = 'Workspace Lookup Page';
 export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Custom Clusters Page';
-export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_WIKI_ROOT = 'Wiki Root Page';
 export const ROUTE_NAME_WIKI = 'Wiki Page';
 export const ROUTE_NAME_ABOUT = 'About Page';

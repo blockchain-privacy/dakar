@@ -27,7 +27,7 @@ var errInvalidDatabaseResponse = errors.New("error invalid response")
 // GetHeuristicTransactions returns the connected transactions of heuristic.
 // Only outputs connected to transactions with the given transaction types are included.
 func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristicUID string,
-	allowedTransactionType string) (results []HeuristicTransaction, attributionMap map[ClusterUID][]string, err error) {
+	allowedTransactionType string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid:string,$type:string) {
 				var (func: uid($uid)){ x as Selector.results }
 				
@@ -39,9 +39,6 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 							amount
 							~tx_inputs@filter(eq(Transaction.type,$type))
 						}
-					}
-					HeuristicCluster.attributions{
-						uid
 					}
 			  	}
 			  }`
@@ -59,7 +56,6 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 				UID     string            `json:"uid,omitempty"`
 				Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 			} `json:"HeuristicCluster.results,omitempty"`
-			Attributions []db.UIDNode `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -68,7 +64,6 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 		return
 	}
 
-	attributionMap = make(map[ClusterUID][]string)
 	var clusterCounter int64
 	for _, cluster := range r.Clusters {
 		thisClusterID := ClusterUID(strconv.FormatInt(clusterCounter, 10))
@@ -78,10 +73,6 @@ func GetHeuristicTransactions(ctx context.Context, c external.Database, heuristi
 				Cluster: thisClusterID,
 				Outputs: result.Outputs,
 			})
-		}
-
-		for _, attr := range cluster.Attributions {
-			attributionMap[thisClusterID] = append(attributionMap[thisClusterID], attr.UID)
 		}
 
 		clusterCounter++
@@ -240,14 +231,13 @@ func GetInputTransaction(ctx context.Context, c external.Database, txhash string
 		Outputs:   r.Transaction[0].Outputs}, nil
 }
 
-// GetTransactionsWithOutputAmountAndCluster returns a slice of transactions and used attributions per cluster.
+// GetTransactionsWithOutputAmountAndCluster returns a slice of transactions per cluster.
 // Each transaction contains its output amounts and the clusters of all inputs.
-// If no attributions were used or found the returned map is nil.
 func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.Database, uids []string,
-	userUID string, requestedClusterTypes []clustering.ClusterType, attributions map[string][]string,
-	allowedTransactionType string) (origins []HeuristicTransaction, attributionMapping map[ClusterUID][]string, err error) {
+	userUID string, requestedClusterTypes []clustering.ClusterType,
+	allowedTransactionType string) (origins []HeuristicTransaction, err error) {
 	if allowedTransactionType == "" {
-		return nil, nil, serror.FromStr("received empty transaction type")
+		return nil, serror.FromStr("received empty transaction type")
 	}
 
 	isSimpleClustering := len(requestedClusterTypes) == 0 // true -> only multi-input clusters will be used
@@ -380,30 +370,6 @@ func GetTransactionsWithOutputAmountAndCluster(ctx context.Context, c external.D
 			Cluster: cUID,
 			Outputs: o.Outputs,
 		})
-	}
-
-	if len(attributions) == 0 {
-		return
-	}
-
-	attributionMapping = make(map[ClusterUID][]string)
-	for clusterID, v := range allUsedClusters {
-		// no super clusters, so either a simple address or a multi-input cluster
-		if v.superCluster == nil {
-			if attr, ok := attributions[clusterID]; ok {
-				attributionMapping[ClusterUID(clusterID)] = attr
-			}
-		} else {
-			for cluster := range v.superCluster {
-				if attr, ok := attributions[cluster]; ok {
-					attributionMapping[ClusterUID(clusterID)] = attr
-				}
-			}
-		}
-	}
-
-	if len(attributionMapping) == 0 {
-		attributionMapping = nil
 	}
 
 	return

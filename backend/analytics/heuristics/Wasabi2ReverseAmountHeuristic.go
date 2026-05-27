@@ -68,7 +68,6 @@ func (h *wasabi2ReverseAmountHeuristic) GetDescriptor() Descriptor {
 func (h *wasabi2ReverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper,
 	parentUID string, parentResults []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
 	var results []heuristics.HeuristicTransaction
-	var attributionMap map[heuristics.ClusterUID][]string
 	var err error
 	if parentResults == nil {
 		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
@@ -81,8 +80,7 @@ func (h *wasabi2ReverseAmountHeuristic) Exec(ctx context.Context, dgraph externa
 		}
 
 		// get origins from parent heuristic
-		// attributionMap maps a clusterUID to a slice of attribution UIDs
-		results, attributionMap, err = heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
+		results, err = heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
 			constants.TypeWasabi2Mixing)
 		if err != nil {
 			return nil, err
@@ -131,5 +129,5 @@ func (h *wasabi2ReverseAmountHeuristic) Exec(ctx context.Context, dgraph externa
 		}
 	}
 
-	return createHeuristicClusters(resultClusters, attributionMap), nil
+	return createHeuristicClusters(resultClusters), nil
 }

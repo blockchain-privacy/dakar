@@ -22,7 +22,6 @@ const StatusPage = () => import('../components/StatusPage.vue');
 const ToolsPage = () => import('../components/tools/ToolsPage.vue');
 const OAuthPage = () => import('../components/user/OAuthPage.vue');
 const ClusterPage = () => import('../components/tools/clusters/ClusterPage.vue');
-const AttributionsPage = () => import('../components/tools/attributions/AttributionsPage.vue');
 const RecoveryPage = () => import('../components/user/RecoveryPage.vue');
 const OAuthSuccessPage = () => import('../components/user/OAuthSuccessPage.vue');
 const WikiPage = () => import('../components/wiki/WikiPage.vue');
@@ -153,11 +152,6 @@ export const router = createRouter({
 					path: 'clusterOverview',
 					name: Constants.ROUTE_NAME_CLUSTER_OVERVIEW,
 					component: ClusterPage,
-				},
-				{
-					path: 'attributions',
-					name: Constants.ROUTE_NAME_ATTRIBUTIONS,
-					component: AttributionsPage,
 				},
 			],
 		},

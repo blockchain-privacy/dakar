@@ -68,7 +68,6 @@ func (h *reverseAmountHeuristic) GetDescriptor() Descriptor {
 func (h *reverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Database, _ *graph.Wrapper, parentUID string,
 	parentResults []heuristics.HeuristicCluster) ([]heuristics.HeuristicCluster, error) {
 	var results []heuristics.HeuristicTransaction
-	var attributionMap map[heuristics.ClusterUID][]string
 	var err error
 	if parentResults == nil {
 		parentHeuristicSet, err := isParentAHeuristic(ctx, dgraph, parentUID)
@@ -81,8 +80,7 @@ func (h *reverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Datab
 		}
 
 		// get origins from parent heuristic
-		// attributionMap maps a clusterUID to a slice of attribution UIDs
-		results, attributionMap, err = heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
+		results, err = heuristics.GetHeuristicTransactions(ctx, dgraph, parentUID,
 			constants.TypeDashMixing)
 		if err != nil {
 			return nil, err
@@ -122,7 +120,7 @@ func (h *reverseAmountHeuristic) Exec(ctx context.Context, dgraph external.Datab
 		}
 	}
 
-	return createHeuristicClusters(resultClusters, attributionMap), nil
+	return createHeuristicClusters(resultClusters), nil
 }
 
 // containsDashDenomination returns true if all denominations with at

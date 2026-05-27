@@ -101,9 +101,8 @@ func (h *forwardAmountHeuristic) Exec(ctx context.Context, dgraph external.Datab
 		return nil, err
 	}
 
-	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	results, attributionMap, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, nil, constants.TypeDashMixing)
+	results, err := heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
+		[]string{uid}, h.c.UserUID, h.c.ClusterTypes, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}
@@ -140,5 +139,5 @@ func (h *forwardAmountHeuristic) Exec(ctx context.Context, dgraph external.Datab
 		resultClusters[results[0].Cluster] = clusterFilteredDestinations
 	}
 
-	return createHeuristicClusters(resultClusters, attributionMap), nil
+	return createHeuristicClusters(resultClusters), nil
 }

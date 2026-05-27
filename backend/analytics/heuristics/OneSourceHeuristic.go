@@ -13,7 +13,6 @@ import (
 	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
 	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"gitlab.com/blockchain-privacy/dakar/db/heuristics"
 	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
@@ -120,31 +119,19 @@ func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database,
 		return nil, nil
 	}
 
-	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, h.c.UserUID, h.c.ClusterTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins
-	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			h.lookBackTime, 0, attributions, h.c, constants.TypeDashMixing)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
+			h.lookBackTime, 0, h.c, constants.TypeDashMixing)
 		if err != nil {
 			return nil, err
 		}
 
 		if len(timeLimitedOrigins) == 0 {
 			continue
-		}
-
-		// merge the attribution maps
-		for id, attributions := range usedAttributions {
-			attributionMap[id] = attributions
 		}
 
 		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)
@@ -211,5 +198,5 @@ func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database,
 		}
 	}
 
-	return createHeuristicClusters(resultClusters, attributionMap), nil
+	return createHeuristicClusters(resultClusters), nil
 }

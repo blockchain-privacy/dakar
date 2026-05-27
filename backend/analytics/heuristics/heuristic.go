@@ -18,7 +18,6 @@ import (
 	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
 	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	"gitlab.com/blockchain-privacy/dakar/db/heuristics"
 	"gitlab.com/blockchain-privacy/dakar/external"
@@ -368,37 +367,34 @@ func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransact
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	transactionUID string, lookBackTime time.Duration, maxDepth int,
-	attributions map[string][]string, c HeuristicOptions,
-	allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
-	attributionMapping map[heuristics.ClusterUID][]string, err error) {
+	transactionUID string, lookBackTime time.Duration, maxDepth int, c HeuristicOptions,
+	allowedTransactionType string) (origins []heuristics.HeuristicTransaction, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(transactionUID, lookBackTime, maxDepth, c.ExcludeSpendingGaps)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions, allowedTransactionType)
+		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, allowedTransactionType)
 }
 
 // getTimeLimitedDestinations returns all destinations of the given transaction.
 // If lookBackTime is bigger than zero only destinations in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedDestinations(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	transactionUID string, lookForwardTime time.Duration, maxDepth int, attributions map[string][]string,
-	c HeuristicOptions, allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
-	attributionMapping map[heuristics.ClusterUID][]string, err error) {
+	transactionUID string, lookForwardTime time.Duration, maxDepth int, c HeuristicOptions,
+	allowedTransactionType string) (origins []heuristics.HeuristicTransaction, err error) {
 	// do reverse lookup
 	endpoints, err := g.ForwardLookup(transactionUID, lookForwardTime, maxDepth, c.ExcludeSpendingGaps)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// get tx details for each uid
 	return heuristics.GetTransactionsWithOutputAmountAndCluster(ctx, dgraph,
-		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, attributions, allowedTransactionType)
+		cliutil.GetMapKeys(endpoints), c.UserUID, c.ClusterTypes, allowedTransactionType)
 }
 
 func isParentAHeuristic(ctx context.Context, c external.Database, parentUID string) (bool, error) {
@@ -459,22 +455,11 @@ func (hx Executor) Run(ctx context.Context, dgraph external.Database,
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's
-func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode,
-	attributionMap map[heuristics.ClusterUID][]string) []heuristics.HeuristicCluster {
+func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]db.UIDNode) []heuristics.HeuristicCluster {
 	resultCluster := make([]heuristics.HeuristicCluster, 0, len(clusterMap))
-	for clusterID, results := range clusterMap {
-		var attributions []attribution.Attribution
-		if attributionMap != nil {
-			if attrs, ok := attributionMap[clusterID]; ok {
-				for _, a := range attrs {
-					attributions = append(attributions, attribution.Attribution{UID: a})
-				}
-			}
-		}
-
+	for _, results := range clusterMap {
 		resultCluster = append(resultCluster, heuristics.HeuristicCluster{
-			Results:      results,
-			Attributions: attributions,
+			Results: results,
 		})
 	}
 

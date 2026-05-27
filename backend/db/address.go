@@ -433,50 +433,6 @@ func GetAddressUIDs(ctx context.Context, c external.Database, addressHashes []st
 	return r.Addresses, nil
 }
 
-// GetAddressUIDsFilterPublicAttribution returns all requested address nodes.
-// If an address has a public attribution attached it will be excluded.
-func GetAddressUIDsFilterPublicAttribution(ctx context.Context, c external.Database, addressHashes []string) ([]Address, error) {
-	if len(addressHashes) == 0 {
-		return nil, serror.New(ErrEmptyRequestArgument)
-	}
-
-	for _, a := range addressHashes {
-		if !isValidQueryInput(a) {
-			return nil, serror.FromStr("invalid address hash")
-		}
-	}
-
-	query := `{
-				a as var(func: eq(addresshash,` + CreateCommaArray(addressHashes) + `))
-
-				with_attribution as var(func: uid(a))@filter(has(~Attribution.address))
-				without_attribution as var(func: uid(a))@filter(not has(~Attribution.address))
-				  
-				non_public_attr as var(func: uid(with_attribution)) @cascade{
-					~Attribution.address@filter(eq(Attribution.isPublic, false))
-				}
-				
-				q(func: uid(without_attribution, non_public_attr)) {
-					uid
-					addresshash
-				}
-			  }`
-
-	resp, err := c.Query(ctx, query, nil)
-	if err != nil {
-		return nil, serror.New(err)
-	}
-	var r struct {
-		Addresses []Address `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		return nil, serror.New(err)
-	}
-
-	return r.Addresses, nil
-}
-
 // GetAddressesByBlockRange returns all address-output mappings of the given block range
 func GetAddressesByBlockRange(ctx context.Context, c external.Database, blockHeightStart int, blockHeightEnd int,
 	convertUIDs bool) (addresses []Address, err error) {

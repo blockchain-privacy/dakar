@@ -230,118 +230,6 @@ func (s *Server) handlerClusterOverview() http.Handler {
 	})
 }
 
-// Attribution Overview godoc
-//
-//	@Summary	Get all attributions of the current user
-//	@Tags		attribution
-//	@Produce	json
-//	@Success	200	{object}	server.attributionOverviewReply
-//	@Failure	401	{object}	server.attributionOverviewReply
-//	@Failure	500	{object}	server.attributionOverviewReply
-//	@Router		/attributions/ [get]
-func (s *Server) handlerAttributionList() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAttributionOverviewReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Add Private Attribution godoc
-//
-//	@Summary	Create a new attribution which is only visible for the current user
-//	@Tags		attribution
-//	@Produce	text/csv
-//	@Param		separator	formData	string	true	"separator of the CSV file"
-//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skipped"
-//	@Param		file		formData	file	true	"the CSV file"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	401			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
-//	@Router		/attributions/ [post]
-func (s *Server) handlerAddPrivateAttribution() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddAttributionReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Delete Private Attribution godoc
-//
-//	@Summary	Delete an attribution belonging to the current user
-//	@Tags		attribution
-//	@Produce	json
-//	@Param		uid	path		string	true	"Attribution UID"
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/attributions/{uid} [delete]
-func (s *Server) handlerDeletePrivateAttribution() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAttributionReply(r, s.db, false)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Delete Public Attribution godoc
-//
-//	@Summary	Delete a public attribution
-//	@Tags		attribution
-//	@Produce	json
-//	@Param		uid	path		string	true	"Attribution UID"
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/attributions/public/{uid} [delete]
-func (s *Server) handlerDeletePublicAttribution() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAttributionReply(r, s.db, true)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Delete All Private Attributions godoc
-//
-//	@Summary	Delete all attributions of the current user
-//	@Tags		attribution
-//	@Produce	json
-//	@Success	200	{object}	server.msgReply
-//	@Failure	401	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
-//	@Router		/attributions/ [delete]
-func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDeleteAllAttributionsReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Search Attributions godoc
-//
-//	@Summary	Search all public attributions and the attributions belonging to the current user
-//	@Tags		attribution
-//	@Produce	json
-//	@Param		query	path		string	true	"Attribution query"
-//	@Success	200		{object}	server.attributionOverviewReply
-//	@Failure	400		{object}	server.attributionOverviewReply
-//	@Failure	401		{object}	server.attributionOverviewReply
-//	@Failure	500		{object}	server.attributionOverviewReply
-//	@Router		/attributions/search/{query} [get]
-func (s *Server) handlerSearchAttributions() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAttributionSearchReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
 // Selector Status godoc
 //
 //	@Summary		Checks if the given selector is finished executing
@@ -728,20 +616,6 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerDeleteAllClusters(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, ""),
 		s.adapt(s.handlerClusterOverview(), Authorization(), mw.MaxBody5MiB()))
-
-	// Attributions
-	s.handler.Handle(BuildPattern(http.MethodPost, routeAttributions, ""),
-		s.adapt(s.handlerAddPrivateAttribution(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributions, ""),
-		s.adapt(s.handlerAttributionList(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, "uid"),
-		s.adapt(s.handlerDeletePrivateAttribution(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributionsPublic, "uid"),
-		s.adapt(s.handlerDeletePublicAttribution(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodDelete, routeAttributions, ""),
-		s.adapt(s.handlerDeleteAllPrivateAttributions(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributionsSearch, "query"),
-		s.adapt(s.handlerSearchAttributions(), Authorization(), mw.MaxBody5MiB()))
 
 	// Workspace
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceRename, ""),

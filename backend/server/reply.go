@@ -17,14 +17,12 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/blockchain-privacy/dakar/analytics"
 	analyticsClustering "gitlab.com/blockchain-privacy/dakar/analytics/clustering"
 	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
 	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
 	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	dbAnalytics "gitlab.com/blockchain-privacy/dakar/db/analytics"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
 	dbwork "gitlab.com/blockchain-privacy/dakar/db/workspace"
@@ -536,7 +534,6 @@ func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "text/csv")
 
 	csvWriter := csv.NewWriter(w)
-	// cluster attributions are separated by comma, therefore use another character as a separator
 	csvWriter.Comma = ';'
 
 	if len(selectorResults) > 0 {
@@ -790,124 +787,6 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 	return
 }
 
-func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := ExtractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	if err := r.ParseMultipartForm(maxBodySize); err != nil { //nolint:gosec
-		return
-	}
-
-	separator := r.FormValue("separator")
-	if separator == "" {
-		reply.Msg = CsvInvalidSeparator
-		status = http.StatusBadRequest
-		return
-	}
-
-	var rSeparator rune
-	if separator != ";" && separator != "," {
-		reply.Msg = CsvInvalidSeparator
-		status = http.StatusBadRequest
-		return
-	}
-	rSeparator = []rune(separator)[0]
-
-	headerFlag := r.FormValue("hasHeader")
-	if headerFlag == "" {
-		reply.Msg = CsvEmptyHeader
-		status = http.StatusBadRequest
-		return
-	}
-
-	// Get handler for filename, size and headers
-	file, _, err := r.FormFile("file")
-	if err != nil {
-		reply.Msg = CsvReadError
-		status = http.StatusBadRequest
-		return
-	}
-
-	defer func(file multipart.File) {
-		if err := file.Close(); err != nil {
-			warn(serror.FromFormat("error closing CSV-file: %w", err))
-		}
-	}(file)
-
-	csvReader := csv.NewReader(file)
-	csvReader.ReuseRecord = true
-	csvReader.Comma = rSeparator
-	csvReader.FieldsPerRecord = 5
-	var line []string
-
-	var attributions []analytics.Attribution
-	var index int
-	for ; ; index++ {
-		line, err = csvReader.Read()
-		if err != nil {
-			if errors.Is(err, csv.ErrFieldCount) {
-				reply.Msg = CsvInvalidFieldCount
-				status = http.StatusBadRequest
-				return
-			} else if !errors.Is(err, io.EOF) {
-				reply.Msg = CsvInvalidData
-				status = http.StatusBadRequest
-				return
-			}
-			break
-		}
-
-		if index == 0 && headerFlag == "true" {
-			continue
-		}
-
-		newAttribution := analytics.Attribution{
-			AddressHash: strings.TrimSpace(line[0]),
-			Tag:         strings.TrimSpace(line[1]),
-			Description: strings.TrimSpace(line[2]),
-			Source:      strings.TrimSpace(line[3]),
-			Category:    strings.TrimSpace(line[4]),
-		}
-
-		if newAttribution.AddressHash == "" || newAttribution.Tag == "" {
-			reply.Msg = CsvInvalidData
-			status = http.StatusBadRequest
-			return
-		}
-
-		attributions = append(attributions, newAttribution)
-	}
-
-	if len(attributions) == 0 {
-		reply.Msg = CsvNoData
-		status = http.StatusBadRequest
-		return
-	}
-
-	if err := analytics.ImportAttribution(r.Context(), dgraph, attributions, tUser.ID); err != nil {
-		switch {
-		case errors.Is(err, analytics.ErrTooManyAddresses):
-			reply.Msg = CsvTooManyAddresses
-			status = http.StatusBadRequest
-		case errors.Is(err, analytics.ErrNonExistentAddress):
-			reply.Msg = CsvInvalidData
-			status = http.StatusBadRequest
-		default:
-			reply.Msg = CsvErrorImporting
-			status = http.StatusInternalServerError
-			warn(err)
-		}
-
-		return
-	}
-
-	return
-}
-
 func getClusterOverviewReply(r *http.Request, dgraph external.Database) (reply clusterOverviewReply, status int) {
 	tUser, err := ExtractTokenUser(r.Context())
 	if err != nil {
@@ -968,101 +847,6 @@ func getDeleteAllClustersReply(dgraph external.Database, r *http.Request) (reply
 		warn(err)
 		return
 	}
-
-	return
-}
-
-func getAttributionOverviewReply(dgraph external.Database, r *http.Request) (reply attributionOverviewReply, status int) {
-	tUser, err := ExtractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	attributions, err := attribution.GetUserAttributions(r.Context(), dgraph, tUser.ID)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.Attributions = attributions
-
-	return
-}
-
-func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
-	isPublicDeletion bool) (reply msgReply, status int) {
-	tUser, err := ExtractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	attributionUID := r.PathValue("uid")
-	if attributionUID == "" {
-		reply.Msg = "attribution uid was not set"
-		status = http.StatusBadRequest
-		return
-	}
-
-	if isPublicDeletion {
-		err = attribution.DeletePublicAttribution(r.Context(), dgraph, attributionUID)
-	} else {
-		err = attribution.DeletePrivateAttribution(r.Context(), dgraph, tUser.ID, attributionUID)
-	}
-
-	if err != nil {
-		reply.Msg = "could not delete attribution"
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	return
-}
-
-func getDeleteAllAttributionsReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
-	tUser, err := ExtractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-
-	if err := attribution.DeleteAllAttributions(r.Context(), dgraph, tUser.ID); err != nil {
-		reply.Msg = "could not delete clusters"
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	return
-}
-
-func getAttributionSearchReply(dgraph external.Database, r *http.Request) (reply attributionOverviewReply, status int) {
-	tUser, err := ExtractTokenUser(r.Context())
-	if err != nil {
-		status = http.StatusUnauthorized
-		warn(err)
-		return
-	}
-	query := r.PathValue("query")
-	if query == "" {
-		status = http.StatusBadRequest
-		return
-	}
-
-	attributions, err := attribution.SearchAttributions(r.Context(), dgraph, tUser.ID, query)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
-	reply.Attributions = attributions
 
 	return
 }

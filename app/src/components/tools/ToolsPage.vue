@@ -17,11 +17,6 @@
           title="Workspaces"
         />
         <v-list-item
-          :to="{ name: ROUTE_NAME_ATTRIBUTIONS}"
-          :prepend-icon="mdiTag"
-          title="Attributions"
-        />
-        <v-list-item
           :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
           :prepend-icon="mdiMerge"
           title="Custom Clusters"
@@ -41,12 +36,10 @@
 <script setup>
 import {
 	mdiMerge,
-	mdiTag,
 	mdiToolbox,
 } from '@mdi/js';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
-	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_CLUSTER_OVERVIEW,
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';

@@ -14,7 +14,6 @@ import (
 	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
 	"gitlab.com/blockchain-privacy/dakar/db/workspace"
@@ -185,10 +184,6 @@ type mixingActivityReply struct {
 type clusterOverviewReply struct {
 	Msg      string                           `json:"msg,omitempty"`
 	Clusters []clustering.FrontendUserCluster `json:"clusters"`
-}
-
-type attributionOverviewReply struct {
-	Attributions []attribution.FrontendAttribution `json:"attributions"`
 }
 
 type msgReply struct {

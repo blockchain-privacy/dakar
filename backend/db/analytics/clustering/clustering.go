@@ -258,27 +258,12 @@ func getClusterQuery(maxAddresses int) string {
 					output_count: count(addr_outputs)
 					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
 				}
-			}
-			tags(func: uid(c)){
-				uid
-				tags:Cluster.addresses@normalize {
-					~Attribution.address@filter(eq(Attribution.isPublic,true) or uid_in(Attribution.user,$user)) {
-						tag:Attribution.tag
-						isPublic:Attribution.isPublic
-					}
-				}
 			}`
 }
 
 // responseToFrontendClusters combines the results of a cluster request to frontend clusters
-func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags []ClusterTags) (
+func responseToFrontendClusters(clusters []FrontendClusterRequest) (
 	frontendClusters []FrontendCluster, err error) {
-	tagMap := make(map[string][]Attribution)
-
-	for _, c := range clusterTags {
-		tagMap[c.UID] = c.Attributions
-	}
-
 	for _, cluster := range clusters {
 		if len(cluster.Transaction) > 1 {
 			err = serror.FromFormat("invalid transaction count: %d", len(cluster.Transaction))
@@ -289,7 +274,6 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 			Type:         cluster.Type,
 			AddressCount: cluster.AddressCount,
 			Addresses:    cluster.Addresses,
-			Attributions: tagMap[cluster.UID],
 		}
 
 		// uid is only needed for deleting custom clusters
@@ -325,14 +309,13 @@ func GetClusters(ctx context.Context, c external.Database, addressHash string,
 	}
 
 	var r struct {
-		Clusters    []FrontendClusterRequest `json:"q,omitempty"`
-		ClusterTags []ClusterTags            `json:"tags,omitempty"`
+		Clusters []FrontendClusterRequest `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
 		return nil, serror.New(err)
 	}
 
-	return responseToFrontendClusters(r.Clusters, r.ClusterTags)
+	return responseToFrontendClusters(r.Clusters)
 }
 
 // GetUserClusters returns all clusters of a user
