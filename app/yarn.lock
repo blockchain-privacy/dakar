@@ -103,10 +103,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.0.4":
-  version: 1.0.4
-  resolution: "@blockchain/dakar@npm:1.0.4::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F78315009%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.4.tgz"
-  checksum: 10c0/6dd4bcfd94756abebd1cae5a60ac3d96d3a740ad4023f56bc3e70d4556ccb3c6865fc41add050e60807e44867fad25b25d695c564d690411b0f325d7dbab5d5c
+"@blockchain/dakar@npm:^1.0.6":
+  version: 1.0.6
+  resolution: "@blockchain/dakar@npm:1.0.6::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F78315009%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.6.tgz"
+  checksum: 10c0/5776073998dc92609bedce02dfe167abe66d2b7cb7e588ae2591f034f5b4319290aa86f644f74b2baa27782af022b6796f7d93367c642e6a4b1c805843257b38
   languageName: node
   linkType: hard
 
@@ -2126,7 +2126,7 @@ __metadata:
   dependencies:
     "@blockchain-privacy/kratosadmin": "npm:^0.0.27"
     "@blockchain-privacy/wikiapi": "npm:^0.0.2"
-    "@blockchain/dakar": "npm:^1.0.4"
+    "@blockchain/dakar": "npm:^1.0.6"
     "@eslint/js": "npm:^10.0.1"
     "@fontsource/roboto": "npm:^5.2.10"
     "@mdi/js": "npm:^7.4.47"
