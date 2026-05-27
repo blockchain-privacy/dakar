@@ -292,9 +292,9 @@ func parseConnectionResult(r *connectionRequest) (transactions []NodeConnections
 	} else if r.ClusterHeight[0].LastClusteredID == nil {
 		err = serror.FromStr("null pointer received for last clustered ID")
 		return
+	} else {
+		clusterHeight = *r.ClusterHeight[0].LastClusteredID
 	}
-
-	clusterHeight = *r.ClusterHeight[0].LastClusteredID
 
 	// clusterToAddress contains the mapping of flat multi-input clusters to their addresses.
 	// This map is used to replace the uid of clusters with the uid of addresses.
