@@ -5,8 +5,8 @@
 package graph
 
 import (
-	"backend/constants"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/constants"
 	"sort"
 	"testing"
 	"time"

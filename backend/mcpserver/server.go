@@ -5,11 +5,6 @@
 package mcpserver
 
 import (
-	"backend/analytics/graph"
-	"backend/constants"
-	"backend/external"
-	"backend/server"
-	"backend/workspace"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,10 +13,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/server"
+	"gitlab.com/blockchain-privacy/dakar/workspace"
 	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func info(msg string, v ...any) {

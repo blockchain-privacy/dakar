@@ -5,8 +5,8 @@
 package graph
 
 import (
-	"backend/db"
-	"backend/db/status"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
 	"reflect"
 	"slices"
 	"sort"

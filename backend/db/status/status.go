@@ -5,13 +5,13 @@
 package status
 
 import (
-	"backend/db"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"time"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 

@@ -5,7 +5,7 @@
 package workspace
 
 import (
-	"backend/db"
+	"gitlab.com/blockchain-privacy/dakar/db"
 	"testing"
 
 	"github.com/stretchr/testify/require"

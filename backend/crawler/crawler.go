@@ -5,12 +5,12 @@
 package crawler
 
 import (
-	"backend/blockiterator"
-	dbstat "backend/db/status"
-	"backend/external"
-	"backend/jsonrpc"
 	"context"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/blockiterator"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/jsonrpc"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/gomisc/serror"

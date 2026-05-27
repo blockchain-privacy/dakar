@@ -5,7 +5,7 @@
 package clustering
 
 import (
-	"backend/db"
+	"gitlab.com/blockchain-privacy/dakar/db"
 	"strconv"
 	"time"
 )

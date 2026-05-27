@@ -5,12 +5,12 @@
 package analytics
 
 import (
-	"backend/constants"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"fmt"
 
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 

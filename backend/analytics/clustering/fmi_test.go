@@ -5,9 +5,9 @@
 package clustering
 
 import (
-	"backend/db"
-	"backend/db/analytics/clustering"
-	dbstat "backend/db/status"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"

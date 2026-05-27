@@ -5,12 +5,12 @@
 package clustering
 
 import (
-	"backend/cmd/cliutil"
-	"backend/db"
-	"backend/db/analytics/clustering"
-	"backend/external"
 	"context"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"time"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"

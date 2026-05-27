@@ -5,9 +5,9 @@
 package db
 
 import (
-	"backend/external"
 	"context"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"testing"
 
 	"github.com/dgraph-io/dgo/v250"

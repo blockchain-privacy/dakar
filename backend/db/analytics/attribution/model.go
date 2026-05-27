@@ -4,7 +4,7 @@
 
 package attribution
 
-import "backend/db"
+import "gitlab.com/blockchain-privacy/dakar/db"
 
 const DType = "Attribution"
 

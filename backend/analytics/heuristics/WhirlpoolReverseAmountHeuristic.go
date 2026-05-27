@@ -5,15 +5,15 @@
 package heuristics
 
 import (
-	"backend/analytics/classifier/btc"
-	"backend/analytics/graph"
-	"backend/cmd/cliutil"
-	"backend/constants"
-	"backend/db"
-	"backend/db/heuristics"
-	"backend/external"
 	"context"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/analytics/classifier/btc"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

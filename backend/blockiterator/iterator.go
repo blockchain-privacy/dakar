@@ -5,10 +5,10 @@
 package blockiterator
 
 import (
-	"backend/db"
 	"context"
 	"errors"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/db"
 	"log/slog"
 	"time"
 )

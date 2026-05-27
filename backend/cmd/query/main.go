@@ -5,16 +5,16 @@
 package main
 
 import (
-	"backend/analytics/graph"
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics/clustering"
-	"backend/db/status"
-	"backend/external"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"log/slog"
 	"os"
 	"strconv"

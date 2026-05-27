@@ -5,9 +5,9 @@
 package main
 
 import (
-	mgraph "backend/analytics/graph"
-	"backend/constants"
 	"encoding/csv"
+	mgraph "gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
 	"os"

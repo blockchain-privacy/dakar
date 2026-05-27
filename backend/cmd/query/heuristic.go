@@ -5,14 +5,14 @@
 package main
 
 import (
-	"backend/analytics/graph"
-	"backend/analytics/heuristics"
-	"backend/constants"
-	"backend/db/analytics"
-	"backend/external"
 	"context"
 	"encoding/csv"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"io"
 	"os"
 	"slices"

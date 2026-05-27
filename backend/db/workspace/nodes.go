@@ -5,16 +5,17 @@
 package workspace
 
 import (
-	"backend/analytics/heuristics"
-	"backend/cmd/cliutil"
-	"backend/constants"
-	"backend/db"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"errors"
 	"slices"
 	"strconv"
+
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/external"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

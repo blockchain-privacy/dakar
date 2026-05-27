@@ -5,9 +5,9 @@
 package analytics
 
 import (
-	"backend/db"
-	"backend/db/user"
-	"backend/external"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/user"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"testing"
 
 	"github.com/stretchr/testify/require"

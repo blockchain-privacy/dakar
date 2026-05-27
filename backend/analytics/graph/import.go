@@ -5,12 +5,12 @@
 package graph
 
 import (
-	"backend/constants"
-	"backend/db/analytics"
-	"backend/external"
 	"context"
 	"errors"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"runtime"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"

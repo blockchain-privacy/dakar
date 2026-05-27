@@ -5,12 +5,12 @@
 package attribution
 
 import (
-	"backend/db"
-	"backend/db/analytics/clustering"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"regexp"
 )

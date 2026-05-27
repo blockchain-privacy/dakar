@@ -5,14 +5,15 @@
 package main
 
 import (
-	"backend/db/analytics"
-	"backend/external"
 	"context"
 	"encoding/csv"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 )
 
 func doExportClusterActivity(ctx context.Context, dgraph external.Database, fileName string) {

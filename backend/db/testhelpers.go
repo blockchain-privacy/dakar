@@ -5,11 +5,12 @@
 package db
 
 import (
-	"backend/jsonrpc"
 	_ "embed"
 	"log"
 	"os"
 	"testing"
+
+	"gitlab.com/blockchain-privacy/dakar/jsonrpc"
 )
 
 type ContainerName string

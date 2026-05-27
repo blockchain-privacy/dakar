@@ -5,14 +5,15 @@
 package main
 
 import (
-	dban "backend/db/analytics"
-	"backend/db/status"
-	"backend/external"
 	"context"
 	"encoding/csv"
 	"os"
 	"strconv"
 	"time"
+
+	dban "gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 )
 
 func doUniqueAddressAnalysis(ctx context.Context, database external.Database, option int, fileName string) {

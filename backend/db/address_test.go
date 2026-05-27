@@ -5,10 +5,10 @@
 package db
 
 import (
-	"backend/external"
-	"testing"
-
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/external"
+
+	"testing"
 )
 
 func TestIsValidSortOrder(t *testing.T) {

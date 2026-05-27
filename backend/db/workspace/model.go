@@ -5,8 +5,8 @@
 package workspace
 
 import (
-	"backend/analytics/heuristics"
-	"backend/db"
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/db"
 )
 
 const DType = "Workspace"

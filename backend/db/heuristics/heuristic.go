@@ -5,16 +5,16 @@
 package heuristics
 
 import (
-	"backend/cmd/cliutil"
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics/clustering"
-	"backend/external"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"sort"
 	"strconv"
 	"time"

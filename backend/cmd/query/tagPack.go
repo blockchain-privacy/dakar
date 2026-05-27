@@ -5,14 +5,15 @@
 package main
 
 import (
-	"backend/analytics"
-	"backend/cmd/cliutil"
-	"backend/external"
 	"context"
-	"github.com/goccy/go-yaml"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"os"
 	"strings"
+
+	"github.com/goccy/go-yaml"
+	"gitlab.com/blockchain-privacy/dakar/analytics"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 // Tag represents a tag with an address and a flag indicating if it's a cluster definer

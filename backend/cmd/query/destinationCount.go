@@ -5,12 +5,12 @@
 package main
 
 import (
-	"backend/analytics/graph"
-	"backend/db"
-	"backend/db/analytics"
-	"backend/external"
 	"context"
 	"encoding/csv"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"os"
 	"slices"

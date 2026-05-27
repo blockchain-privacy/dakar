@@ -5,12 +5,12 @@
 package classifier
 
 import (
-	"backend/analytics/classifier/btc"
-	"backend/analytics/classifier/dash"
-	"backend/blockiterator"
-	dbstat "backend/db/status"
-	"backend/external"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/analytics/classifier/btc"
+	"gitlab.com/blockchain-privacy/dakar/analytics/classifier/dash"
+	"gitlab.com/blockchain-privacy/dakar/blockiterator"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/gomisc/serror"

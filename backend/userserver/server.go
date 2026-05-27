@@ -5,8 +5,6 @@
 package userserver
 
 import (
-	"backend/external"
-	"backend/server"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/server"
 	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

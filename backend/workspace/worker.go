@@ -5,13 +5,13 @@
 package workspace
 
 import (
-	"backend/analytics/graph"
-	"backend/constants"
-	"backend/db"
-	"backend/db/workspace"
-	"backend/external"
 	"context"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/workspace"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"log/slog"
 	"runtime"
 	"sync"

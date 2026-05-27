@@ -5,7 +5,7 @@
 package graph
 
 import (
-	"backend/constants"
+	"gitlab.com/blockchain-privacy/dakar/constants"
 	"slices"
 	"testing"
 	"time"

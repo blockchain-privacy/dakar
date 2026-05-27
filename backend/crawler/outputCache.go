@@ -5,9 +5,9 @@
 package crawler
 
 import (
-	"backend/db"
-	"backend/external"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/external"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

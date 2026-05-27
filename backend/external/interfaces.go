@@ -5,8 +5,8 @@
 package external
 
 import (
-	"backend/jsonrpc"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/jsonrpc"
 	"time"
 
 	"github.com/dgraph-io/dgo/v250"

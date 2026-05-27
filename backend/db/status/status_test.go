@@ -5,10 +5,10 @@
 package status
 
 import (
-	"backend/db"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/db"
 )
 
 func TestGetCrawlerStatus(t *testing.T) {

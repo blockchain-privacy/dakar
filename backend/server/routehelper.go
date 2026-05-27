@@ -5,15 +5,15 @@
 package server
 
 import (
-	"backend/analytics/heuristics"
-	"backend/db"
-	"backend/db/analytics"
-	"backend/db/analytics/attribution"
-	"backend/db/analytics/clustering"
-	dbstat "backend/db/status"
-	"backend/db/workspace"
 	"context"
 	"encoding/json"
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/db/workspace"
 	"net/http"
 	"regexp"
 	"strconv"

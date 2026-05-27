@@ -5,15 +5,15 @@
 package userserver
 
 import (
-	"backend/db"
-	"backend/db/analytics/attribution"
-	"backend/db/analytics/clustering"
-	dbstat "backend/db/status"
-	dbus "backend/db/user"
-	dbwork "backend/db/workspace"
-	"backend/external"
-	"backend/server"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
+	dbus "gitlab.com/blockchain-privacy/dakar/db/user"
+	dbwork "gitlab.com/blockchain-privacy/dakar/db/workspace"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/server"
 	"net/http"
 )
 

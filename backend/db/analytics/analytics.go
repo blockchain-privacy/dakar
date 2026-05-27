@@ -5,9 +5,6 @@
 package analytics
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

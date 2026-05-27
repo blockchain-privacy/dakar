@@ -5,11 +5,11 @@
 package mcpserver
 
 import (
-	"backend/analytics/heuristics"
-	"backend/db"
-	dbh "backend/db/heuristics"
 	"context"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	dbh "gitlab.com/blockchain-privacy/dakar/db/heuristics"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gitlab.com/blockchain-privacy/gomisc/serror"

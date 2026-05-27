@@ -5,12 +5,12 @@
 package mcpserver
 
 import (
-	"backend/analytics/graph"
-	"backend/analytics/heuristics"
-	dbh "backend/db/heuristics"
-	"backend/external"
-	"backend/workspace"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	dbh "gitlab.com/blockchain-privacy/dakar/db/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/workspace"
 )
 
 type TransactionParams struct {

@@ -5,10 +5,10 @@
 package db
 
 import (
-	"backend/constants"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/constants"
 )
 
 func TestTransaction_SetDType(t *testing.T) {

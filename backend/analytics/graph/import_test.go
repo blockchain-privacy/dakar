@@ -5,9 +5,9 @@
 package graph
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
 	"testing"
 	"time"
 

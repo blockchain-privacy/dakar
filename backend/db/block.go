@@ -5,10 +5,10 @@
 package db
 
 import (
-	"backend/external"
 	"context"
 	"encoding/json"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"strconv"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"

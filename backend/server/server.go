@@ -5,9 +5,6 @@
 package server
 
 import (
-	"backend/analytics/graph"
-	"backend/external"
-	"backend/workspace"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -16,6 +13,9 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/workspace"
 	mw "gitlab.com/blockchain-privacy/gomisc/middleware"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

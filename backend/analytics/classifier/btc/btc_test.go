@@ -5,10 +5,10 @@
 package btc
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics"
 	"encoding/json"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
 	"strconv"
 	"testing"
 

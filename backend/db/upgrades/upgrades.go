@@ -5,15 +5,15 @@
 package upgrades
 
 import (
-	"backend/db"
-	"backend/db/status"
-	"backend/external"
 	"context"
 	"log/slog"
 	"reflect"
 	"runtime"
 
 	"github.com/dgraph-io/dgo/v250/protos/api"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 

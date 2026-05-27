@@ -1,9 +1,9 @@
 package heuristics
 
 import (
-	"backend/db"
-	"backend/db/analytics/attribution"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
 	"time"
 )
 

@@ -5,14 +5,14 @@
 package clustering
 
 import (
-	"backend/blockiterator"
-	"backend/cmd/cliutil"
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics/clustering"
-	dbstat "backend/db/status"
-	"backend/external"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/blockiterator"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"slices"
 
 	"github.com/prometheus/client_golang/prometheus"

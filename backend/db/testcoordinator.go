@@ -5,10 +5,11 @@
 package db
 
 import (
-	"backend/external"
 	"log"
 	"sync"
 	"testing"
+
+	"gitlab.com/blockchain-privacy/dakar/external"
 )
 
 type TestCoordinator struct {

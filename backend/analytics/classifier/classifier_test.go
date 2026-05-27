@@ -5,10 +5,10 @@
 package classifier
 
 import (
-	"backend/blockiterator"
-	"backend/db"
-	"backend/db/analytics"
-	"backend/db/status"
+	"gitlab.com/blockchain-privacy/dakar/blockiterator"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
 	"testing"
 	"time"
 

@@ -5,13 +5,13 @@
 package workspace
 
 import (
-	"backend/cmd/cliutil"
-	"backend/db"
-	"backend/db/workspace"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/workspace"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"slices"
 	"strconv"
 	"strings"

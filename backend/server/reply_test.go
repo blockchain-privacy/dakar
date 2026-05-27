@@ -5,11 +5,12 @@
 package server
 
 import (
-	"backend/db"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"gitlab.com/blockchain-privacy/dakar/db"
 
 	"github.com/stretchr/testify/require"
 )

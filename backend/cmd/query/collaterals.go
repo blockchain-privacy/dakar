@@ -5,11 +5,11 @@
 package main
 
 import (
-	"backend/constants"
-	"backend/db/analytics"
-	"backend/external"
 	"context"
 	"encoding/csv"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"os"
 	"strconv"

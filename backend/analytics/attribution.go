@@ -5,11 +5,11 @@
 package analytics
 
 import (
-	"backend/cmd/cliutil"
-	"backend/db"
-	"backend/db/analytics/attribution"
-	"backend/external"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"time"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"

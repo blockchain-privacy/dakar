@@ -5,12 +5,12 @@
 package main
 
 import (
-	"backend/constants"
-	dban "backend/db/analytics"
-	"backend/db/status"
-	"backend/external"
 	"context"
 	"encoding/csv"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	dban "gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"os"
 	"strconv"

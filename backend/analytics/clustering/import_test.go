@@ -5,8 +5,8 @@
 package clustering
 
 import (
-	"backend/db"
-	"backend/db/analytics/clustering"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	"sort"
 	"strconv"
 	"testing"

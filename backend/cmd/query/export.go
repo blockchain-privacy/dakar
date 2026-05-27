@@ -5,14 +5,14 @@
 package main
 
 import (
-	mgraph "backend/analytics/graph"
-	"backend/db"
-	"backend/db/analytics"
-	"backend/external"
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	mgraph "gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"os"
 	"strconv"
 	"time"

@@ -5,13 +5,13 @@
 package upgrades
 
 import (
-	"backend/db"
-	"backend/db/status"
-	"backend/external"
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 )
 
 func getUpgradesWithError() map[int]UpgradePackage {

@@ -5,16 +5,16 @@
 package workspace
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/db/user"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/user"
+	"gitlab.com/blockchain-privacy/dakar/external"
 )
 
 func TestDoSelection(t *testing.T) {

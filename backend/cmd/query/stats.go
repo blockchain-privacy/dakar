@@ -5,14 +5,15 @@
 package main
 
 import (
-	"backend/db"
-	"backend/db/status"
-	"backend/external"
 	"context"
 	"encoding/csv"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"os"
 	"strconv"
+
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 func doStats(ctx context.Context, dgraph external.Database, fileName string, excludeTransactionType string) {

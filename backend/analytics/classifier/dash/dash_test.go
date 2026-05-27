@@ -5,9 +5,9 @@
 package dash
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/external"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"testing"
 
 	"github.com/stretchr/testify/require"

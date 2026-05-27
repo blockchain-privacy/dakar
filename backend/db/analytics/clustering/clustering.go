@@ -5,11 +5,11 @@
 package clustering
 
 import (
-	"backend/db"
-	"backend/external"
 	"context"
 	"encoding/json"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"log"
 	"strconv"
 	"strings"

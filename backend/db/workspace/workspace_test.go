@@ -5,8 +5,8 @@
 package workspace
 
 import (
-	"backend/db"
-	"backend/db/user"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/user"
 	"testing"
 
 	"github.com/stretchr/testify/require"

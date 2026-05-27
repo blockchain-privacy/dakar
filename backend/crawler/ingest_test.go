@@ -5,9 +5,9 @@
 package crawler
 
 import (
-	"backend/db"
-	"backend/db/status"
-	"backend/jsonrpc"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/jsonrpc"
 	"sync"
 	"testing"
 	"time"

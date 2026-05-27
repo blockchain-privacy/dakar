@@ -5,18 +5,18 @@
 package workspace
 
 import (
-	"backend/analytics/graph"
-	"backend/analytics/heuristics"
-	"backend/cmd/cliutil"
-	"backend/constants"
-	"backend/db"
-	dbh "backend/db/heuristics"
-	"backend/db/workspace"
-	"backend/external"
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	dbh "gitlab.com/blockchain-privacy/dakar/db/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/db/workspace"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"strconv"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"

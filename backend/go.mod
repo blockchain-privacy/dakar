@@ -1,4 +1,4 @@
-module backend
+module gitlab.com/blockchain-privacy/dakar
 
 go 1.26.2
 

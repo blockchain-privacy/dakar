@@ -5,13 +5,13 @@
 package workspace
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/db/user"
-	"backend/db/workspace"
-	"backend/external"
 	"encoding/json"
 	"errors"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/user"
+	"gitlab.com/blockchain-privacy/dakar/db/workspace"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"math/rand/v2"
 	"sync"
 	"testing"

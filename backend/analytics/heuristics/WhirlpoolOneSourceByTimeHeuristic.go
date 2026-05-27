@@ -5,14 +5,14 @@
 package heuristics
 
 import (
-	"backend/analytics/graph"
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics/attribution"
-	"backend/db/heuristics"
-	"backend/external"
 	"context"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/attribution"
+	"gitlab.com/blockchain-privacy/dakar/db/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"strconv"
 	"time"
 

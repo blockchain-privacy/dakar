@@ -5,11 +5,11 @@
 package db
 
 import (
-	"backend/external"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"log/slog"
 	"strings"
 	"time"

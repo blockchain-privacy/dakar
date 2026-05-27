@@ -5,15 +5,15 @@
 package crawler
 
 import (
-	"backend/cmd/cliutil"
-	"backend/db"
-	dbstat "backend/db/status"
-	"backend/external"
-	"backend/jsonrpc"
 	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
+	"gitlab.com/blockchain-privacy/dakar/jsonrpc"
 	"log/slog"
 	"math"
 	"strconv"

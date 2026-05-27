@@ -5,11 +5,11 @@
 package dash
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics/classifier/dash"
-	"backend/external"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/classifier/dash"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"slices"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"

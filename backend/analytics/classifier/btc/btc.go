@@ -5,11 +5,11 @@
 package btc
 
 import (
-	"backend/constants"
-	"backend/db"
-	"backend/db/analytics/classifier/btc"
-	"backend/external"
 	"context"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/classifier/btc"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"slices"
 )
 

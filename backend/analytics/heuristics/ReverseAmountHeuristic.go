@@ -5,14 +5,14 @@
 package heuristics
 
 import (
-	"backend/analytics/classifier/dash"
-	"backend/analytics/graph"
-	"backend/constants"
-	"backend/db"
-	"backend/db/heuristics"
-	"backend/external"
 	"context"
 	"fmt"
+	"gitlab.com/blockchain-privacy/dakar/analytics/classifier/dash"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/heuristics"
+	"gitlab.com/blockchain-privacy/dakar/external"
 
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

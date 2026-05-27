@@ -5,7 +5,7 @@
 package crawler
 
 import (
-	"backend/db"
+	"gitlab.com/blockchain-privacy/dakar/db"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"

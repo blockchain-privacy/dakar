@@ -5,9 +5,6 @@
 package main
 
 import (
-	"backend/db"
-	"backend/db/status"
-	"backend/external"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 

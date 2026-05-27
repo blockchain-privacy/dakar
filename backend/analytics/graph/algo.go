@@ -5,10 +5,10 @@
 package graph
 
 import (
-	"backend/constants"
 	"strconv"
 	"time"
 
+	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
