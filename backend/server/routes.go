@@ -16,7 +16,6 @@ const (
 	routeShortestTxPath           string = "shortestTransactionPath"
 	routeMixingActivity           string = "mixingActivity"
 	routeSpendingFingerprint      string = "spendingFingerprint"
-	routeExclusions               string = "exclusions"
 	routeClusters                 string = "clusters"
 	routeClustersHmi              string = "clusters/hmi"
 	routeClustersReport           string = "clusters/report"

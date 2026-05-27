@@ -20,7 +20,7 @@ import (
 // The key is the schema version to which the database should
 // be set after its updates haven been applied.
 var availableUpgrades = map[int]UpgradePackage{
-	15: {upgrades: []schemaUpgrade{AlterSchemaAddErrorCode}},
+	16: {upgrades: []schemaUpgrade{DropPredicateUserAddressExclusions, AlterSchemaRemoveExclusions}},
 }
 
 func info(msg string, v ...any) {
@@ -129,20 +129,15 @@ func applyUpgrades(ctx context.Context, c external.Database, upgrades map[int]Up
 	return nil
 }
 
-// AlterSchemaAddErrorCode adds the Selector.errorCode predicate
-func AlterSchemaAddErrorCode(c external.Database) error {
+// AlterSchemaRemoveExclusions removes the User.addressExclusions predicate from the User type
+func AlterSchemaRemoveExclusions(c external.Database) error {
 	return c.SetSchema(context.Background(), `
-			Selector.errorCode: string . # reason for the error status, if any
-
-			type Selector {
-				Selector.created
-				Selector.modified
-				Selector.type
-				Selector.status
-				Selector.errorCode
-				Selector.parent
-				Selector.options
-				Selector.results
-				Selector.totalResultCount
+			type User {
+				User.workspaces
 			}`)
+}
+
+// DropPredicateUserAddressExclusions removes the User.addressExclusions predicate
+func DropPredicateUserAddressExclusions(c external.Database) error {
+	return c.DropPredicate(context.Background(), "User.addressExclusions")
 }

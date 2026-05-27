@@ -87,7 +87,7 @@ func (w *Wrapper) IsTransactionGraphLoaded() bool {
 
 // ReverseLookup performs a reverse lookup of the given uid.
 func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration, maxDepth int,
-	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
+	excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
@@ -95,12 +95,12 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration, maxDe
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime, maxDepth, addressExclusions, excludeSpendingGaps)
+	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime, maxDepth, excludeSpendingGaps)
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
 func (w *Wrapper) ForwardLookup(uid string, maxLookForwardTime time.Duration, maxDepth int,
-	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
+	excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, serror.FromStr("transaction graph is not loaded yet")
 	}
@@ -108,8 +108,7 @@ func (w *Wrapper) ForwardLookup(uid string, maxLookForwardTime time.Duration, ma
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	return ForwardLookup(w.transactionGraph, uid, maxLookForwardTime, maxDepth,
-		addressExclusions, excludeSpendingGaps)
+	return ForwardLookup(w.transactionGraph, uid, maxLookForwardTime, maxDepth, excludeSpendingGaps)
 }
 
 // PartitionNodesByDirectConnections partitions the given nodes into groups which can reach each other by direct links

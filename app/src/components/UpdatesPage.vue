@@ -46,22 +46,27 @@ const updates = [
 	{
 		title: 'Vuetify 4',
 		subtitle: 'Dakar uses the Vuetify UI framework. This update migrates the web application from Vuetify 3 to Vuetify 4. Users may notice slight typographic differences.',
-		date: new Date(2026, 5 - 1, 26),
+		date: new Date(2026, 5 - 1, 27),
+	},
+	{
+		title: 'Address Exclusions',
+		subtitle: 'The address exclusion feature has been removed. Due to the nature of CoinJoins, a very high number of exclusions is required for it to be useful. In practice this is unachievable.',
+		date: new Date(2026, 5 - 1, 27),
 	},
 	{
 		title: 'Model Context Protocol',
 		subtitle: 'Dakar now includes experimental support for the Model Context Protocol (MCP).',
-		date: new Date(2026, 5 - 1, 26),
+		date: new Date(2026, 5 - 1, 27),
 	},
 	{
 		title: 'OAuth',
 		subtitle: 'OAuth allows to easily use authenticated Dakar backend APIs. Contact us to get OAuth client details.',
-		date: new Date(2026, 5 - 1, 26),
+		date: new Date(2026, 5 - 1, 27),
 	},
 	{
 		title: 'Update Page',
 		subtitle: 'Added this page. It is accessible via the profile menu.',
-		date: new Date(2026, 5 - 1, 26),
+		date: new Date(2026, 5 - 1, 27),
 	},
 ];
 

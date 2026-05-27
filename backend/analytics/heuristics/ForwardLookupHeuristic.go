@@ -8,7 +8,6 @@ import (
 	"backend/analytics/graph"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/exclusion"
 	"backend/db/heuristics"
 	"backend/external"
 	"context"
@@ -106,17 +105,8 @@ func forwardLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		return nil, err
 	}
 
-	var exclusions []string
-	if options.ExcludeAddresses {
-		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	destinations, _, err := getTimeLimitedDestinations(ctx, dgraph, g, uid,
-		lookForwardTime, depth, exclusions, nil, options, constants.TypeDashMixing)
+		lookForwardTime, depth, nil, options, constants.TypeDashMixing)
 	if err != nil {
 		return nil, err
 	}

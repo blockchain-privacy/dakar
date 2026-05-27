@@ -9,7 +9,6 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/attribution"
-	"backend/db/analytics/exclusion"
 	"backend/db/heuristics"
 	"backend/external"
 	"context"
@@ -121,14 +120,6 @@ func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database,
 		return nil, nil
 	}
 
-	var exclusions []string
-	if h.c.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, h.c.UserUID, h.c.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -142,7 +133,7 @@ func (h *oneSourceHeuristic) Exec(ctx context.Context, dgraph external.Database,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			h.lookBackTime, 0, exclusions, attributions, h.c, constants.TypeDashMixing)
+			h.lookBackTime, 0, attributions, h.c, constants.TypeDashMixing)
 		if err != nil {
 			return nil, err
 		}

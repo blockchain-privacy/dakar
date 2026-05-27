@@ -9,7 +9,6 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/attribution"
-	"backend/db/analytics/exclusion"
 	"backend/db/heuristics"
 	"backend/external"
 	"context"
@@ -121,14 +120,6 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 		return nil, nil
 	}
 
-	var exclusions []string
-	if options.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -143,7 +134,7 @@ func whirlpoolOnceSource(ctx context.Context, dgraph external.Database, g *graph
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			lookBackTime, depth, exclusions, attributions, options, constants.TypeWhirlpoolMixing)
+			lookBackTime, depth, attributions, options, constants.TypeWhirlpoolMixing)
 		if err != nil {
 			return nil, err
 		}

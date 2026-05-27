@@ -49,7 +49,7 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
-	_, err := w.ReverseLookup("", 0, 0, nil, false)
+	_, err := w.ReverseLookup("", 0, 0, false)
 	require.Error(t, err)
 
 	w.transactionGraph = newTestGraph()
@@ -58,7 +58,6 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 		nodeID              int64
 		maxLookBackTime     time.Duration
 		maxDepth            int
-		addressExclusions   []string
 		excludeSpendingGaps bool
 	}
 	tests := []struct {
@@ -70,7 +69,6 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 			args: args{
 				nodeID:              11,
 				maxLookBackTime:     time.Hour * 24,
-				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
 			want:    map[string]bool{"0x1": true, "0x2": true, "0x4": true},
@@ -80,7 +78,6 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 			args: args{
 				nodeID:              12,
 				maxLookBackTime:     time.Hour * 24,
-				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
 			want:    map[string]bool{"0x4": true, "0xd": true},
@@ -90,7 +87,7 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 
 	for _, tt := range tests {
 		results, err := w.ReverseLookup(ToHex(tt.args.nodeID), tt.args.maxLookBackTime, tt.args.maxDepth,
-			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+			tt.args.excludeSpendingGaps)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -110,7 +107,7 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 	for range numGoroutines {
 		go func() {
 			results, err := w.ReverseLookup(ToHex(tt.args.nodeID), tt.args.maxLookBackTime, tt.args.maxDepth,
-				tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+				tt.args.excludeSpendingGaps)
 			responses <- response{err: err, res: results}
 		}()
 	}
@@ -130,7 +127,7 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 	w := NewWrapper(t.Context(), nil)
 
 	// transaction graph not loaded -> should produce error
-	_, err := w.ForwardLookup("", 0, 0, nil, false)
+	_, err := w.ForwardLookup("", 0, 0, false)
 	require.Error(t, err)
 
 	w.transactionGraph = newTestGraph()
@@ -139,7 +136,6 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 		nodeID              int64
 		maxLookForwardTime  time.Duration
 		maxDepth            int
-		addressExclusions   []string
 		excludeSpendingGaps bool
 	}
 	tests := []struct {
@@ -151,7 +147,6 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 			args: args{
 				nodeID:              1,
 				maxLookForwardTime:  time.Hour * 5,
-				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
 			want:    map[string]bool{ToHex(11): true},
@@ -161,7 +156,6 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 			args: args{
 				nodeID:              4,
 				maxLookForwardTime:  time.Hour * 5,
-				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
 			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
@@ -170,7 +164,7 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		results, err := w.ForwardLookup(ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.maxDepth,
-			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+			tt.args.excludeSpendingGaps)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -190,7 +184,7 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 	for range numGoroutines {
 		go func() {
 			results, err := w.ForwardLookup(ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.maxDepth,
-				tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+				tt.args.excludeSpendingGaps)
 			responses <- response{err: err, res: results}
 		}()
 	}

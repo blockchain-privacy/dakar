@@ -23,7 +23,6 @@ const ToolsPage = () => import('../components/tools/ToolsPage.vue');
 const OAuthPage = () => import('../components/user/OAuthPage.vue');
 const ClusterPage = () => import('../components/tools/clusters/ClusterPage.vue');
 const AttributionsPage = () => import('../components/tools/attributions/AttributionsPage.vue');
-const AddressExclusionsPage = () => import('../components/tools/addressExclusions/AddressExclusionsPage.vue');
 const RecoveryPage = () => import('../components/user/RecoveryPage.vue');
 const OAuthSuccessPage = () => import('../components/user/OAuthSuccessPage.vue');
 const WikiPage = () => import('../components/wiki/WikiPage.vue');
@@ -159,11 +158,6 @@ export const router = createRouter({
 					path: 'attributions',
 					name: Constants.ROUTE_NAME_ATTRIBUTIONS,
 					component: AttributionsPage,
-				},
-				{
-					path: 'addressExclusions',
-					name: Constants.ROUTE_NAME_ADDRESS_EXCLUSIONS,
-					component: AddressExclusionsPage,
 				},
 			],
 		},

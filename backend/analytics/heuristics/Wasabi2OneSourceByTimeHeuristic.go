@@ -9,7 +9,6 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/attribution"
-	"backend/db/analytics/exclusion"
 	"backend/db/heuristics"
 	"backend/external"
 	"context"
@@ -125,14 +124,6 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 		return nil, nil
 	}
 
-	var exclusions []string
-	if options.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -146,7 +137,7 @@ func wasabi2OneSource(ctx context.Context, dgraph external.Database, g *graph.Wr
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			lookBackTime, depth, exclusions, attributions, options, constants.TypeWasabi2Mixing)
+			lookBackTime, depth, attributions, options, constants.TypeWasabi2Mixing)
 		if err != nil {
 			return nil, err
 		}

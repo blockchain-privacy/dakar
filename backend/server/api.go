@@ -342,78 +342,6 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 	})
 }
 
-// Add Address Exclusion godoc
-//
-//	@Summary	Adds new address exclusions for the current user
-//	@Tags		address exclusions
-//	@Produce	text/csv
-//	@Param		file	formData	file	true	"the CSV file"
-//	@Success	200		{object}	server.msgReply
-//	@Failure	400		{object}	server.msgReply
-//	@Failure	401		{object}	server.msgReply
-//	@Failure	500		{object}	server.msgReply
-//	@Router		/exclusions/ [post]
-func (s *Server) handlerAddAddressExclusions() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddAddressExclusionsReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Delete an Address Exclusion godoc
-//
-//	@Summary	Deletes an address exclusion of the current user
-//	@Tags		address exclusions
-//	@Produce	text/plain
-//	@Param		hash	path		string	true	"Address hash"
-//	@Success	200		{string}	string
-//	@Failure	400		{string}	string
-//	@Failure	401		{string}	string
-//	@Failure	500		{string}	string
-//	@Router		/exclusions/{hash} [delete]
-func (s *Server) handlerDeleteAddressExclusion() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		status := getDeleteAddressExclusionReply(s.db, r)
-
-		SendReply(w, "", status)
-	})
-}
-
-// Delete All Address Exclusions godoc
-//
-//	@Summary	Delete all address exclusions of the current user
-//	@Tags		address exclusions
-//	@Produce	text/plain
-//	@Success	200	{string}	string
-//	@Failure	401	{string}	string
-//	@Failure	500	{string}	string
-//	@Router		/exclusions/ [delete]
-func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		status := getDeleteAllAddressExclusionsReply(s.db, r)
-
-		SendReply(w, "", status)
-	})
-}
-
-// List Address Exclusions godoc
-//
-//	@Summary	Lists all address exclusions of the current user
-//	@Tags		address exclusions
-//	@Produce	json
-//	@Success	200	{object}	server.addressExclusionOverviewReply
-//	@Failure	401	{object}	server.addressExclusionOverviewReply
-//	@Failure	500	{object}	server.addressExclusionOverviewReply
-//	@Router		/exclusions/ [get]
-func (s *Server) handlerAddressExclusionList() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressExclusionOverviewReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
 // Selector Status godoc
 //
 //	@Summary		Checks if the given selector is finished executing
@@ -549,25 +477,6 @@ func (s *Server) handlerClusterLookup() http.Handler {
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getMixingActivity(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
-// Address Exclusion Status godoc
-//
-//	@Summary	Get the exclusion status of an address
-//	@Tags		address exclusions
-//	@Produce	json
-//	@Param		hash	path		string	true	"Address hash"
-//	@Success	200		{object}	server.addressExclusionStatusReply
-//	@Failure	400		{object}	server.addressExclusionStatusReply
-//	@Failure	401		{object}	server.addressExclusionStatusReply
-//	@Failure	500		{object}	server.addressExclusionStatusReply
-//	@Router		/exclusions/{hash} [get]
-func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressExclusionStatusReply(s.db, r)
 
 		SendReply(w, reply, status)
 	})
@@ -853,18 +762,6 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerDeleteAllPrivateAttributions(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeAttributionsSearch, "query"),
 		s.adapt(s.handlerSearchAttributions(), Authorization(), mw.MaxBody5MiB()))
-
-	// Address Exclusions
-	s.handler.Handle(BuildPattern(http.MethodPost, routeExclusions, ""),
-		s.adapt(s.handlerAddAddressExclusions(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodDelete, routeExclusions, "hash"),
-		s.adapt(s.handlerDeleteAddressExclusion(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodDelete, routeExclusions, ""),
-		s.adapt(s.handlerDeleteAllAddressExclusions(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodGet, routeExclusions, ""),
-		s.adapt(s.handlerAddressExclusionList(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodGet, routeExclusions, "hash"),
-		s.adapt(s.handlerGetAddressExclusionStatus(), Authorization(), mw.MaxBody5MiB()))
 
 	// Workspace
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceRename, ""),

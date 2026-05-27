@@ -9,7 +9,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics/exclusion"
 	"backend/db/heuristics"
 	"backend/external"
 	"context"
@@ -116,16 +115,7 @@ func (h *forwardAmountHeuristic) Exec(ctx context.Context, dgraph external.Datab
 		return nil, serror.New(errNoOriginsAtStart)
 	}
 
-	var exclusions []string
-	if h.c.ExcludeAddresses {
-		var err error
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, h.c.UserUID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	destinationUIDsMap, err := g.ForwardLookup(uid, h.lookForwardTime, 0, exclusions, h.c.ExcludeSpendingGaps)
+	destinationUIDsMap, err := g.ForwardLookup(uid, h.lookForwardTime, 0, h.c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, err
 	}

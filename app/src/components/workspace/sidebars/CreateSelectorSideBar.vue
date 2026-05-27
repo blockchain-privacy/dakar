@@ -91,11 +91,6 @@
                 hide-details
               />
               <v-checkbox
-                v-model="heuristicOptions.excludeAddresses"
-                label="Use address exclusion list"
-                hide-details
-              />
-              <v-checkbox
                 v-model="heuristicOptions.excludeSpendingGaps"
                 label="Exclude spending gaps"
                 hide-details
@@ -345,7 +340,6 @@ const txGraphOptions = ref({
 
 const heuristicOptions = ref({
 	clusterTypes: [],
-	excludeAddresses: false,
 	excludeSpendingGaps: false,
 	type: null,
 	parameter: '',

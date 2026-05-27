@@ -10,7 +10,6 @@
         :title="`Address ${addressHash}`"
         :icon="mdiCardBulletedOutline"
       >
-        <exclusion-chip :address-hash="addressHash" />
         <mode-chip
           v-if="showMode"
           class="ms-2"
@@ -224,7 +223,6 @@ import SortAndFilter from '@/components/explorer/address/SortAndFilter.vue';
 import ClusterLookup from '@/components/explorer/address/ClusterLookup.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {useLocalStore} from '@/pinia/local';
-import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import WorkspaceLink from '@/components/common/WorkspaceLink.vue';
 import ModeChip from '@/components/common/ModeChip.vue';
 import Alert from '@/components/common/Alert.vue';

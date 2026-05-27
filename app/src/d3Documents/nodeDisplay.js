@@ -9,7 +9,6 @@ import {
 	mdiClockAlertOutline,
 	mdiIncognitoOff,
 	mdiMerge,
-	mdiPlaylistRemove,
 	mdiTune,
 } from '@mdi/js';
 import {
@@ -57,10 +56,6 @@ function getNodeIconObject(d) {
 	let parameter;
 
 	if (d.selectorType === SELECTOR_TYPE_HEURISTIC && d.heuristicOptions) {
-		if (d.heuristicOptions.excludeAddresses) {
-			icons.push(mdiPlaylistRemove);
-		}
-
 		if (d.heuristicOptions.clusterTypes?.length > 0) {
 			icons.push(mdiMerge);
 		}

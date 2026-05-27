@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {
-	AddressExclusionsApi,
 	AttributionApi,
 	ClusterApi,
 	Configuration,
@@ -43,7 +42,6 @@ export default {
 			meta: new MetaApi(c),
 			cluster: new ClusterApi(c),
 			workspace: new WorkspaceApi(c),
-			addressExclusion: new AddressExclusionsApi(c),
 		};
 	},
 };

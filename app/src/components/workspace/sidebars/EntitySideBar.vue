@@ -47,10 +47,6 @@
         v-if="type === WORKSPACE_NODE_TYPE_TRANSACTION && entityData[0]?.txtype"
         :transaction-type="entityData[0].txtype"
       />
-      <exclusion-chip
-        v-else-if="type === WORKSPACE_NODE_TYPE_CLUSTER && entityData?.addresshash"
-        :address-hash="entityData.addresshash"
-      />
       <v-chip
         v-else-if="type === WORKSPACE_NODE_TYPE_SELECTOR && (entityData?.clusterCount > 0 || entityData?.selectorCount > 0)"
         rounded
@@ -140,7 +136,6 @@ import SideBar from '@/components/common/SideBar.vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
-import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache.js';
 import {getCurrentDate, getDakarClient, isDestination} from '@/utilities/index.js';
 import {
@@ -398,7 +393,6 @@ async function getSelectorData() {
 
 				tmpEntityData = {
 					heuristicParameter: opt.parameter,
-					heuristicExcludeAddresses: opt.excludeAddresses,
 					heuristicExcludeSpendingGaps: opt.excludeSpendingGaps,
 					heuristicCustomClusters: opt.clusterTypes?.length > 0,
 					heuristicTypeTitle: props.auxiliaryData.displayType,

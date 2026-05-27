@@ -105,11 +105,6 @@
           tooltip="Custom clusters"
         />
         <small-icon-item
-          v-if="selectorData.heuristicExcludeAddresses"
-          :icon="mdiPlaylistRemove"
-          tooltip="Exclude addresses"
-        />
-        <small-icon-item
           v-if="selectorData.heuristicExcludeSpendingGaps"
           :icon="mdiClockAlertOutline"
           tooltip="Exclude spending gaps"
@@ -303,7 +298,6 @@ import {
 	mdiClockAlertOutline,
 	mdiIncognitoOff,
 	mdiMerge,
-	mdiPlaylistRemove,
 	mdiSelectAll,
 	mdiSelectRemove,
 	mdiTune,

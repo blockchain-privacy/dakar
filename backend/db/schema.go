@@ -17,7 +17,7 @@ import (
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version directly,
 // or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
-const SchemaVersion = 15
+const SchemaVersion = 16
 
 // SetupSchema installs a schema into Dgraph
 func SetupSchema(c external.Database) error {
@@ -123,11 +123,9 @@ func SetupSchema(c external.Database) error {
 				HeuristicCluster.attributions
 			}
 
-			User.addressExclusions: [uid] @count @reverse .
 			User.workspaces: [uid] @reverse .
 
 			type User {
-				User.addressExclusions
 				User.workspaces
 			}
 			

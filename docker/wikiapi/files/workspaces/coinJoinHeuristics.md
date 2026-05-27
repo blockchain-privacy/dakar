@@ -41,5 +41,4 @@ Depending on the transaction type, different kinds of CoinJoin heuristics are av
 The behavior of each heuristic can be modified by the following options:
 
 - Use custom clusters: Use a predefined list of custom clusters in combination with multi-input clusters when executing the heuristic
-- Use address exclusion list: Do not traverse outputs belonging to the predefined address exclusion list
 - Exclude spending gaps: Do not traverse outputs which have a spending gap

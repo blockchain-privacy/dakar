@@ -200,15 +200,6 @@ type msgReply struct {
 	Msg string `json:"msg"`
 }
 
-type addressExclusionOverviewReply struct {
-	AddressHashes []string `json:"addresses"`
-	Count         int64    `json:"addressCount,omitempty"`
-}
-
-type addressExclusionStatusReply struct {
-	IsExclusion bool `json:"isExclusion"`
-}
-
 type blockReply struct {
 	Block *db.FrontendBlock `json:"block"`
 }

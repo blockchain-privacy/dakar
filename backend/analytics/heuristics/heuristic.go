@@ -368,12 +368,12 @@ func buildWhirlpoolSourceAmounts(origins map[string]heuristics.HeuristicTransact
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	transactionUID string, lookBackTime time.Duration, maxDepth int, exclusions []string,
+	transactionUID string, lookBackTime time.Duration, maxDepth int,
 	attributions map[string][]string, c HeuristicOptions,
 	allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
 	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
-	endpoints, err := g.ReverseLookup(transactionUID, lookBackTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
+	endpoints, err := g.ReverseLookup(transactionUID, lookBackTime, maxDepth, c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -387,12 +387,11 @@ func getTimeLimitedOrigins(ctx context.Context, dgraph external.Database, g *gra
 // If lookBackTime is bigger than zero only destinations in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedDestinations(ctx context.Context, dgraph external.Database, g *graph.Wrapper,
-	transactionUID string, lookForwardTime time.Duration, maxDepth int, exclusions []string,
-	attributions map[string][]string, c HeuristicOptions,
-	allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
+	transactionUID string, lookForwardTime time.Duration, maxDepth int, attributions map[string][]string,
+	c HeuristicOptions, allowedTransactionType string) (origins []heuristics.HeuristicTransaction,
 	attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
-	endpoints, err := g.ForwardLookup(transactionUID, lookForwardTime, maxDepth, exclusions, c.ExcludeSpendingGaps)
+	endpoints, err := g.ForwardLookup(transactionUID, lookForwardTime, maxDepth, c.ExcludeSpendingGaps)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -516,8 +515,6 @@ type HeuristicOptions struct {
 	// If cluster types are set to nil, the result will not be clustered.
 	// If multiple cluster types are set, then the consolidation of these clusters will be used.
 	ClusterTypes []clustering.ClusterType `json:"clusterTypes,omitempty" jsonschema:"do not use"`
-	// ExcludeAddresses controls whether certain addresses should be excluded from the lookups
-	ExcludeAddresses bool `json:"excludeAddresses" jsonschema:"always set to false"`
 	// ExcludeSpendingGaps controls whether mixing outputs with a spending gap should be traversed
 	ExcludeSpendingGaps bool   `json:"excludeSpendingGaps" jsonschema:"always set to false"`
 	TransactionHash     string `json:"transactionHash,omitempty" jsonschema:"required, the hash of the transaction for which this heuristic is being created for"`

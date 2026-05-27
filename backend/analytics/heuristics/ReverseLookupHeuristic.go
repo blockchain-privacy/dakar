@@ -9,7 +9,6 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics/attribution"
-	"backend/db/analytics/exclusion"
 	"backend/db/heuristics"
 	"backend/external"
 	"context"
@@ -118,14 +117,6 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 		return nil, nil
 	}
 
-	var exclusions []string
-	if options.ExcludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(ctx, dgraph, options.UserUID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	attributions, err := attribution.GetAttributionsPerCluster(ctx, dgraph, options.UserUID, options.ClusterTypes)
 	if err != nil {
 		return nil, err
@@ -136,7 +127,7 @@ func reverseLookup(ctx context.Context, dgraph external.Database, g *graph.Wrapp
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(ctx, dgraph, g, it.UID,
-			lookBackTime, depth, exclusions, attributions, options, mixingTransactionType)
+			lookBackTime, depth, attributions, options, mixingTransactionType)
 		if err != nil {
 			return nil, err
 		}

@@ -26,11 +26,6 @@
           :prepend-icon="mdiMerge"
           title="Custom Clusters"
         />
-        <v-list-item
-          :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS}"
-          :prepend-icon="mdiPlaylistRemove"
-          title="Address Exclusions"
-        />
       </v-list>
     </v-navigation-drawer>
     <div class="mx-2 mx-lg-16 pb-10">
@@ -46,13 +41,11 @@
 <script setup>
 import {
 	mdiMerge,
-	mdiPlaylistRemove,
 	mdiTag,
 	mdiToolbox,
 } from '@mdi/js';
 import FadeTransition from '../common/FadeTransition.vue';
 import {
-	ROUTE_NAME_ADDRESS_EXCLUSIONS,
 	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_CLUSTER_OVERVIEW,
 	ROUTE_NAME_WORKSPACES_PAGE,

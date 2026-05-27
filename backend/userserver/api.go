@@ -8,7 +8,6 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	"backend/db/analytics/exclusion"
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	dbwork "backend/db/workspace"
@@ -63,16 +62,9 @@ func getDeleteUserReply(r *http.Request, dgraph external.Database) (reply msgRep
 	}
 
 	// not using the request context here, because user deletion process should
-	// continue even if the request gets cancelled or times out
+	// continue even if the request gets canceled or times out
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
-
-	if err := exclusion.DeleteAllAddressExclusions(ctx, dgraph, uid); err != nil {
-		reply.Msg = "could not delete users' " + uid + " address exclusions"
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
 
 	if err := attribution.DeleteAllAttributions(ctx, dgraph, uid); err != nil {
 		reply.Msg = "could not delete users' " + uid + " attributions"
