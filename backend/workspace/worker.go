@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package workspace
@@ -7,17 +7,17 @@ package workspace
 import (
 	"context"
 	"errors"
-	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
-	"gitlab.com/blockchain-privacy/dakar/constants"
-	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/workspace"
-	"gitlab.com/blockchain-privacy/dakar/external"
 	"log/slog"
 	"runtime"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
+	"gitlab.com/blockchain-privacy/dakar/constants"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/workspace"
+	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

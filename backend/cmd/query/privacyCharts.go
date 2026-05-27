@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package main
@@ -7,14 +7,15 @@ package main
 import (
 	"context"
 	"encoding/csv"
+	"os"
+	"strconv"
+	"time"
+
 	"gitlab.com/blockchain-privacy/dakar/constants"
 	dban "gitlab.com/blockchain-privacy/dakar/db/analytics"
 	"gitlab.com/blockchain-privacy/dakar/db/status"
 	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
-	"os"
-	"strconv"
-	"time"
 )
 
 // exportTransactionData exports all transaction timestamps in a CSV-file per transaction type.

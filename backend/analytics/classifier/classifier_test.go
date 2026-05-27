@@ -1,19 +1,19 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package classifier
 
 import (
-	"gitlab.com/blockchain-privacy/dakar/blockiterator"
-	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics"
-	"gitlab.com/blockchain-privacy/dakar/db/status"
 	"testing"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/blockiterator"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics"
+	"gitlab.com/blockchain-privacy/dakar/db/status"
 )
 
 func TestNewClassifier(t *testing.T) {

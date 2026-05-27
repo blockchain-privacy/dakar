@@ -1,11 +1,14 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package clustering
 
 import (
 	"context"
+	"slices"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/dakar/blockiterator"
 	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
 	"gitlab.com/blockchain-privacy/dakar/constants"
@@ -13,9 +16,6 @@ import (
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
 	"gitlab.com/blockchain-privacy/dakar/external"
-	"slices"
-
-	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 

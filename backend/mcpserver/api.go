@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package mcpserver
@@ -7,11 +7,11 @@ package mcpserver
 import (
 	"context"
 	"errors"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	dbh "gitlab.com/blockchain-privacy/dakar/db/heuristics"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 

@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package attribution
@@ -7,12 +7,13 @@ package attribution
 import (
 	"context"
 	"encoding/json"
+	"regexp"
+
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
-	"regexp"
 )
 
 // AddAttributions adds the given attributions to the database

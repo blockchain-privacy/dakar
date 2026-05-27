@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package main
@@ -8,6 +8,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"runtime/pprof"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/dakar/analytics/classifier"
 	"gitlab.com/blockchain-privacy/dakar/analytics/clustering"
 	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
@@ -23,18 +35,6 @@ import (
 	"gitlab.com/blockchain-privacy/dakar/server"
 	"gitlab.com/blockchain-privacy/dakar/userserver"
 	"gitlab.com/blockchain-privacy/dakar/workspace"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
-	"runtime/pprof"
-	"strings"
-	"sync"
-	"syscall"
-	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/blockchain-privacy/gomisc/config"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )

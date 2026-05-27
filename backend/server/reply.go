@@ -1,11 +1,22 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package server
 
 import (
 	"context"
+	"encoding/csv"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"gitlab.com/blockchain-privacy/dakar/analytics"
 	analyticsClustering "gitlab.com/blockchain-privacy/dakar/analytics/clustering"
 	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
@@ -19,19 +30,7 @@ import (
 	dbwork "gitlab.com/blockchain-privacy/dakar/db/workspace"
 	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/dakar/workspace"
-	"io"
-	"strings"
-	"time"
-
 	"gitlab.com/blockchain-privacy/gomisc/serror"
-
-	"encoding/csv"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"mime/multipart"
-	"net/http"
-	"strconv"
 )
 
 // getSearchReply searches for the given query in the database

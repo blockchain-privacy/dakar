@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package dash
@@ -7,12 +7,13 @@ package dash
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	"gitlab.com/blockchain-privacy/dakar/external"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
-	"strconv"
 )
 
 // ClassifyDestinationAndOriginsByBlock sets the transaction type for destination transactions in the given block range and

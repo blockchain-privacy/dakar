@@ -1,16 +1,17 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package btc
 
 import (
 	"context"
+	"slices"
+
 	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	"gitlab.com/blockchain-privacy/dakar/db/analytics/classifier/btc"
 	"gitlab.com/blockchain-privacy/dakar/external"
-	"slices"
 )
 
 // NumWasabi2Denominations is the number of Wasabi 2.0 PrivateSend denominations

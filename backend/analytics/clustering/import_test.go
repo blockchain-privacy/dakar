@@ -1,17 +1,17 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package clustering
 
 import (
-	"gitlab.com/blockchain-privacy/dakar/db"
-	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 	"sort"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.com/blockchain-privacy/dakar/db"
+	"gitlab.com/blockchain-privacy/dakar/db/analytics/clustering"
 )
 
 func Test_buildClusterSet(t *testing.T) {

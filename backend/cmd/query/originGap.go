@@ -1,18 +1,19 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package main
 
 import (
 	"encoding/csv"
+	"os"
+	"strconv"
+	"time"
+
 	mgraph "gitlab.com/blockchain-privacy/dakar/analytics/graph"
 	"gitlab.com/blockchain-privacy/dakar/constants"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
-	"os"
-	"strconv"
-	"time"
 )
 
 func doOriginGapAnalysis(g *mgraph.ReversibleGraph, minGap time.Duration, filename string) {

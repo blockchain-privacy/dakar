@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 Michael Ziegler <michael.h.ziegler@ntnu.no>
-// SPDX-FileCopyrightText: 2025 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Michael Ziegler <michael.h.ziegler@ntnu.no>
+// SPDX-FileCopyrightText: 2026 Mariusz Nowostawski <mariusz.nowostawski@ntnu.no>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 package blockiterator
@@ -8,9 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gitlab.com/blockchain-privacy/dakar/db"
 	"log/slog"
 	"time"
+
+	"gitlab.com/blockchain-privacy/dakar/db"
 )
 
 // BlockIterator defines the basic structure of a process which
