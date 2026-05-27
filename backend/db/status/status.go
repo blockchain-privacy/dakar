@@ -67,31 +67,6 @@ func GetClassifierStatus(ctx context.Context, c external.Database) (status Class
 	return r.payload()
 }
 
-// GetClusteringHMIStatus gets the hierarchical multi-input clustering status from the database
-func GetClusteringHMIStatus(ctx context.Context, c external.Database) (status ClusteringHierarchicalMultiInputStatus, err error) {
-	query := `{
-				 q(func: type(` + ClusteringHierarchicalMultiInputDType + `)){
-					uid
-					isclustering
-					lastclusteredid
-				  }
-				}`
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query, nil)
-	if err != nil {
-		return
-	}
-
-	var r clusteringHMIStatusQuery
-
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	return r.payload()
-}
-
 // GetClusteringFMIStatus gets the flat multi-input clustering status from the database
 func GetClusteringFMIStatus(ctx context.Context, c external.Database) (status ClusteringFlatMultiInputStatus, err error) {
 	query := `{
@@ -165,10 +140,6 @@ func GetFrontendStatus(ctx context.Context, c external.Database) (status Fronten
 					isclassifying
 					lastclassifiedid
 				}
-				hmi(func: type(` + ClusteringHierarchicalMultiInputDType + `)){
-					isclustering
-					lastclusteredid
-				}
 				fmi(func: type(` + ClusteringFlatMultiInputDType + `)){
 					isclustering
 					lastclusteredid
@@ -182,10 +153,9 @@ func GetFrontendStatus(ctx context.Context, c external.Database) (status Fronten
 	}
 
 	var r struct {
-		Crawler    []CrawlerStatus                          `json:"crawler,omitempty"`
-		Classifier []ClassifierStatus                       `json:"classifier,omitempty"`
-		HMI        []ClusteringHierarchicalMultiInputStatus `json:"hmi,omitempty"`
-		FMI        []ClusteringFlatMultiInputStatus         `json:"fmi,omitempty"`
+		Crawler    []CrawlerStatus                  `json:"crawler,omitempty"`
+		Classifier []ClassifierStatus               `json:"classifier,omitempty"`
+		FMI        []ClusteringFlatMultiInputStatus `json:"fmi,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
@@ -201,11 +171,6 @@ func GetFrontendStatus(ctx context.Context, c external.Database) (status Fronten
 	if len(r.Classifier) == 1 {
 		status.IsClassifying = r.Classifier[0].IsClassifying
 		status.LastClassifiedBlockID = r.Classifier[0].LastClassifiedBlockID
-	}
-
-	if len(r.HMI) == 1 {
-		status.IsClusteringHMI = r.HMI[0].IsClustering
-		status.LastClusteredHMIBlockID = r.HMI[0].LastClusteredBlockID
 	}
 
 	if len(r.FMI) == 1 {
@@ -276,23 +241,6 @@ func SetClassifierStatus(ctx context.Context, c external.Database, status Classi
 	})
 }
 
-// SetClusteringHMIStatus sets the new hierarchical multi-input clustering status
-func SetClusteringHMIStatus(ctx context.Context, c external.Database, status ClusteringHierarchicalMultiInputStatus) error {
-	status.UID = uidV
-	status.SetDType()
-
-	pb, err := json.Marshal(status)
-	if err != nil {
-		return serror.New(err)
-	}
-
-	return db.MutationWithRetry(ctx, c, &api.Request{
-		Query:     "{q(func:type(" + ClusteringHierarchicalMultiInputDType + ")){v as uid}}",
-		Mutations: []*api.Mutation{{SetJson: pb}},
-		CommitNow: true,
-	})
-}
-
 // SetClusteringFMIStatus sets the new flat multi-input clustering status
 func SetClusteringFMIStatus(ctx context.Context, c external.Database, status ClusteringFlatMultiInputStatus) error {
 	status.UID = uidV
@@ -324,13 +272,6 @@ func SetClassifying(ctx context.Context, c external.Database, classifying bool) 
 	})
 }
 
-// SetClusteringHMI sets the hierarchical multi-input clustering status
-func SetClusteringHMI(ctx context.Context, c external.Database, clustering bool) error {
-	return SetClusteringHMIStatus(ctx, c, ClusteringHierarchicalMultiInputStatus{
-		IsClustering: &clustering,
-	})
-}
-
 // SetClusteringFMI sets the flat multi-input clustering status
 func SetClusteringFMI(ctx context.Context, c external.Database, clustering bool) error {
 	return SetClusteringFMIStatus(ctx, c, ClusteringFlatMultiInputStatus{
@@ -349,13 +290,6 @@ func SetLastBlockID(ctx context.Context, c external.Database, id int64) error {
 func SetLastClassifiedBlockID(ctx context.Context, c external.Database, id int64) error {
 	return SetClassifierStatus(ctx, c, ClassifierStatus{
 		LastClassifiedBlockID: &id,
-	})
-}
-
-// SetLastClusteredHMIBlockID sets the last clustered multi-input block id
-func SetLastClusteredHMIBlockID(ctx context.Context, c external.Database, id int64) error {
-	return SetClusteringHMIStatus(ctx, c, ClusteringHierarchicalMultiInputStatus{
-		LastClusteredBlockID: &id,
 	})
 }
 

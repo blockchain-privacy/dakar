@@ -13,7 +13,6 @@ import (
 type ClusterType string
 
 const (
-	TypeHMI    ClusterType = "hmi"
 	TypeFMI    ClusterType = "fmi"
 	TypeCustom ClusterType = "custom"
 	DType                  = "Cluster"
@@ -47,15 +46,6 @@ type Cluster struct {
 // SetDType sets the DType for dgraph type recognition
 func (c *Cluster) SetDType() {
 	c.DType = []string{DType}
-}
-
-func NewHMICluster(index int, txUID string) Cluster {
-	return Cluster{
-		UID:         "_:c" + strconv.Itoa(index),
-		Type:        TypeHMI,
-		Transaction: db.UIDNode{UID: txUID},
-		DType:       []string{DType},
-	}
 }
 
 func NewFMICluster(index int) *Cluster {
@@ -166,14 +156,6 @@ type FrontendClusterRequest struct {
 		Timestamp       time.Time `json:"ts,omitempty"`
 	} `json:"Cluster.transaction,omitempty"`
 	Addresses []FrontendAddress `json:"Cluster.addresses,omitempty"`
-}
-
-type FrontendHMICluster struct {
-	UID             string   `json:"uid,omitempty"`
-	AddressCount    int      `json:"addressCount,omitempty"`
-	TransactionHash string   `json:"txhash,omitempty"`
-	Parent          string   `json:"parent,omitempty"`
-	Children        []string `json:"children,omitempty"`
 }
 
 type FrontendUserCluster struct {

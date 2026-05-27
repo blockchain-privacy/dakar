@@ -5,7 +5,6 @@
 package clustering
 
 import (
-	"backend/constants"
 	"backend/db"
 	"backend/external"
 	"context"
@@ -19,85 +18,6 @@ import (
 	"github.com/dgraph-io/dgo/v250/protos/api"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
-
-// GetInputAddressesByBlock gets all input addresses per transaction by block id.
-// The size of the returned slice can be zero in case the only transaction contained
-// in the block is the coinbase transaction (no inputs) or all transaction are filtered out (mixing transactions).
-func GetInputAddressesByBlock(ctx context.Context, c external.Database,
-	blockID int64, clusterType ClusterType) (transactions []TransactionWithAddressClusters, err error) {
-	const query = `query Q($block:string,$ctype:string) {
-				var(func: eq(id, $block)){
-					# do not consider mixing transaction
-					txs as transactions@filter(not eq(Transaction.type,` + constants.AllMixingTypes + `))
-				}
-
-				q(func: uid(txs))@filter(gt(count(tx_inputs),1))@cascade{
-					uid
-					addr:tx_inputs@normalize{
-						# cascade(uid) so addresses without associated clusters are still returned
-						~addr_outputs{
-							a as uid:uid
-						}
-					}
-				}
-
-				x(func: uid(a))@cascade{
-					uid
-					clusters: ~Cluster.addresses@filter(eq(Cluster.type,$ctype))@cascade(uid){
-						uid
-						Cluster.addressCount
-						parents:~Cluster.children{
-							uid
-						}
-					}
-				}
-			  }`
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query,
-		map[string]string{"$block": strconv.FormatInt(blockID, 10), "$ctype": string(clusterType)})
-	if err != nil {
-		return
-	}
-
-	var r struct {
-		TransactionToAddresses []TransactionWithAddresses `json:"q,omitempty"`
-		AddressToClusters      []AddressWithClusters      `json:"x,omitempty"`
-	}
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	if len(r.TransactionToAddresses) == 0 {
-		return
-	}
-
-	// create address to cluster lookup map
-	addressToCluster := make(map[string][]ClusterWithParent)
-	for _, ac := range r.AddressToClusters {
-		addressToCluster[ac.UID] = ac.Clusters
-	}
-
-	// merge the two returned arrays
-	for _, t := range r.TransactionToAddresses {
-		// new transaction
-		tx := TransactionWithAddressClusters{UID: t.UID}
-
-		for _, a := range t.Addresses {
-			ca := AddressWithClusters{UID: a.UID}
-
-			if _, ok := addressToCluster[a.UID]; ok {
-				ca.Clusters = append(ca.Clusters, addressToCluster[a.UID]...)
-			}
-
-			tx.Addresses = append(tx.Addresses, ca)
-		}
-
-		transactions = append(transactions, tx)
-	}
-
-	return
-}
 
 // GetAddressesByBlock gets all addresses per transaction by block ID range.
 func GetAddressesByBlock(ctx context.Context, c external.Database, fromBlockID int64, toBlockID int64,
@@ -227,36 +147,6 @@ func AddCustomClusters(ctx context.Context, c external.Database, clusters []Cust
 	return nil
 }
 
-// AddClusters adds the given clusters to the database
-func AddClusters(ctx context.Context, c external.Database, clusters []Cluster, checkTx bool) error {
-	// validate data
-	for _, cluster := range clusters {
-		if cluster.Type == "" {
-			return serror.FromStr("cluster type is not set")
-		}
-
-		if checkTx && cluster.Transaction.UID == "" {
-			return serror.FromStr("cluster transaction is not set")
-		}
-
-		if len(cluster.Addresses) == 0 && len(cluster.Children) == 0 {
-			return serror.FromStr("cluster has no child clusters and no addresses set")
-		}
-	}
-
-	pb, err := json.Marshal(clusters)
-	if err != nil {
-		return serror.New(err)
-	}
-
-	return db.MutationWithRetry(ctx, c, &api.Request{
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	})
-}
-
 type DBOperation struct {
 	NewCluster  Cluster
 	OldClusters []string
@@ -344,42 +234,6 @@ func ProcessClusterOperations(ctx context.Context, c external.Database, operatio
 	return err
 }
 
-// GetHierarchicalClusterRoot returns the root of the cluster tree clusterUID is part of
-func GetHierarchicalClusterRoot(ctx context.Context, c external.Database,
-	clusterUID string) (rootCluster ClusterWithParent, err error) {
-	const query = `query Q($uid:string) {
-				var(func: uid($uid))@recurse{
-					c as ~Cluster.children
-				}
-				
-				q(func: uid(c))@filter(eq(count(~Cluster.children),0)){
-					uid
-					Cluster.addressCount
-				}
-			  }`
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$uid": clusterUID})
-	if err != nil {
-		return
-	}
-
-	var r struct {
-		Root []ClusterWithParent `json:"q,omitempty"`
-	}
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	if len(r.Root) != 1 {
-		err = serror.FromFormat("invalid number of roots returned: %v", r.Root)
-		return
-	}
-
-	rootCluster = r.Root[0]
-	return
-}
-
 func getClusterQuery(maxAddresses int) string {
 	var limiter string
 
@@ -405,7 +259,7 @@ func getClusterQuery(maxAddresses int) string {
 					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
 				}
 			}
-			tags(func: uid(c))@filter(not eq(Cluster.type,` + string(TypeHMI) + `)){
+			tags(func: uid(c)){
 				uid
 				tags:Cluster.addresses@normalize {
 					~Attribution.address@filter(eq(Attribution.isPublic,true) or uid_in(Attribution.user,$user)) {
@@ -457,12 +311,12 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 	return
 }
 
-// GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
+// GetClusters returns cluster information for all clusters associated with addressHash
 func GetClusters(ctx context.Context, c external.Database, addressHash string,
 	maxAddresses int, userID string) ([]FrontendCluster, error) {
 	query := `query Q($addressHash:string,$user:string) {
 				var(func:eq(addresshash,$addressHash)){
-					c as ~Cluster.addresses@filter(not eq(Cluster.type,` + string(TypeHMI) + `))
+					c as ~Cluster.addresses
 				}` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := c.Query(ctx, query, map[string]string{"$addressHash": addressHash, "$user": userID})
@@ -479,102 +333,6 @@ func GetClusters(ctx context.Context, c external.Database, addressHash string,
 	}
 
 	return responseToFrontendClusters(r.Clusters, r.ClusterTags)
-}
-
-// GetHMIClusters returns all connected hierarchical multi-input cluster to the
-// given address and the uid of the cluster directly connected to the address
-func GetHMIClusters(ctx context.Context, c external.Database,
-	addressHash string) (addressCluster string, clusters []FrontendHMICluster, err error) {
-	const query = string(`query Q($addressHash:string) {
-							var(func: eq(addresshash,$addressHash)){
-								hmi as ~Cluster.addresses@filter(eq(Cluster.type,` + TypeHMI + `))
-							}
-							
-							var(func: uid(hmi))@recurse{
-								s as Cluster.children
-								v as ~Cluster.children
-							}
-
-							x(func: uid(hmi)){
-								uid
-							}
-							
-							q(func: uid(s,v)){
-								uid
-								Cluster.addressCount
-								Cluster.transaction{
-									txhash
-								}
-								Cluster.children{
-									uid
-								}
-								~Cluster.children{
-									uid
-								}
-							}
-						  }`)
-
-	resp, err := db.QueryVarWithRetry(ctx, c, query, map[string]string{"$addressHash": addressHash})
-	if err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	var r struct {
-		Clusters []struct {
-			UID          string `json:"uid,omitempty"`
-			AddressCount int    `json:"Cluster.addressCount,omitempty"`
-			Transaction  struct {
-				TxHash string `json:"txhash,omitempty"`
-			} `json:"Cluster.transaction,omitempty"`
-			Children []db.UIDNode `json:"Cluster.children,omitempty"`
-			Parent   []db.UIDNode `json:"~Cluster.children,omitempty"`
-		} `json:"q,omitempty"`
-		AddressCluster []db.UIDNode `json:"x,omitempty"`
-	}
-	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
-		err = serror.New(err)
-		return
-	}
-
-	if len(r.AddressCluster) == 0 {
-		// no clusters found
-		return
-	}
-
-	if len(r.AddressCluster) > 1 {
-		err = serror.FromStr("too many clusters associated with address")
-		return
-	}
-
-	addressCluster = r.AddressCluster[0].UID
-
-	for _, cluster := range r.Clusters {
-		if len(cluster.Parent) > 1 {
-			err = serror.FromFormat("cluster %s has multiple parents: %v", cluster.UID, cluster.Parent)
-			return
-		}
-
-		var parentUID string
-		if len(cluster.Parent) == 1 {
-			parentUID = cluster.Parent[0].UID
-		}
-
-		var childClusters []string
-		for _, child := range cluster.Children {
-			childClusters = append(childClusters, child.UID)
-		}
-
-		clusters = append(clusters, FrontendHMICluster{
-			UID:             cluster.UID,
-			AddressCount:    cluster.AddressCount,
-			TransactionHash: cluster.Transaction.TxHash,
-			Parent:          parentUID,
-			Children:        childClusters,
-		})
-	}
-
-	return
 }
 
 // GetUserClusters returns all clusters of a user

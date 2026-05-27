@@ -17,7 +17,6 @@ const (
 	routeMixingActivity           string = "mixingActivity"
 	routeSpendingFingerprint      string = "spendingFingerprint"
 	routeClusters                 string = "clusters"
-	routeClustersHmi              string = "clusters/hmi"
 	routeClustersReport           string = "clusters/report"
 	routeAttributions             string = "attributions"
 	routeAttributionsPublic       string = "attributions/public"

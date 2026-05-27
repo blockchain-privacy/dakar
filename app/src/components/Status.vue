@@ -86,27 +86,6 @@
                     </v-col>
                   </v-row>
                   <v-row>
-                    <v-col v-if="data.status.lastclusteredhmiid > 0">
-                      <icon-item
-                        :icon="mdiDatabaseSearch"
-                        title="Hierarchical Multi-Input Clustering"
-                        :tooltip="tooltips.databaseClusteringHMI"
-                        is-color
-                        :is-red="!data.status.isclusteringhmi"
-                      >
-                        <v-progress-linear
-                          :color="clusteringHMISyncProgress > 98?'green'
-                            :clusteringHMISyncProgress > 90?'light-green':'light-blue'"
-                          height="17"
-                          :model-value="clusteringHMISyncProgress"
-                          rounded
-                        >
-                          {{ Math.round(clusteringHMISyncProgress) }}%
-                        </v-progress-linear>
-                      </icon-item>
-                    </v-col>
-                  </v-row>
-                  <v-row>
                     <v-col v-if="data.status.lastclusteredfmiid > 0">
                       <icon-item
                         :icon="mdiDatabaseSearch"
@@ -161,21 +140,6 @@
                                  params: { id: data.status.lastclassifiedid, blockchainMode: blockchainMode }}"
                         >
                           {{ data.status.lastclassifiedid.toLocaleString() }}
-                        </router-link>
-                      </icon-item>
-                    </v-col>
-                  </v-row>
-                  <v-row>
-                    <v-col v-if="data.status.lastclusteredhmiid">
-                      <icon-item
-                        :icon="mdiCounter"
-                        title="Last HMI Block"
-                      >
-                        <router-link
-                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                 params: { id: data.status.lastclusteredhmiid, blockchainMode: blockchainMode }}"
-                        >
-                          {{ data.status.lastclusteredhmiid.toLocaleString() }}
                         </router-link>
                       </icon-item>
                     </v-col>
@@ -246,8 +210,6 @@ const errorMsg = ref('');
 const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
 	databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
-	databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
-		+ 'Clustering is ongoing if the icon is green.',
 	databaseClusteringFMI: 'Percentage of flat multi-input clustered blocks in the database. '
 		+ 'Clustering is ongoing if the icon is green.',
 	rpcDifficulty: 'Current mining difficulty',
@@ -274,16 +236,6 @@ const classifierSyncProgress = computed(() => {
 	}
 
 	const percentage = data.value.status.lastclassifiedid / data.value.status.lastblockid * 100;
-
-	return Math.min(percentage, 100);
-});
-
-const clusteringHMISyncProgress = computed(() => {
-	if (!data.value) {
-		return 0;
-	}
-
-	const percentage = data.value.status.lastclusteredhmiid / data.value.status.lastblockid * 100;
 
 	return Math.min(percentage, 100);
 });

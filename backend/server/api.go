@@ -362,24 +362,6 @@ func (s *Server) handlerSelectorByUID() http.Handler {
 	})
 }
 
-// HMI clusters godoc
-//
-//	@Summary	Get HMI clusters per address
-//	@Tags		cluster
-//	@Produce	json
-//	@Param		hash	path		string	true	"Transaction hash"
-//	@Success	200		{object}	server.hmiLookupReply
-//	@Failure	400		{object}	server.hmiLookupReply
-//	@Failure	500		{object}	server.hmiLookupReply
-//	@Router		/clusters/hmi/{hash} [get]
-func (s *Server) handlerHMILookup() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHMILookupReply(s.db, r)
-
-		SendReply(w, reply, status)
-	})
-}
-
 // Selector Results godoc
 //
 //	@Summary		Get the results of a selector.
@@ -736,8 +718,6 @@ func (s *Server) setupHandlers() {
 	// Clusters
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClusters, "hash"),
 		s.adapt(s.handlerClusterLookup(), Authorization(), mw.MaxBody5MiB()))
-	s.handler.Handle(BuildPattern(http.MethodGet, routeClustersHmi, "hash"),
-		s.adapt(s.handlerHMILookup(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeClustersReport, "hash"),
 		s.adapt(s.handlerClusterReport(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeClusters, ""),

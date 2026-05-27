@@ -51,11 +51,13 @@ type Database interface {
 	DropAll(ctx context.Context) error
 	// DropData drops all data of the database
 	DropData(ctx context.Context) error
-	// DropPredicate drops the predicate of the specified namespace
+	// DropPredicate drops the predicate
 	DropPredicate(ctx context.Context, predicate string) error
+	// DropType drops the type
+	DropType(ctx context.Context, typeName string) error
 	// DropNamespace drops all data of the namespace
 	DropNamespace(ctx context.Context, nsID uint64) error
-	// SetSchema sets the schema of the specified namespace
+	// SetSchema sets the schema
 	SetSchema(ctx context.Context, schema string) error
 	// CreateNamespace creates a new namespace and returns its ID
 	CreateNamespace(ctx context.Context) (uint64, error)

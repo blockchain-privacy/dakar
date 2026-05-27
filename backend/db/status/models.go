@@ -17,9 +17,6 @@ const CrawlerStatusDType = "CrawlerStatus"
 // ClassifierStatusDType is the dgraph database type for the ClassifierStatus type
 const ClassifierStatusDType = "ClassifierStatus"
 
-// ClusteringHierarchicalMultiInputDType is the dgraph database type for the CHMIStatus type
-const ClusteringHierarchicalMultiInputDType = "CHMIStatus"
-
 // ClusteringFlatMultiInputDType is the dgraph database type for the CFMIStatus type
 const ClusteringFlatMultiInputDType = "CFMIStatus"
 
@@ -95,38 +92,6 @@ func (c *ClassifierStatus) SetDType() {
 	c.DType = []string{ClassifierStatusDType}
 }
 
-// ClusteringHierarchicalMultiInputStatus is the database representation
-// of the hierarchical multi-input clustering status
-type ClusteringHierarchicalMultiInputStatus struct {
-	UID string `json:"uid,omitempty"`
-
-	// IsClustering is true if a multi-input clustering process is currently active
-	IsClustering *bool `json:"isclustering,omitempty"`
-
-	// LastClusteredBlockID is the id of the last completely multi-input clustered block
-	LastClusteredBlockID *int64   `json:"lastclusteredid,omitempty"`
-	DType                []string `json:"dgraph.type,omitempty"`
-}
-
-func (c *ClusteringHierarchicalMultiInputStatus) String() string {
-	output := "UID: " + c.UID
-
-	if c.IsClustering != nil {
-		output += fmt.Sprintf(", IsClustering: %t", *c.IsClustering)
-	}
-
-	if c.LastClusteredBlockID != nil {
-		output += fmt.Sprintf(", LastClusteredBlockID: %d", *c.LastClusteredBlockID)
-	}
-
-	return output
-}
-
-// SetDType sets the DType for dgraph type recognition
-func (c *ClusteringHierarchicalMultiInputStatus) SetDType() {
-	c.DType = []string{ClusteringHierarchicalMultiInputDType}
-}
-
 // ClusteringFlatMultiInputStatus is the database representation of the flat multi-input clustering status
 type ClusteringFlatMultiInputStatus struct {
 	UID string `json:"uid,omitempty"`
@@ -162,11 +127,9 @@ func (c *ClusteringFlatMultiInputStatus) SetDType() {
 type FrontendStatus struct {
 	IsCrawling              *bool  `json:"iscrawling,omitempty"`
 	IsClassifying           *bool  `json:"isclassifying,omitempty"`
-	IsClusteringHMI         *bool  `json:"isclusteringhmi,omitempty"`
 	IsClusteringFMI         *bool  `json:"isclusteringfmi,omitempty"`
 	LastBlockID             *int64 `json:"lastblockid,omitempty"`
 	LastClassifiedBlockID   *int64 `json:"lastclassifiedid,omitempty"`
-	LastClusteredHMIBlockID *int64 `json:"lastclusteredhmiid,omitempty"`
 	LastClusteredFMIBlockID *int64 `json:"lastclusteredfmiid,omitempty"`
 }
 
@@ -203,27 +166,6 @@ type classifierStatusQuery struct {
 }
 
 func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
-	lenQ := len(a.Q)
-
-	if lenQ == 0 {
-		err = serror.New(ErrStatusNotFound)
-		return
-	}
-
-	if lenQ > 1 {
-		err = serror.New(errInvalidNumber)
-		return
-	}
-
-	status = a.Q[0]
-	return
-}
-
-type clusteringHMIStatusQuery struct {
-	Q []ClusteringHierarchicalMultiInputStatus `json:"q"`
-}
-
-func (a clusteringHMIStatusQuery) payload() (status ClusteringHierarchicalMultiInputStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {

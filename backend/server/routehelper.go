@@ -177,11 +177,6 @@ type clusterLookupReply struct {
 	Clusters []clustering.FrontendCluster `json:"clusters"`
 }
 
-type hmiLookupReply struct {
-	Clusters       []clustering.FrontendHMICluster `json:"clusters,omitempty"`
-	AddressCluster string                          `json:"address_cluster,omitempty"`
-}
-
 type mixingActivityReply struct {
 	Msg        string                     `json:"msg,omitempty"`
 	Activities []analytics.MixingActivity `json:"activities,omitempty"`

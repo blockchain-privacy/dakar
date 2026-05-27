@@ -65,33 +65,6 @@ func TestGetClassifierStatus(t *testing.T) {
 	require.False(t, *status.IsClassifying)
 }
 
-func TestGetClusteringHMIStatus(t *testing.T) {
-	dbHandle := db.GetBareDBConnection(t)
-	ctx, cancel := db.GetTaskContext()
-	defer cancel()
-
-	// clustering status not yet set
-	_, err := GetClusteringHMIStatus(ctx, dbHandle)
-	require.Error(t, err)
-
-	// set up schema
-	require.NoError(t, db.SetupSchema(dbHandle))
-
-	// set clustering
-	require.NoError(t, SetClusteringHMI(ctx, dbHandle, true))
-
-	status, err := GetClusteringHMIStatus(ctx, dbHandle)
-	require.NoError(t, err)
-	require.True(t, *status.IsClustering)
-
-	// set not clustering
-	require.NoError(t, SetClusteringHMI(ctx, dbHandle, false))
-
-	status, err = GetClusteringHMIStatus(ctx, dbHandle)
-	require.NoError(t, err)
-	require.False(t, *status.IsClustering)
-}
-
 func TestGetClusteringFMIStatus(t *testing.T) {
 	dbHandle := db.GetBareDBConnection(t)
 	ctx, cancel := db.GetTaskContext()

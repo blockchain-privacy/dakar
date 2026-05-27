@@ -17,7 +17,7 @@ import (
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version directly,
 // or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
-const SchemaVersion = 16
+const SchemaVersion = 17
 
 // SetupSchema installs a schema into Dgraph
 func SetupSchema(c external.Database) error {
@@ -103,12 +103,6 @@ func SetupSchema(c external.Database) error {
 			isclustering: bool .
 			lastclusteredid: int .
 
-			# Clustering Hierarchical Multi Input Status
-			type CHMIStatus {
-				isclustering
-				lastclusteredid
-			}
-
 			# Clustering Flat Multi Input Status
 			type CFMIStatus {
 				isclustering
@@ -168,7 +162,6 @@ func SetupSchema(c external.Database) error {
 			Cluster.type: string . # the cluster type
 			Cluster.transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
 			Cluster.addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
-			Cluster.children: [uid] @reverse . # all direct child clusters
 			Cluster.user: uid @reverse . # the user which created the cluster
 			Cluster.addressCount: int . # number of connected addresses connected to this cluster (including child clusters)
 			Cluster.ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
@@ -177,7 +170,6 @@ func SetupSchema(c external.Database) error {
 				Cluster.type
 				Cluster.transaction
 				Cluster.addresses
-				Cluster.children
 				Cluster.addressCount
 				Cluster.user
 				Cluster.ts

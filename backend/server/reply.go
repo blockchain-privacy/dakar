@@ -494,27 +494,6 @@ func getClusterLookupReply(dgraph external.Database, r *http.Request) (reply clu
 	return
 }
 
-// getHMILookupReply returns all hmi clusters connected to the given address hash
-func getHMILookupReply(dgraph external.Database, r *http.Request) (reply hmiLookupReply, status int) {
-	addressHash := r.PathValue("hash")
-	if !isValid(addressHash) {
-		status = http.StatusBadRequest
-		return
-	}
-
-	addressCluster, clusters, err := clustering.GetHMIClusters(r.Context(), dgraph, addressHash)
-	if err != nil {
-		warn(err)
-		status = http.StatusInternalServerError
-		return
-	}
-
-	reply.Clusters = clusters
-	reply.AddressCluster = addressCluster
-
-	return
-}
-
 // writeSelectorReport writes selector data in CSV format
 func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)

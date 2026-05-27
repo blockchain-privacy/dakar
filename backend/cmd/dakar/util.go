@@ -78,7 +78,6 @@ type ModulesConfig struct {
 	FMI        FMIModule        `yaml:"fmi"`
 	Classifier Classifier       `yaml:"classifier"`
 	Heuristics HeuristicsModule `yaml:"heuristics"`
-	HMI        bool             `yaml:"hmi"`
 }
 
 type Config struct {
@@ -130,7 +129,6 @@ var defaultConfig = Config{
 			WorkerCount: 0,
 		},
 		Crawler: CrawlerModule{Active: true, InitialCacheSize: 25000},
-		HMI:     false,
 	},
 }
 

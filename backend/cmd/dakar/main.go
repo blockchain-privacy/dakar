@@ -232,8 +232,7 @@ func main() {
 
 	// exit if no module is active (excluding the metrics module)
 	if !newConfig.Modules.Classifier.Active && !newConfig.Modules.Crawler.Active &&
-		!newConfig.Modules.HMI && !newConfig.Modules.FMI.Active &&
-		!newConfig.Modules.HTTP.Active {
+		!newConfig.Modules.FMI.Active && !newConfig.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
 	}
@@ -298,7 +297,6 @@ func main() {
 	// channels which are set to true as soon as the associated goroutine stops
 	chCrawlingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
-	chHMIClusteringStopped := make(chan bool, 1)
 	chFMIClusteringStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
@@ -380,21 +378,6 @@ func main() {
 		})
 	}
 
-	// activate HMI clustering
-	if newConfig.Modules.HMI {
-		wg.Go(func() {
-			defer func() {
-				chHMIClusteringStopped <- true
-			}()
-
-			hmi := clustering.NewHierarchicalMultiInput(appContext, graphDB)
-			hmi.RegisterMetrics(prometheus.DefaultRegisterer)
-			if clusteringErr := blockiterator.StartIteration(hmi, 0, nil); clusteringErr != nil {
-				warn(clusteringErr)
-			}
-		})
-	}
-
 	// activate FMI clustering
 	if newConfig.Modules.FMI.Active {
 		wg.Go(func() {
@@ -448,11 +431,10 @@ func main() {
 
 	var crawlerStopped = !newConfig.Modules.Crawler.Active
 	var classifierStopped = !newConfig.Modules.Classifier.Active
-	var clusteringHMIStopped = !newConfig.Modules.HMI
 	var clusteringFMIStopped = !newConfig.Modules.FMI.Active
 	var interrupted bool
 
-	for !interrupted && (!crawlerStopped || !classifierStopped || !clusteringHMIStopped || !clusteringFMIStopped) {
+	for !interrupted && (!crawlerStopped || !classifierStopped || !clusteringFMIStopped) {
 		select {
 		case <-chSignal:
 			interrupted = true
@@ -467,17 +449,13 @@ func main() {
 		case <-chClassifyingStopped:
 			terminateApp()
 			classifierStopped = true
-		case <-chHMIClusteringStopped:
-			terminateApp()
-			clusteringHMIStopped = true
 		case <-chFMIClusteringStopped:
 			terminateApp()
 			clusteringFMIStopped = true
 		}
 	}
 
-	if newConfig.Modules.HTTP.Active && crawlerStopped && classifierStopped &&
-		clusteringHMIStopped && clusteringFMIStopped {
+	if newConfig.Modules.HTTP.Active && crawlerStopped && classifierStopped && clusteringFMIStopped {
 		// if the crawler, the classifier and clustering stopped working on their own accord,
 		// the server is still active at this point
 

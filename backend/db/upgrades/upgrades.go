@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/dgraph-io/dgo/v250/protos/api"
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
@@ -21,6 +22,7 @@ import (
 // be set after its updates haven been applied.
 var availableUpgrades = map[int]UpgradePackage{
 	16: {upgrades: []schemaUpgrade{DropPredicateUserAddressExclusions, AlterSchemaRemoveExclusions}},
+	17: {upgrades: []schemaUpgrade{DropTypeCHMIStatus, DeleteHMIClusters, AlterSchemaClusterChildren, DropPredicateClusterChildren}},
 }
 
 func info(msg string, v ...any) {
@@ -140,4 +142,52 @@ func AlterSchemaRemoveExclusions(c external.Database) error {
 // DropPredicateUserAddressExclusions removes the User.addressExclusions predicate
 func DropPredicateUserAddressExclusions(c external.Database) error {
 	return c.DropPredicate(context.Background(), "User.addressExclusions")
+}
+
+// DropTypeCHMIStatus removes the CHMIStatus type
+func DropTypeCHMIStatus(c external.Database) error {
+	return c.DropType(context.Background(), "DropTypeCHMIStatus")
+}
+
+// AlterSchemaClusterChildren removes the Cluster.children predicate from the Cluster type
+func AlterSchemaClusterChildren(c external.Database) error {
+	return c.SetSchema(context.Background(), `
+			type Cluster {
+				Cluster.type
+				Cluster.transaction
+				Cluster.addresses
+				Cluster.addressCount
+				Cluster.user
+				Cluster.ts
+			}`)
+}
+
+// DropPredicateClusterChildren removes the Cluster.children predicate
+func DropPredicateClusterChildren(c external.Database) error {
+	return c.DropPredicate(context.Background(), "Cluster.children")
+}
+
+// DeleteHMIClusters deletes all HMI clusters
+func DeleteHMIClusters(c external.Database) error {
+	req := &api.Request{
+		Query: `{
+				var(func: has(Cluster.children))@filter(eq(Cluster.type, "hmi")){
+					c as uid
+				}
+			  }`,
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(c) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, err := db.MutationWithRetryAndResponse(context.Background(), c, req)
+	if err != nil {
+		return err
+	}
+
+	if !db.HasMutationCost(resp) {
+		return serror.FromStr("nothing was deleted")
+	}
+
+	return nil
 }
