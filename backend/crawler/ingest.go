@@ -277,8 +277,7 @@ func buildTransactionMapping(rawTransaction jsonrpc.TxRawResult,
 		}
 	} else {
 		// no fees for coinbase transactions
-		nullAmount := int64(0)
-		txDetails.Fee = &nullAmount
+		txDetails.Fee = new(int64(0))
 	}
 
 	// process all outputs

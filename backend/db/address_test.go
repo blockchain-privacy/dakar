@@ -91,9 +91,9 @@ func TestUpsertAddresses(t *testing.T) {
 	require.Error(t, err)
 
 	newAddress := Address{Hash: newAddressHash, Outputs: []Output{{
-		OutputIndex: getNumPointer[int32](1),
-		InputIndex:  getNumPointer[int32](3),
-		Amount:      getNumPointer[int64](500),
+		OutputIndex: new(int32(1)),
+		InputIndex:  new(int32(3)),
+		Amount:      new(int64(500)),
 		DType:       []string{outputDType},
 	}}}
 	newAddress.SetDType()

@@ -38,7 +38,7 @@ func TestBlock_IsComplete(t *testing.T) {
 
 	require.False(t, blk.IsComplete())
 
-	blk.ID = getNumPointer[int64](100)
+	blk.ID = new(int64(100))
 	blk.Timestamp = time.Now().Format(time.RFC3339)
 	blk.SetDType()
 	blk.Transactions = []Transaction{{}}
@@ -140,7 +140,7 @@ func TestUpsertBlock(t *testing.T) {
 			block: Block{
 				Transactions: transactions,
 				Hash:         "some_hash",
-				ID:           getNumPointer[int64](5),
+				ID:           new(int64(5)),
 				Timestamp:    time.Now().Format(time.RFC3339),
 				PrevBlock: &Block{
 					Hash: "some_other_hash",

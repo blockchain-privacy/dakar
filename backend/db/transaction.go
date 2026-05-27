@@ -53,8 +53,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 		amountOutputs += *e.Amount
 	}
 
-	fee := amountInputs - amountOutputs
-	t.Fee = &fee
+	t.Fee = new(amountInputs - amountOutputs)
 
 	return
 }

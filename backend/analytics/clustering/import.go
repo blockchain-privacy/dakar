@@ -11,8 +11,9 @@ import (
 	"backend/external"
 	"context"
 	"errors"
-	"gitlab.com/blockchain-privacy/gomisc/serror"
 	"time"
+
+	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
 type ExternalClusterItem struct {
@@ -53,11 +54,10 @@ func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
 
 	dbClusters := make([]clustering.CustomCluster, 0, len(set))
 	for _, c := range set {
-		numAddresses := len(c)
 		dbCluster := clustering.CustomCluster{
 			Type:         clustering.TypeCustom,
 			Timestamp:    clusterTimestamp,
-			AddressCount: &numAddresses,
+			AddressCount: new(len(c)),
 			User:         db.UIDNode{UID: userID},
 		}
 

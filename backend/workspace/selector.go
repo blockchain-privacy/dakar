@@ -405,12 +405,11 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 	}
 
 	// 2. Store work
-	resultCount := len(newNodes)
 	updateErr := updateSelector(ctx, workspaceMutex, c, &workspace.Selector{
 		UID:              h.selectorUID,
 		Status:           status,
 		Results:          newNodes,
-		TotalResultCount: &resultCount,
+		TotalResultCount: new(len(newNodes)),
 		ErrorCode:        errorCode,
 	}, h.workspaceUID, h.userUID)
 	if updateErr != nil {

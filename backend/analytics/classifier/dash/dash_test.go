@@ -104,9 +104,8 @@ func TestIsMixing(t *testing.T) {
 		},
 	}
 
-	fee := int64(5)
 	hasFee := db.Transaction{
-		Fee:  &fee,
+		Fee:  new(int64(5)),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
 			{Amount: &denominationsTypes[0]},
@@ -316,10 +315,6 @@ func TestCountOutputDenominations(t *testing.T) {
 	// copy denominations
 	denom0 := denominationsTypes[0]
 	denom1 := denominationsTypes[1]
-	denom2 := denominationsTypes[2]
-	denom3 := denominationsTypes[3]
-	denom4 := denominationsTypes[4]
-
 	var cases = []testCase{
 		{
 			outputs: []db.Output{{Amount: &notDenom0}, {Amount: &notDenom1}, {Amount: &notDenom2}},
@@ -335,8 +330,8 @@ func TestCountOutputDenominations(t *testing.T) {
 			result: [NumDenominations]int{0, 3, 0, 0, 0},
 		},
 		{
-			outputs: []db.Output{{Amount: &denom0}, {Amount: &denom1}, {Amount: &denom2},
-				{Amount: &denom3}, {Amount: &denom4}},
+			outputs: []db.Output{{Amount: &denom0}, {Amount: &denom1}, {Amount: new(denominationsTypes[2])},
+				{Amount: new(denominationsTypes[3])}, {Amount: new(denominationsTypes[4])}},
 			result: [NumDenominations]int{1, 1, 1, 1, 1},
 		},
 		{

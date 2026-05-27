@@ -55,9 +55,8 @@ func TestClassifier_CalculateInitialState(t *testing.T) {
 	// status not set yet
 	require.Error(t, classifier.CalculateInitialState(ctx))
 
-	yes := true
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling:  &yes,
+		IsCrawling:  new(true),
 		LastBlockID: new(int64(5)),
 	}))
 
@@ -72,9 +71,8 @@ func TestClassifier_NextBlock(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	no := false
 	require.NoError(t, status.SetCrawlerStatus(ctx, dbHandle, status.CrawlerStatus{
-		IsCrawling:  &no,
+		IsCrawling:  new(false),
 		LastBlockID: new(int64(db.BlockFileLastBlock)),
 	}))
 
@@ -181,9 +179,8 @@ func Test_setInitialClassifierID(t *testing.T) {
 	ctx, cancel := db.GetTaskContext()
 	defer cancel()
 
-	yes := true
 	require.NoError(t, status.SetClassifierStatus(ctx, dbHandle, status.ClassifierStatus{
-		IsClassifying:         &yes,
+		IsClassifying:         new(true),
 		LastClassifiedBlockID: new(int64(700)),
 	}))
 	require.NoError(t, setInitialClassifierID(ctx, dbHandle, 0))

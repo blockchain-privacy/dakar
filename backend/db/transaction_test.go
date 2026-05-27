@@ -22,10 +22,6 @@ func TestTransaction_SetDType(t *testing.T) {
 	require.Equal(t, []string{TransactionDType}, tx.DType)
 }
 
-func getNumPointer[number int64 | uint64 | uint32 | int32](n number) *number {
-	return &n
-}
-
 func TestTransaction_CalculateTransactionFee(t *testing.T) {
 	tx := Transaction{
 		UID:  "some_uid",
@@ -36,32 +32,32 @@ func TestTransaction_CalculateTransactionFee(t *testing.T) {
 	require.Zero(t, *tx.Fee)
 
 	// input amount = 40
-	tx.Inputs = []Output{{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)},
-		{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)}}
+	tx.Inputs = []Output{{Amount: new(int64(10))}, {Amount: new(int64(10))},
+		{Amount: new(int64(10))}, {Amount: new(int64(10))}}
 	// output amount = 30
-	tx.Outputs = []Output{{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)}}
+	tx.Outputs = []Output{{Amount: new(int64(10))}, {Amount: new(int64(10))}, {Amount: new(int64(10))}}
 
 	require.NoError(t, tx.CalculateTransactionFee())
 	require.Equal(t, int64(10), *tx.Fee)
 
 	// output amount = 40
-	tx.Outputs = []Output{{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)},
-		{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)}}
+	tx.Outputs = []Output{{Amount: new(int64(10))}, {Amount: new(int64(10))},
+		{Amount: new(int64(10))}, {Amount: new(int64(10))}}
 
 	require.NoError(t, tx.CalculateTransactionFee())
 	require.Zero(t, *tx.Fee)
 
 	// output amount = 50
-	tx.Outputs = []Output{{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)},
-		{Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)}, {Amount: getNumPointer[int64](10)}}
+	tx.Outputs = []Output{{Amount: new(int64(10))}, {Amount: new(int64(10))},
+		{Amount: new(int64(10))}, {Amount: new(int64(10))}, {Amount: new(int64(10))}}
 	require.NoError(t, tx.CalculateTransactionFee())
 	require.Equal(t, int64(-10), *tx.Fee)
 
-	tx.Outputs = []Output{{Amount: getNumPointer[int64](10)}, {Amount: nil}}
+	tx.Outputs = []Output{{Amount: new(int64(10))}, {Amount: nil}}
 	require.Error(t, tx.CalculateTransactionFee())
 
-	tx.Outputs = []Output{{Amount: getNumPointer[int64](10)}}
-	tx.Inputs = []Output{{Amount: getNumPointer[int64](10)}, {Amount: nil}}
+	tx.Outputs = []Output{{Amount: new(int64(10))}}
+	tx.Inputs = []Output{{Amount: new(int64(10))}, {Amount: nil}}
 	require.Error(t, tx.CalculateTransactionFee())
 }
 

@@ -76,10 +76,10 @@ type Response struct {
 // NewRequestID creates a new request ID which will be unique per client instance
 func (j *Client) NewRequestID() *int {
 	j.mutex.Lock()
-	newID := j.id
+	newID := new(j.id)
 	j.id++
 	j.mutex.Unlock()
-	return &newID
+	return newID
 }
 
 // doRequestWithRetry calls the given function. If the function returns io.EOF, the function

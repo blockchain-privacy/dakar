@@ -216,16 +216,12 @@ func doSelection(dbHandle external.Database) ([]string, []byte, error) {
 		return nil, nil, err
 	}
 
-	val1 := int64(1)
-	valPoint01 := int64(1000000)
-	valPoint1 := int64(10000000)
-
 	opt := TxPropOptions{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
-		InputSum:    &AmountRange{Min: &val1},
-		InputRange:  &AmountRange{Min: &valPoint01, Max: &valPoint1},
-		OutputRange: &AmountRange{Min: &val1, Max: &valPoint1},
+		InputSum:    &AmountRange{Min: new(int64(1))},
+		InputRange:  &AmountRange{Min: new(int64(1000000)), Max: new(int64(10000000))},
+		OutputRange: &AmountRange{Min: new(int64(1)), Max: new(int64(10000000))},
 	}
 
 	optJSON, err := json.Marshal(opt)

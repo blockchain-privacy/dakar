@@ -42,16 +42,12 @@ func TestAddSelector(t *testing.T) {
 	endDate1, err := time.Parse(time.RFC3339, "2021-10-22T00:00:00+01:00")
 	require.NoError(t, err)
 
-	val1 := int64(1)
-	valPoint01 := int64(1000000)
-	valPoint1 := int64(10000000)
-
 	opt := workspace.TxPropOptions{
 		StartDate:   &startDate1,
 		EndDate:     &endDate1,
-		InputSum:    &workspace.AmountRange{Min: &val1},
-		InputRange:  &workspace.AmountRange{Min: &valPoint01, Max: &valPoint1},
-		OutputRange: &workspace.AmountRange{Min: &val1, Max: &valPoint1},
+		InputSum:    &workspace.AmountRange{Min: new(int64(1))},
+		InputRange:  &workspace.AmountRange{Min: new(int64(1000000)), Max: new(int64(10000000))},
+		OutputRange: &workspace.AmountRange{Min: new(int64(1)), Max: new(int64(10000000))},
 	}
 	m := NewMutex()
 	ctx, cancel := db.GetTaskContext()

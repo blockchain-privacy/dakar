@@ -59,10 +59,6 @@ func TestCountWasabi2Denominations(t *testing.T) {
 	// copy denominations
 	denom0 := denominationsTypesWasabi2[0]
 	denom1 := denominationsTypesWasabi2[1]
-	denom2 := denominationsTypesWasabi2[2]
-	denom3 := denominationsTypesWasabi2[3]
-	denom4 := denominationsTypesWasabi2[4]
-
 	var cases = []testCase{
 		{
 			outputs: []db.Output{{Amount: &notDenom0}, {Amount: &notDenom1}, {Amount: &notDenom2}},
@@ -78,8 +74,8 @@ func TestCountWasabi2Denominations(t *testing.T) {
 			result: [NumWasabi2Denominations]int{0, 3},
 		},
 		{
-			outputs: []db.Output{{Amount: &denom0}, {Amount: &denom1}, {Amount: &denom2},
-				{Amount: &denom3}, {Amount: &denom4}},
+			outputs: []db.Output{{Amount: &denom0}, {Amount: &denom1}, {Amount: new(denominationsTypesWasabi2[2])},
+				{Amount: new(denominationsTypesWasabi2[3])}, {Amount: new(denominationsTypesWasabi2[4])}},
 			result: [NumWasabi2Denominations]int{1, 1, 1, 1, 1},
 		},
 		{
