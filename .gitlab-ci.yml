@@ -91,6 +91,8 @@ build:
 
 swaggo:
   stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
   script:
     - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download//v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
@@ -159,6 +161,23 @@ upload:
   script:
     - |
       curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/dakar "${PACKAGE_REGISTRY_URL}/dakar"
+
+docker:
+  image: docker:latest
+  stage: publish
+  services:
+    - docker:dind
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    IMAGE_TAG_VERSION: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
+  script:
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - docker build -t $IMAGE_TAG_VERSION .
+    - docker tag $IMAGE_TAG_VERSION $IMAGE_TAG_LATEST
+    - docker push $IMAGE_TAG_VERSION
+    - docker push $IMAGE_TAG_LATEST
 
 release:
   needs: [ "upload" ]

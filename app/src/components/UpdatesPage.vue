@@ -44,6 +44,11 @@ const localStore = useLocalStore();
 
 const updates = [
 	{
+		title: 'Docker',
+		subtitle: 'Dakar docker images are now available at registry.gitlab.com/blockchain-privacy/dakar:latest.',
+		date: new Date(2026, 5 - 1, 28),
+	},
+	{
 		title: 'Vuetify 4',
 		subtitle: 'Dakar uses the Vuetify UI framework. This update migrates the web application from Vuetify 3 to Vuetify 4. Users may notice slight typographic differences.',
 		date: new Date(2026, 5 - 1, 27),

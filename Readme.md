@@ -27,7 +27,7 @@ available: heuristics, transaction similarity measure, mixing activity overview 
 
 ### Setup Dakar
 
-* Build Dakar
+#### Compile from Source
 
 ```shell script
 cd backend
@@ -35,27 +35,32 @@ make dakar
 cd build
 ```
 
-* Create a new config file. Change the values in the newly generated `config.yml` to appropriate values.
+#### Docker
+
+Docker images are available at `registry.gitlab.com/blockchain-privacy/dakar:latest`.
+
+To create a Docker image from source execute the following commands.
+```shell script
+cd backend
+make docker
+```
+The Docker image expects the config file to be mounted to `/data/config.yml`.
+
+#### Config
+
+Create a new config file. Change the values in the newly generated `config.yml` to appropriate values.
 ```shell script
 # -createConfig will create a new config file `config.yml` in your current directory
 ./dakar -createConfig
 ```
 
-* Launch the Dakar executable with the following command
+Launch the Dakar executable with the following command
 ```shell script
 # -reset will delete all data of the dgraph instance and setup a new schema
 ./build/dakar -reset
 ```
-* The REST API can be accessed via the address printed in the standard output.
-Check the [Dakar description](backend/cmd/dakar/Readme.md) for more details. 
-
-### Docker
-
-To create a docker image containing the Dakar executable execute the script below.
-```shell script
-make docker
-```
-The image expects the config file to be mounted to `/data/config.yml`.
+* The REST API can be accessed via the address printed in stdout.
+Check the [Dakar description](backend/cmd/dakar/Readme.md) for more details.
 
 ### Setup Frontend
 
