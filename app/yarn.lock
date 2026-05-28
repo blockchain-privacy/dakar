@@ -89,24 +89,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/kratosadmin@npm:^0.0.27":
-  version: 0.0.27
-  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.27::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.27.tgz"
-  checksum: 10c0/d42a3f7627c157c108a420674d63c20cb722da0eda15d0a1d35b7392bbe9bda32db66d2dc4210b90ae3edb63ee8d365f2692da9ee1633e1bf485d0d7f2e5b6d1
+"@blockchain-privacy/kratosadmin@npm:^0.0.30":
+  version: 0.0.30
+  resolution: "@blockchain-privacy/kratosadmin@npm:0.0.30::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75352102%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fkratosadmin%2F-%2F%40blockchain-privacy%2Fkratosadmin-0.0.30.tgz"
+  checksum: 10c0/be0b8693003b3491011aa8615a3c9a37605c800acf6007a1b1f45d261879638ed8d6547913548549b2c1ffffa20ac83db2a0f6618c9523bd989732e1ffb5edb0
   languageName: node
   linkType: hard
 
-"@blockchain-privacy/wikiapi@npm:^0.0.2":
-  version: 0.0.2
-  resolution: "@blockchain-privacy/wikiapi@npm:0.0.2::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75353814%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fwikiapi%2F-%2F%40blockchain-privacy%2Fwikiapi-0.0.2.tgz"
-  checksum: 10c0/acc1d20ef0551da26aaed0cbb53d2bd9bdd3564545c4a1bab2aa85edb50b6bd9d7cdc03bc5412baf92ad0c500c44071480ceb041c0161d4167ea3a43fef684d7
+"@blockchain-privacy/wikiapi@npm:^0.0.6":
+  version: 0.0.6
+  resolution: "@blockchain-privacy/wikiapi@npm:0.0.6::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F75353814%2Fpackages%2Fnpm%2F%40blockchain-privacy%2Fwikiapi%2F-%2F%40blockchain-privacy%2Fwikiapi-0.0.6.tgz"
+  checksum: 10c0/c34e40889b63277348a1a3ad4c48a5fe8d1519e15170f0f71082cbd9ff153d4cdaaaa751f531ea418c2a63c0eff58a2663895c074bc2b70f99e31e6b7e44d79d
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.0.6":
-  version: 1.0.6
-  resolution: "@blockchain/dakar@npm:1.0.6::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F78315009%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.6.tgz"
-  checksum: 10c0/5776073998dc92609bedce02dfe167abe66d2b7cb7e588ae2591f034f5b4319290aa86f644f74b2baa27782af022b6796f7d93367c642e6a4b1c805843257b38
+"@blockchain/dakar@npm:^1.0.7":
+  version: 1.0.7
+  resolution: "@blockchain/dakar@npm:1.0.7::__archiveUrl=https%3A%2F%2Fgitlab.com%2Fapi%2Fv4%2Fprojects%2F78315009%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.7.tgz"
+  checksum: 10c0/391633cd7ecb1d44be790bd4df9242fe5f88558334cad45635857779ce33b282b1fe69b025e353e385d43313691e5304592fbbd7d15cef9b7779168846685bc5
   languageName: node
   linkType: hard
 
@@ -2124,9 +2124,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain-privacy/kratosadmin": "npm:^0.0.27"
-    "@blockchain-privacy/wikiapi": "npm:^0.0.2"
-    "@blockchain/dakar": "npm:^1.0.6"
+    "@blockchain-privacy/kratosadmin": "npm:^0.0.30"
+    "@blockchain-privacy/wikiapi": "npm:^0.0.6"
+    "@blockchain/dakar": "npm:^1.0.7"
     "@eslint/js": "npm:^10.0.1"
     "@fontsource/roboto": "npm:^5.2.10"
     "@mdi/js": "npm:^7.4.47"
