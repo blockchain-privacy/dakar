@@ -16,8 +16,8 @@ import (
 	"gitlab.com/blockchain-privacy/gomisc/serror"
 )
 
-// AddWorkspace creates a new workspace
-func AddWorkspace(ctx context.Context, c external.Database, name string, userUID string) (workspaceUID string, err error) {
+// AddWorkspace creates a new workspace. If importFile is set, the workspace state will be imported from it.
+func AddWorkspace(ctx context.Context, c external.Database, name string, userUID string, importFile string) (workspaceUID string, err error) {
 	if name == "" || userUID == "" {
 		err = serror.New(db.ErrEmptyRequestArgument)
 		return
@@ -30,6 +30,11 @@ func AddWorkspace(ctx context.Context, c external.Database, name string, userUID
 		ClusterHeight:    nil, // unset
 	}
 	w.SetDType()
+
+	if importFile != "" {
+		w.ImportFile = importFile
+		w.ImportStatus = ImportStatusWaiting
+	}
 
 	type dummyUser struct {
 		UID        string      `json:"uid,omitempty"`
@@ -92,6 +97,41 @@ func RenameWorkspace(ctx context.Context, c external.Database, name string,
 	return
 }
 
+// DeleteImportAndSetStatus sets the import status of the workspace and deletes the import file
+func DeleteImportAndSetStatus(ctx context.Context, c external.Database, workspaceUID string, status string) (err error) {
+	if workspaceUID == "" || status == "" {
+		return serror.New(db.ErrEmptyRequestArgument)
+	}
+
+	type simpleWorkspace struct {
+		UID              string `json:"uid"`
+		ModificationTime string `json:"Workspace.ts"`
+		ImportStatus     string `json:"Workspace.importStatus"`
+		ImportTime       string `json:"Workspace.importTs"`
+	}
+
+	ts := time.Now().UTC().Format(time.RFC3339)
+	var w = simpleWorkspace{
+		UID:              workspaceUID,
+		ModificationTime: ts,
+		ImportTime:       ts,
+		ImportStatus:     status,
+	}
+
+	pb, err := json.Marshal(w)
+	if err != nil {
+		err = serror.New(err)
+		return
+	}
+
+	_, err = c.Mutate(ctx, &api.Request{Mutations: []*api.Mutation{
+		{SetJson: pb},
+		{DelNquads: []byte("<" + workspaceUID + "> <Workspace.importFile> * .")},
+	}, CommitNow: true})
+
+	return
+}
+
 // SetWorkspaceState sets the state of the specified workspace
 func SetWorkspaceState(ctx context.Context, c external.Database, userUID string, workspaceUID string,
 	state string, clusterHeight *int64) (err error) {
@@ -138,6 +178,8 @@ func GetFrontendWorkspaces(ctx context.Context, c external.Database, userUID str
 				uid
 				Workspace.name
 				Workspace.ts
+				Workspace.importStatus
+				Workspace.importTs
 			}
 		}`
 

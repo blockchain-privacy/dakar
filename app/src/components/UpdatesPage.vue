@@ -44,6 +44,11 @@ const localStore = useLocalStore();
 
 const updates = [
 	{
+		title: 'Workspace Export and Import',
+		subtitle: 'Workspaces can now be exported and imported. This allows to create backups of workspaces, duplicate workspaces, and sharing workspaces with other users.',
+		date: new Date(2026, 5 - 1, 31),
+	},
+	{
 		title: 'Docker',
 		subtitle: 'Dakar docker images are now available at registry.gitlab.com/blockchain-privacy/dakar:latest.',
 		date: new Date(2026, 5 - 1, 28),

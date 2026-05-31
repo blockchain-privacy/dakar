@@ -397,7 +397,7 @@ func main() {
 	// start api endpoint
 	var apiHTTPServer *http.Server
 	if newConfig.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(workspaceMutex, graphDB, client, w, graphWrapper)
+		apiServer, serverErr := server.NewServer(workspaceMutex, graphDB, client, w, graphWrapper, newConfig.BlockchainMode)
 		if serverErr != nil {
 			warn(serverErr)
 		}

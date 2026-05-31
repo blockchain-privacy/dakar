@@ -47,7 +47,7 @@ func TestAddWorkspace(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		newWorkspaceUID, err := AddWorkspace(t.Context(), dbHandle, tt.name, tt.userUID)
+		newWorkspaceUID, err := AddWorkspace(t.Context(), dbHandle, tt.name, tt.userUID, "")
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
@@ -64,16 +64,16 @@ func TestGetFrontendWorkspaces(t *testing.T) {
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
-	_, err = AddWorkspace(ctx, dbHandle, "test", userUID)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID, "")
 	require.NoError(t, err)
 
 	userUID2, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
-	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2, "")
 	require.NoError(t, err)
-	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2, "")
 	require.NoError(t, err)
-	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2)
+	_, err = AddWorkspace(ctx, dbHandle, "test", userUID2, "")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -191,7 +191,7 @@ func TestDeleteWorkspace(t *testing.T) {
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
-	workspaceUID, err := AddWorkspace(ctx, dbHandle, "test", userUID)
+	workspaceUID, err := AddWorkspace(ctx, dbHandle, "test", userUID, "")
 	require.NoError(t, err)
 
 	tests := []struct {

@@ -37,7 +37,7 @@ type TxPropWork struct {
 	parentUID    string
 }
 
-func NewTxPropWork(item workspace.WorkItem) (*TxPropWork, error) {
+func NewTxPropWork(item workspace.SelectorWorkItem) (*TxPropWork, error) {
 	if item.SelectorOptions == "" {
 		return nil, serror.FromStrWithContext("empty selector options", "item", item)
 	}
@@ -109,7 +109,7 @@ type TxGraphWork struct {
 	parentUID    string
 }
 
-func NewTxGraphWork(item workspace.WorkItem) (*TxGraphWork, error) {
+func NewTxGraphWork(item workspace.SelectorWorkItem) (*TxGraphWork, error) {
 	if item.SelectorOptions == "" || item.ParentUID == "" {
 		return nil, serror.FromStrWithContext("invalid selector", "item", item)
 	}
@@ -282,7 +282,7 @@ func checkOptions(ctx context.Context, dgraph external.Database, options workspa
 	return &newNode, nil
 }
 
-// AddSelector adds and validates a new selector to the workspace. It returns the UID of the updated workspace.
+// AddSelector adds and validates a new selector to the workspace. It returns the UID of the new selector.
 func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *Mutex, options workspace.Options,
 	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, []workspace.Node, error) {
 	newNode, err := checkOptions(ctx, dgraph, options, selectorType, selectorParent, workspaceUID, userUID)
@@ -425,7 +425,7 @@ func (h HeuristicWork) Run(ctx context.Context, workspaceMutex *Mutex, c externa
 	return err
 }
 
-func NewHeuristicWork(item workspace.WorkItem) (*HeuristicWork, error) {
+func NewHeuristicWork(item workspace.SelectorWorkItem) (*HeuristicWork, error) {
 	if item.SelectorOptions == "" {
 		return nil, serror.FromStrWithContext("empty selector options", "item", item)
 	}

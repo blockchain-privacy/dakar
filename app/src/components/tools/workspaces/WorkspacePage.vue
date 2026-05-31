@@ -79,18 +79,28 @@
             :uid="item.raw.uid"
             :mode="item.raw.mode"
             :title="item.raw.name"
+            :import-status="item.raw.importStatus"
+            :import-time="new Date(item.raw.importTs)"
             :created="new Date(item.raw.modTimeUnix)"
           >
             <v-btn-group density="compact">
               <v-btn
+                :disabled="item.raw.importStatus === WORKSPACE_IMPORT_STATUS_WAITING"
                 :icon="mdiRename"
                 variant="text"
-                @click.stop="e => showRenameDialog(e,item.raw)"
+                @click.stop="e => showRenameDialog(e, item.raw)"
               />
               <v-btn
+                :disabled="item.raw.importStatus === WORKSPACE_IMPORT_STATUS_WAITING"
+                :icon="mdiExport"
+                variant="text"
+                @click.stop="e => showExportDialog(e, item.raw)"
+              />
+              <v-btn
+                :disabled="item.raw.importStatus === WORKSPACE_IMPORT_STATUS_WAITING"
                 :icon="mdiDelete"
                 variant="text"
-                @click.stop="e => showDeleteWorkspaceDialog(e,item.raw)"
+                @click.stop="e => showDeleteWorkspaceDialog(e, item.raw)"
               />
             </v-btn-group>
           </workspace-card>
@@ -150,15 +160,18 @@
         will be deleted. Continue?
       </p>
     </confirm-dialog>
-    <blockchain-mode-text-dialog
+    <add-workspace-dialog
       v-if="showAddWorkspaceDialogModel"
       v-model="showAddWorkspaceDialogModel"
-      title="New Workspace"
-      submit-label="Create"
-      input-label="Workspace name"
       :maxlength="maxWorkspaceNameLength"
-      show-mode-switch
-      @submit="addWorkspace"
+      @added="addWorkspace"
+      @imported="importWorkspace"
+    />
+    <export-dialog
+      v-if="showExportWorkspaceDialogModel"
+      v-model="showExportWorkspaceDialogModel"
+      :workspace="workspaceToExport"
+      @submit="exportWorkspace"
     />
     <text-dialog
       v-if="showRenameWorkspaceDialogModel"
@@ -182,10 +195,12 @@ import {
 	mdiHelpCircleOutline,
 	mdiArrowLeft,
 	mdiArrowRight,
+	mdiExport,
 } from '@mdi/js';
 import {
 	computed,
 	onMounted,
+	onUnmounted,
 	ref,
 	toRaw,
 } from 'vue';
@@ -193,10 +208,14 @@ import {useDisplay} from 'vuetify';
 import {storeToRefs} from 'pinia';
 import {
 	BLOCKCHAIN_ATTRIBUTES,
+	BLOCKCHAIN_BTC,
+	BLOCKCHAIN_DASH,
 	PAGE_TITLE,
 	ROUTE_NAME_WORKSPACE_PAGE,
+	WORKSPACE_IMPORT_STATUS_WAITING,
 } from '@/constants/index.js';
 import {
+	getCurrentDate,
 	getDakarClients,
 	isAdminIdentity,
 	isPrivilegedIdentity,
@@ -205,11 +224,12 @@ import IconTitle from '@/components/common/IconTitle.vue';
 import TextDialog from '@/components/common/TextDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
-import BlockchainModeTextDialog from '@/components/tools/workspaces/BlockchainModeTextDialog.vue';
+import AddWorkspaceDialog from '@/components/tools/workspaces/AddWorkspaceDialog.vue';
 import {useLocalStore} from '@/pinia/local.js';
 import Alert from '@/components/common/Alert.vue';
 import WorkspaceCard from '@/components/tools/workspaces/WorkspaceCard.vue';
 import SortSelect from '@/components/common/SortSelect.vue';
+import ExportDialog from '@/components/tools/workspaces/ExportDialog.vue';
 
 const display = useDisplay();
 const {session} = storeToRefs(useLocalStore());
@@ -219,7 +239,9 @@ const workspaceList = ref([]);
 const showDeleteWorkspaceDialogModel = ref(false);
 const showAddWorkspaceDialogModel = ref(false);
 const showRenameWorkspaceDialogModel = ref(false);
+const showExportWorkspaceDialogModel = ref(false);
 const workspaceToDelete = ref(null);
+const workspaceToExport = ref(null);
 const renamedWorkspace = ref(null);
 const isLoading = ref(false);
 const search = ref('');
@@ -238,19 +260,40 @@ const sort = ref(sortItems[2]);
 const direction = ref(true);
 
 const maxWorkspaceNameLength = 50;
+let reloadTimer = null;
 
 // Computed
 const authPerMode = computed(() => Object.values(BLOCKCHAIN_ATTRIBUTES).filter(m => isPrivilegedIdentity(session.value, m.mode)
 	|| isAdminIdentity(session.value, m.mode)));
 
 // Hooks
-onMounted(() => {
+onMounted(async () => {
 	document.title = `Workspaces - ${PAGE_TITLE}`;
-	refreshWorkspaceList();
+	await refreshWorkspaceList();
 	handleSort();
+	startWaitingForReload(workspaceList.value);
+});
+
+onUnmounted(() => {
+	if (reloadTimer !== null) {
+		clearTimeout(reloadTimer);
+		reloadTimer = null;
+	}
 });
 
 // Functions
+function startWaitingForReload(workspaces) {
+	if (reloadTimer !== null) {
+		// Already checking for reload
+		return;
+	}
+
+	const waitingWorkspace = workspaces.find(w => w.importStatus === WORKSPACE_IMPORT_STATUS_WAITING);
+	if (waitingWorkspace) {
+		reloadTimer = setTimeout(refreshWorkspaceListHidden, 3000);
+	}
+}
+
 async function renameWorkspace(workspace) {
 	errorMsg.value = '';
 	const workspaceName = workspace;
@@ -293,6 +336,40 @@ async function renameWorkspace(workspace) {
 	isLoading.value = false;
 }
 
+async function exportWorkspace(workspace) {
+	errorMsg.value = '';
+	showExportWorkspaceDialogModel.value = false;
+
+	if (!workspace) {
+		errorMsg.value = 'workspace empty';
+		return;
+	}
+
+	if (!workspace.mode) {
+		errorMsg.value = 'workspace mode is empty';
+		return;
+	}
+
+	isLoading.value = true;
+	try {
+		const response = await dakarClients[workspace.mode].workspace.workspacesExportPost({workspace: {workspaceUID: workspace.uid}});
+
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(response);
+
+		a.setAttribute(
+			'download',
+			`workspace_export_${getCurrentDate()}_${workspace.name}.json`,
+		);
+		a.click();
+		a.remove();
+	} catch (error) {
+		errorMsg.value = error.message;
+	}
+
+	isLoading.value = false;
+}
+
 async function addWorkspace(name, mode) {
 	errorMsg.value = '';
 	showAddWorkspaceDialogModel.value = false;
@@ -323,6 +400,28 @@ async function addWorkspace(name, mode) {
 	isLoading.value = false;
 }
 
+async function importWorkspace(file) {
+	errorMsg.value = '';
+	showAddWorkspaceDialogModel.value = false;
+
+	isLoading.value = true;
+	try {
+		const blockchainMode = JSON.parse(await file.text()).meta?.blockchainMode;
+
+		if (blockchainMode !== BLOCKCHAIN_DASH && blockchainMode !== BLOCKCHAIN_BTC) {
+			errorMsg.value = `invalid blockchain mode while importing: '${blockchainMode}'`;
+			return;
+		}
+
+		await dakarClients[blockchainMode].workspace.workspacesImportPost({file});
+		await refreshWorkspaceList();
+	} catch (error) {
+		errorMsg.value = error.message;
+	} finally {
+		isLoading.value = false;
+	}
+}
+
 async function refreshWorkspaceList() {
 	isLoading.value = true;
 	errorMsg.value = '';
@@ -349,6 +448,31 @@ async function refreshWorkspaceList() {
 	workspaceList.value = workspaces;
 	isLoading.value = false;
 	search.value = '';
+	startWaitingForReload(workspaceList.value);
+}
+
+async function refreshWorkspaceListHidden() {
+	const resolved = await Promise.allSettled(authPerMode.value.map(chain => dakarClients[chain.mode].workspace.workspacesGet()));
+
+	const workspaces = [];
+	for (const [index, response] of resolved.entries()) {
+		if (response.status === 'rejected') {
+			errorMsg.value = response.reason.message;
+			continue;
+		}
+
+		if (response.value?.workspaces) {
+			workspaces.push(...response.value.workspaces.map(w => {
+				w.mode = authPerMode.value[index].mode;
+				w.modTimeUnix = new Date(w.ts).getTime();
+				return w;
+			}));
+		}
+	}
+
+	workspaceList.value = workspaces;
+	reloadTimer = null;
+	startWaitingForReload(workspaceList.value);
 }
 
 async function deleteWorkspace() {
@@ -390,6 +514,16 @@ function showRenameDialog(e, workspace) {
 	// Workspace is a ref -> need to convert and clone it
 	renamedWorkspace.value = structuredClone(toRaw(workspace));
 	showRenameWorkspaceDialogModel.value = true;
+}
+
+function showExportDialog(e, workspace) {
+	e.preventDefault();
+	if (isLoading.value) {
+		return;
+	}
+
+	workspaceToExport.value = workspace;
+	showExportWorkspaceDialogModel.value = true;
 }
 
 function showDeleteWorkspaceDialog(e, workspace) {

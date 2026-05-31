@@ -28,7 +28,7 @@ func TestGetAndRefreshWorkspace(t *testing.T) {
 	// create dgraph user and workspace for tests
 	userUID, err := user.CreateNewUser(ctx, dbHandle)
 	require.NoError(t, err)
-	wsUID1, err := workspace.AddWorkspace(ctx, dbHandle, "test1", userUID)
+	wsUID1, err := workspace.AddWorkspace(ctx, dbHandle, "test1", userUID, "")
 	require.NoError(t, err)
 
 	m := NewMutex()
@@ -79,7 +79,7 @@ func getUserAndWorkspaces(t *testing.T, dbHandle external.Database) ([]string, [
 		userToWorkspaces[i] = make([]string, workspacesPerUser)
 		users[i] = userUID
 		for y := range workspacesPerUser {
-			userToWorkspaces[i][y], err = workspace.AddWorkspace(ctx, dbHandle, "test1", userUID)
+			userToWorkspaces[i][y], err = workspace.AddWorkspace(ctx, dbHandle, "test1", userUID, "")
 			require.NoError(t, err)
 
 			txUids := []string{"82c973129dc13f84f137c0958c3a6ee875fdb066957abb7fd797ae8845c8689d",

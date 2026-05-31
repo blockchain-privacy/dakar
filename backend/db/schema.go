@@ -17,7 +17,7 @@ import (
 // then a database upgrade is required.
 // Use status.SetSchemaVersion to increase the schema version directly,
 // or apply upgrades with upgrades.UpgradeDatabase which sets the version appropriately.
-const SchemaVersion = 18
+const SchemaVersion = 20
 
 // SetupSchema installs a schema into Dgraph
 func SetupSchema(c external.Database) error {
@@ -128,6 +128,9 @@ func SetupSchema(c external.Database) error {
 			Workspace.state: string . # JSON encoded state of the workspace
 			Workspace.clusterHeight: int . # last clustered block at which this workspace was updated
 			Workspace.selectors: [uid] @reverse . # selectors which are managed by this workspace
+			Workspace.importStatus: string @index(hash) . # import status of the workspace (waiting, error, success)
+			Workspace.importFile: string . # import file in Json format
+			Workspace.importTs: dateTime @index(day) . # import date of the workspace
 
 			type Workspace {
 				Workspace.name
@@ -135,6 +138,9 @@ func SetupSchema(c external.Database) error {
 				Workspace.state
 				Workspace.clusterHeight
 				Workspace.selectors
+				Workspace.importStatus
+				Workspace.importFile
+				Workspace.importTs
 			}
 			
 			Selector.created: dateTime @index(day) .  # creation date of the selector

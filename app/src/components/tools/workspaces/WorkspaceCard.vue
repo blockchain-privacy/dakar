@@ -5,7 +5,7 @@
 <template>
   <v-card
     width="288px"
-    :to="to"
+    :to="importStatus === WORKSPACE_IMPORT_STATUS_WAITING?undefined:to"
   >
     <div
       style="display: grid"
@@ -20,6 +20,14 @@
         type="image"
         style="grid-area: 1/1"
       />
+      <v-chip
+        v-if="loading && importStatus === WORKSPACE_IMPORT_STATUS_WAITING"
+        style="position: absolute; align-self: center; justify-self: center"
+        rounded
+        color="warning"
+      >
+        Importing workspace
+      </v-chip>
       <v-icon
         v-if="mode"
         style="position: absolute; right: 5px; top: 5px"
@@ -29,15 +37,29 @@
       />
     </div>
     <div class="d-flex flex-column">
-      <v-chip
-        v-tooltip="{'text': `Modified ${created.toLocaleString()}`, 'location':'top', 'open-delay': 400}"
-        rounded
-        size="small"
-        :prepend-icon="mdiCalendar"
-        class="me-2 ms-auto"
-      >
-        {{ relativeTime }}
-      </v-chip>
+      <div class="d-flex">
+        <v-chip
+          v-if="displayImportResult"
+          v-tooltip="{'text': `Error while importing the workspace. Some nodes may be missing.`, 'location':'top', 'open-delay': 400}"
+          rounded
+          size="small"
+          :color="importChipColor"
+          :prepend-icon="mdiImport"
+          class="ms-2 me-auto"
+        >
+          {{ importResultLabel }}
+        </v-chip>
+        <v-chip
+          v-tooltip="{'text': `Modified ${created.toLocaleString()}`, 'location':'top', 'open-delay': 400}"
+          rounded
+          size="small"
+          :prepend-icon="mdiCalendar"
+          class="me-2 ms-auto"
+        >
+          {{ relativeTime }}
+        </v-chip>
+      </div>
+
       <div class="d-flex justify-space-between align-center justify-center">
         <v-card-title>
           <div
@@ -64,13 +86,18 @@ import {
 	ref,
 	useId,
 } from 'vue';
-import {mdiCalendar} from '@mdi/js';
+import {mdiCalendar, mdiImport} from '@mdi/js';
 import {
 	getDakarClients,
 	getGraphColorMap,
 } from '@/utilities/index.js';
 import Alert from '@/components/common/Alert.vue';
-import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
+import {
+	BLOCKCHAIN_ATTRIBUTES,
+	WORKSPACE_IMPORT_STATUS_ERROR,
+	WORKSPACE_IMPORT_STATUS_SUCCESS,
+	WORKSPACE_IMPORT_STATUS_WAITING,
+} from '@/constants/index.js';
 import NodeGraph from '@/d3Documents/nodeGraph.js';
 import {useCacheStore} from '@/pinia/cache.js';
 
@@ -82,6 +109,8 @@ const props = defineProps({
 	title: {type: String, required: true},
 	created: {type: Date, required: true},
 	to: {type: Object, required: true},
+	importStatus: {type: String, required: false, default: ''},
+	importTime: {type: Date, required: false, default: null},
 });
 
 const cacheStore = useCacheStore();
@@ -91,6 +120,7 @@ const errorMsg = ref('');
 const loading = ref(true);
 const computeUpdate = ref(0);
 let oldUID = '';
+let oldImportStatus = '';
 let intervalHandle = null;
 const nodeGraph = new NodeGraph(getGraphColorMap(props.mode));
 
@@ -100,6 +130,45 @@ const relativeTime = computed(() => {
 	// See mounted hook
 	const _ = computeUpdate.value;
 	return getRelativeTime(props.created);
+});
+
+const importChipColor = computed(() => {
+	if (props.importStatus === WORKSPACE_IMPORT_STATUS_SUCCESS) {
+		return 'success';
+	}
+
+	if (props.importStatus === WORKSPACE_IMPORT_STATUS_ERROR) {
+		return 'error';
+	}
+
+	return 'grey';
+});
+
+const importResultLabel = computed(() => {
+	if (props.importStatus === WORKSPACE_IMPORT_STATUS_SUCCESS) {
+		return 'Import ok';
+	}
+
+	if (props.importStatus === WORKSPACE_IMPORT_STATUS_ERROR) {
+		return 'Import error';
+	}
+
+	return '';
+});
+
+const displayImportResult = computed(() => {
+	if (props.importStatus !== WORKSPACE_IMPORT_STATUS_SUCCESS && props.importStatus !== WORKSPACE_IMPORT_STATUS_ERROR) {
+		return false;
+	}
+
+	if (props.importTime === null) {
+		return false;
+	}
+
+	// 1 day
+	const cutoff = 60 * 60 * 24 * 1000;
+	// If the workspace was imported over later than the cutoff, then don't display the result
+	return new Date().getTime() - props.importTime.getTime() < cutoff;
 });
 
 // Hooks
@@ -112,7 +181,7 @@ onMounted(() => {
 });
 
 onUpdated(() => {
-	if (oldUID === props.uid) {
+	if (oldUID === props.uid && props.importStatus === oldImportStatus) {
 		return;
 	}
 
@@ -128,6 +197,12 @@ onUnmounted(() => {
 // Functions
 async function init() {
 	oldUID = props.uid;
+	oldImportStatus = props.importStatus;
+
+	if (props.importStatus === WORKSPACE_IMPORT_STATUS_WAITING) {
+		return;
+	}
+
 	const svgElement = document.getElementById(svgID.value);
 	const cacheValue = cacheStore.getWithMetadata(props.uid);
 	// Fetch the workspace, if it is not in the cache or if the workspace is newer than the cache item
