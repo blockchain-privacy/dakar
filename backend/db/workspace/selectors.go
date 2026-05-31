@@ -490,7 +490,7 @@ func DeleteUserSelectors(ctx context.Context, c external.Database,
 }
 
 // GetWaitingSelectors returns selectors which are waiting to be executed.
-func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems int) ([]WorkItem, error) {
+func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems int) ([]SelectorWorkItem, error) {
 	if maxItems <= 0 {
 		return nil, nil
 	}
@@ -530,7 +530,7 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems int)
 		return nil, serror.New(err)
 	}
 
-	items := make([]WorkItem, len(r.Selectors))
+	items := make([]SelectorWorkItem, len(r.Selectors))
 	for i, s := range r.Selectors {
 		if len(s.Workspace) != 1 || len(s.Workspace[0].User) != 1 {
 			return nil, serror.FromStr("invalid workspace or user UID")
@@ -541,13 +541,60 @@ func GetWaitingSelectors(ctx context.Context, c external.Database, maxItems int)
 			parentUID = s.Parent.UID
 		}
 
-		items[i] = WorkItem{
+		items[i] = SelectorWorkItem{
 			UserUID:         s.Workspace[0].User[0].UID,
 			WorkspaceUID:    s.Workspace[0].UID,
 			ParentUID:       parentUID,
 			SelectorUID:     s.UID,
 			SelectorType:    s.Type,
 			SelectorOptions: s.Options,
+		}
+	}
+
+	return items, nil
+}
+
+// GetWaitingWorkspaceImports returns workspaces that are waiting to be imported.
+func GetWaitingWorkspaceImports(ctx context.Context, c external.Database, maxItems int) ([]ImportWorkItem, error) {
+	if maxItems <= 0 {
+		return nil, nil
+	}
+
+	query := `query Q($maxItems:int){
+				q(func: eq(Workspace.importStatus, ` + ImportStatusWaiting + `), first: $maxItems){
+					uid
+					Workspace.importFile
+					~User.workspaces{uid}
+				}
+			   }`
+
+	resp, err := c.Query(ctx, query, map[string]string{"$maxItems": strconv.Itoa(maxItems)})
+	if err != nil {
+		return nil, serror.New(err)
+	}
+
+	var r struct {
+		Workspaces []struct {
+			UID  string       `json:"uid,omitempty"`
+			File string       `json:"Workspace.importFile,omitempty"`
+			User []db.UIDNode `json:"~User.workspaces,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.GetJson(), &r); err != nil {
+		return nil, serror.New(err)
+	}
+
+	items := make([]ImportWorkItem, len(r.Workspaces))
+	for i, s := range r.Workspaces {
+		if len(s.User) != 1 {
+			return nil, serror.FromStr("invalid user UID")
+		}
+
+		items[i] = ImportWorkItem{
+			UserUID:      s.User[0].UID,
+			WorkspaceUID: s.UID,
+			ImportFile:   s.File,
 		}
 	}
 

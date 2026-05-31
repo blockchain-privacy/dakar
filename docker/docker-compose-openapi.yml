@@ -1,6 +1,6 @@
 services:
   openapi:
-    image: openapitools/openapi-generator-cli:v7.19.0
+    image: openapitools/openapi-generator-cli:v7.21.0
     container_name: openapi
     volumes:
       - ../backend/openapi:/local

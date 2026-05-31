@@ -545,7 +545,7 @@ func writeSelectorReport(dgraph external.Database, w http.ResponseWriter, r *htt
 	}
 
 	if err != nil {
-		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+		http.Error(w, "error writing to csv stream", http.StatusInternalServerError)
 		warn(err)
 		return
 	}
@@ -713,7 +713,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgRep
 
 	defer func(file multipart.File) {
 		if err := file.Close(); err != nil {
-			warn(serror.FromFormat("error closing CSV-file: %w", err))
+			warn(serror.FromFormat("error closing file: %w", err))
 		}
 	}(file)
 
@@ -926,6 +926,106 @@ func getSpendingFingerprintReply(dgraph external.Database, graphWrapper *graph.W
 	return
 }
 
+func getImportWorkspaceReply(dgraph external.Database, blockchainMode string, r *http.Request) (reply msgReply, status int) {
+	tUser, err := ExtractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	if err := r.ParseMultipartForm(maxBodySize); err != nil { //nolint:gosec
+		status = http.StatusBadRequest
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		status = http.StatusBadRequest
+		return
+	}
+
+	defer func(file multipart.File) {
+		if err := file.Close(); err != nil {
+			warn(serror.FromFormat("error closing file: %w", err))
+		}
+	}(file)
+
+	var export workspace.Export
+	if err = json.NewDecoder(file).Decode(&export); err != nil {
+		status = http.StatusBadRequest
+		warn(serror.New(err))
+		return
+	}
+
+	if err = workspace.ImportWorkspace(r.Context(), dgraph, blockchainMode, export, tUser.ID); err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
+func writeExportWorkspace(dgraph external.Database, workspaceMutex *workspace.Mutex, blockchainMode string,
+	w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w)
+
+	const errReport = "error getting workspace export"
+
+	tUser, err := ExtractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errReport, http.StatusUnauthorized)
+		warn(err)
+		return
+	}
+
+	type request struct {
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var searchRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
+		http.Error(w, errReport, http.StatusBadRequest)
+		warn(serror.New(err))
+		return
+	}
+
+	if searchRequest.WorkspaceUID == "" {
+		http.Error(w, errReport, http.StatusBadRequest)
+		return
+	}
+
+	export, err := workspace.ExportWorkspace(r.Context(), dgraph, workspaceMutex, blockchainMode, searchRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		http.Error(w, errReport, http.StatusInternalServerError)
+		warn(err)
+		return
+	}
+
+	// headers for streaming data to client
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=workspace_export_%s_%s.json",
+		export.Meta.ExportDate.Format("2006-01-02"), export.Meta.Name))
+	w.Header().Set("Content-Type", "application/json")
+
+	// use marshalling instead of encoding (streaming), as it gives better error handling
+	// and because encoding buffers all data before writing: https://github.com/golang/go/issues/7872
+	// todo check if https://github.com/golang/go/discussions/63397 has been released and then rework json handling.
+	replyBuffer, err := json.Marshal(export)
+	if err != nil {
+		http.Error(w, "encoding error", http.StatusInternalServerError)
+		warn(serror.New(err))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(replyBuffer); err != nil {
+		// not possible to send response to client, so just log error
+		warn(serror.New(err))
+	}
+}
+
 func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply addWorkspaceNodesReply, status int) {
 	tUser, err := ExtractTokenUser(r.Context())
@@ -1135,7 +1235,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int
 		return
 	}
 
-	_, err = dbwork.AddWorkspace(r.Context(), dgraph, workspaceName, tUser.ID)
+	_, err = dbwork.AddWorkspace(r.Context(), dgraph, workspaceName, tUser.ID, "")
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

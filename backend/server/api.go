@@ -142,6 +142,42 @@ func (s *Server) handlerSelectorReport() http.Handler {
 	})
 }
 
+// Workspace Export godoc
+//
+//	@Summary	Exports a workspace
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		workspace	body		server.writeExportWorkspace.request	true	"workspace export request"
+//	@Success	200			{file}		file								"json"
+//	@Failure	400			{string}	string								"bad request"
+//	@Failure	404			{string}	string								"resource not found"
+//	@Failure	500			{string}	string								"encoding error"
+//	@Router		/workspaces/export/ [post]
+func (s *Server) handlerWorkspaceExport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeExportWorkspace(s.db, s.workspaceMutex, s.blockchainMode, w, r)
+	})
+}
+
+// Workspace Import godoc
+//
+//	@Summary	Imports a workspace
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		file	formData	file	true	"the Json file"
+//	@Success	200		{object}	server.msgReply
+//	@Failure	400		{object}	server.msgReply
+//	@Failure	401		{object}	server.msgReply
+//	@Failure	500		{object}	server.msgReply
+//	@Router		/workspaces/import/ [post]
+func (s *Server) handlerWorkspaceImport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getImportWorkspaceReply(s.db, s.blockchainMode, r)
+
+		SendReply(w, reply, status)
+	})
+}
+
 // Cluster Report godoc
 //
 //	@Summary	Get a CSV file containing all clusters for the given address
@@ -242,7 +278,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Failure		401			{object}	server.selectorStatusReply
 //	@Failure		500			{object}	server.selectorStatusReply
 //	@Router			/workspaces/selector/status/ [post]
-func (s *Server) handlerSelectorByUID() http.Handler {
+func (s *Server) handlerSelectorStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getSelectorStatus(s.workspaceMutex, s.db, r)
 
@@ -627,7 +663,7 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(BuildPattern(http.MethodPost, routeAddWorkspaceSelector, ""),
 		s.adapt(s.handlerAddWorkspaceSelector(), Authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorStatus, ""),
-		s.adapt(s.handlerSelectorByUID(), Authorization(), mw.MaxBody(50)))
+		s.adapt(s.handlerSelectorStatus(), Authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspacesNode, ""),
 		s.adapt(s.handlerDeleteWorkspaceNode(), Authorization(), mw.MaxBody(50)))
 	s.handler.Handle(BuildPattern(http.MethodGet, routeWorkspaces, ""),
@@ -643,9 +679,13 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(BuildPattern(http.MethodDelete, routeWorkspaces, "uid"),
 		s.adapt(s.handlerDeleteWorkspace(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspacesConnection, ""),
-		s.adapt(s.handlerWorkspaceConnection(), Authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
+		s.adapt(s.handlerWorkspaceConnection(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorResults, ""),
 		s.adapt(s.handlerSelectorDetails(), Authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceSelectorReport, ""),
 		s.adapt(s.handlerSelectorReport(), Authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceExport, ""),
+		s.adapt(s.handlerWorkspaceExport(), Authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceImport, ""),
+		s.adapt(s.handlerWorkspaceImport(), Authorization(), mw.MaxBody5MiB()))
 }

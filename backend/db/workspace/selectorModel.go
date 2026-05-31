@@ -17,12 +17,18 @@ import (
 const SelectorDType = "Selector"
 
 const (
-	// StatusWaiting is set when a selector has been created and is not yet run
+	// StatusWaiting is set when a selector has been created and has not been run yet
 	StatusWaiting = "waiting"
 	// StatusError is set when an error occurred while a selector has been run
 	StatusError = "error"
 	// StatusSuccess is set when no error occurred while a selector has been run
 	StatusSuccess = "success"
+	// ImportStatusWaiting is set when a workspace import has been created and has not been run yet
+	ImportStatusWaiting = "waiting"
+	// ImportStatusError is set when an error occurred while a workspace import has been run
+	ImportStatusError = "error"
+	// ImportStatusSuccess is set when no error occurred while a workspace import has been run
+	ImportStatusSuccess = "success"
 	// MaxResultsPerSelector is the maximum allowed results per selector
 	MaxResultsPerSelector = 20_000
 	// ErrorCodeResultLimitExceeded is set when the selector returned more than MaxConnectionsPerSelector
@@ -222,13 +228,19 @@ func (o TxGraphOptions) IsValid(ctx context.Context, c external.Database, parent
 	return isParentTypeValid([]string{db.TransactionDType}, []string{databaseType})
 }
 
-type WorkItem struct {
+type SelectorWorkItem struct {
 	UserUID         string
 	WorkspaceUID    string
 	SelectorUID     string
 	SelectorType    string
 	SelectorOptions string
 	ParentUID       string
+}
+
+type ImportWorkItem struct {
+	UserUID      string
+	ImportFile   string
+	WorkspaceUID string
 }
 
 type TransactionWithTimestamp struct {

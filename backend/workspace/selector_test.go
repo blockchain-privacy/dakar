@@ -23,7 +23,7 @@ func createUserAndWorkspace(dbHandle external.Database) (string, string, error) 
 		return "", "", err
 	}
 
-	workspaceUID, err := workspace.AddWorkspace(context.Background(), dbHandle, "test", userUID)
+	workspaceUID, err := workspace.AddWorkspace(context.Background(), dbHandle, "test", userUID, "")
 	if err != nil {
 		return "", "", err
 	}

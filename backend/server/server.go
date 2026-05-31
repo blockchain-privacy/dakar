@@ -49,10 +49,12 @@ type Server struct {
 	handler *http.ServeMux
 	// duration after which every handler times out
 	handlerTimeout time.Duration
+	// what blockchain data this server handles (e.g. dash or btc)
+	blockchainMode string
 }
 
 func NewServer(m *workspace.Mutex, db external.Database, client external.RPCClient,
-	worker *workspace.Worker, graphWrapper *graph.Wrapper) (*Server, error) {
+	worker *workspace.Worker, graphWrapper *graph.Wrapper, blockchainMode string) (*Server, error) {
 	if worker == nil {
 		return nil, serror.FromStr("worker pointer is nil")
 	}
@@ -72,6 +74,7 @@ func NewServer(m *workspace.Mutex, db external.Database, client external.RPCClie
 		workspaceMutex: m,
 		handler:        http.NewServeMux(),
 		handlerTimeout: time.Minute * 3,
+		blockchainMode: blockchainMode,
 	}, nil
 }
 

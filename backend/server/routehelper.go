@@ -53,7 +53,7 @@ func SendReply(w http.ResponseWriter, reply any, statusCode int) {
 
 	// use marshalling instead of encoding (streaming), as it gives better error handling
 	// and because encoding buffers all data before writing: https://github.com/golang/go/issues/7872
-	// todo check if https://github.com/golang/go/discussions/63397 has been accepted, merged and released and then rework json handling.
+	// todo check if https://github.com/golang/go/discussions/63397 has been released and then rework json handling.
 	replyBuffer, err := json.Marshal(reply)
 	if err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)

@@ -25,6 +25,9 @@ type Workspace struct {
 	ModificationTime string   `json:"Workspace.ts,omitempty"`
 	ClusterHeight    *int64   `json:"Workspace.clusterHeight,omitempty"`
 	State            string   `json:"Workspace.state,omitempty"`
+	ImportFile       string   `json:"Workspace.importFile,omitempty"`
+	ImportStatus     string   `json:"Workspace.importStatus,omitempty"`
+	ImportTime       string   `json:"Workspace.importTs,omitempty"`
 	DType            []string `json:"dgraph.type,omitempty"`
 }
 
@@ -53,6 +56,8 @@ type FrontendWorkspace struct {
 	UID              string `json:"uid,omitempty"`
 	Name             string `json:"name,omitempty"`
 	ModificationTime string `json:"ts,omitempty"`
+	ImportStatus     string `json:"importStatus,omitempty"`
+	ImportTime       string `json:"importTs,omitempty"`
 	Nodes            []Node `json:"nodes,omitempty"`
 }
 
@@ -61,6 +66,8 @@ func (w *Workspace) ToFrontendWorkspace() FrontendWorkspace {
 		UID:              w.UID,
 		Name:             w.Name,
 		ModificationTime: w.ModificationTime,
+		ImportStatus:     w.ImportStatus,
+		ImportTime:       w.ImportTime,
 	}
 }
 
@@ -209,6 +216,9 @@ func (f Node) IsCluster() bool {
 
 func (f Node) IsSelector() bool {
 	return f.Type == NodeTypeSelector
+}
+func (f Node) IsNote() bool {
+	return f.Type == NodeTypeNote
 }
 
 type dummyUser struct {

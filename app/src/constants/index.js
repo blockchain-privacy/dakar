@@ -96,6 +96,11 @@ export const SELECTOR_ERROR_CODE_RESULT_LIMIT_EXCEEDED = 'result_limit_exceeded'
 export const SELECTOR_MAX_ITEMS = 200;
 export const CLUSTER_MAX_OUTPUTS = 200_000;
 
+// Workspace import status
+export const WORKSPACE_IMPORT_STATUS_WAITING = 'waiting';
+export const WORKSPACE_IMPORT_STATUS_ERROR = 'error';
+export const WORKSPACE_IMPORT_STATUS_SUCCESS = 'success';
+
 // Wasabi 2.0 denominations
 /* eslint-disable @stylistic/indent, @stylistic/array-element-newline -- disable so multiple number can stay on the same line */
 export const DENOMINATIONS_WASABI2 = new Set([5000, 6561, 8192, 10_000, 13_122, 16_384, 19_683, 20_000,

@@ -24,6 +24,8 @@ var availableUpgrades = map[int]UpgradePackage{
 	16: {upgrades: []schemaUpgrade{DropPredicateUserAddressExclusions, AlterSchemaRemoveExclusions}},
 	17: {upgrades: []schemaUpgrade{DropTypeCHMIStatus, DeleteHMIClusters, AlterSchemaClusterChildren, DropPredicateClusterChildren}},
 	18: {upgrades: []schemaUpgrade{DropPredicateAttribution, DropTypeAttribution}},
+	19: {upgrades: []schemaUpgrade{AlterSchemaImportWorkspace}},
+	20: {upgrades: []schemaUpgrade{AlterSchemaImportTimestamp}},
 }
 
 func info(msg string, v ...any) {
@@ -223,4 +225,38 @@ func DropPredicateAttribution(c external.Database) error {
 // DropTypeAttribution removes the Attribution type
 func DropTypeAttribution(c external.Database) error {
 	return c.DropType(context.Background(), "Attribution")
+}
+
+// AlterSchemaImportWorkspace adds the predicates necessary for importing a workspace
+func AlterSchemaImportWorkspace(c external.Database) error {
+	return c.SetSchema(context.Background(), `
+			Workspace.importStatus: string @index(hash) . # import status of the workspace (waiting, error, success)
+			Workspace.importFile: string . # import file in Json format
+
+			type Workspace {
+				Workspace.name
+				Workspace.ts
+				Workspace.state
+				Workspace.clusterHeight
+				Workspace.selectors
+				Workspace.importStatus
+				Workspace.importFile
+			}`)
+}
+
+// AlterSchemaImportTimestamp adds the workspace import timestamp
+func AlterSchemaImportTimestamp(c external.Database) error {
+	return c.SetSchema(context.Background(), `
+			Workspace.importTs: dateTime @index(day) . # import date of the workspace
+
+			type Workspace {
+				Workspace.name
+				Workspace.ts
+				Workspace.state
+				Workspace.clusterHeight
+				Workspace.selectors
+				Workspace.importStatus
+				Workspace.importFile
+				Workspace.importTs
+			}`)
 }

@@ -158,7 +158,8 @@ func (w *Worker) Start(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	if w.waitForInMemoryGraph {
 		w.waitForGraph(ctx)
-		wg.Go(func() { w.findWorkInDatabase(ctx) })
+		wg.Go(func() { w.findWorkInDatabase(ctx, getSelectorWork) })
+		wg.Go(func() { w.findWorkInDatabase(ctx, getImportWork) })
 	}
 
 	workerCount := max(1, runtime.GOMAXPROCS(0)/2)
@@ -217,10 +218,11 @@ func (w *Worker) doWork(ctx context.Context, work Work) error {
 }
 
 // findWorkInDatabase loops:
-// - searches database for waiting selectors
+// - searches database for work with getWorkFunc
 // - adds them to the worker queue
 // - waits for them to be finished
-func (w *Worker) findWorkInDatabase(ctx context.Context) {
+func (w *Worker) findWorkInDatabase(ctx context.Context,
+	getWorkFunc func(context.Context, external.Database) ([]Work, error)) {
 	ticker := time.Tick(w.loopInterval)
 
 	for {
@@ -232,9 +234,9 @@ func (w *Worker) findWorkInDatabase(ctx context.Context) {
 		case <-ticker:
 		}
 
-		items, err := getWork(ctx, w.db)
+		items, err := getWorkFunc(ctx, w.db)
 		if err != nil {
-			// print error only, if errors was not due to the context being cancelled
+			// print error only, if errors was not due to the context being canceled
 			if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled {
 				warn(err)
 			}
@@ -262,8 +264,8 @@ func (w *Worker) findWorkInDatabase(ctx context.Context) {
 	}
 }
 
-// getWork checks the database for not yet executed selectors, and constructs Work if any were found.
-func getWork(ctx context.Context, c external.Database) ([]Work, error) {
+// getSelectorWork checks the database for not yet executed selectors and constructs Work if any were found.
+func getSelectorWork(ctx context.Context, c external.Database) ([]Work, error) {
 	timeoutContext, cancel := db.AddShortTaskContext(ctx)
 	defer cancel()
 
@@ -291,6 +293,24 @@ func getWork(ctx context.Context, c external.Database) ([]Work, error) {
 				return nil, err
 			}
 		}
+	}
+
+	return workItems, nil
+}
+
+// getImportWork checks the database for not yet imported workspaces and constructs Work if any were found.
+func getImportWork(ctx context.Context, c external.Database) ([]Work, error) {
+	timeoutContext, cancel := db.AddShortTaskContext(ctx)
+	defer cancel()
+
+	imports, err := workspace.GetWaitingWorkspaceImports(timeoutContext, c, 20)
+	if err != nil {
+		return nil, err
+	}
+
+	workItems := make([]Work, len(imports))
+	for i, imp := range imports {
+		workItems[i] = NewImportWork(imp)
 	}
 
 	return workItems, nil
