@@ -13,32 +13,32 @@ For a more detailed overview check [here](./package.json).
 
 ## Front-end setup
 
-* Install [yarn version 4](https://github.com/yarnpkg/berry) or higher
+* Install [pnpm](https://pnpm.io/installation)
 * Check [package.json](./package.json) for commands.
 
 ```shell
-yarn install
+pnpm install
 ```
 
 ### Compiles and hot-reloads for development
 ```shell
-yarn dev
+pnpm dev
 ```
 
 ### Compiles and minifies for production
 ```shell
-yarn build
+pnpm build
 ```
 
-### Starts a local server using the files produced by `yarn build`
+### Starts a local server using the files produced by `pnpm build`
 ```shell
-yarn preview
+pnpm preview
 ```
 
 ### Update project
 
 ```shell
-yarn up '*'
+pnpm update
 ```
 
 

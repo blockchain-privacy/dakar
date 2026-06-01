@@ -65,7 +65,7 @@ Check the [Dakar description](backend/cmd/dakar/Readme.md) for more details.
 ### Setup Frontend
 
 * Switch to frontend folder `cd app`
-* Start dev server `yarn dev`
+* Start dev server `pnpm dev`
 
 ## Metrics
 
@@ -118,16 +118,11 @@ The following command
 make openapi-spec && make openapi-client && make openapi-publish
 ```
 
-Make sure to have the deployment token set in your `~/.yarnrc.yml`:
+Make sure to have the deployment token set in your `.npmrc`:
 
-```yaml
-yarnPath: .yarn/releases/yarn-4.0.0.cjs
-
-npmScopes:
-  blockchain:
-    npmRegistryServer: "https://<gitlab_host>/api/v4/projects/<project_id>/packages/npm/"
-    npmAlwaysAuth: true
-    npmAuthToken: "<your-deploy-token>"
+```text
+@blockchain:registry="<gitlab_host>/projects/${CI_PROJECT_ID}/packages/npm/"
+//<gitlab_host_without_protocol_qualifier>/api/v4/projects/<project_id>/packages/npm/:_authToken=<your-deploy-token>
 ```
 
 Format the OpenAPI annotations using:
