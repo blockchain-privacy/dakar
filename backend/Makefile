@@ -52,7 +52,7 @@ openapi-client: ## Creates a javascript client based on the openapi spec
 	(cd ../docker && sudo docker compose -f docker-compose-openapi.yml up && sudo docker compose -f docker-compose-openapi.yml rm -fsv)
 
 openapi-publish: ## Publishes an existing client to the configured repository
-	(cd openapi/client/typescript-fetch && yarn npm publish)
+	(cd openapi/client/typescript-fetch && pnpm publish)
 
 ## Git:
 push-tag: ## increment the most recent tag and push it and any local commits

@@ -120,27 +120,14 @@ npm-client:
   stage: publish
   rules:
     - if: $CI_COMMIT_TAG
-  variables:
-    YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
   script:
-    - yarn set version stable
-    - rm package.json # clean up yarn upgrade
     - cd openapi/client/typescript-fetch
-    - |
-      cat > .yarnrc.yml << EOF
-      npmScopes:
-        blockchain:
-          npmPublishRegistry: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
-          npmAlwaysAuth: true
-          npmAuthToken: "${NPM_AUTH_TOKEN}"
-      EOF
     - |
       cat > package.json << EOF
       {
         "name": "@blockchain/dakar",
         "version": "${CI_COMMIT_TAG}",
         "description": "Dakar client",
-        "packageManager": "yarn@4.0.0",
         "main": "index.ts",
         "repository": {
           "url": "git+https://gitlab.com/blockchain-privacy/dakar.git"
@@ -149,8 +136,8 @@ npm-client:
         "license": "AGPL-3.0-only"
       }
       EOF
-    - yarn install
-    - yarn npm publish
+    - pnpm install
+    - pnpm publish
 
 upload:
   needs: [ "build" ]
