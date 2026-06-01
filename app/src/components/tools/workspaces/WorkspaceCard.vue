@@ -168,7 +168,7 @@ const displayImportResult = computed(() => {
 	// 1 day
 	const cutoff = 60 * 60 * 24 * 1000;
 	// If the workspace was imported over later than the cutoff, then don't display the result
-	return new Date().getTime() - props.importTime.getTime() < cutoff;
+	return Date.now() - props.importTime.getTime() < cutoff;
 });
 
 // Hooks
@@ -241,7 +241,7 @@ async function getWorkspaceData() {
 
 // Returns the relative time to the current date.
 function getRelativeTime(targetDate) {
-	const diffInMilliseconds = targetDate - new Date();
+	const diffInMilliseconds = targetDate - Date.now();
 	const diffInSeconds = Math.floor(diffInMilliseconds / 1000);
 	const secondsInMinute = 60;
 	const secondsInHour = 3600;

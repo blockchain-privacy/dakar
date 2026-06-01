@@ -15,7 +15,6 @@ export default [
 		rules: {
 			'regexp/prefer-named-capture-group': 'off',
 			'unicorn/prefer-query-selector': 'off',
-			'unicorn/prefer-date-now': 'off',
 			'unicorn/no-this-assignment': 'off',
 			'unicorn/prefer-global-this': 'off',
 			'no-use-extend-native/no-use-extend-native': 'off',
