@@ -387,7 +387,6 @@ export default class NodeGraph {
 		this.#rootSvg.call(this.#zoom);
 
 		// Add lasso
-		const self = this;
 		if (!this.#enableThumbnailMode) {
 			this.#lasso = d3lasso()
 				.closePathDistance(2000)
@@ -395,11 +394,11 @@ export default class NodeGraph {
 				.dragFilter(e => e.ctrlKey || this.getLassoEnabled())
 				.targetArea(this.#rootSvg)
 				.on('draw', () => {
-					self.#lasso.possibleItems().classed('lasso-selected', true);
-					self.#lasso.notPossibleItems().classed('lasso-selected', false);
+					this.#lasso.possibleItems().classed('lasso-selected', true);
+					this.#lasso.notPossibleItems().classed('lasso-selected', false);
 				})
 				.on('end', () => {
-					self.lassoSelectedNodes = self.#lasso.selectedItems();
+					this.lassoSelectedNodes = this.#lasso.selectedItems();
 					if (this.#lassoSelectionCallback !== null) {
 						this.#lassoSelectionCallback();
 					}
