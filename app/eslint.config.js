@@ -17,7 +17,6 @@ export default [
 			'unicorn/prefer-query-selector': 'off',
 			'unicorn/no-this-assignment': 'off',
 			'unicorn/prefer-global-this': 'off',
-			'no-use-extend-native/no-use-extend-native': 'off',
 			'unicorn/filename-case': 'off',
 			'import-x/no-anonymous-default-export': 'off',
 			'n/file-extension-in-import': 'off',

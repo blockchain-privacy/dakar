@@ -10,7 +10,7 @@ const localStoreKey = 'cacheStore';
 let hasCacheChanged = false;
 
 async function persistCache(m) {
-	if (!hasCacheChanged || !isBase64Supported()) {
+	if (!hasCacheChanged) {
 		return;
 	}
 
@@ -21,6 +21,8 @@ async function persistCache(m) {
 	const blob = await compressedResponse.blob();
 	const buffer = await blob.arrayBuffer();
 
+	// .toBase64 is a false positive for no-use-extend-native/no-use-extend-native
+	// eslint-disable-next-line no-use-extend-native/no-use-extend-native
 	localStorage.setItem(localStoreKey, new Uint8Array(buffer).toBase64());
 
 	hasCacheChanged = false;
@@ -34,19 +36,12 @@ async function visibilityChanged(m) {
 	await persistCache(m);
 }
 
-// Todo: remove check after mid 2026
-function isBase64Supported() {
-	return Uint8Array.fromBase64 !== undefined;
-}
-
 async function loadCache() {
-	if (!isBase64Supported()) {
-		return new Map();
-	}
-
 	const localItem = localStorage.getItem(localStoreKey);
 	if (localItem !== null) {
 		// Decompress map
+		// .fromBase64 is a false positive for no-use-extend-native/no-use-extend-native
+		// eslint-disable-next-line no-use-extend-native/no-use-extend-native
 		const blob = new Blob([Uint8Array.fromBase64(localItem)]);
 		const ds = new DecompressionStream('gzip');
 		const decompressedStream = blob.stream().pipeThrough(ds);
