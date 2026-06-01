@@ -182,11 +182,15 @@ async function handleDirectSearch() {
 
 function getResultNavigation(item) {
 	switch (item.type) {
-		case 'tx': return {name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: item.title, blockchainMode: item.mode}};
-		case 'block': return {name: ROUTE_NAME_BLOCK_PAGE, params: {id: item.title, blockchainMode: item.mode}};
-		case 'addr': return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.title, blockchainMode: item.mode}};
-		default:
+		case 'tx': {return {name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: item.title, blockchainMode: item.mode}};}
+
+		case 'block': {return {name: ROUTE_NAME_BLOCK_PAGE, params: {id: item.title, blockchainMode: item.mode}};}
+
+		case 'addr': {return {name: ROUTE_NAME_ADDRESS_PAGE, params: {id: item.title, blockchainMode: item.mode}};}
+
+		default: {
 			return {};
+		}
 	}
 }
 

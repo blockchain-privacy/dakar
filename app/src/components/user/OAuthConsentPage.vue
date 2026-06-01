@@ -132,32 +132,41 @@ function addScopeMeta(scopes) {
 
 	return scopes.map(scope => {
 		switch (scope) {
-			case 'openid':
+			case 'openid': {
 				return {
 					title: scope,
 					description: 'Allows the requesting application to verify your identity using your account data.',
 					icon: mdiAccount,
 				};
-			case 'offline':
+			}
+
+			case 'offline': {
 				return {
 					title: scope,
 					description: 'Allows the requesting application to refresh the authentication session.',
 					icon: mdiRefresh,
 				};
-			case 'offline_access':
+			}
+
+			case 'offline_access': {
 				return {
 					title: scope,
 					description: 'Allows the requesting application to refresh the authentication session.',
 					icon: mdiRefresh,
 				};
-			case 'dakar':
+			}
+
+			case 'dakar': {
 				return {
 					title: scope,
 					description: 'Allows the requesting application full access to Dakar\'s data. This includes creating, modifying and deleting your workspaces.',
 					icon: mdiDatabase,
 				};
-			default:
+			}
+
+			default: {
 				return {title: scope};
+			}
 		}
 	});
 }

@@ -134,26 +134,45 @@ async function handleCSVUpload() {
 // CodeToMsg returns a message for the given message code
 function codeToMsg(msgCode) {
 	switch (msgCode) {
-		case 'empty_header_flag':
+		case 'empty_header_flag': {
 			return 'header flag is not set';
-		case 'unsupported_separator':
+		}
+
+		case 'unsupported_separator': {
 			return 'invalid column separator';
-		case 'file_invalid_field_count':
+		}
+
+		case 'file_invalid_field_count': {
 			return 'file must have two columns';
-		case 'file_no_data':
+		}
+
+		case 'file_no_data': {
 			return 'file does not contain data';
-		case 'file_invalid_data':
+		}
+
+		case 'file_invalid_data': {
 			return 'file contains invalid data';
-		case 'file_reading_error':
+		}
+
+		case 'file_reading_error': {
 			return 'could not read file';
-		case 'file_too_many_addresses':
+		}
+
+		case 'file_too_many_addresses': {
 			return `file has more than ${Number(1000).toLocaleString()} clusters`;
-		case 'file_shallow_cluster':
+		}
+
+		case 'file_shallow_cluster': {
 			return 'file contains clusters with only one address';
-		case 'file_error_importing':
+		}
+
+		case 'file_error_importing': {
 			return 'error importing file';
-		default:
+		}
+
+		default: {
 			return msgCode;
+		}
 	}
 }
 </script>

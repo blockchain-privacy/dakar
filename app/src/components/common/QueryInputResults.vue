@@ -39,11 +39,15 @@ const emit = defineEmits(['itemClicked']);
 // Functions
 function getResultType(type) {
 	switch (type) {
-		case 'tx': return 'Transaction';
-		case 'block': return 'Block';
-		case 'addr': return 'Address';
-		default:
+		case 'tx': {return 'Transaction';}
+
+		case 'block': {return 'Block';}
+
+		case 'addr': {return 'Address';}
+
+		default: {
 			return '';
+		}
 	}
 }
 

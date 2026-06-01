@@ -409,23 +409,33 @@ onUpdated(() => {
 // Computed
 const title = computed(() => {
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC:
+		case SELECTOR_TYPE_HEURISTIC: {
 			return 'Add CoinJoin Heuristic';
-		case SELECTOR_TYPE_TX_PROP:
+		}
+
+		case SELECTOR_TYPE_TX_PROP: {
 			return 'Add Property Selector';
-		case SELECTOR_TYPE_TX_GRAPH:
+		}
+
+		case SELECTOR_TYPE_TX_GRAPH: {
 			return 'Add Graph Selector';
-		default:
+		}
+
+		default: {
 			return 'Add Selector';
+		}
 	}
 });
 
 const icon = computed(() => {
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC: return blenderPlus;
-		case SELECTOR_TYPE_TX_PROP: return mdiFilterPlus;
-		case SELECTOR_TYPE_TX_GRAPH: return graphPlus;
-		default: return mdiShapeCirclePlus;
+		case SELECTOR_TYPE_HEURISTIC: {return blenderPlus;}
+
+		case SELECTOR_TYPE_TX_PROP: {return mdiFilterPlus;}
+
+		case SELECTOR_TYPE_TX_GRAPH: {return graphPlus;}
+
+		default: {return mdiShapeCirclePlus;}
 	}
 });
 
@@ -676,18 +686,25 @@ async function addNewSelectorAction(event) {
 	let options;
 
 	switch (props.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC:
+		case SELECTOR_TYPE_HEURISTIC: {
 			options = buildHeuristicOptions();
 			break;
-		case SELECTOR_TYPE_TX_PROP:
+		}
+
+		case SELECTOR_TYPE_TX_PROP: {
 			options = buildTxPropOptions();
 			break;
-		case SELECTOR_TYPE_TX_GRAPH:
+		}
+
+		case SELECTOR_TYPE_TX_GRAPH: {
 			options = buildTxGraphOptions();
 			break;
-		default:
+		}
+
+		default: {
 			setErrorMessage('invalid selector type');
 			return;
+		}
 	}
 
 	if (!options) {

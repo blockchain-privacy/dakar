@@ -183,21 +183,31 @@ const selectableEntities = new Map();
 const title = computed(() => {
 	const unknownType = 'Unknown Entity Type';
 	switch (props.type) {
-		case WORKSPACE_NODE_TYPE_TRANSACTION:
+		case WORKSPACE_NODE_TYPE_TRANSACTION: {
 			return `Transaction ${props.identifier}`;
-		case WORKSPACE_NODE_TYPE_CLUSTER:
-			return `Address ${props.identifier}`;
-		case WORKSPACE_NODE_TYPE_SELECTOR:
-			switch (props.auxiliaryData?.selectorType) {
-				case SELECTOR_TYPE_HEURISTIC: return 'CoinJoin Heuristic';
-				case SELECTOR_TYPE_TX_GRAPH: return 'Graph Selector';
-				case SELECTOR_TYPE_TX_PROP: return 'Property Selector';
-				default:
-					return unknownType;
-			}
+		}
 
-		default:
+		case WORKSPACE_NODE_TYPE_CLUSTER: {
+			return `Address ${props.identifier}`;
+		}
+
+		case WORKSPACE_NODE_TYPE_SELECTOR: {
+			switch (props.auxiliaryData?.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC: {return 'CoinJoin Heuristic';}
+
+				case SELECTOR_TYPE_TX_GRAPH: {return 'Graph Selector';}
+
+				case SELECTOR_TYPE_TX_PROP: {return 'Property Selector';}
+
+				default: {
+					return unknownType;
+				}
+			}
+		}
+
+		default: {
 			return unknownType;
+		}
 	}
 });
 
@@ -258,20 +268,29 @@ async function updateEntityData() {
 // Computed
 const sideBarIcon = computed(() => {
 	switch (props.type) {
-		case WORKSPACE_NODE_TYPE_TRANSACTION:
+		case WORKSPACE_NODE_TYPE_TRANSACTION: {
 			return mdiTransfer;
-		case WORKSPACE_NODE_TYPE_CLUSTER:
-			return mdiCardBulletedOutline;
-		case WORKSPACE_NODE_TYPE_SELECTOR:
-			switch (props.auxiliaryData.selectorType) {
-				case SELECTOR_TYPE_HEURISTIC: return mdiBlender;
-				case SELECTOR_TYPE_TX_PROP: return mdiFilter;
-				case SELECTOR_TYPE_TX_GRAPH: return mdiGraph;
-				default: return mdiShapeCirclePlus;
-			}
+		}
 
-		default:
+		case WORKSPACE_NODE_TYPE_CLUSTER: {
+			return mdiCardBulletedOutline;
+		}
+
+		case WORKSPACE_NODE_TYPE_SELECTOR: {
+			switch (props.auxiliaryData.selectorType) {
+				case SELECTOR_TYPE_HEURISTIC: {return mdiBlender;}
+
+				case SELECTOR_TYPE_TX_PROP: {return mdiFilter;}
+
+				case SELECTOR_TYPE_TX_GRAPH: {return mdiGraph;}
+
+				default: {return mdiShapeCirclePlus;}
+			}
+		}
+
+		default: {
 			return mdiShapeCirclePlus;
+		}
 	}
 });
 
@@ -289,7 +308,7 @@ function addOutputToSelectableEntities(output) {
 function setSelectableEntities() {
 	selectableEntities.clear();
 	switch (props.type) {
-		case WORKSPACE_NODE_TYPE_TRANSACTION:
+		case WORKSPACE_NODE_TYPE_TRANSACTION: {
 			for (const t of entityData.value) {
 				if (t.inputs) {
 					t.inputs.forEach(element => {
@@ -308,7 +327,9 @@ function setSelectableEntities() {
 			showSelectAddresses.value = true;
 
 			break;
-		case WORKSPACE_NODE_TYPE_CLUSTER:
+		}
+
+		case WORKSPACE_NODE_TYPE_CLUSTER: {
 			for (const output of entityData.value.outputs) {
 				if (output.inputTransactionHash) {
 					selectableEntities.set(output.inputTransactionHash, {id: output.inputTransactionHash, type: WORKSPACE_NODE_TYPE_TRANSACTION});
@@ -323,13 +344,17 @@ function setSelectableEntities() {
 			showSelectAddresses.value = false;
 
 			break;
-		case WORKSPACE_NODE_TYPE_SELECTOR:
+		}
+
+		case WORKSPACE_NODE_TYPE_SELECTOR: {
 			switch (props.auxiliaryData.selectorType) {
 				case SELECTOR_TYPE_HEURISTIC:
 				case SELECTOR_TYPE_TX_GRAPH:
-				case SELECTOR_TYPE_TX_PROP:
+				case SELECTOR_TYPE_TX_PROP: {
 					setSelectableSelectorElements();
 					break;
+				}
+
 				default:
 			}
 
@@ -337,6 +362,8 @@ function setSelectableEntities() {
 			showSelectAddresses.value = false;
 
 			break;
+		}
+
 		default:
 	}
 }
@@ -387,7 +414,7 @@ async function getSelectorData() {
 	let tmpEntityData;
 	errorMsg.value = '';
 	switch (props.auxiliaryData.selectorType) {
-		case SELECTOR_TYPE_HEURISTIC:
+		case SELECTOR_TYPE_HEURISTIC: {
 			{
 				const opt = props.auxiliaryData.heuristicOptions;
 
@@ -413,7 +440,9 @@ async function getSelectorData() {
 			}
 
 			break;
-		case SELECTOR_TYPE_TX_PROP:
+		}
+
+		case SELECTOR_TYPE_TX_PROP: {
 			tmpEntityData = props.auxiliaryData.txPropOptions;
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
@@ -430,7 +459,9 @@ async function getSelectorData() {
 			}
 
 			break;
-		case SELECTOR_TYPE_TX_GRAPH:
+		}
+
+		case SELECTOR_TYPE_TX_GRAPH: {
 			tmpEntityData = props.auxiliaryData.txGraphOptions;
 			tmpEntityData.selectorUid = props.auxiliaryData.uid;
 			tmpEntityData.selectorTimestamp = new Date(props.auxiliaryData.selectorModified);
@@ -447,9 +478,12 @@ async function getSelectorData() {
 			}
 
 			break;
-		default:
+		}
+
+		default: {
 			// Invalid type
 			return;
+		}
 	}
 
 	try {

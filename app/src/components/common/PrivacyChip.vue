@@ -61,18 +61,29 @@ const transactionTypeWikiPath = computed(() => {
 	const whirlpoolDirectory = 'whirlpool';
 
 	switch (props.transactionType) {
-		case PRIVACY_TYPE_ORIGIN: return `${dashDirectory}/originTransaction.md`;
-		case PRIVACY_TYPE_MIXING: return `${dashDirectory}/mixingTransaction.md`;
-		case PRIVACY_TYPE_DESTINATION: return `${dashDirectory}/destinationTransaction.md`;
-		case PRIVACY_TYPE_CC: return `${dashDirectory}/collateralCreationTransaction.md`;
-		case PRIVACY_TYPE_CP: return `${dashDirectory}/collateralPaymentTransaction.md`;
-		case PRIVACY_TYPE_WASABI_2_ORIGIN: return `${wasabiDirectory}/originTransaction.md`;
-		case PRIVACY_TYPE_WASABI_2_MIXING: return `${wasabiDirectory}/mixingTransaction.md`;
-		case PRIVACY_TYPE_WASABI_2_DESTINATION: return `${wasabiDirectory}/destinationTransaction.md`;
-		case PRIVACY_TYPE_WHIRLPOOL_ORIGIN: return `${whirlpoolDirectory}/originTransaction.md`;
-		case PRIVACY_TYPE_WHIRLPOOL_MIXING: return `${whirlpoolDirectory}/mixingTransaction.md`;
-		case PRIVACY_TYPE_WHIRLPOOL_DESTINATION: return `${whirlpoolDirectory}/destinationTransaction.md`;
-		default: return '';
+		case PRIVACY_TYPE_ORIGIN: {return `${dashDirectory}/originTransaction.md`;}
+
+		case PRIVACY_TYPE_MIXING: {return `${dashDirectory}/mixingTransaction.md`;}
+
+		case PRIVACY_TYPE_DESTINATION: {return `${dashDirectory}/destinationTransaction.md`;}
+
+		case PRIVACY_TYPE_CC: {return `${dashDirectory}/collateralCreationTransaction.md`;}
+
+		case PRIVACY_TYPE_CP: {return `${dashDirectory}/collateralPaymentTransaction.md`;}
+
+		case PRIVACY_TYPE_WASABI_2_ORIGIN: {return `${wasabiDirectory}/originTransaction.md`;}
+
+		case PRIVACY_TYPE_WASABI_2_MIXING: {return `${wasabiDirectory}/mixingTransaction.md`;}
+
+		case PRIVACY_TYPE_WASABI_2_DESTINATION: {return `${wasabiDirectory}/destinationTransaction.md`;}
+
+		case PRIVACY_TYPE_WHIRLPOOL_ORIGIN: {return `${whirlpoolDirectory}/originTransaction.md`;}
+
+		case PRIVACY_TYPE_WHIRLPOOL_MIXING: {return `${whirlpoolDirectory}/mixingTransaction.md`;}
+
+		case PRIVACY_TYPE_WHIRLPOOL_DESTINATION: {return `${whirlpoolDirectory}/destinationTransaction.md`;}
+
+		default: {return '';}
 	}
 });
 

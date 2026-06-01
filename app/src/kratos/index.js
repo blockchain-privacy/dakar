@@ -16,20 +16,26 @@ async function refreshFlow(onRefreshFlow) {
 // Returns true if the error was handled
 async function handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth) {
 	switch (error.response.error.id) {
-		case 'session_already_available':
+		case 'session_already_available': {
 			context.$router.push({name: ROUTE_NAME_ENTRY_PAGE});
 			return true;
+		}
+
 		case 'session_aal2_required':
 		case 'session_refresh_required':
-		case 'browser_location_change_required':
+		case 'browser_location_change_required': {
 			window.location.href = error.response.redirect_browser_to;
 			return true;
+		}
+
 		case 'self_service_flow_expired':
 		case 'self_service_flow_return_to_forbidden':
-		case 'security_identity_mismatch':
+		case 'security_identity_mismatch': {
 			await refreshFlow(onRefreshFlow);
 			return true;
-		case 'security_csrf_violation':
+		}
+
+		case 'security_csrf_violation': {
 			context.localStore.setSession(null);
 
 			if (isOAuth) {
@@ -40,24 +46,34 @@ async function handleErrorCodeAndID(context, error, onRefreshFlow, isOAuth) {
 			context.navStore.setFailedRoute(context.$route);
 			context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 			return true;
-		case 'session_inactive':
+		}
+
+		case 'session_inactive': {
 			await context.navStore.setFailedRoute(context.$route);
 			context.localStore.setSession(null);
 			context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 			return true;
-		default:
+		}
+
+		default: {
 			break;
+		}
 	}
 
 	switch (error.response.error.code) {
-		case 410: // Expired
+		case 410: { // Expired
 			await refreshFlow(onRefreshFlow);
 			return true;
-		case 401: // Unauthorized access
+		}
+
+		case 401: { // Unauthorized access
 			// return false so error message can be displayed
 			return false;
-		default:
+		}
+
+		default: {
 			break;
+		}
 	}
 
 	return false;

@@ -634,9 +634,11 @@ function isCoinJoinTransactionNode(node) {
 		case PRIVACY_TYPE_WASABI_2_DESTINATION:
 		case PRIVACY_TYPE_WHIRLPOOL_ORIGIN:
 		case PRIVACY_TYPE_WHIRLPOOL_MIXING:
-		case PRIVACY_TYPE_WHIRLPOOL_DESTINATION:
+		case PRIVACY_TYPE_WHIRLPOOL_DESTINATION: {
 			return true;
-		default: return false;
+		}
+
+		default: {return false;}
 	}
 }
 
@@ -889,14 +891,16 @@ async function addNewSelector(type, options, node) {
 			break;
 		}
 
-		case SELECTOR_TYPE_TX_PROP:
+		case SELECTOR_TYPE_TX_PROP: {
 			if (node?.uid) {
 				parent = node.uid;
 			}
 
 			txPropOptions = options;
 			break;
-		case SELECTOR_TYPE_TX_GRAPH:
+		}
+
+		case SELECTOR_TYPE_TX_GRAPH: {
 			if (!node || !node.uid) {
 				setErrorMessage('parent not set');
 				return;
@@ -905,9 +909,12 @@ async function addNewSelector(type, options, node) {
 			parent = node.uid;
 			txGraphOptions = options;
 			break;
-		default:
+		}
+
+		default: {
 			setErrorMessage('invalid selector type');
 			return;
+		}
 	}
 
 	try {
@@ -1053,12 +1060,16 @@ function openEntitySideBar(nodeData) {
 	entityType.value = nodeData.type;
 
 	switch (entityType.value) {
-		case WORKSPACE_NODE_TYPE_CLUSTER:
+		case WORKSPACE_NODE_TYPE_CLUSTER: {
 			entityIdentifier.value = nodeData.addressHash;
 			break;
-		case WORKSPACE_NODE_TYPE_TRANSACTION:
+		}
+
+		case WORKSPACE_NODE_TYPE_TRANSACTION: {
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
+		}
+
 		case WORKSPACE_NODE_TYPE_SELECTOR:
 		// Brackets so variables have a local scope (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 		{
@@ -1069,7 +1080,7 @@ function openEntitySideBar(nodeData) {
 			let parameterTitle = '';
 
 			switch (nodeData.selectorType) {
-				case SELECTOR_TYPE_HEURISTIC:
+				case SELECTOR_TYPE_HEURISTIC: {
 					for (const descriptor of heuristicDescriptors.value) {
 						if (descriptor.type === nodeData.heuristicOptions?.type) {
 							displayType = descriptor.title;
@@ -1079,9 +1090,13 @@ function openEntitySideBar(nodeData) {
 					}
 
 					break;
-				case SELECTOR_TYPE_TX_PROP:
+				}
+
+				case SELECTOR_TYPE_TX_PROP: {
 					displayType = 'selector (change me)';
 					break;
+				}
+
 				default:
 			}
 

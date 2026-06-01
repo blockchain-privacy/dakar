@@ -23,7 +23,6 @@ export default [
 			'n/file-extension-in-import': 'off',
 			'import-x/extensions': 'off',
 			'unicorn/no-array-for-each': 'off',
-			'unicorn/switch-case-braces': 'off',
 			'regexp/sort-character-class-elements': 'off',
 			'unicorn/prevent-abbreviations': 'off',
 			'vue/prefer-true-attribute-shorthand': ['error', 'always'],

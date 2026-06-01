@@ -1018,7 +1018,7 @@ export default class NodeGraph {
 
 		entityGroup.each(function (d) {
 			switch (d.selectorStatus) {
-				case SELECTOR_STATUS_WAITING:
+				case SELECTOR_STATUS_WAITING: {
 					d3Select(this).append('circle')
 						.attr('r', loadingRadius)
 						.attr('cursor', 'pointer')
@@ -1035,13 +1035,17 @@ export default class NodeGraph {
 						.attr('keyTimes', '0;1')
 						.attr('values', '0 0 0;360 0 0');
 					break;
-				case SELECTOR_STATUS_ERROR:
+				}
+
+				case SELECTOR_STATUS_ERROR: {
 					d3Select(this)
 						.append('path')
 						.attr('transform', 'translate(-12,-12) scale(1,1)')
 						.attr('fill', 'white')
 						.attr('d', mdiExclamationThick);
 					break;
+				}
+
 				default:
 			}
 		});
