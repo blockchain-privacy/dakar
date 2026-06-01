@@ -123,6 +123,11 @@ npm-client:
   script:
     - cd openapi/client/typescript-fetch
     - |
+      cat > .npmrc << EOF
+      @blockchain:registry="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+      //"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/":_authToken="${NPM_AUTH_TOKEN}"
+      EOF
+    - |
       cat > package.json << EOF
       {
         "name": "@blockchain/dakar",
