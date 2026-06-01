@@ -81,6 +81,9 @@ importers:
       eslint-plugin-vue:
         specifier: ^10.9.1
         version: 10.9.1(@stylistic/eslint-plugin@5.10.0(eslint@10.4.1))(@typescript-eslint/parser@8.60.0(eslint@10.4.1)(typescript@6.0.3))(eslint@10.4.1)(vue-eslint-parser@10.4.0(eslint@10.4.1))
+      globals:
+        specifier: ^17.6.0
+        version: 17.6.0
       sass:
         specifier: ^1.100.0
         version: 1.100.0
