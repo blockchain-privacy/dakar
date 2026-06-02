@@ -16,9 +16,6 @@ stages:
   - publish
   - release
 
-before_script:
-  - cd backend
-
 .modcache: &modcache
   key: modcache
   paths:
@@ -27,6 +24,7 @@ before_script:
 dependencies:
   stage: dependencies
   script:
+    - cd backend
     - go mod download
     - go get -v ./...
   cache: *modcache
@@ -45,6 +43,7 @@ go-test:
     DB_HOSTNAME: "dgraph_db" # name of the dgraph database container
     RPC_HOSTNAME: "bitcoind" # name of the bitcoin container
   script:
+    - cd backend
     # start tests
     - go install gotest.tools/gotestsum@latest
     - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race ./...
@@ -78,7 +77,9 @@ go-test:
 go-lint:
   image: golangci/golangci-lint:latest
   stage: test
-  script: make lint
+  script:
+    - cd backend
+    - make lint
   rules:
     - changes:
         paths:
@@ -87,7 +88,9 @@ go-lint:
 go-vet:
   stage: test
   needs: [ "dependencies" ]
-  script: make vet
+  script:
+    - cd backend
+    - make vet
   cache:
     <<: *modcache
     policy: pull
@@ -100,7 +103,7 @@ javascript-test:
   image: ghcr.io/pnpm/pnpm:latest
   stage: test
   script:
-    - cd ../app
+    - cd app
     - pnpm test
   rules:
     - changes:
@@ -111,7 +114,7 @@ javascript-lint:
   image: ghcr.io/pnpm/pnpm:latest
   stage: test
   script:
-    - cd ../app
+    - cd app
     - pnpm eslint src
   rules:
     - changes:
@@ -120,7 +123,9 @@ javascript-lint:
 
 build:
   stage: build
-  script: make
+  script:
+    - cd backend
+    - make
   cache:
     <<: *modcache
     policy: pull
@@ -138,6 +143,7 @@ swaggo:
   rules:
     - if: $CI_COMMIT_TAG
   script:
+    - cd backend
     - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download//v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - make openapi-fmt
@@ -153,6 +159,7 @@ openapi:
     - if: $CI_COMMIT_TAG
   stage: build
   script:
+    - cd backend
     - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
   artifacts:
     paths:
@@ -165,7 +172,7 @@ npm-client:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cd openapi/client/typescript-fetch
+    - cd backend/openapi/client/typescript-fetch
     - |
       cat > .npmrc << EOF
       @blockchain:registry="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
@@ -195,6 +202,7 @@ upload:
   rules:
     - if: $CI_COMMIT_TAG
   script:
+    - cd backend
     - |
       curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/dakar "${PACKAGE_REGISTRY_URL}/dakar"
 
@@ -209,6 +217,7 @@ docker:
     IMAGE_TAG_VERSION: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
     IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
   script:
+    - cd backend
     - echo "${CI_REGISTRY_PASSWORD}" | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
     - docker build -t $IMAGE_TAG_VERSION .
     - docker tag $IMAGE_TAG_VERSION $IMAGE_TAG_LATEST
