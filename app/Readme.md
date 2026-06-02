@@ -1,6 +1,6 @@
 # Frontend
 
-This is the frontend of Dakar. It gives access generic blockchain data like transactions, blocks and addresses.
+This is the frontend of Dakar. It gives access to generic blockchain data like transactions, blocks and addresses.
 Additionally, it serves as an analytics platform for Dash private send transactions.
 
 ## Dependencies

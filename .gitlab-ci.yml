@@ -116,10 +116,10 @@ javascript-lint:
   script:
     - cd app
     - pnpm eslint src
-  rules:
-    - changes:
-        paths:
-          - app
+#  rules:
+#    - changes:
+#        paths:
+#          - app
 
 build:
   stage: build
