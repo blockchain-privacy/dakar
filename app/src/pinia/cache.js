@@ -50,6 +50,7 @@ async function loadCache() {
 
 		// Convert timestamp strings to dateTime objects
 		for (const [key, item] of filledMap) {
+			// eslint-disable-next-line no-warning-comments
 			// Todo remove else branch, just kept for compatibility for cache items without ts
 			// eslint-disable-next-line unicorn/prefer-ternary
 			if (item.ts) {
