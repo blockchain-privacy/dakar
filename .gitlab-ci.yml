@@ -9,6 +9,16 @@ variables:
   OPEN_API_GENERATOR_VERSION: v7.21.0
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
 
+stages:
+  - dependencies
+  - test
+  - build
+  - publish
+  - release
+
+before_script:
+  - cd backend
+
 .modcache: &modcache
   key: modcache
   paths:
@@ -20,18 +30,13 @@ dependencies:
     - go mod download
     - go get -v ./...
   cache: *modcache
+  rules:
+    - if: $CI_COMMIT_TAG
+    - changes:
+        paths:
+          - backend
 
-stages:
-  - dependencies
-  - test
-  - build
-  - publish
-  - release
-
-before_script:
-  - cd backend
-
-test:
+go-test:
   stage: test
   needs: [ "dependencies" ]
   variables:
@@ -70,7 +75,7 @@ test:
         paths:
           - backend
 
-lint:
+go-lint:
   image: golangci/golangci-lint:latest
   stage: test
   script: make lint
@@ -79,7 +84,7 @@ lint:
         paths:
           - backend
 
-vet:
+go-vet:
   stage: test
   needs: [ "dependencies" ]
   script: make vet
@@ -91,6 +96,28 @@ vet:
         paths:
           - backend
 
+javascript-test:
+  image: ghcr.io/pnpm/pnpm:latest
+  stage: test
+  script:
+    - cd ../app
+    - pnpm test
+  rules:
+    - changes:
+        paths:
+          - app
+
+javascript-lint:
+  image: ghcr.io/pnpm/pnpm:latest
+  stage: test
+  script:
+    - cd ../app
+    - pnpm eslint src
+  rules:
+    - changes:
+        paths:
+          - app
+
 build:
   stage: build
   script: make
@@ -100,6 +127,11 @@ build:
   artifacts:
     paths:
       - backend/build
+  rules:
+    - if: $CI_COMMIT_TAG
+    - changes:
+        paths:
+          - backend
 
 swaggo:
   stage: build
@@ -128,7 +160,7 @@ openapi:
 
 npm-client:
   needs: [ "openapi" ]
-  image: ghcr.io/pnpm/pnpm:11
+  image: ghcr.io/pnpm/pnpm:latest
   stage: publish
   rules:
     - if: $CI_COMMIT_TAG
