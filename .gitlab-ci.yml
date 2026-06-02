@@ -110,7 +110,7 @@ javascript-test:
   rules:
     - changes:
         paths:
-          - app/**
+          - app/**/*
 
 javascript-lint:
   image: ghcr.io/pnpm/pnpm:latest
@@ -123,7 +123,7 @@ javascript-lint:
   rules:
     - changes:
         paths:
-          - app/**
+          - app/**/*
 
 build:
   stage: build
