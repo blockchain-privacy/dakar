@@ -106,6 +106,7 @@ javascript-test:
     PNPM_LOCKFILE_MINIMUM_RELEASE_AGE: "0"
   script:
     - cd app
+    - pnpm ci
     - pnpm test
   rules:
     - changes:
@@ -119,6 +120,7 @@ javascript-lint:
     PNPM_LOCKFILE_MINIMUM_RELEASE_AGE: "0"
   script:
     - cd app
+    - pnpm ci
     - pnpm eslint src
   rules:
     - changes:

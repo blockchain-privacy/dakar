@@ -52,7 +52,6 @@ const darkTheme = {
 		'tooltip-background': '#464A65',
 		'tooltip-opacity': 0.9,
 		'table-header-background': '#3A3E5B',
-
 		// Shadows
 		'shadow-key-umbra-opacity': 'rgba(20, 21, 33, 0.06)',
 		'shadow-key-penumbra-opacity': 'rgba(20, 21, 33, 0.04)',
