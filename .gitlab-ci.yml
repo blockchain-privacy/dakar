@@ -102,6 +102,8 @@ go-vet:
 javascript-test:
   image: ghcr.io/pnpm/pnpm:latest
   stage: test
+  variables:
+    PNPM_LOCKFILE_MINIMUM_RELEASE_AGE: "0"
   script:
     - cd app
     - pnpm test
@@ -113,6 +115,8 @@ javascript-test:
 javascript-lint:
   image: ghcr.io/pnpm/pnpm:latest
   stage: test
+  variables:
+    PNPM_LOCKFILE_MINIMUM_RELEASE_AGE: "0"
   script:
     - cd app
     - pnpm eslint src
