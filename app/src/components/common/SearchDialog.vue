@@ -122,7 +122,6 @@ import {
 	mdiPlus,
 } from '@mdi/js';
 import {ref, computed} from 'vue';
-import {VFileUpload} from 'vuetify/labs/VFileUpload';
 import {extractEntities, fileRule, pluralIrregular} from '@/utilities/index.js';
 import Alert from '@/components/common/Alert.vue';
 

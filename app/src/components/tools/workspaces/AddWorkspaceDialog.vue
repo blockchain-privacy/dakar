@@ -98,7 +98,6 @@
 <script setup>
 import {onMounted, onUpdated, ref} from 'vue';
 import {mdiFileUpload} from '@mdi/js';
-import {VFileUpload} from 'vuetify/labs/VFileUpload';
 import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
 import {fileRule} from '@/utilities/index.js';
 
