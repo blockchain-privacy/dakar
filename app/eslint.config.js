@@ -3,8 +3,6 @@ import globals from 'globals';
 import eslintJsPlugin from '@eslint/js';
 import xo from 'eslint-config-xo';
 
-// Since v0.47 xo sets the list of allowed files and does not include .vue, so we have to inject it ourselves
-// xo[0].files.push('**/*.vue');
 export default [
 	...pluginVue.configs['flat/base'],
 	...pluginVue.configs['flat/recommended'],
