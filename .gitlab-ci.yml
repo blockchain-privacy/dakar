@@ -104,7 +104,7 @@ javascript-test:
   stage: test
   script:
     - cd app
-    - pnpm ci
+    - pnpm ci --ignore-scripts
     - pnpm test
   rules:
     - changes:
@@ -116,7 +116,7 @@ javascript-lint:
   stage: test
   script:
     - cd app
-    - pnpm ci
+    - pnpm ci --ignore-scripts
     - pnpm eslint src
   rules:
     - changes:
