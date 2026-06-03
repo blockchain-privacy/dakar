@@ -144,7 +144,7 @@
 
 <script setup>
 import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
-import {onUpdated, ref} from 'vue';
+import {onMounted, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
@@ -183,6 +183,11 @@ const deleteClusterDialogModel = ref({
 let oldAddressHash = null;
 
 // Hooks
+onMounted(async () => {
+	// Initial lookup
+	await doLookup();
+});
+
 onUpdated(() => {
 	doLookup();
 });
@@ -254,9 +259,6 @@ function deleteCluster(clusterUid, clusterSize) {
 	deleteClusterDialogModel.value.size = clusterSize;
 	deleteClusterDialogModel.value.show = true;
 }
-
-// Initial lookup
-await doLookup();
 
 </script>
 

@@ -303,7 +303,7 @@ const barTable = ref({
 const clickedNode = ref({
 	// eslint-disable-next-line camelcase
 	input_txs: [],
-	dateTime: null,
+	dateTime: new Date('January 1, 1970'),
 	txtype: '',
 	txhash: '',
 });
@@ -341,7 +341,9 @@ onBeforeMount(() => {
 	svgBarChart.setClickHandler(onBarClick);
 });
 
-onMounted(() => {
+onMounted(async () => {
+	// Initial load
+	await updateSvgData(true);
 	nodeGraph.initSvg('mixing_activity_force_graph', 1200, 500);
 
 	if (!nodeGraph.setNodeClickCallback(onNodeClick)) {
@@ -624,8 +626,6 @@ async function updateSvgData(pullNewData) {
 	isLoading.value = false;
 }
 
-// Initial load
-await updateSvgData(true);
 </script>
 
 <style scoped>
