@@ -58,7 +58,7 @@ function insertLocalData(state) {
 }
 
 const initialState = {
-	// Ory kratos session
+	// Ory Kratos session
 	session: null,
 	settings: {
 		theme: 'system',

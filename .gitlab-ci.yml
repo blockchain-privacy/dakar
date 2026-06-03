@@ -100,7 +100,7 @@ go-vet:
           - backend/**/*
 
 javascript-test:
-  image: node:lts-slim
+  image: ghcr.io/pnpm/pnpm:latest
   stage: test
   script:
     - cd app
@@ -112,7 +112,7 @@ javascript-test:
           - app/**/*
 
 javascript-lint:
-  image: node:lts-slim
+  image: ghcr.io/pnpm/pnpm:latest
   stage: test
   script:
     - cd app
