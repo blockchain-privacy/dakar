@@ -1132,8 +1132,8 @@ packages:
     resolution: {integrity: sha512-+29eJLiUixTEDRaZ35Vu8jP3gPLNcQQkQkOQjLp2X+6cZGGPDD/uasbFzvLsJKnGZnvmyZ0srxudwOtskHeIDA==}
     engines: {node: '>=4.0.0'}
 
-  enhanced-resolve@5.22.1:
-    resolution: {integrity: sha512-6QEuw3zoX1SJQc7b87aBXke/no+mG2bTBgw29gWMQonLmpEkWoCAVkl+M49e48AZlWzxiDzDZzYdp6kobcyLww==}
+  enhanced-resolve@5.22.2:
+    resolution: {integrity: sha512-0rxICaFZ7NQho/sHely2bvOPRP0Eu2B0NZ9zM54YvRvWMn7jfz3DmnOZDR9LlXDdDcqntAVc6Hfy4gr/tdH/Ag==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -3360,7 +3360,7 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  enhanced-resolve@5.22.1:
+  enhanced-resolve@5.22.2:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -3496,7 +3496,7 @@ snapshots:
   eslint-plugin-n@18.0.1(eslint@10.4.1)(typescript@6.0.3):
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@10.4.1)
-      enhanced-resolve: 5.22.1
+      enhanced-resolve: 5.22.2
       eslint: 10.4.1
       eslint-plugin-es-x: 7.8.0(eslint@10.4.1)
       get-tsconfig: 4.14.0
