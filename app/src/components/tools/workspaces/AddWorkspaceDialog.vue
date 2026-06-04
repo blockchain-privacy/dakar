@@ -15,10 +15,10 @@
           align-tabs="center"
         >
           <v-tab value="new">
-            Query
+            New
           </v-tab>
           <v-tab value="file">
-            File
+            Import
           </v-tab>
         </v-tabs>
         <v-window
