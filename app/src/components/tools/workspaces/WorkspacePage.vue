@@ -171,7 +171,7 @@
       v-if="showExportWorkspaceDialogModel"
       v-model="showExportWorkspaceDialogModel"
       :workspace="workspaceToExport"
-      @submit="exportWorkspace"
+      @submit="exportWorkspaceHandler"
     />
     <text-dialog
       v-if="showRenameWorkspaceDialogModel"
@@ -336,7 +336,7 @@ async function renameWorkspace(workspace) {
 	isLoading.value = false;
 }
 
-async function exportWorkspace(workspace) {
+async function exportWorkspaceHandler(workspace, option) {
 	errorMsg.value = '';
 	showExportWorkspaceDialogModel.value = false;
 
@@ -351,6 +351,27 @@ async function exportWorkspace(workspace) {
 	}
 
 	isLoading.value = true;
+
+	switch (option) {
+		case 'workspace': {
+			await exportWorkspace(workspace);
+			break;
+		}
+
+		case 'entities': {
+			await exportEntities(workspace);
+			break;
+		}
+
+		default: {
+			errorMsg.value = 'invalid export option';
+		}
+	}
+
+	isLoading.value = false;
+}
+
+async function exportWorkspace(workspace) {
 	try {
 		const response = await dakarClients[workspace.mode].workspace.workspacesExportPost({workspace: {workspaceUID: workspace.uid}});
 
@@ -366,8 +387,24 @@ async function exportWorkspace(workspace) {
 	} catch (error) {
 		errorMsg.value = error.message;
 	}
+}
 
-	isLoading.value = false;
+async function exportEntities(workspace) {
+	try {
+		const response = await dakarClients[workspace.mode].workspace.workspacesExportEntitiesPost({workspace: {workspaceUID: workspace.uid}});
+
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(response);
+
+		a.setAttribute(
+			'download',
+			`workspace_entities_export_${getCurrentDate()}_${workspace.name}.csv`,
+		);
+		a.click();
+		a.remove();
+	} catch (error) {
+		errorMsg.value = error.message;
+	}
 }
 
 async function addWorkspace(name, mode) {
