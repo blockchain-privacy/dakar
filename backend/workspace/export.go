@@ -228,9 +228,7 @@ func getRootSelectors(allNodes map[string]ExportNode) []ExportNode {
 	// remove all selectors that are a child of a node
 	for _, n := range allNodes {
 		for _, child := range n.Children {
-			if _, ok := allSelectors[child]; ok {
-				delete(allSelectors, child)
-			}
+			delete(allSelectors, child)
 		}
 	}
 	return cliutil.GetMapValues(allSelectors)

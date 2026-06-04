@@ -1095,8 +1095,6 @@ func writeEntityExport(dgraph external.Database, workspaceMutex *workspace.Mutex
 		}
 	}
 	csvWriter.Flush()
-
-	return
 }
 
 func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
