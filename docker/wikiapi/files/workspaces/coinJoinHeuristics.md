@@ -1,6 +1,7 @@
 # CoinJoin Heuristics
 
 CoinJoin heuristics are analytical tools used to identify potential senders and receivers involved in CoinJoin transactions, employing distinct methodologies to narrow down the pool of possible candidates and enhancing the accuracy of transaction analysis. By applying these heuristics, users can gain insights into the relationships and interactions within CoinJoin transactions, ultimately improving their understanding of privacy-enhancing techniques in blockchain networks.
+CoinJoin heuristics are a type of selector.
 
 ## Types
 
