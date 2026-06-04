@@ -1026,6 +1026,79 @@ func writeExportWorkspace(dgraph external.Database, workspaceMutex *workspace.Mu
 	}
 }
 
+// writeEntityExport exports basic workspace node data
+func writeEntityExport(dgraph external.Database, workspaceMutex *workspace.Mutex, w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w)
+
+	const errBasicExport = "error getting workspace report"
+
+	tUser, err := ExtractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errBasicExport, http.StatusBadRequest)
+		warn(err)
+		return
+	}
+
+	type request struct {
+		WorkspaceUID string `json:"workspaceUID"`
+	}
+
+	var exportRequest request
+	if err := json.NewDecoder(r.Body).Decode(&exportRequest); err != nil {
+		http.Error(w, errBasicExport, http.StatusBadRequest)
+		warn(serror.New(err))
+		return
+	}
+
+	if exportRequest.WorkspaceUID == "" {
+		http.Error(w, errBasicExport, http.StatusBadRequest)
+		return
+	}
+
+	nodes, err := workspace.ExportBasic(r.Context(), dgraph, workspaceMutex,
+		exportRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		http.Error(w, errBasicExport, http.StatusInternalServerError)
+		warn(err)
+		return
+	}
+
+	// headers for streaming data to client
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", exportRequest.WorkspaceUID))
+	w.Header().Set("Content-Type", "text/csv")
+
+	csvWriter := csv.NewWriter(w)
+
+	header := []string{"transactions", "addresses"}
+	if err := csvWriter.Write(header); err != nil {
+		http.Error(w, errBasicExport, http.StatusInternalServerError)
+		warn(serror.New(err))
+		return
+	}
+
+	maximum := max(len(nodes[0]), len(nodes[1]))
+	for i := range maximum {
+		line := make([]string, 2)
+
+		if len(nodes[0]) > i {
+			line[0] = nodes[0][i]
+		}
+
+		if len(nodes[1]) > i {
+			line[1] = nodes[1][i]
+		}
+
+		if err := csvWriter.Write(line); err != nil {
+			http.Error(w, errBasicExport, http.StatusInternalServerError)
+			warn(serror.New(err))
+			return
+		}
+	}
+	csvWriter.Flush()
+
+	return
+}
+
 func getAddWorkspaceNodesReply(dgraph external.Database, workspaceMutex *workspace.Mutex,
 	r *http.Request) (reply addWorkspaceNodesReply, status int) {
 	tUser, err := ExtractTokenUser(r.Context())

@@ -196,7 +196,7 @@ func getSelectorParent(selectorParent string, nodes []workspace.Node) (int, *db.
 	return parentIndex, parentNode, nil
 }
 
-// isValidParent checks if the parent is a selector, if it belongs to the user and if it was successfully executed
+// isValidParent checks if the parent is a selector, if it belongs to the user, and if it was successfully executed
 func isValidParent(ctx context.Context, dgraph external.Database, selectorParent string,
 	workspaceUID string, userUID string) (bool, error) {
 	databaseType, err := db.GetTypeByUID(ctx, dgraph, selectorParent)
@@ -287,7 +287,7 @@ func AddSelector(ctx context.Context, dgraph external.Database, workspaceMutex *
 	selectorType string, selectorParent string, workspaceUID string, userUID string) (string, []workspace.Node, error) {
 	newNode, err := checkOptions(ctx, dgraph, options, selectorType, selectorParent, workspaceUID, userUID)
 	if err != nil {
-		return "", nil, serror.NewWithContext(db.ErrInvalidRequestArgument,
+		return "", nil, serror.NewWithContext(errors.Join(err, db.ErrInvalidRequestArgument),
 			"options", options, "type", selectorType, "parent", selectorParent)
 	}
 

@@ -146,6 +146,7 @@ func (s *Server) handlerSelectorReport() http.Handler {
 //
 //	@Summary	Exports a workspace
 //	@Tags		workspace
+//	@Accept		json
 //	@Produce	json
 //	@Param		workspace	body		server.writeExportWorkspace.request	true	"workspace export request"
 //	@Success	200			{file}		file								"json"
@@ -156,6 +157,24 @@ func (s *Server) handlerSelectorReport() http.Handler {
 func (s *Server) handlerWorkspaceExport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeExportWorkspace(s.db, s.workspaceMutex, s.blockchainMode, w, r)
+	})
+}
+
+// Workspace Entity Export godoc
+//
+//	@Summary	Exports the entities of a workspace
+//	@Tags		workspace
+//	@Accept		json
+//	@Produce	text/csv
+//	@Param		workspace	body		server.writeEntityExport.request	true	"workspace export request"
+//	@Success	200			{file}		file								"json"
+//	@Failure	400			{string}	string								"bad request"
+//	@Failure	404			{string}	string								"resource not found"
+//	@Failure	500			{string}	string								"encoding error"
+//	@Router		/workspaces/export/entities/ [post]
+func (s *Server) handlerWorkspaceEntityExport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeEntityExport(s.db, s.workspaceMutex, w, r)
 	})
 }
 
@@ -183,7 +202,6 @@ func (s *Server) handlerWorkspaceImport() http.Handler {
 //	@Summary	Get a CSV file containing all clusters for the given address
 //	@Tags		cluster
 //	@Produce	text/csv
-//	@Accept		json
 //	@Param		hash	path		string	true	"Address hash"
 //	@Success	200		{file}		file	"comma separated values"
 //	@Failure	500		{string}	string	"encoding error"
@@ -686,6 +704,8 @@ func (s *Server) setupHandlers() {
 		s.adapt(s.handlerSelectorReport(), Authorization(), mw.MaxBody5MiB(), s.cacheFactory(0)))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceExport, ""),
 		s.adapt(s.handlerWorkspaceExport(), Authorization(), mw.MaxBody5MiB()))
+	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceEntitiesExport, ""),
+		s.adapt(s.handlerWorkspaceEntityExport(), Authorization(), mw.MaxBody5MiB()))
 	s.handler.Handle(BuildPattern(http.MethodPost, routeWorkspaceImport, ""),
 		s.adapt(s.handlerWorkspaceImport(), Authorization(), mw.MaxBody5MiB()))
 }

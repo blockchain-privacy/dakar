@@ -28,6 +28,7 @@ const (
 	routeWorkspaceSelectorResults string = "workspaces/selector/results"
 	routeWorkspaceSelectorReport  string = "workspaces/selector/report"
 	routeWorkspaceExport          string = "workspaces/export"
+	routeWorkspaceEntitiesExport  string = "workspaces/export/entities"
 	routeWorkspaceImport          string = "workspaces/import"
 	routeWorkspacesConnection     string = "workspaces/connection"
 	routeWorkspaceRename          string = "workspaces/rename"

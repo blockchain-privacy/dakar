@@ -61,7 +61,7 @@ func (e ExportNode) IsSelector() bool {
 	return e.Type == workspace.NodeTypeSelector
 }
 
-// ExportWorkspace returns the name of the workspace and all if its nodes, stripped of unnecessary details
+// ExportWorkspace returns all if its nodes, stripped of unnecessary details
 func ExportWorkspace(ctx context.Context, dgraph external.Database,
 	workspaceMutex *Mutex, blockchainMode string, workspaceUID string, userUID string) (*Export, error) {
 	w, err := GetAndRefreshWorkspace(ctx, dgraph, workspaceMutex, workspaceUID, userUID)
@@ -97,6 +97,28 @@ func ExportWorkspace(ctx context.Context, dgraph external.Database,
 	export.Primitives = nonSelectorNodes
 
 	return &export, nil
+}
+
+// ExportBasic returns a two column string array:
+// [0]: transactions
+// [1]: clusters (addresses)
+func ExportBasic(ctx context.Context, dgraph external.Database,
+	workspaceMutex *Mutex, workspaceUID string, userUID string) ([][]string, error) {
+	w, err := GetAndRefreshWorkspace(ctx, dgraph, workspaceMutex, workspaceUID, userUID)
+	if err != nil {
+		return nil, err
+	}
+
+	nodes := [][]string{{}, {}}
+	for _, node := range w.Nodes {
+		if node.IsTransaction() {
+			nodes[0] = append(nodes[0], node.TransactionHash)
+		} else if node.IsCluster() {
+			nodes[1] = append(nodes[1], node.AddressHash)
+		}
+	}
+
+	return nodes, nil
 }
 
 // importPrimitiveNodes imports the given primitive nodes and returns their mapping from external UID to internal UID
@@ -194,7 +216,28 @@ func waitForSelectors(ctx context.Context, c external.Database, selectorUIDs []s
 	return nil
 }
 
-func importSelectors(ctx context.Context, m *Mutex, c external.Database, workspaceUID string, userUID string,
+// getRootSelectors returns the UIDs of all selectors that have no parent
+func getRootSelectors(allNodes map[string]ExportNode) []ExportNode {
+	allSelectors := map[string]ExportNode{}
+	for k, n := range allNodes {
+		if n.IsSelector() {
+			allSelectors[k] = n
+		}
+	}
+
+	// remove all selectors that are a child of a node
+	for _, n := range allNodes {
+		for _, child := range n.Children {
+			if _, ok := allSelectors[child]; ok {
+				delete(allSelectors, child)
+			}
+		}
+	}
+	return cliutil.GetMapValues(allSelectors)
+}
+
+// importConnectedSelectors imports all selectors connected to the parent nodes
+func importConnectedSelectors(ctx context.Context, c external.Database, m *Mutex, workspaceUID string, userUID string,
 	allNodes map[string]ExportNode, imported map[string]bool, externalToInternalMapping map[string]string) (int, error) {
 	var newSelectors []string
 	for n := range imported {
@@ -207,6 +250,8 @@ func importSelectors(ctx context.Context, m *Mutex, c external.Database, workspa
 		if !ok {
 			return 0, serror.FromStrWithContext("unable to find internal parent uid", "external UID", node.UID, "map", externalToInternalMapping)
 		}
+
+		var addedSelectors []string
 
 		for _, child := range node.Children {
 			if imported[child] {
@@ -223,34 +268,46 @@ func importSelectors(ctx context.Context, m *Mutex, c external.Database, workspa
 				continue
 			}
 
-			var opt workspace.Options
-			if childNode.TxPropOptions != nil {
-				opt = *childNode.TxPropOptions
-			} else if childNode.TxGraphOptions != nil {
-				opt = *childNode.TxGraphOptions
-			} else if childNode.HeuristicOptions != nil {
-				opt = *childNode.HeuristicOptions
-			} else {
-				return 0, serror.FromStr("invalid selector type")
-			}
-
-			selectorUID, _, err := AddSelector(ctx, c, m, opt, childNode.SelectorType,
-				internalParentUID, workspaceUID, userUID)
+			selectorUID, err := importSelector(ctx, c, m, workspaceUID, userUID, &childNode, internalParentUID)
 			if err != nil {
 				return 0, err
 			}
+
 			// update mapping
 			externalToInternalMapping[childNode.UID] = selectorUID
 			imported[childNode.UID] = true
 			newSelectors = append(newSelectors, selectorUID)
+			addedSelectors = append(addedSelectors, selectorUID)
+		}
+
+		if err := waitForSelectors(ctx, c, addedSelectors, workspaceUID, userUID); err != nil {
+			return 0, err
 		}
 	}
 
-	if err := waitForSelectors(ctx, c, newSelectors, workspaceUID, userUID); err != nil {
-		return 0, err
+	return len(newSelectors), nil
+}
+
+func importSelector(ctx context.Context, c external.Database, m *Mutex, workspaceUID string,
+	userUID string, selector *ExportNode, parentUID string) (string, error) {
+	var opt workspace.Options
+	if selector.TxPropOptions != nil {
+		opt = *selector.TxPropOptions
+	} else if selector.TxGraphOptions != nil {
+		opt = *selector.TxGraphOptions
+	} else if selector.HeuristicOptions != nil {
+		opt = *selector.HeuristicOptions
+	} else {
+		return "", serror.FromStr("invalid selector type")
 	}
 
-	return len(newSelectors), nil
+	selectorUID, _, err := AddSelector(ctx, c, m, opt, selector.SelectorType,
+		parentUID, workspaceUID, userUID)
+	if err != nil {
+		return "", err
+	}
+
+	return selectorUID, nil
 }
 
 // ImportWorkspace adds a new workspace. Its state gets constructed from the provided export.
@@ -304,8 +361,8 @@ func (i *ImportWork) Run(ctx context.Context, m *Mutex, c external.Database, _ *
 		if *errorPointer == nil {
 			importStatus = workspace.ImportStatusSuccess
 		}
-		if err = workspace.DeleteImportAndSetStatus(ctx, c, i.WorkspaceUID, importStatus); err != nil {
-			warn(err)
+		if cleanUpErr := workspace.DeleteImportAndSetStatus(ctx, c, i.WorkspaceUID, importStatus); cleanUpErr != nil {
+			warn(cleanUpErr)
 		}
 	}()
 
@@ -327,10 +384,30 @@ func (i *ImportWork) Run(ctx context.Context, m *Mutex, c external.Database, _ *
 	}
 
 	allNodes := getExportMap(e)
+	rootSelectors := getRootSelectors(allNodes)
+	var addedSelectors []string
+	// import selectors that have no parent node
+	for _, rootSelector := range rootSelectors {
+		var selectorUID string
+		selectorUID, err = importSelector(ctx, c, m, i.WorkspaceUID, i.UserUID, &rootSelector, "")
+		if err != nil {
+			return
+		}
 
+		// update mapping
+		externalToInternalMapping[rootSelector.UID] = selectorUID
+		imported[rootSelector.UID] = true
+		addedSelectors = append(addedSelectors, selectorUID)
+	}
+
+	if err = waitForSelectors(ctx, c, addedSelectors, i.WorkspaceUID, i.UserUID); err != nil {
+		return
+	}
+
+	// import selectors connected to parent nodes
 	for {
 		var numImported int
-		numImported, err = importSelectors(ctx, m, c, i.WorkspaceUID, i.UserUID, allNodes, imported, externalToInternalMapping)
+		numImported, err = importConnectedSelectors(ctx, c, m, i.WorkspaceUID, i.UserUID, allNodes, imported, externalToInternalMapping)
 		if err != nil {
 			return err
 		}
