@@ -8,7 +8,7 @@ Give the new workspace a name and choose the blockchain the workspace should ope
 ![new workspace](img/workspace_example_new_workspace.webp)
 
 ### 3. Navigate to the newly created workspace
-Click on the workspace name to navigate to the workspace editor. The list also shows the workspace's blockchain.
+Click on the workspace card to navigate to the workspace editor. The list also shows the workspace's blockchain.
 ![workspace overview](img/workspace_example_workspace_overview.webp)
 
 ### 4. Add a transaction to the workspace
