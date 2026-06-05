@@ -30,7 +30,10 @@
         icon-color="primary"
       />
     </icon-title>
-    <alert :text="errorMsg" />
+    <alert
+      :text="errorMsg"
+      closable
+    />
     <alert
       :text="infoMsg"
       type="info"
