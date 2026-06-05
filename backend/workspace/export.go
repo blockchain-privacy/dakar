@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"gitlab.com/blockchain-privacy/dakar/analytics/graph"
-	"gitlab.com/blockchain-privacy/dakar/analytics/heuristics"
 	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
 	"gitlab.com/blockchain-privacy/dakar/db/workspace"
 	"gitlab.com/blockchain-privacy/dakar/external"
@@ -26,9 +25,9 @@ type ExportMeta struct {
 type Export struct {
 	Meta ExportMeta `json:"meta,omitempty"`
 	// Transactions and Clusters
-	Primitives []ExportNode `json:"primitives,omitempty"`
-	Notes      []ExportNode `json:"notes,omitempty"`
-	Selectors  []ExportNode `json:"selectors,omitempty"`
+	Primitives []workspace.Node `json:"primitives,omitempty"`
+	Notes      []workspace.Node `json:"notes,omitempty"`
+	Selectors  []workspace.Node `json:"selectors,omitempty"`
 }
 
 func NewExport(name string, blockchainMode string) Export {
@@ -40,27 +39,6 @@ func NewExport(name string, blockchainMode string) Export {
 	}}
 }
 
-type ExportNode struct {
-	UID      string   `json:"uid,omitempty"`
-	Children []string `json:"children,omitempty"`
-	Type     string   `json:"type,omitempty"`
-
-	// tx hash or address hash
-	Identifier string `json:"identifier,omitempty"`
-
-	SelectorType     string                       `json:"selectorType,omitempty"`
-	TxPropOptions    *workspace.TxPropOptions     `json:"txPropOptions,omitempty"`
-	TxGraphOptions   *workspace.TxGraphOptions    `json:"txGraphOptions,omitempty"`
-	HeuristicOptions *heuristics.HeuristicOptions `json:"heuristicOptions,omitempty"`
-
-	// Note
-	Text string `json:"text,omitempty"`
-}
-
-func (e ExportNode) IsSelector() bool {
-	return e.Type == workspace.NodeTypeSelector
-}
-
 // ExportWorkspace returns all if its nodes, stripped of unnecessary details
 func ExportWorkspace(ctx context.Context, dgraph external.Database,
 	workspaceMutex *Mutex, blockchainMode string, workspaceUID string, userUID string) (*Export, error) {
@@ -70,24 +48,26 @@ func ExportWorkspace(ctx context.Context, dgraph external.Database,
 	}
 
 	// nonSelectorNodes holds all nodes which are not selectors
-	nonSelectorNodes := make([]ExportNode, 0, len(w.Nodes))
-	var notes []ExportNode
-	var selectors []ExportNode
+	nonSelectorNodes := make([]workspace.Node, 0, len(w.Nodes))
+	var notes []workspace.Node
+	var selectors []workspace.Node
 
 	for _, node := range w.Nodes {
-		if node.IsTransaction() {
-			nonSelectorNodes = append(nonSelectorNodes, ExportNode{UID: node.UID, Identifier: node.TransactionHash, Children: node.Children, Type: node.Type})
-		} else if node.IsCluster() {
-			nonSelectorNodes = append(nonSelectorNodes, ExportNode{UID: node.UID, Identifier: node.AddressHash, Children: node.Children, Type: node.Type})
+		if node.IsTransaction() || node.IsCluster() {
+			// reset not needed data
+			node.TransactionType = ""
+			node.ClusterType = ""
+			nonSelectorNodes = append(nonSelectorNodes, node)
 		} else if node.IsNote() {
-			notes = append(notes, ExportNode{UID: node.UID, Text: node.Text, Children: node.Children, Type: node.Type})
+			notes = append(notes, node)
 		} else if node.IsSelector() {
-			selectors = append(selectors, ExportNode{UID: node.UID, Children: node.Children,
-				Type:             node.Type,
-				SelectorType:     node.SelectorType,
-				HeuristicOptions: node.HeuristicOptions,
-				TxGraphOptions:   node.TxGraphOptions,
-				TxPropOptions:    node.TxPropOptions})
+			// reset not needed data
+			node.SelectorCreated = ""
+			node.SelectorModified = ""
+			node.SelectorErrorCode = ""
+			node.SelectorResultCount = nil
+			node.SelectorTotalResultCount = nil
+			selectors = append(selectors, node)
 		}
 	}
 
@@ -123,10 +103,20 @@ func ExportBasic(ctx context.Context, dgraph external.Database,
 
 // importPrimitiveNodes imports the given primitive nodes and returns their mapping from external UID to internal UID
 func importPrimitiveNodes(ctx context.Context, m *Mutex, c external.Database,
-	workspaceUID string, userUID string, nodes []ExportNode) (map[string]string, error) {
+	workspaceUID string, userUID string, nodes []workspace.Node) (map[string]string, error) {
 	newNodes := map[string]workspace.Node{}
 	for _, node := range nodes {
-		newNode, err := workspace.SearchForNode(ctx, c, node.Identifier)
+		identifier := node.AddressHash
+		if node.IsTransaction() {
+			identifier = node.TransactionHash
+		}
+
+		// ignore node if no transaction hash or address hash is present
+		if len(identifier) == 0 {
+			continue
+		}
+
+		newNode, err := workspace.SearchForNode(ctx, c, identifier)
 		if err != nil {
 			if errors.Is(err, workspace.ErrNodeNotFound) {
 				// ignore nodes which are not found
@@ -150,7 +140,14 @@ func importPrimitiveNodes(ctx context.Context, m *Mutex, c external.Database,
 
 		for _, n := range nodes {
 			index := slices.IndexFunc(workspaceNodes, func(node workspace.Node) bool {
-				return n.Identifier == node.AddressHash || n.Identifier == node.TransactionHash
+				if n.AddressHash != "" && n.AddressHash == node.AddressHash {
+					return true
+				}
+				if n.TransactionHash != "" && n.TransactionHash == node.TransactionHash {
+					return true
+				}
+
+				return false
 			})
 
 			if index == -1 {
@@ -164,8 +161,8 @@ func importPrimitiveNodes(ctx context.Context, m *Mutex, c external.Database,
 	return externalToInternalMapping, nil
 }
 
-func getExportMap(export Export) map[string]ExportNode {
-	allNodes := make(map[string]ExportNode, len(export.Primitives)+len(export.Selectors)+len(export.Notes))
+func getExportMap(export Export) map[string]workspace.Node {
+	allNodes := make(map[string]workspace.Node, len(export.Primitives)+len(export.Selectors)+len(export.Notes))
 
 	for _, n := range export.Primitives {
 		allNodes[n.UID] = n
@@ -217,8 +214,8 @@ func waitForSelectors(ctx context.Context, c external.Database, selectorUIDs []s
 }
 
 // getRootSelectors returns the UIDs of all selectors that have no parent
-func getRootSelectors(allNodes map[string]ExportNode) []ExportNode {
-	allSelectors := map[string]ExportNode{}
+func getRootSelectors(allNodes map[string]workspace.Node) []workspace.Node {
+	allSelectors := map[string]workspace.Node{}
 	for k, n := range allNodes {
 		if n.IsSelector() {
 			allSelectors[k] = n
@@ -236,7 +233,7 @@ func getRootSelectors(allNodes map[string]ExportNode) []ExportNode {
 
 // importConnectedSelectors imports all selectors connected to the parent nodes
 func importConnectedSelectors(ctx context.Context, c external.Database, m *Mutex, workspaceUID string, userUID string,
-	allNodes map[string]ExportNode, imported map[string]bool, externalToInternalMapping map[string]string) (int, error) {
+	allNodes map[string]workspace.Node, imported map[string]bool, externalToInternalMapping map[string]string) (int, error) {
 	var newSelectors []string
 	for n := range imported {
 		node, ok := allNodes[n]
@@ -287,7 +284,7 @@ func importConnectedSelectors(ctx context.Context, c external.Database, m *Mutex
 }
 
 func importSelector(ctx context.Context, c external.Database, m *Mutex, workspaceUID string,
-	userUID string, selector *ExportNode, parentUID string) (string, error) {
+	userUID string, selector *workspace.Node, parentUID string) (string, error) {
 	var opt workspace.Options
 	if selector.TxPropOptions != nil {
 		opt = *selector.TxPropOptions
@@ -417,20 +414,46 @@ func (i *ImportWork) Run(ctx context.Context, m *Mutex, c external.Database, _ *
 
 	for _, note := range e.Notes {
 		children := make([]string, len(note.Children))
-		for i, child := range note.Children {
+		for index, child := range note.Children {
 			internalChild, ok := externalToInternalMapping[child]
 			if !ok {
 				err = serror.FromStrWithContext("unable to find internal uid", "external UID", child, "map", externalToInternalMapping)
 				return
 			}
-			children[i] = internalChild
+			children[index] = internalChild
 		}
 
-		if _, err = AddNote(ctx, c, m, i.WorkspaceUID, i.UserUID, workspace.Node{
-			UID: note.UID, Text: note.Text, Children: children,
-		}); err != nil {
+		note.Children = children
+
+		if _, err = AddNote(ctx, c, m, i.WorkspaceUID, i.UserUID, note); err != nil {
 			return
 		}
+	}
+
+	nodesWithInternalUIDs := make([]workspace.Node, len(allNodes))
+	index := 0
+	for _, n := range allNodes {
+		if n.IsNote() {
+			nodesWithInternalUIDs[index] = n
+			index++
+			// note UIDs do not have internal UID
+			continue
+		}
+
+		internalUID, ok := externalToInternalMapping[n.UID]
+		if !ok {
+			err = serror.FromStrWithContext("unable to find internal uid", "external UID", n.UID, "map", externalToInternalMapping)
+			return
+		}
+
+		n.UID = internalUID
+		nodesWithInternalUIDs[index] = n
+
+		index++
+	}
+
+	if err = UpdateNodeCoordinates(ctx, c, m, i.WorkspaceUID, i.UserUID, nodesWithInternalUIDs); err != nil {
+		return err
 	}
 
 	return
