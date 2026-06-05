@@ -81,7 +81,7 @@ export const useLocalStore = defineStore('local', {
 			this.session = payload;
 		},
 		deleteSession() {
-			deleteLocalstorageData(LOCALSTORAGE_FIELD_SETTINGS);
+			deleteLocalstorageData(LOCALSTORAGE_FIELD_SESSION);
 			this.session = null;
 		},
 		setSettings(payload) {

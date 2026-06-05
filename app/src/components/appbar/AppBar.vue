@@ -266,7 +266,7 @@ async function initLogoutFlow() {
 		}
 
 		await ory.frontend.updateLogoutFlow({token: response.logout_token});
-		session.value = null;
+		localStore.deleteSession();
 
 		const redirected = await tryOAuthLogout();
 		if (!redirected) {
