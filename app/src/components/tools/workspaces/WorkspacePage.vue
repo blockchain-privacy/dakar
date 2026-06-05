@@ -86,7 +86,7 @@
             :import-time="new Date(item.raw.importTs)"
             :created="new Date(item.raw.modTimeUnix)"
           >
-            <v-btn-group density="compact">
+            <v-btn-group density="comfortable">
               <v-btn
                 :disabled="item.raw.importStatus === WORKSPACE_IMPORT_STATUS_WAITING"
                 :icon="mdiRename"

@@ -60,16 +60,16 @@
         </v-chip>
       </div>
 
-      <div class="d-flex justify-space-between align-center justify-center">
-        <v-card-title>
-          <div
-            style="text-overflow: ellipsis; overflow: hidden"
-            class="me-2"
-          >
-            {{ title }}
-          </div>
-        </v-card-title>
-        <slot />
+      <div class="d-flex justify-space-between align-center justify-center px-2">
+        <div
+          style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap"
+          class="me-2 text-title-large"
+        >
+          {{ title }}
+        </div>
+        <div class="flex-shrink-0">
+          <slot />
+        </div>
       </div>
     </div>
     <alert :text="errorMsg" />
