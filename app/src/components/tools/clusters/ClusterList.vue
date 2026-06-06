@@ -16,13 +16,12 @@
       >
         <v-menu location="bottom">
           <template #activator="item">
-            <v-btn
+            <v-icon-btn
               v-bind="item.props"
-              icon
               variant="text"
             >
               <v-icon>{{ mdiDotsVertical }}</v-icon>
-            </v-btn>
+            </v-icon-btn>
           </template>
           <v-list>
             <v-list-item @click="addClusterDialogModel = true">
@@ -115,13 +114,12 @@
             </v-list-item-subtitle>
             <v-menu location="bottom">
               <template #activator="activatorItem">
-                <v-btn
+                <v-icon-btn
                   v-bind="activatorItem.props"
-                  icon
                   variant="plain"
                 >
                   <v-icon>{{ mdiDotsVertical }}</v-icon>
-                </v-btn>
+                </v-icon-btn>
               </template>
               <v-list>
                 <v-list-item @click="deleteItem(item.uid, item.address_count)">

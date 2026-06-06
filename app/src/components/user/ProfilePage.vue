@@ -14,7 +14,7 @@
     >
       <v-menu>
         <template #activator="{ props }">
-          <v-btn
+          <v-icon-btn
             v-bind="props"
             variant="text"
             :icon="mdiDotsVertical"
@@ -80,12 +80,10 @@
         <span class="ms-2">{{ item.userAgent }}</span>
       </template>
       <template #item.actions="{ item }">
-        <v-icon
-          size="small"
+        <v-icon-btn
+          :icon="mdiDelete"
           @click="deleteUserSession(item.id)"
-        >
-          {{ mdiDelete }}
-        </v-icon>
+        />
       </template>
       <template #no-data>
         No other active sessions found
@@ -108,12 +106,10 @@
         <span>{{ new Date(item.handled_at).toLocaleString() }}</span>
       </template>
       <template #item.actions="{ item }">
-        <v-icon
-          size="small"
+        <v-icon-btn
+          :icon="mdiDelete"
           @click="deleteConsentSession(item.consent_request.consent_request_id)"
-        >
-          {{ mdiDelete }}
-        </v-icon>
+        />
       </template>
       <template #no-data>
         No sessions found

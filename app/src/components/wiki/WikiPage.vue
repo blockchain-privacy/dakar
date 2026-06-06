@@ -66,7 +66,7 @@
       />
     </v-navigation-drawer>
     <div class="position-relative mt-5">
-      <v-btn
+      <v-icon-btn
         :icon="mdiMenu"
         variant="text"
         class="position-absolute"

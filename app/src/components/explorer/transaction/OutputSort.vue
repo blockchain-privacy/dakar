@@ -9,24 +9,19 @@
     eager
   >
     <template #activator="activator">
-      <v-btn
+      <v-icon-btn
         variant="text"
-        icon
         v-bind="activator.props"
       >
         <v-badge
-          v-if="modified"
           color="success"
           dot
           location="bottom right"
+          :dot-size="modified?undefined:'0'"
         >
           <v-icon :icon="mdiFilter" />
         </v-badge>
-        <v-icon
-          v-else
-          :icon="mdiFilter"
-        />
-      </v-btn>
+      </v-icon-btn>
     </template>
     <v-card width="300px">
       <v-card-text>

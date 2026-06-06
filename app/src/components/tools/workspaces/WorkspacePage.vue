@@ -111,23 +111,19 @@
       </template>
       <template #footer="{ page, pageCount, prevPage, nextPage }">
         <div class="d-flex align-center justify-center pa-4">
-          <v-btn
+          <v-icon-btn
             :disabled="page === 1"
-            density="comfortable"
             :icon="mdiArrowLeft"
-            variant="tonal"
-            rounded
+            variant="text"
             @click="prevPage"
           />
           <div class="mx-2 text-body-small">
             Page {{ page }} of {{ pageCount }}
           </div>
-          <v-btn
+          <v-icon-btn
             :disabled="page >= pageCount"
-            density="comfortable"
             :icon="mdiArrowRight"
-            variant="tonal"
-            rounded
+            variant="text"
             @click="nextPage"
           />
         </div>

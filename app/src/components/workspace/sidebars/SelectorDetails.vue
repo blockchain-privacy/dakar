@@ -264,20 +264,22 @@
             </td>
           </template>
           <template #item.actions="{item}">
-            <v-btn-group density="compact">
-              <v-btn
+            <div class="d-flex">
+              <v-icon-btn
                 v-tooltip="{'text': 'Select all transactions belonging to this cluster', 'location':'top', 'open-delay': 400}"
                 variant="text"
+                :size="25"
                 :icon="mdiSelectAll"
                 @click="handleClusterSelected(item.cluster)"
               />
-              <v-btn
+              <v-icon-btn
                 v-tooltip="{'text': 'Deselect all transactions belonging to this cluster', 'location':'top', 'open-delay': 400}"
                 variant="text"
+                :size="25"
                 :icon="mdiSelectRemove"
                 @click="handleClusterDeselected(item.cluster)"
               />
-            </v-btn-group>
+            </div>
           </template>
         </v-data-table>
       </template>
