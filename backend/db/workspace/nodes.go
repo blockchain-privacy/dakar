@@ -967,7 +967,18 @@ func FindDescendantSelectorUIDs(nodes map[string]Node, nodeUID string) []string 
 
 // DeleteNodes returns a new slice which contains nodes which do not have an UID contained in uids
 func DeleteNodes(nodes []Node, uids []string) []Node {
-	return slices.DeleteFunc(nodes, func(node Node) bool {
+	remainingNodes := slices.DeleteFunc(nodes, func(node Node) bool {
 		return slices.Contains(uids, node.UID)
 	})
+
+	// delete removed nodes from child list of each node
+	for i, n := range remainingNodes {
+		n.Children = slices.DeleteFunc(n.Children, func(child string) bool {
+			return slices.Contains(uids, child)
+		})
+
+		remainingNodes[i] = n
+	}
+
+	return remainingNodes
 }
