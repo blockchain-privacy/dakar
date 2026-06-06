@@ -256,7 +256,8 @@ func importConnectedSelectors(ctx context.Context, c external.Database, m *Mutex
 
 			childNode, ok := allNodes[child]
 			if !ok {
-				return 0, serror.FromStrWithContext("child node not in map", "node", child, "map", allNodes)
+				// ignore child nodes which do not exist in workspace
+				continue
 			}
 
 			if !childNode.IsSelector() {
