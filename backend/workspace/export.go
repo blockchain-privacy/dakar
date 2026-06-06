@@ -367,20 +367,25 @@ func (i *ImportWork) Run(ctx context.Context, m *Mutex, c external.Database, _ *
 		return
 	}
 
+	allNodes := getExportMap(e)
+	if len(allNodes) == 0 {
+		// empty import
+		return
+	}
+
 	var externalToInternalMapping map[string]string
 	externalToInternalMapping, err = importPrimitiveNodes(ctx, m, c, i.WorkspaceUID, i.UserUID, e.Primitives)
 	if err != nil {
 		return
 	}
 
+	rootSelectors := getRootSelectors(allNodes)
+	var addedSelectors []string
 	imported := make(map[string]bool, len(e.Primitives))
 	for _, n := range e.Primitives {
 		imported[n.UID] = true
 	}
 
-	allNodes := getExportMap(e)
-	rootSelectors := getRootSelectors(allNodes)
-	var addedSelectors []string
 	// import selectors that have no parent node
 	for _, rootSelector := range rootSelectors {
 		var selectorUID string
