@@ -32,6 +32,7 @@ export const ROUTE_NAME_WIKI = 'Wiki Page';
 export const ROUTE_NAME_ABOUT = 'About Page';
 export const ROUTE_NAME_TERMS_OF_USE = 'Terms of Use Page';
 export const ROUTE_NAME_PRIVACY = 'Privacy Policy Page';
+export const ROUTE_NAME_LICENSES = 'Licenses Page';
 
 // Application
 export const PAGE_TITLE = 'Dakar';
