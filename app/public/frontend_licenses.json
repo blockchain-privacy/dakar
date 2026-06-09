@@ -1,0 +1,478 @@
+{
+  "MIT": [
+    {
+      "name": "@babel/generator",
+      "license": "MIT"
+    },
+    {
+      "name": "@babel/helper-string-parser",
+      "license": "MIT"
+    },
+    {
+      "name": "@babel/helper-validator-identifier",
+      "license": "MIT"
+    },
+    {
+      "name": "@babel/parser",
+      "license": "MIT"
+    },
+    {
+      "name": "@babel/types",
+      "license": "MIT"
+    },
+    {
+      "name": "@jridgewell/gen-mapping",
+      "license": "MIT"
+    },
+    {
+      "name": "@jridgewell/remapping",
+      "license": "MIT"
+    },
+    {
+      "name": "@jridgewell/resolve-uri",
+      "license": "MIT"
+    },
+    {
+      "name": "@jridgewell/sourcemap-codec",
+      "license": "MIT"
+    },
+    {
+      "name": "@jridgewell/trace-mapping",
+      "license": "MIT"
+    },
+    {
+      "name": "@oxc-project/types",
+      "license": "MIT"
+    },
+    {
+      "name": "@parcel/watcher",
+      "license": "MIT"
+    },
+    {
+      "name": "@parcel/watcher-linux-x64-glibc",
+      "license": "MIT"
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "license": "MIT"
+    },
+    {
+      "name": "@rolldown/pluginutils",
+      "license": "MIT"
+    },
+    {
+      "name": "@types/jsesc",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue-macros/common",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/compiler-core",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/compiler-dom",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/compiler-sfc",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/compiler-ssr",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/devtools-api",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/devtools-kit",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/devtools-shared",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/reactivity",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/runtime-core",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/runtime-dom",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/server-renderer",
+      "license": "MIT"
+    },
+    {
+      "name": "@vue/shared",
+      "license": "MIT"
+    },
+    {
+      "name": "@vuetify/loader-shared",
+      "license": "MIT"
+    },
+    {
+      "name": "acorn",
+      "license": "MIT"
+    },
+    {
+      "name": "ast-kit",
+      "license": "MIT"
+    },
+    {
+      "name": "ast-walker-scope",
+      "license": "MIT"
+    },
+    {
+      "name": "birpc",
+      "license": "MIT"
+    },
+    {
+      "name": "chokidar",
+      "license": "MIT"
+    },
+    {
+      "name": "confbox",
+      "license": "MIT"
+    },
+    {
+      "name": "copy-anything",
+      "license": "MIT"
+    },
+    {
+      "name": "csstype",
+      "license": "MIT"
+    },
+    {
+      "name": "debug",
+      "license": "MIT"
+    },
+    {
+      "name": "estree-walker",
+      "license": "MIT"
+    },
+    {
+      "name": "exsolve",
+      "license": "MIT"
+    },
+    {
+      "name": "fdir",
+      "license": "MIT"
+    },
+    {
+      "name": "hookable",
+      "license": "MIT"
+    },
+    {
+      "name": "immutable",
+      "license": "MIT"
+    },
+    {
+      "name": "is-extglob",
+      "license": "MIT"
+    },
+    {
+      "name": "is-glob",
+      "license": "MIT"
+    },
+    {
+      "name": "is-what",
+      "license": "MIT"
+    },
+    {
+      "name": "jsesc",
+      "license": "MIT"
+    },
+    {
+      "name": "json5",
+      "license": "MIT"
+    },
+    {
+      "name": "local-pkg",
+      "license": "MIT"
+    },
+    {
+      "name": "magic-string",
+      "license": "MIT"
+    },
+    {
+      "name": "magic-string-ast",
+      "license": "MIT"
+    },
+    {
+      "name": "mitt",
+      "license": "MIT"
+    },
+    {
+      "name": "mlly",
+      "license": "MIT"
+    },
+    {
+      "name": "ms",
+      "license": "MIT"
+    },
+    {
+      "name": "muggle-string",
+      "license": "MIT"
+    },
+    {
+      "name": "nanoid",
+      "license": "MIT"
+    },
+    {
+      "name": "node-addon-api",
+      "license": "MIT"
+    },
+    {
+      "name": "pathe",
+      "license": "MIT"
+    },
+    {
+      "name": "perfect-debounce",
+      "license": "MIT"
+    },
+    {
+      "name": "picomatch",
+      "license": "MIT"
+    },
+    {
+      "name": "pinia",
+      "license": "MIT"
+    },
+    {
+      "name": "pkg-types",
+      "license": "MIT"
+    },
+    {
+      "name": "postcss",
+      "license": "MIT"
+    },
+    {
+      "name": "quansync",
+      "license": "MIT"
+    },
+    {
+      "name": "readdirp",
+      "license": "MIT"
+    },
+    {
+      "name": "rfdc",
+      "license": "MIT"
+    },
+    {
+      "name": "rolldown",
+      "license": "MIT"
+    },
+    {
+      "name": "sass",
+      "license": "MIT"
+    },
+    {
+      "name": "scule",
+      "license": "MIT"
+    },
+    {
+      "name": "superjson",
+      "license": "MIT"
+    },
+    {
+      "name": "tinyglobby",
+      "license": "MIT"
+    },
+    {
+      "name": "ufo",
+      "license": "MIT"
+    },
+    {
+      "name": "unplugin",
+      "license": "MIT"
+    },
+    {
+      "name": "unplugin-utils",
+      "license": "MIT"
+    },
+    {
+      "name": "upath",
+      "license": "MIT"
+    },
+    {
+      "name": "vite",
+      "license": "MIT"
+    },
+    {
+      "name": "vite-plugin-vuetify",
+      "license": "MIT"
+    },
+    {
+      "name": "vue",
+      "license": "MIT"
+    },
+    {
+      "name": "vue-router",
+      "license": "MIT"
+    },
+    {
+      "name": "vuetify",
+      "license": "MIT"
+    },
+    {
+      "name": "webpack-virtual-modules",
+      "license": "MIT"
+    }
+  ],
+  "AGPL-3.0-only": [
+    {
+      "name": "@blockchain-privacy/kratosadmin",
+      "license": "AGPL-3.0-only"
+    },
+    {
+      "name": "@blockchain-privacy/wikiapi",
+      "license": "AGPL-3.0-only"
+    },
+    {
+      "name": "@blockchain/dakar",
+      "license": "AGPL-3.0-only"
+    }
+  ],
+  "OFL-1.1": [
+    {
+      "name": "@fontsource/roboto",
+      "license": "OFL-1.1"
+    }
+  ],
+  "Apache-2.0": [
+    {
+      "name": "@mdi/js",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "@ory/client-fetch",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "detect-libc",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "typescript",
+      "license": "Apache-2.0"
+    }
+  ],
+  "ISC": [
+    {
+      "name": "d3-array",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-axis",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-color",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-dispatch",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-drag",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-force",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-format",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-interpolate",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-quadtree",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-scale",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-selection",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-time",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-time-format",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-timer",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-transition",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-zoom",
+      "license": "ISC"
+    },
+    {
+      "name": "internmap",
+      "license": "ISC"
+    },
+    {
+      "name": "picocolors",
+      "license": "ISC"
+    },
+    {
+      "name": "yaml",
+      "license": "ISC"
+    }
+  ],
+  "BSD-3-Clause": [
+    {
+      "name": "d3-ease",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "source-map-js",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "speakingurl",
+      "license": "BSD-3-Clause"
+    }
+  ],
+  "BSD-2-Clause": [
+    {
+      "name": "entities",
+      "license": "BSD-2-Clause"
+    }
+  ],
+  "MPL-2.0": [
+    {
+      "name": "lightningcss",
+      "license": "MPL-2.0"
+    },
+    {
+      "name": "lightningcss-linux-x64-gnu",
+      "license": "MPL-2.0"
+    }
+  ]
+}
