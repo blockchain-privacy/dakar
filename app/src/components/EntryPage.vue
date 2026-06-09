@@ -35,12 +35,22 @@
       </v-col>
     </v-row>
     <!-- footer -->
-    <v-container
-      v-if="false"
-      class="align-self-end"
-    >
+    <v-container>
       <v-row>
         <v-col
+          md="2"
+          class="text-center mx-auto"
+        >
+          <v-btn
+            :to="{name: ROUTE_NAME_LICENSES}"
+            variant="text"
+            size="small"
+          >
+            Licenses
+          </v-btn>
+        </v-col>
+        <v-col
+          v-if="false"
           md="2"
           class="text-center mx-1"
         >
@@ -53,6 +63,7 @@
           </v-btn>
         </v-col>
         <v-col
+          v-if="false"
           md="2"
           class="text-center mx-1"
         >
@@ -65,6 +76,7 @@
           </v-btn>
         </v-col>
         <v-col
+          v-if="false"
           md="2"
           class="text-center mx-1"
         >
@@ -88,6 +100,7 @@ import {
 	ROUTE_NAME_ABOUT,
 	ROUTE_NAME_TERMS_OF_USE,
 	ROUTE_NAME_PRIVACY,
+	ROUTE_NAME_LICENSES,
 } from '@/constants';
 import DakarAnimatedImg from '@/assets/dakar_animated.svg?url';
 import QueryInput from '@/components/common/QueryInput.vue';
