@@ -37,10 +37,7 @@
     <!-- footer -->
     <v-container>
       <v-row>
-        <v-col
-          md="2"
-          class="text-center mx-auto"
-        >
+        <v-col class="text-center">
           <v-btn
             :to="{name: ROUTE_NAME_LICENSES}"
             variant="text"
@@ -49,14 +46,20 @@
             Licenses
           </v-btn>
         </v-col>
-        <v-col
-          v-if="false"
-          md="2"
-          class="text-center mx-1"
-        >
+        <v-col class="text-center">
+          <v-btn
+            href="https://gitlab.com/blockchain-privacy/dakar"
+            target="_blank"
+            variant="text"
+            size="small"
+          >
+            Source Code
+          </v-btn>
+        </v-col>
+        <v-col class="text-center">
           <v-btn
             :to="{name: ROUTE_NAME_ABOUT}"
-            variant="plain"
+            variant="text"
             size="small"
           >
             About
@@ -64,8 +67,7 @@
         </v-col>
         <v-col
           v-if="false"
-          md="2"
-          class="text-center mx-1"
+          class="text-center"
         >
           <v-btn
             :to="{name: ROUTE_NAME_TERMS_OF_USE}"
@@ -77,8 +79,7 @@
         </v-col>
         <v-col
           v-if="false"
-          md="2"
-          class="text-center mx-1"
+          class="text-center"
         >
           <v-btn
             :to="{name: ROUTE_NAME_PRIVACY}"
