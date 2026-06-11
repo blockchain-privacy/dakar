@@ -66,6 +66,7 @@ func ExportWorkspace(ctx context.Context, dgraph external.Database,
 			node.SelectorModified = ""
 			node.SelectorErrorCode = ""
 			node.SelectorResultCount = nil
+			node.SelectorStatus = ""
 			node.SelectorTotalResultCount = nil
 			selectors = append(selectors, node)
 		}
