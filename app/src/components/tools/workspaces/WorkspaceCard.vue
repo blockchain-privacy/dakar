@@ -40,7 +40,7 @@
       <div class="d-flex">
         <v-chip
           v-if="displayImportResult"
-          v-tooltip="{'text': `Error while importing the workspace. Some nodes may be missing.`, 'location':'top', 'open-delay': 400}"
+          v-tooltip="importResultTooltip"
           rounded
           size="small"
           :color="importChipColor"
@@ -142,6 +142,14 @@ const importChipColor = computed(() => {
 	}
 
 	return 'grey';
+});
+
+const importResultTooltip = computed(() => {
+	if (props.importStatus === WORKSPACE_IMPORT_STATUS_ERROR) {
+		return {text: 'Error while importing the workspace. Some nodes may be missing.', location: 'top', 'open-delay': 400};
+	}
+
+	return null;
 });
 
 const importResultLabel = computed(() => {
