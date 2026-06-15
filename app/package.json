@@ -11,9 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@blockchain-privacy/kratosadmin": "^0.0.30",
-    "@blockchain-privacy/wikiapi": "^0.0.6",
-    "@blockchain/dakar": "^1.0.19",
+    "@blockchain-privacy/dakar": "^1.0.20",
+    "@blockchain-privacy/kratosadmin": "^0.0.31",
+    "@blockchain-privacy/wikiapi": "^0.0.10",
     "@fontsource/roboto": "^5.2.10",
     "@mdi/js": "^7.4.47",
     "@ory/client-fetch": "^1.22.37",
