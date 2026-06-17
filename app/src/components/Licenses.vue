@@ -4,19 +4,22 @@
 
 <template>
   <v-container fluid>
-    <v-row class="align-center justify-center">
+    <alert :text="errorMsg" />
+    <v-row
+      v-for="type in licenseTypes"
+      :key="type.text"
+      class="align-center justify-center"
+    >
       <v-col
         md="12"
         xl="8"
       >
         <v-card>
           <v-card-title>
-            Javascript Packages
+            {{ type.text }} Packages
           </v-card-title>
           <v-card-text>
-            <alert :text="errorMsg" />
-
-            <v-table v-if="frontendLicenses">
+            <v-table v-if="type.ref.value">
               <thead>
                 <tr>
                   <th class="text-left">
@@ -29,65 +32,14 @@
               </thead>
               <tbody>
                 <tr
-                  v-for="item in frontendLicenses"
-                  :key="item.package"
+                  v-for="item in type.ref.value"
+                  :key="item.name"
                 >
-                  <td>{{ item.package }}</td>
+                  <td>{{ item.name }}</td>
                   <td v-if="licenseText.has(item.license)">
                     <v-btn
                       variant="tonal"
-                      @click="openDialog(item.package, item.license)"
-                    >
-                      {{ item.license }}
-                    </v-btn>
-                  </td>
-                  <td v-else>
-                    {{ item.license }}
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-            <v-skeleton-loader
-              v-else
-              type="article@3"
-            />
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-    <v-row class="align-center justify-center">
-      <v-col
-        md="12"
-        xl="8"
-      >
-        <v-card>
-          <v-card-title>
-            Golang Packages
-          </v-card-title>
-          <v-card-text>
-            <alert :text="errorMsg" />
-
-            <v-table v-if="backendLicenses">
-              <thead>
-                <tr>
-                  <th class="text-left">
-                    Package
-                  </th>
-                  <th class="text-left">
-                    License
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="item in backendLicenses"
-                  :key="item.package"
-                >
-                  <td>{{ item.package }}</td>
-                  <td v-if="licenseText.has(item.license)">
-                    <v-btn
-                      variant="tonal"
-                      @click="openDialog(item.package, item.license)"
+                      @click="openDialog(item.name, item.license)"
                     >
                       {{ item.license }}
                     </v-btn>
@@ -152,51 +104,25 @@ const licenseText = new Map([
 	['OFL-1.1', '/licenses/OFL'],
 ]);
 
+const licenseTypes = [{text: 'JavaScript', ref: frontendLicenses}, {text: 'Golang', ref: backendLicenses}];
+
 // Hooks
 onMounted(async () => {
 	document.title = `Licenses - ${PAGE_TITLE}`;
 
-	await fetchFrontendLicenses();
-	await fetchBackendLicenses();
+	await fetchBackendLicenses('/backend_licenses.json', backendLicenses);
+	await fetchBackendLicenses('/frontend_licenses.json', frontendLicenses);
 });
 
 // Functions
-async function fetchFrontendLicenses() {
+async function fetchBackendLicenses(url, licenseRef) {
 	errorMsg.value = '';
 	try {
-		const response = await fetch('/frontend_licenses.json');
-		parseFrontendLicenses(await response.json());
+		const response = await fetch(url);
+		licenseRef.value = await response.json();
 	} catch (error) {
 		errorMsg.value = error.message;
 	}
-}
-
-function parseFrontendLicenses(resp) {
-	const packages = [];
-
-	for (const license of Object.keys(resp)) {
-		const allLicenses = resp[license];
-
-		for (const l of allLicenses) {
-			packages.push({package: l.name, license: l.license});
-		}
-	}
-
-	frontendLicenses.value = packages;
-}
-
-async function fetchBackendLicenses() {
-	errorMsg.value = '';
-	try {
-		const response = await fetch('/backend_licenses.json');
-		parseBackendLicenses(await response.json());
-	} catch (error) {
-		errorMsg.value = error.message;
-	}
-}
-
-function parseBackendLicenses(resp) {
-	backendLicenses.value = resp.licenses;
 }
 
 async function openDialog(title, license) {
