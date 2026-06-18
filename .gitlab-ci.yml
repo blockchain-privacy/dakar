@@ -43,22 +43,21 @@ go-test:
     RPC_HOSTNAME: "bitcoind" # name of the bitcoin container
   script:
     - cd backend
-    # start tests
     - go install gotest.tools/gotestsum@latest
     - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race ./...
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
-      alias: dgraph_db # database for db module
+      alias: dgraph_db
       entrypoint:
         - '/bin/sh'
         - '-c'
         - |
-          echo "2A8YS50sg4MBL1uSsAwXPVZSdSCjBHbu" > /acl_secret
+          tr -dc 'a-zA-Z0-9' < /dev/urandom | dd bs=1 count=32 of=/acl_secret
           /run.sh
       variables:
         DGRAPH_ALPHA_ACL: secret-file=/acl_secret
     - name: lnliz/bitcoind:$BITCOIND_VERSION
-      alias: bitcoind # rpc server for rpc testing
+      alias: bitcoind
       entrypoint: ["bitcoind"]
       command: ["-regtest", "-rpcuser=rpc1user", "-rpcpassword=1234pass", "-rpcport=8131", "-rpcallowip=0.0.0.0/0", "-rpcbind=0.0.0.0", "-txindex"]
   cache:
