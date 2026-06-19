@@ -1,184 +1,146 @@
-{
-  "licenses": [
-    {
-      "package": "github.com/btcsuite/btcd",
-      "url": "https://github.com/btcsuite/btcd/blob/v0.25.0/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/btcsuite/btcd/btcec/v2",
-      "url": "https://github.com/btcsuite/btcd/blob/btcec/v2.5.0/btcec/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/btcsuite/btcd/btcutil",
-      "url": "https://github.com/btcsuite/btcd/blob/btcutil/v1.2.0/btcutil/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/btcsuite/btcd/chaincfg/chainhash",
-      "url": "https://github.com/btcsuite/btcd/blob/chaincfg/chainhash/v1.2.0/chaincfg/chainhash/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/btcsuite/btcd/chainhash/v2",
-      "url": "https://github.com/btcsuite/btcd/blob/chainhash/v2.0.0/chainhash/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/btcsuite/btclog",
-      "url": "https://github.com/btcsuite/btclog/blob/3428138b75c7/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/cespare/xxhash/v2",
-      "url": "https://github.com/cespare/xxhash/blob/v2.3.0/LICENSE.txt",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/decred/dcrd/crypto/blake256",
-      "url": "https://github.com/decred/dcrd/blob/crypto/blake256/v1.1.0/crypto/blake256/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/decred/dcrd/dcrec/secp256k1/v4",
-      "url": "https://github.com/decred/dcrd/blob/dcrec/secp256k1/v4.4.1/dcrec/secp256k1/LICENSE",
-      "license": "ISC"
-    },
-    {
-      "package": "github.com/dgraph-io/dgo/v250",
-      "url": "https://github.com/dgraph-io/dgo/blob/v250.0.0/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/dgraph-io/ristretto/v2",
-      "url": "https://github.com/dgraph-io/ristretto/blob/v2.4.0/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/dgraph-io/ristretto/v2/z",
-      "url": "https://github.com/dgraph-io/ristretto/blob/v2.4.0/z/LICENSE",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/dustin/go-humanize",
-      "url": "https://github.com/dustin/go-humanize/blob/v1.0.1/LICENSE",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/goccy/go-yaml",
-      "url": "https://github.com/goccy/go-yaml/blob/v1.19.2/LICENSE",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/google/jsonschema-go/jsonschema",
-      "url": "https://github.com/google/jsonschema-go/blob/v0.4.3/LICENSE",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/modelcontextprotocol/go-sdk",
-      "url": "https://github.com/modelcontextprotocol/go-sdk/blob/v1.6.1/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/modelcontextprotocol/go-sdk",
-      "url": "https://github.com/modelcontextprotocol/go-sdk/blob/v1.6.1/LICENSE",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/munnerz/goautoneg",
-      "url": "https://github.com/munnerz/goautoneg/blob/a7dc8b61c822/LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil",
-      "url": "https://github.com/prometheus/client_golang/blob/v1.23.2/internal/github.com/golang/gddo/LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "github.com/prometheus/client_golang/prometheus",
-      "url": "https://github.com/prometheus/client_golang/blob/v1.23.2/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/prometheus/client_model/go",
-      "url": "https://github.com/prometheus/client_model/blob/v0.6.2/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/prometheus/common",
-      "url": "https://github.com/prometheus/common/blob/v0.67.5/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/prometheus/procfs",
-      "url": "https://github.com/prometheus/procfs/blob/v0.20.1/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "github.com/segmentio/encoding",
-      "url": "https://github.com/segmentio/encoding/blob/v0.5.4/LICENSE",
-      "license": "MIT"
-    },
-    {
-      "package": "github.com/yosida95/uritemplate/v3",
-      "url": "https://github.com/yosida95/uritemplate/blob/v3.0.2/LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "gitlab.com/blockchain-privacy/gomisc",
-      "url": "https://gitlab.com/blockchain-privacy/gomisc/-/blob/v0.0.4/LICENSE",
-      "license": "AGPL-3.0"
-    },
-    {
-      "package": "go.yaml.in/yaml/v2",
-      "url": "https://github.com/yaml/go-yaml/blob/v2.4.4/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "golang.org/x/crypto",
-      "url": "https://cs.opensource.google/go/x/crypto/+/v0.52.0:LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "golang.org/x/net",
-      "url": "https://cs.opensource.google/go/x/net/+/v0.55.0:LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "golang.org/x/oauth2",
-      "url": "https://cs.opensource.google/go/x/oauth2/+/v0.36.0:LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "golang.org/x/sys",
-      "url": "https://cs.opensource.google/go/x/sys/+/v0.45.0:LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "golang.org/x/text",
-      "url": "https://cs.opensource.google/go/x/text/+/v0.37.0:LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "gonum.org/v1/gonum",
-      "url": "https://github.com/gonum/gonum/blob/v0.17.0/LICENSE",
-      "license": "BSD-3-Clause"
-    },
-    {
-      "package": "google.golang.org/genproto/googleapis/rpc/status",
-      "url": "https://github.com/googleapis/go-genproto/blob/3dc84a4a5aaa/googleapis/rpc/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "google.golang.org/grpc",
-      "url": "https://github.com/grpc/grpc-go/blob/v1.81.1/LICENSE",
-      "license": "Apache-2.0"
-    },
-    {
-      "package": "google.golang.org/protobuf",
-      "url": "https://github.com/protocolbuffers/protobuf-go/blob/v1.36.11/LICENSE",
-      "license": "BSD-3-Clause"
-    }
-  ]
-}
+[
+  {
+    "name": "github.com/btcsuite/btcd",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/btcsuite/btcd/btcec/v2",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/btcsuite/btcd/btcutil",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/btcsuite/btcd/chaincfg/chainhash",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/btcsuite/btcd/chainhash/v2",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/btcsuite/btclog",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/cespare/xxhash/v2",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/decred/dcrd/crypto/blake256",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/decred/dcrd/dcrec/secp256k1/v4",
+    "license": "ISC"
+  },
+  {
+    "name": "github.com/dgraph-io/dgo/v250",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/dgraph-io/ristretto/v2",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/dgraph-io/ristretto/v2/z",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/dustin/go-humanize",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/goccy/go-yaml",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/google/jsonschema-go/jsonschema",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/modelcontextprotocol/go-sdk",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/modelcontextprotocol/go-sdk",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/munnerz/goautoneg",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "github.com/prometheus/client_golang/prometheus",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/prometheus/client_model/go",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/prometheus/common",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/prometheus/procfs",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "github.com/segmentio/encoding",
+    "license": "MIT"
+  },
+  {
+    "name": "github.com/yosida95/uritemplate/v3",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "gitlab.com/blockchain-privacy/gomisc",
+    "license": "AGPL-3.0"
+  },
+  {
+    "name": "go.yaml.in/yaml/v2",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "golang.org/x/crypto",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "golang.org/x/net",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "golang.org/x/oauth2",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "golang.org/x/sys",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "golang.org/x/text",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "gonum.org/v1/gonum",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "google.golang.org/genproto/googleapis/rpc/status",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "google.golang.org/grpc",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "google.golang.org/protobuf",
+    "license": "BSD-3-Clause"
+  }
+]
