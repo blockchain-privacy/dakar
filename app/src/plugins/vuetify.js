@@ -89,6 +89,9 @@ export default createVuetify({
 		VCheckbox: {
 			color: 'primary',
 		},
+		VBtn: {
+			color: undefined,
+		},
 		VCard: {
 			VCard: {
 				VToolbar: {
@@ -108,9 +111,6 @@ export default createVuetify({
 			},
 			VTextarea: {
 				variant: 'outlined',
-			},
-			VBtn: {
-				color: 'primary',
 			},
 		},
 	},

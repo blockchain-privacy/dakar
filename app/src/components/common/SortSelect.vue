@@ -12,9 +12,8 @@
       return-object
       :variant="variant"
     />
-    <v-btn
+    <v-icon-btn
       :icon="direction?mdiSortDescending:mdiSortAscending"
-      variant="text"
       class="ms-1"
       @click="direction = !direction"
     />

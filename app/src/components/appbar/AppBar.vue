@@ -52,22 +52,22 @@
         <v-icon>{{ mdiBullhorn }}</v-icon>
       </v-badge>
     </v-btn>
-    <v-btn
+    <v-icon-btn
       v-if="session"
-      icon
+      variant="text"
     >
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
-    </v-btn>
+    </v-icon-btn>
     <v-menu v-if="session">
       <template #activator="{ props }">
-        <v-btn
+        <v-icon-btn
           v-bind="props"
           id="app-bar-menu"
-          icon
-        >
-          <v-icon>{{ mdiAccount }}</v-icon>
-        </v-btn>
+          :icon="mdiAccount"
+          class="me-2"
+          variant="text"
+        />
       </template>
       <v-list
         nav

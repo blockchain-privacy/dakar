@@ -64,13 +64,11 @@
           Saved
         </template>
       </div>
-      <v-btn
+      <v-icon-btn
         v-tooltip="{'text': 'Shortcut Overview', 'open-delay': 400}"
         :class="{'shortcuts-sm': $vuetify.display.smAndDown, 'shortcuts': $vuetify.display.mdAndUp }"
         :icon="mdiKeyboard"
         variant="text"
-        size="small"
-        :ripple="false"
         @click="showShortcutDialog = true"
       />
       <!-- position: relative; is needed so the dialog is contained in its parent -->

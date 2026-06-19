@@ -10,7 +10,7 @@
     content-class="mt-7"
   >
     <template #activator="item">
-      <v-btn
+      <v-icon-btn
         v-if="icon"
         :icon="icon"
         v-bind="item.props"

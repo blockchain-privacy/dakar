@@ -24,16 +24,15 @@
           page.
         </p>
         <v-fade-transition>
-          <v-btn
+          <v-icon-btn
             v-if="clusters.length > 0"
-            icon
             variant="text"
             class="ms-auto"
             :loading="isClusterReportLoading"
             @click="downloadClusterReport"
           >
             <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
-          </v-btn>
+          </v-icon-btn>
         </v-fade-transition>
       </v-card-text>
     </v-card>
@@ -79,14 +78,14 @@
           >
             {{ c.addressCount }}
           </v-chip>
-          <v-btn
+          <v-icon-btn
             v-if="c.type === 'custom'"
-            icon
             variant="text"
+            class="text-body-large"
             @click="deleteCluster(c.uid, c.addressCount)"
           >
             <v-icon>{{ mdiDelete }}</v-icon>
-          </v-btn>
+          </v-icon-btn>
         </v-card-title>
         <v-card-text v-if="c.txhash">
           <p class="text-body-large">

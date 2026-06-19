@@ -162,16 +162,17 @@
         </div>
       </v-expand-transition>
       <!-- use btn as width reference because it always exists -->
-      <v-btn
-        ref="outputContainer"
-        variant="text"
-        block
-        size="small"
-        style="margin-top:-16px;"
-        @click="showTransactionDetails = !showTransactionDetails"
-      >
-        <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
-      </v-btn>
+      <div class="d-flex justify-center">
+        <v-icon-btn
+          ref="outputContainer"
+          variant="text"
+          size="small"
+          style="margin-top:-16px;"
+          :rotate="showTransactionDetails?180:0"
+          :icon="mdiChevronDown"
+          @click="showTransactionDetails = !showTransactionDetails"
+        />
+      </div>
       <v-alert
         v-if="hasUncommonWasabi2Denomination"
         color="info"
@@ -322,7 +323,6 @@ import {
 	mdiCalendar,
 	mdiCash,
 	mdiChevronDown,
-	mdiChevronUp,
 	mdiFormatHeaderPound,
 	mdiFormatListNumbered,
 	mdiPickaxe,

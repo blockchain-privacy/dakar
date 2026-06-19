@@ -54,13 +54,11 @@
           <template #item.actions="{ item }">
             <v-menu>
               <template #activator="{ props }">
-                <v-btn
+                <v-icon-btn
                   v-bind="props"
-                  icon
+                  :icon="mdiDotsVertical"
                   variant="text"
-                >
-                  <v-icon>{{ mdiDotsVertical }}</v-icon>
-                </v-btn>
+                />
               </template>
               <v-list>
                 <v-list-item @click="showEditDialog(item)">
@@ -123,13 +121,11 @@
           <template #item.actions="{ item }">
             <v-menu>
               <template #activator="{ props }">
-                <v-btn
+                <v-icon-btn
                   v-bind="props"
-                  icon
+                  :icon="mdiDotsVertical"
                   variant="text"
-                >
-                  <v-icon>{{ mdiDotsVertical }}</v-icon>
-                </v-btn>
+                />
               </template>
               <v-list>
                 <v-list-item @click="showDeleteSessionDialog(item.id)">
@@ -171,13 +167,11 @@
           <template #item.actions="{ item }">
             <v-menu>
               <template #activator="{ props }">
-                <v-btn
+                <v-icon-btn
                   v-bind="props"
-                  icon
+                  :icon="mdiDotsVertical"
                   variant="text"
-                >
-                  <v-icon>{{ mdiDotsVertical }}</v-icon>
-                </v-btn>
+                />
               </template>
               <v-list>
                 <v-list-item @click="showDeleteConsentDialog(item.consent_request.consent_request_id)">
@@ -242,13 +236,11 @@
           <template #item.actions="{ item }">
             <v-menu>
               <template #activator="{ props }">
-                <v-btn
+                <v-icon-btn
                   v-bind="props"
-                  icon
+                  :icon="mdiDotsVertical"
                   variant="text"
-                >
-                  <v-icon>{{ mdiDotsVertical }}</v-icon>
-                </v-btn>
+                />
               </template>
               <v-list>
                 <v-list-item @click="showEditClientDialog(item)">

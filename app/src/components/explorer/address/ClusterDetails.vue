@@ -15,7 +15,7 @@
         <v-list-item-subtitle>
           <workspace-link
             disable-select
-            :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: txHash, blockchainMode: route.params.blockchainMode }}"
+            :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash, blockchainMode: route.params.blockchainMode }}"
           >
             {{ txHash }}
           </workspace-link>

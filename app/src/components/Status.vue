@@ -18,15 +18,11 @@
               :icon="mdiDatabase"
             />
             <v-spacer />
-            <v-btn
-              icon
+            <v-icon-btn
+              :icon="mdiRefresh"
               variant="text"
               @click="refreshData"
-            >
-              <v-icon>
-                {{ mdiRefresh }}
-              </v-icon>
-            </v-btn>
+            />
           </div>
           <v-card-text>
             <alert
