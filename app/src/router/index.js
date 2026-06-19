@@ -30,7 +30,8 @@ const WorkspacePage = () => import('@/components/tools/workspaces/WorkspacePage.
 const ErrorPage = () => import('@/components/ErrorPage.vue');
 const OAuthConsentPage = () => import('@/components/user/OAuthConsentPage.vue');
 const OAuthVerificationPage = () => import('@/components/user/OAuthVerificationPage.vue');
-
+const LicensesPage = () => import('@/components/Licenses.vue');
+const AboutPage = () => import('@/components/About.vue');
 let navStore = null;
 let localStore = null;
 
@@ -207,8 +208,12 @@ export const router = createRouter({
 		{
 			path: '/about',
 			name: Constants.ROUTE_NAME_ABOUT,
-			component: TextLoaderPage,
-			props: {pageTitle: 'About', url: 'about.html'},
+			component: AboutPage,
+		},
+		{
+			path: '/licenses',
+			name: Constants.ROUTE_NAME_LICENSES,
+			component: LicensesPage,
 		},
 		{
 			path: '/privacy',

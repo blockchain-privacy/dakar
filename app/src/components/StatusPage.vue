@@ -14,9 +14,9 @@
 </template>
 
 <script setup>
-import {computed} from 'vue';
+import {computed, onMounted} from 'vue';
 import {storeToRefs} from 'pinia';
-import {BLOCKCHAIN_ATTRIBUTES} from '@/constants/index.js';
+import {BLOCKCHAIN_ATTRIBUTES, PAGE_TITLE} from '@/constants/index.js';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities/index.js';
 import {useLocalStore} from '@/pinia/local.js';
 import Status from '@/components/Status.vue';
@@ -26,6 +26,11 @@ const {session} = storeToRefs(useLocalStore());
 // Computed
 const authPerMode = computed(() => Object.values(BLOCKCHAIN_ATTRIBUTES).filter(m => isPrivilegedIdentity(session.value, m.mode)
 	|| isAdminIdentity(session.value, m.mode)));
+
+// Hooks
+onMounted(() => {
+	document.title = `Status - ${PAGE_TITLE}`;
+});
 
 </script>
 

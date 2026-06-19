@@ -9,6 +9,7 @@ RESET  = $(shell tput -Txterm sgr0)
 
 .PHONY: all build clean test vet lint tidy update_dependencies docker
 .PHONY: openapi-fmt openapi-spec openapi-client openapi-publish push-tag spellcheck-wikiapi
+.PHONY: licenses backend-licenses frontend-licenses
 
 all: dakar
 build: dakar
@@ -61,6 +62,15 @@ push-tag: ## increment the most recent tag and push it and any local commits
 ## Spellcheck:
 spellcheck-wiki: ## check the spelling of all markdown files in docker/wikiapi/files
 	find ../docker/wikiapi/files/ -type f -name "*.md" -exec aspell --dont-backup -c "{}" \;
+
+## Licenses
+licenses: backend-licenses frontend-licenses ## generate both backend frontend licenses
+
+backend-licenses: ## generate a JSON file that contains license information of all golang dependencies
+	go-licenses report ./cmd/dakar | grep -v "Unknown" | jq -R '{licenses: [inputs | split(",") | {package: .[0], url: .[1], license: .[2]}]}' > ../app/public/backend_licenses.json
+
+frontend-licenses: ## generate a JSON file that contains license information of all Javascript dependencies
+	(cd ../app && pnpm licenses ls --prod --json | jq 'map_values(map({name,license}))' > ../app/public/frontend_licenses.json)
 
 ## Help:
 help: ## Show this help.

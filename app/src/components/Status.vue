@@ -189,7 +189,7 @@ import {
 	onBeforeUnmount,
 } from 'vue';
 import IconItem from './common/IconItem.vue';
-import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
+import {ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import {getDakarClient} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import Alert from '@/components/common/Alert.vue';
@@ -248,7 +248,6 @@ const clusteringFMISyncProgress = computed(() => {
 
 // Hooks
 onMounted(() => {
-	document.title = `Status - ${PAGE_TITLE}`;
 	// Initially get data
 	refreshData();
 });
