@@ -6,7 +6,7 @@ x-logging:
 
 services:
   zero:
-    image: dgraph/dgraph:v25.3.4
+    image: dgraph/dgraph:v25.3.5
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -19,7 +19,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v25.3.4
+    image: dgraph/dgraph:v25.3.5
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
