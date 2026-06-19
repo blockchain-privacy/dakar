@@ -14,7 +14,7 @@ services:
       - 9080
   bitcoin:
     container_name: bitcoind
-    image: lncm/bitcoind:v28.0
+    image: lnliz/bitcoind:v31.0
     entrypoint: ["bitcoind"]
     command: -regtest -rpcuser=rpc1user -rpcpassword=1234pass -rpcport=8131 -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0 -txindex
     ports:

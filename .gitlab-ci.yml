@@ -5,7 +5,7 @@ variables:
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v25.3.4
   SWAGGO_VERSION: 1.16.6
-  BITCOIND_VERSION: v28.0
+  BITCOIND_VERSION: v31.0
   OPEN_API_GENERATOR_VERSION: v7.21.0
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
 
@@ -58,7 +58,7 @@ go-test:
           /run.sh
       variables:
         DGRAPH_ALPHA_ACL: secret-file=/acl_secret
-    - name: lncm/bitcoind:$BITCOIND_VERSION
+    - name: lnliz/bitcoind:$BITCOIND_VERSION
       alias: bitcoind # rpc server for rpc testing
       entrypoint: ["bitcoind"]
       command: ["-regtest", "-rpcuser=rpc1user", "-rpcpassword=1234pass", "-rpcport=8131", "-rpcallowip=0.0.0.0/0", "-rpcbind=0.0.0.0", "-txindex"]
