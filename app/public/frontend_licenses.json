@@ -331,15 +331,15 @@
   ],
   "AGPL-3.0-only": [
     {
+      "name": "@blockchain-privacy/dakar",
+      "license": "AGPL-3.0-only"
+    },
+    {
       "name": "@blockchain-privacy/kratosadmin",
       "license": "AGPL-3.0-only"
     },
     {
       "name": "@blockchain-privacy/wikiapi",
-      "license": "AGPL-3.0-only"
-    },
-    {
-      "name": "@blockchain/dakar",
       "license": "AGPL-3.0-only"
     }
   ],

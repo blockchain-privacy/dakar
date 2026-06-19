@@ -9,7 +9,7 @@ import {
 	MetaApi,
 	ToolsApi,
 	WorkspaceApi,
-} from '@blockchain/dakar';
+} from '@blockchain-privacy/dakar';
 import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
 import {useLocalStore} from '@/pinia/local';

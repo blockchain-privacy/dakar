@@ -2,11 +2,10 @@
 image: golang:latest
 
 variables:
-  GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v25.3.4
   SWAGGO_VERSION: 1.16.6
   BITCOIND_VERSION: v31.0
-  OPEN_API_GENERATOR_VERSION: v7.21.0
+  OPEN_API_GENERATOR_VERSION: v7.23.0
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/dakar/${CI_COMMIT_TAG}"
 
 stages:
@@ -177,13 +176,13 @@ npm-client:
     - cd backend/openapi/client/typescript-fetch
     - |
       cat > .npmrc << EOF
-      @blockchain:registry="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+      @blockchain-privacy:registry="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
       //gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${NPM_AUTH_TOKEN}
       EOF
     - |
       cat > package.json << EOF
       {
-        "name": "@blockchain/dakar",
+        "name": "@blockchain-privacy/dakar",
         "version": "${CI_COMMIT_TAG}",
         "description": "Dakar client",
         "main": "index.ts",
