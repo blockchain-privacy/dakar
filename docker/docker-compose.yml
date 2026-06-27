@@ -6,10 +6,10 @@ x-logging:
 
 services:
   zero:
-    image: dgraph/dgraph:v25.3.5
+    image: dgraph/dgraph:v25.3.7
     container_name: zero
     volumes:
-      - ${DGRAPH_PATH}:/dgraph
+      - ${DGRAPH_PATH}:/dgraph:z
     ports:
       - "${CONTAINER_IP}:5080:5080"
       - "${CONTAINER_IP}:6080:6080"
@@ -19,10 +19,10 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v25.3.5
+    image: dgraph/dgraph:v25.3.7
     container_name: alpha
     volumes:
-      - ${DGRAPH_PATH}:/dgraph
+      - ${DGRAPH_PATH}:/dgraph:z
     ports:
       - "${CONTAINER_IP}:8080:8080"
       - "${CONTAINER_IP}:9080:9080"
@@ -62,7 +62,7 @@ services:
     command: serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS}
 #    command: migrate sql -e up --yes
     volumes:
-      - ./kratos:/etc/config/kratos
+      - ./kratos:/etc/config/kratos:z
     networks:
       - dgraph_default
     logging: *default-logging
@@ -78,8 +78,8 @@ services:
     command: serve -c /etc/config/hydra/config.yml all --dev
 #    command: migrate -c /etc/config/hydra/config.yml sql up -e --yes
     volumes:
-      - ./hydra/sqlite:/var/lib/sqlite
-      - ./hydra/config.yml:/etc/config/hydra/config.yml
+      - ./hydra/sqlite:/var/lib/sqlite:Z
+      - ./hydra/config.yml:/etc/config/hydra/config.yml:Z
     environment:
       - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
     restart: unless-stopped
@@ -97,7 +97,7 @@ services:
       - POSTGRES_PASSWORD=${KRATOS_POSTGRES_PASSWORD}
       - POSTGRES_DB=kratos
     volumes:
-      - ./kratos/postgres:/var/lib/postgresql
+      - ./kratos/postgres:/var/lib/postgresql:z
     networks:
       - dgraph_default
 
@@ -114,7 +114,7 @@ services:
     image: dashpay/dashd:23.1
     container_name: dashd
     volumes:
-      - ${DASH_PATH}:/home/dash
+      - ${DASH_PATH}:/home/dash:Z
     ports:
       - "${CONTAINER_IP}:9999:9999"
       - "${CONTAINER_IP}:9998:9998"
@@ -130,8 +130,8 @@ services:
     image: registry.gitlab.com/blockchain-privacy/wikiapi:latest
     container_name: wikiapi
     volumes:
-      - ./wikiapi/files:/data
-      - ./wikiapi/config.yml:/config.yml
+      - ./wikiapi/files:/data:Z
+      - ./wikiapi/config.yml:/config.yml:Z
     ports:
       - "4567:4567"
     expose:
@@ -143,7 +143,7 @@ services:
     image: registry.gitlab.com/blockchain-privacy/kratosadmin:latest
     container_name: kratosadmin
     volumes:
-      - ./kratosadmin/config.yml:/config.yml
+      - ./kratosadmin/config.yml:/config.yml:Z
     ports:
       - "9316:9316"
     expose:
@@ -166,7 +166,7 @@ services:
     networks:
       - dgraph_default
     volumes:
-      - ./oathkeeper:/etc/config/oathkeeper
+      - ./oathkeeper:/etc/config/oathkeeper:Z
     logging: *default-logging
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -180,8 +180,8 @@ services:
     command: serve -c /home/ory/keto.yml --sqa-opt-out
     restart: on-failure
     volumes:
-      - ./keto/keto.yml:/home/ory/keto.yml
-      - ./keto/namespaces.ts:/home/ory/namespaces.ts
+      - ./keto/keto.yml:/home/ory/keto.yml:Z
+      - ./keto/namespaces.ts:/home/ory/namespaces.ts:Z
     networks:
       - dgraph_default
 
@@ -193,7 +193,7 @@ services:
     environment:
       - KETO_WRITE_REMOTE=keto:4467
     volumes:
-      - ./keto/relationships.json:/home/ory/relationships.json
+      - ./keto/relationships.json:/home/ory/relationships.json:Z
     command: relation-tuple create -f /home/ory/relationships.json --insecure-disable-transport-security
     restart: on-failure
     networks:
@@ -203,9 +203,8 @@ services:
     image: grafana/promtail:2.9.0
     container_name: promtail
     volumes:
-      - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml:ro
-      - /var/log/journal/:/var/log/journal/:ro
-      - /etc/machine-id:/etc/machine-i:ro
+      - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml:Z
+      - /var/log/journal/:/var/log/journal/:Z
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - dgraph_default
