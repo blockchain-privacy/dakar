@@ -203,9 +203,11 @@ services:
     image: grafana/promtail:2.9.0
     container_name: promtail
     volumes:
-      - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml:Z
-      - /var/log/journal/:/var/log/journal/:Z
+      - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml
+      - /var/log/journal/:/var/log/journal/
     command: -config.file=/etc/promtail/config.yaml
+    security_opt:
+      - label=disable
     networks:
       - dgraph_default
 
