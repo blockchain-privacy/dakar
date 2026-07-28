@@ -161,10 +161,8 @@
           <div style="height: 10px" />
         </div>
       </v-expand-transition>
-      <!-- use btn as width reference because it always exists -->
       <div class="d-flex justify-center">
         <v-icon-btn
-          ref="outputContainer"
           variant="text"
           size="small"
           style="margin-top:-16px;"
@@ -208,7 +206,7 @@
         :hide-slider="!isTabMode"
         mandatory
       >
-        <v-row>
+        <v-row ref="outputContainer">
           <v-col class="d-flex">
             <output-sort
               v-if="tx.inputs?.length > 1"
