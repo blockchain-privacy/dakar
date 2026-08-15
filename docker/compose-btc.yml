@@ -54,7 +54,7 @@ services:
 
 #  bitcoind:
 #    container_name: bitcoind
-#    image: lnliz/bitcoind:v31.0
+#    image: lnliz/bitcoind:v31.1
 #    entrypoint: ["bitcoind"]
 #    volumes:
 #      - ${BITCOIN_PATH}:/data/.bitcoin
