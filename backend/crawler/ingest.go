@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/chaincfg/v2"
+	"github.com/btcsuite/btcd/txscript/v2"
 	"gitlab.com/blockchain-privacy/dakar/cmd/cliutil"
 	"gitlab.com/blockchain-privacy/dakar/db"
 	dbstat "gitlab.com/blockchain-privacy/dakar/db/status"
