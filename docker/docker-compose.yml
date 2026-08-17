@@ -6,7 +6,7 @@ x-logging:
 
 services:
   zero:
-    image: dgraph/dgraph:v25.3.8
+    image: dgraph/dgraph:v25.4.0
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph:z
@@ -19,7 +19,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v25.3.8
+    image: dgraph/dgraph:v25.4.0
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph:z
@@ -155,7 +155,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   oathkeeper:
-    image: oryd/oathkeeper:v25.4.0
+    image: registry.gitlab.com/blockchain-privacy/oathkeeper:latest
     container_name: oathkeeper
     user: "1000:1000"
     ports:
