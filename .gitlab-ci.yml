@@ -78,7 +78,6 @@ go-lint:
   image: golangci/golangci-lint:latest
   stage: test
   script:
-    - cd backend
     - make lint
   rules:
     - changes:
@@ -89,7 +88,6 @@ go-vet:
   stage: test
   needs: [ "dependencies" ]
   script:
-    - cd backend
     - make vet
   extends: .go-cache
   rules:
@@ -124,7 +122,6 @@ javascript-lint:
 build:
   stage: build
   script:
-    - cd backend
     - make
   extends: .go-cache
   artifacts:
@@ -144,6 +141,7 @@ swaggo:
     - cd backend
     - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download//v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
+    - cd ..
     - make openapi-fmt
     - make openapi-spec
   artifacts:

@@ -1,5 +1,5 @@
-BUILD_DIR := "build"
-DAKAR_DIR := "./cmd/dakar"
+BUILD_DIR := build
+DAKAR_DIR := ./cmd/dakar
 
 GREEN  = $(shell tput -Txterm setaf 2)
 YELLOW = $(shell tput -Txterm setaf 3)
@@ -16,56 +16,56 @@ build: dakar
 
 ## Test:
 lint: ## Lint the files
-	golangci-lint run
+	cd backend && golangci-lint run
 
 test: ## Run tests
-	go test -cover -race ./...
+	cd backend && go test -cover -race ./...
 
 vet: ## Run vet
-	go vet ./...
+	cd backend && go vet ./...
 
 ## Dependencies:
 update_dependencies: ## Update Golang dependencies
-	@go get -u ./...
+	cd backend && go get -u ./...
 
 tidy: ## Run go mod tidy on the default go.mod file
-	@go mod tidy
+	cd backend && go mod tidy
 
 ## Build:
 dakar: ## Build the dakar binary
-	go build -v -o $(BUILD_DIR)/dakar $(DAKAR_DIR)
+	cd backend && go build -v -o $(BUILD_DIR)/dakar $(DAKAR_DIR)
 
 clean: ## Remove previous build
-	@rm -rf $(BUILD_DIR)
+	@rm -rf backend/$(BUILD_DIR)
 
 ## Docker:
 docker: ## Build Docker image for the dakar binary
-	docker build -t dakar .
+	docker build -t dakar backend
 
 ## Open API:
 openapi-fmt: ## Formats swagger annotations
-	./swag fmt -d cmd/dakar,server
+	cd backend && ./swag fmt -d cmd/dakar,server
 
 openapi-spec: ## Creates openapi spec
-	mkdir -p openapi && ./swag init --pd -d cmd/dakar,server -o openapi
+	cd backend && mkdir -p openapi && ./swag init --pd -d cmd/dakar,server -o openapi
 
 openapi-client: ## Creates a javascript client based on the openapi spec
-	(cd ../docker && sudo docker compose -f docker-compose-openapi.yml up && sudo docker compose -f docker-compose-openapi.yml rm -fsv)
+	(cd docker && sudo docker compose -f docker-compose-openapi.yml up && sudo docker compose -f docker-compose-openapi.yml rm -fsv)
 
 openapi-publish: ## Publishes an existing client to the configured repository
-	(cd openapi/client/typescript-fetch && pnpm publish)
+	(cd backend/openapi/client/typescript-fetch && pnpm publish)
 
 ## Git:
 push-tag: ## increment the most recent tag and push it and any local commits
-	bash createTag.sh
+	bash backend/createTag.sh
 
 ## Spellcheck:
 spellcheck-wiki: ## check the spelling of all markdown files in docker/wikiapi/files
-	find ../docker/wikiapi/files/ -type f -name "*.md" -exec aspell --dont-backup -c "{}" \;
+	find docker/wikiapi/files/ -type f -name "*.md" -exec aspell --dont-backup -c "{}" \;
 
 ## Licenses
 licenses: ## generate a JSON file that contains license information of all Javascript and Golang dependencies
-	{ go-licenses report ./cmd/dakar | grep -v "Unknown" | jq -R '[inputs | split(",") | {name: .[0], license: .[2]}]'; (cd ../app && pnpm licenses ls --prod --json | jq 'map_values(map({name,license})) | [.[] | .[]]'); } | jq -s '{ backend: .[0], frontend: .[1] }' > ../app/public/licenses.json
+	{ cd backend && go-licenses report ./cmd/dakar | grep -v "Unknown" | jq -R '[inputs | split(",") | {name: .[0], license: .[2]}]'; (cd ../app && pnpm licenses ls --prod --json | jq 'map_values(map({name,license})) | [.[] | .[]]'); } | jq -s '{ backend: .[0], frontend: .[1] }' > app/public/licenses.json
 
 ## Help:
 help: ## Show this help.
