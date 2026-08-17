@@ -1,11 +1,11 @@
 # Workspaces
 
-A Workspace is a graph visualization tool designed to enhance your analysis of blockchain transactions and address clusters. It provides users with an intuitive interface to explore complex relationships and patterns within the blockchain, enabling deeper insights into transaction behaviors and structures.
+A Workspace is a graph visualisation tool designed to enhance your analysis of blockchain transactions and address clusters. It provides users with an intuitive interface to explore complex relationships and patterns within the blockchain, enabling deeper insights into transaction behaviours and structures.
 
 ## Features
 
-### Visualize Connections Between Transactions and Address Clusters
-A Workspace allows users to visualize the intricate connections between various transactions and address clusters. This feature helps in understanding how different entities interact within the blockchain ecosystem, making it easier to identify relationships and potential patterns of behavior.
+### Visualise Connections Between Transactions and Address Clusters
+A Workspace allows users to visualise the intricate connections between various transactions and address clusters. This feature helps in understanding how different entities interact within the blockchain ecosystem, making it easier to identify relationships and potential patterns of behaviour.
 
 ### CoinJoin Heuristics
 CoinJoin heuristics are analytical tools used to identify potential senders and receivers involved in CoinJoin transactions, employing distinct methodologies to narrow down the pool of possible candidates and enhancing the accuracy of transaction analysis. By applying these heuristics, users can gain insights into the relationships and interactions within CoinJoin transactions, ultimately improving their understanding of privacy-enhancing techniques in blockchain networks.

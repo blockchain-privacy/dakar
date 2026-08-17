@@ -1,6 +1,6 @@
 # Mixing Activity
 
-The mixing activity shows visualizations of classified transactions,
+The mixing activity shows visualisations of classified transactions,
 which can be attributed to one address or cluster. This allows to partially observe the mixing activity of a user. Only directly connected transaction are shown.
 
 ## Bar Chart

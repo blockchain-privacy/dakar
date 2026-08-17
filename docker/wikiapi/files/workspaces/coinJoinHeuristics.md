@@ -39,7 +39,7 @@ Depending on the transaction type, different kinds of CoinJoin heuristics are av
 
 ## Modifiers
 
-The behavior of each heuristic can be modified by the following options:
+The behaviour of each heuristic can be modified by the following options:
 
 - Use custom clusters: Use a predefined list of custom clusters in combination with multi-input clusters when executing the heuristic
 - Exclude spending gaps: Do not traverse outputs which have a spending gap

@@ -38,7 +38,7 @@ Note: Due to ongoing address clustering the number found transactions or address
 ![reverse amount heuristic](img/workspace_example_reverse_amount.webp)
 
 ### 8. Extract CoinJoin heuristic results
-Click on the *Reverse amount* heuristic to show the heuristic details' sidebar. Select two the transactions in the table and click on *Add Entities*. The selected transactions will appear in the workspace afterward. In this example two transactions, that belong to the same cluster (see cluster index in table), have been chosen. 
+Click on the *Reverse amount* heuristic to show the heuristic details' sidebar. Select two the transactions in the table and click on *Add Entities*. The selected transactions will appear in the workspace afterwards. In this example two transactions, that belong to the same cluster (see cluster index in table), have been chosen. 
 
 Because both of the transactions are results of both of the heuristics, connections between them are shown in the workspace editor.
 
@@ -53,4 +53,4 @@ Connections between nodes can carry important information. For example a connect
 
 ## 11. Explore
 
-Dakar allows viewing basic blockchain data, like transactions and addresses but also provides insights by analyzing CoinJoin graphs. Further explore features of Dakar by using workspaces, or discover more of them in the wiki.
+Dakar allows viewing basic blockchain data, like transactions and addresses but also provides insights by analysing CoinJoin graphs. Further explore features of Dakar by using workspaces, or discover more of them in the wiki.
