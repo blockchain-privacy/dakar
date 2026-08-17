@@ -15,10 +15,14 @@ stages:
   - publish
   - release
 
-.modcache: &modcache
-  key: modcache
-  paths:
-    - vendor/go/pkg/mod/
+.go-cache:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.go
+  before_script:
+    - mkdir -p .go
+  cache:
+    paths:
+      - .go/pkg/mod/
 
 dependencies:
   stage: dependencies
@@ -26,7 +30,7 @@ dependencies:
     - cd backend
     - go mod download
     - go get -v ./...
-  cache: *modcache
+  extends: .go-cache
   rules:
     - if: $CI_COMMIT_TAG
     - changes:
@@ -60,9 +64,7 @@ go-test:
       alias: bitcoind
       entrypoint: ["bitcoind"]
       command: ["-regtest", "-rpcuser=rpc1user", "-rpcpassword=1234pass", "-rpcport=8131", "-rpcallowip=0.0.0.0/0", "-rpcbind=0.0.0.0", "-txindex"]
-  cache:
-    <<: *modcache
-    policy: pull
+  extends: .go-cache
   artifacts:
     when: always
     reports:
@@ -89,9 +91,7 @@ go-vet:
   script:
     - cd backend
     - make vet
-  cache:
-    <<: *modcache
-    policy: pull
+  extends: .go-cache
   rules:
     - changes:
         paths:
@@ -126,9 +126,7 @@ build:
   script:
     - cd backend
     - make
-  cache:
-    <<: *modcache
-    policy: pull
+  extends: .go-cache
   artifacts:
     paths:
       - backend/build
