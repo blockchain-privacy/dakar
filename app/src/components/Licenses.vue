@@ -4,7 +4,14 @@
 
 <template>
   <v-container fluid>
-    <alert :text="errorMsg" />
+    <v-row class="align-center justify-center">
+      <v-col
+        md="12"
+        xl="8"
+      >
+        <alert :text="errorMsg" />
+      </v-col>
+    </v-row>
     <v-row
       v-for="type in licenseTypes"
       :key="type.text"
@@ -52,7 +59,7 @@
             </v-table>
             <v-skeleton-loader
               v-else
-              type="article@3"
+              type="list-item@3"
             />
           </v-card-text>
         </v-card>
@@ -110,16 +117,22 @@ const licenseTypes = [{text: 'JavaScript', ref: frontendLicenses}, {text: 'Golan
 onMounted(async () => {
 	document.title = `Licenses - ${PAGE_TITLE}`;
 
-	await fetchBackendLicenses('/backend_licenses.json', backendLicenses);
-	await fetchBackendLicenses('/frontend_licenses.json', frontendLicenses);
+	await fetchLicenses();
 });
 
 // Functions
-async function fetchBackendLicenses(url, licenseRef) {
+async function fetchLicenses() {
 	errorMsg.value = '';
 	try {
-		const response = await fetch(url);
-		licenseRef.value = await response.json();
+		const response = await fetch('/licenses.json');
+		const licenseJson = await response.json();
+		if (!licenseJson.frontend || !licenseJson.backend) {
+			errorMsg.value = 'invalid license data';
+			return;
+		}
+
+		frontendLicenses.value = licenseJson.frontend;
+		backendLicenses.value = licenseJson.backend;
 	} catch (error) {
 		errorMsg.value = error.message;
 	}
