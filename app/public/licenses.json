@@ -1,7 +1,7 @@
 {
   "backend": [
     {
-      "name": "github.com/btcsuite/btcd",
+      "name": "github.com/btcsuite/btcd/address/v2",
       "license": "ISC"
     },
     {
@@ -9,15 +9,19 @@
       "license": "ISC"
     },
     {
-      "name": "github.com/btcsuite/btcd/btcutil",
-      "license": "ISC"
-    },
-    {
-      "name": "github.com/btcsuite/btcd/chaincfg/chainhash",
+      "name": "github.com/btcsuite/btcd/chaincfg/v2",
       "license": "ISC"
     },
     {
       "name": "github.com/btcsuite/btcd/chainhash/v2",
+      "license": "ISC"
+    },
+    {
+      "name": "github.com/btcsuite/btcd/txscript/v2",
+      "license": "ISC"
+    },
+    {
+      "name": "github.com/btcsuite/btcd/wire/v2",
       "license": "ISC"
     },
     {
@@ -103,10 +107,6 @@
     {
       "name": "gitlab.com/blockchain-privacy/gomisc",
       "license": "AGPL-3.0"
-    },
-    {
-      "name": "go.yaml.in/yaml/v2",
-      "license": "Apache-2.0"
     },
     {
       "name": "golang.org/x/crypto",
@@ -376,6 +376,10 @@
     },
     {
       "name": "node-addon-api",
+      "license": "MIT"
+    },
+    {
+      "name": "nostics",
       "license": "MIT"
     },
     {
